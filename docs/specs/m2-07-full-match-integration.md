@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-07 — M2 통합: 3~4라운드 한 판이 끝까지 돈다

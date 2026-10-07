@@ -10,11 +10,10 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local CharacterUtil = require(script.Parent.CharacterUtil)
 local RoomService = require(script.Parent.RoomService)
 
 local EliminationService = {}
-
-local SPAWN_LIFT = Vector3.new(0, 3, 0)
 
 local playerResultEvent: RemoteEvent
 
@@ -29,7 +28,9 @@ end
 
 local function broadcast(player: Player, result: Types.PlayerResult)
 	for _, target in audienceFor(player) do
-		playerResultEvent:FireClient(target, result)
+		if target.Parent then -- 게임을 떠나는 중인 플레이어에게는 보내지 않아요
+			playerResultEvent:FireClient(target, result)
+		end
 	end
 end
 
@@ -66,17 +67,8 @@ function EliminationService.eliminate(player: Player, place: number)
 		if not player.Parent or player.Character ~= character then
 			return -- 그 사이 나갔거나 캐릭터가 바뀌었으면 손대지 않아요
 		end
-		if root then
-			root.Anchored = false
-		end
-		if humanoid then
-			humanoid.PlatformStand = false
-			humanoid.WalkSpeed = Config.Character.WalkSpeed
-		end
-		local spawn = workspace:FindFirstChild("LobbySpawn") :: BasePart?
-		if spawn then
-			character:PivotTo(spawn.CFrame + SPAWN_LIFT)
-		end
+		-- 고정 풀기와 이동 값 복구(WalkSpeed·JumpPower)까지 toLobby가 해요
+		CharacterUtil.toLobby(player)
 	end)
 end
 

@@ -5,15 +5,17 @@
 -- (한 서버에서 여러 방이 동시에 라운드를 돌릴 수 있어요). 방마다 지금 도는 라운드 하나의
 -- "플레이어 제거" 콜백만 activeRemovers에 담아 둬서, 매치 중 누가 방을 나가면 MatchService가 불러요.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Cleanup = require(ReplicatedStorage.Shared.Cleanup)
 local Maps = require(ReplicatedStorage.Shared.maps)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
+local Rules = require(ReplicatedStorage.Shared.Rules)
 
+local CharacterUtil = require(script.Parent.CharacterUtil)
 local EliminationService = require(script.Parent.EliminationService)
 local RoomService = require(script.Parent.RoomService)
 
@@ -66,8 +68,7 @@ local function placeAt(player: Player, spawn: BasePart)
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = Config.Character.WalkSpeed
-		humanoid.PlatformStand = false
+		CharacterUtil.resetMovement(humanoid)
 	end
 	character:PivotTo(spawn.CFrame + SPAWN_LIFT)
 end
@@ -84,12 +85,13 @@ local function progressOf(origin: CFrame, player: Player): number
 	return -relative.Z
 end
 
-function RoundService.runRound(args: RunRoundArgs): RoundResult
+-- runRound의 본문. 만든 것은 전부 cleanup에 넣고, 정리는 runRound가 성공/실패와 상관없이 해요.
+local function playRound(args: RunRoundArgs, cleanup: Cleanup.Cleanup): RoundResult
 	local map = args.map
 	local origin = RoomService.getArenaOrigin(args.roomId)
 	local model = map.build(origin)
+	cleanup:add(model) -- 아래 검사가 실패해도 모델이 남지 않게 Workspace에 넣기 전에 등록해요
 	model.Name = `Round{args.roundIndex}_{map.id}`
-	model.Parent = workspace
 
 	local spawnsFolder = model:FindFirstChild("Spawns")
 	assert(spawnsFolder, `{map.id}: build() must create a Spawns folder`)
@@ -98,9 +100,7 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 	table.sort(spawns, function(a, b)
 		return a.Name < b.Name
 	end)
-
-	local cleanup = Cleanup.new()
-	cleanup:add(model)
+	model.Parent = workspace
 
 	local remaining: { [number]: Player } = {}
 	for i, player in args.players do
@@ -110,7 +110,9 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 	end
 
 	local totalRacers = #args.players
-	local isFinal = map.kind == "Final"
+	-- 결승은 맵 종류가 아니라 매치의 마지막 라운드예요. 맵 풀이 모자라 Race 맵으로 결승을 돌려도
+	-- 1등은 Won을 받아요.
+	local isFinal = args.roundIndex == args.roundCount
 	local qualified: { number } = {}
 	local eliminated: { number } = {}
 	local active = true
@@ -147,7 +149,7 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 	local function finalizeEliminated(player: Player)
 		remaining[player.UserId] = nil
 		table.insert(eliminated, player.UserId)
-		local place = totalRacers - #eliminated + 1
+		local place = Rules.eliminationPlace(totalRacers, #eliminated)
 		EliminationService.eliminate(player, place)
 	end
 
@@ -177,28 +179,23 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 		end
 
 		if #leftover > 0 then
-			if isTimeout then
-				-- 시간이 끝났는데 목표만큼 통과를 못 했으면, 가장 멀리 간 순서로 나머지 자리를 채워요.
-				table.sort(leftover, function(a, b)
-					return progressOf(origin, a) > progressOf(origin, b)
-				end)
-				local neededMore = math.max(args.targetCount - #qualified, 0)
-				for i, player in leftover do
-					if i <= neededMore then
-						finalizeQualified(player)
-					else
-						finalizeEliminated(player)
-					end
-				end
-			elseif map.kind == "Survival" then
+			if not isTimeout and map.kind == "Survival" then
 				-- Survival: 목표 인원만 남을 때까지 버티는 거라, 남은 사람(=살아남은 사람) 전원이 통과예요.
 				for _, player in leftover do
 					finalizeQualified(player)
 				end
 			else
-				-- Race/Final: 결승선에 목표 인원이 들어오면 그 자리에서 끝나요 (GDD 5.2).
-				-- 아직 결승선을 못 넘은 나머지는 탈락이에요 (GDD 4.1: 매 라운드 최소 1명은 꼭 탈락).
-				for _, player in leftover do
+				-- 시간 종료: 목표만큼 통과를 못 했으면 가장 멀리 간 순서로 남은 자리를 채워요.
+				-- 목표 도달 종료(Race/Final): 결승선을 못 넘은 나머지는 전부 탈락이에요 (GDD 4.1, 5.2).
+				-- 탈락자는 못 간 사람부터 처리해서, 더 멀리 간 사람이 더 좋은 등수를 받아요.
+				local openSlots = if isTimeout then args.targetCount - #qualified else 0
+				local toQualify, toEliminate = Rules.settleLeftover(leftover, function(player: Player)
+					return progressOf(origin, player)
+				end, openSlots)
+				for _, player in toQualify do
+					finalizeQualified(player)
+				end
+				for _, player in toEliminate do
 					finalizeEliminated(player)
 				end
 			end
@@ -244,6 +241,16 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 		end,
 	}
 
+	if map.cleanup then
+		local mapCleanup = map.cleanup
+		cleanup:add(function()
+			local cleanupOk, cleanupErr = pcall(mapCleanup, ctx)
+			if not cleanupOk then
+				warn(`[RoundService] {map.id} cleanup() failed: {cleanupErr}`)
+			end
+		end)
+	end
+
 	activeRemovers[args.roomId] = function(player: Player)
 		if active and remaining[player.UserId] ~= nil then
 			finalizeEliminated(player)
@@ -267,16 +274,32 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 	end
 	finish(true) -- 이미 끝났으면 아무 일도 안 해요 (finish는 active 가드가 있어요)
 
-	activeRemovers[args.roomId] = nil
-	if map.cleanup then
-		local cleanupOk, cleanupErr = pcall(map.cleanup, ctx)
-		if not cleanupOk then
-			warn(`[RoundService] {map.id} cleanup() failed: {cleanupErr}`)
+	-- 맵이 곧 사라지니까 통과자를 먼저 로비 스폰으로 옮겨요. 결과 단계(·우승 연출) 동안 거기서 기다리다가
+	-- 다음 라운드 시작 때 새 맵 스폰으로 옮겨져요. 탈락자는 EliminationService가 따로 돌려보내요.
+	for _, userId in qualified do
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			CharacterUtil.toLobby(player)
 		end
 	end
-	cleanup:run()
 
 	return { qualifiedUserIds = qualified, eliminatedUserIds = eliminated }
+end
+
+-- 라운드 하나를 끝까지 돌리고 결과를 돌려줘요. 도중에 에러가 나도 맵·연결·스레드를 정리하고
+-- 방의 플레이어 제거 콜백을 지운 뒤 에러를 다시 던져요 (MatchService가 멤버를 로비로 돌려보내요).
+function RoundService.runRound(args: RunRoundArgs): RoundResult
+	local cleanup = Cleanup.new()
+	local ok, result = pcall(playRound, args, cleanup)
+	activeRemovers[args.roomId] = nil
+	local cleanupOk, cleanupErr = pcall(cleanup.run, cleanup)
+	if not cleanupOk then
+		warn(`[RoundService] round cleanup failed: {cleanupErr}`)
+	end
+	if not ok then
+		error(result, 0)
+	end
+	return result
 end
 
 -- 매치 중에 플레이어가 방을 나가면 MatchService가 불러요. 지금 그 방에 도는 라운드가 없으면 아무 일도 안 해요.

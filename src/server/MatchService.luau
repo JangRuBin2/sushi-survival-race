@@ -15,6 +15,7 @@ local Rules = require(ReplicatedStorage.Shared.Rules)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Maps = require(ReplicatedStorage.Shared.maps)
 
+local CharacterUtil = require(script.Parent.CharacterUtil)
 local RoomService = require(script.Parent.RoomService)
 local RoundService = require(script.Parent.RoundService)
 
@@ -24,8 +25,6 @@ type MatchContext = {
 	roomId: string,
 	aliveUserIds: { [number]: boolean },
 }
-
-local SPAWN_LIFT = Vector3.new(0, 3, 0)
 
 -- 방 id → 지금 진행 중인 매치. RoomService.onMemberLeft가 여기서 생존자 집계를 지워요.
 local matches: { [string]: MatchContext } = {}
@@ -58,15 +57,8 @@ local function alivePlayers(ctx: MatchContext): { Player }
 end
 
 local function sendHome(roomId: string)
-	local spawn = workspace:FindFirstChild("LobbySpawn") :: BasePart?
-	if spawn == nil then
-		return
-	end
 	for _, player in RoomService.getPlayers(roomId) do
-		local character = player.Character
-		if character then
-			character:PivotTo(spawn.CFrame + SPAWN_LIFT)
-		end
+		CharacterUtil.toLobby(player)
 	end
 end
 
@@ -93,6 +85,8 @@ local function runMatch(room: RoomService.Room, players: { Player })
 
 	local roundIndex: number? = 1
 	while plan and roundIndex and aliveCount(ctx) > 1 do
+		-- 결과 단계 뒤 nextRound가 정한 번호를, 그 사이 이탈까지 반영해서 한 번 더 맞춰요 (GDD 4.1)
+		roundIndex = Rules.roundToPlay(roundIndex, roundCount, aliveCount(ctx))
 		local mapInfo = (plan :: { Rules.MapInfo })[roundIndex]
 		local map = Maps.get(mapInfo.id)
 		local timeLimit = Maps.timeLimit(map)
@@ -111,6 +105,9 @@ local function runMatch(room: RoomService.Room, players: { Player })
 
 		if aliveCount(ctx) <= 1 then
 			break -- 소개 보여주는 사이에 인원이 줄어서 이미 승부가 났어요
+		end
+		if Rules.roundToPlay(roundIndex, roundCount, aliveCount(ctx)) ~= roundIndex then
+			continue -- 소개 중 이탈로 2명 이하가 됐어요: 이 라운드 대신 결승 소개부터 다시 해요
 		end
 		local targetCount = Rules.qualifyCount(aliveCount(ctx), roundCount, roundIndex)
 
@@ -177,6 +174,7 @@ function MatchService.start()
 		local ok, err = pcall(runMatch, room, players)
 		if not ok then
 			warn(`[MatchService] match for room {room.id} crashed: {err}`)
+			sendHome(room.id) -- 아레나에 남은 캐릭터를 로비로 돌려보내요
 			matches[room.id] = nil
 			RoomService.endMatch(room.id)
 		end
@@ -188,6 +186,10 @@ function MatchService.start()
 			ctx.aliveUserIds[player.UserId] = nil
 		end
 		RoundService.handlePlayerLeft(roomId, player)
+		-- 방만 나가고 게임에는 남은 사람은 아레나에 두지 않고 바로 로비로 보내요
+		if ctx and player.Parent then
+			CharacterUtil.toLobby(player)
+		end
 	end)
 end
 

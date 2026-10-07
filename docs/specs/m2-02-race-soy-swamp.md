@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-02 — Race 맵 "간장 늪 & 와사비 산" (회색 박스)
@@ -59,6 +59,56 @@ status: ready
 - 2026-10-08 · 날치알 공 "맞으면 넘어져요"를 M2에서 어떻게 · `PlatformStand` 1초로 표현, 래그돌은 M3 · planner
 - 2026-10-08 · 간장 효과가 언제 풀리나 · 웅덩이 영역을 벗어나는 즉시 · planner (GDD에 지속시간 없음, 가장 단순한 해석)
 - 2026-10-08 · **확정 M1 B10 — 장애물 동작 규칙** (메인 세션 경유) · (A) 장애물 파츠에 태그를 붙이고, `start`에서 `ctx.model` 하위의 태그 파츠만 찾아 동작시킨다. m2-03, m2-04에도 같은 규칙. 회전 벨트를 이 규칙으로 바꾸는 건 M2 범위 밖(필요하면 별도 작업) · user
+- 2026-10-08 · **질문 (developer → planner)** AC11 "혼자 결승까지 30~60초" vs 코스 길이 150~190 권장 · 이 코스(174 studs)는 WalkSpeed 16 기준 직선 11초, 늪 지그재그·와사비·공 피하기를 넣어도 잘 아는 플레이어는 약 18~25초로 예상. AC11을 "60초(제한 90초) 안에 도착" 상한으로 읽고 구현했다. 30초 이상이 꼭 필요하면 코스를 늘리거나(스펙 길이 범위 밖) 장애물을 더 넣어야 하니 기획 확인 필요 · 미결
+- 2026-10-08 · 와사비 튕김을 서버에서 어떻게 거나 · 캐릭터 물리는 클라이언트 소유라 서버가 속도만 바꾸면 덮어써질 수 있어서, 서버가 `LinearVelocity`(위 80/앞 30)를 0.08초 붙였다 떼는 방식으로 했다 (스펙 범위 안의 구현 선택). 강제 구간만큼 최고점이 약 6 studs 더 높다 → 플레이테스트로 조정 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 인계 메모
+- 브랜치: `worktree-m2-soy-swamp` (worktree `m2-soy-swamp`, Rojo 포트 34873)
+- 끝난 것: 코스·장애물·판정 구현, 순수 로직 테스트, 검증 4종 통과 → `in-qa`
+- 남은 것: QA, Studio 확인(AC3~AC11), AC11 기획 답변(결정 기록 "질문")
+- 막힌 점: 없음
+
+### 바뀐 파일
+- `src/shared/maps/SoySwamp.luau` — stub을 실제 맵으로 교체 (build: 회색 박스 코스, start: 결승선 위치 판정·낙하 탈락 + 장애물 Heartbeat)
+- `src/shared/maps/SoySwampLayout.luau` (새) — 코스 치수·튜닝 상수와 순수 계산(판 위 판정, 간장 속도, 공 수명, 쿨다운). Roblox API 없음
+- `src/shared/maps/SoySwampHazards.luau` (새) — `SoySauce`/`Wasabi` 태그 파츠(ctx.model 하위만)와 날치알 공 동작
+- `tests/map-soy-swamp.spec.luau` (새) — AC1, 코스 치수 약속(길이·폭·지그재그 마른 길·산 높이·튕김 최고점 vs 벽·경사로), 판정 계산 12개
+- 공용 파일 변경 없음
+
+### 코스 (로컬 z, 0 = 출발 끝, 폭 24, 벽 높이 48)
+| 구간 | z | 내용 |
+|---|---|---|
+| 출발 | 0 ~ -16 | Spawn01~24 (6×4), 뒤에 StartWall |
+| 간장 늪 | -16 ~ -60 | 웅덩이 3개(20×10, `SoySauce`), 오른쪽→왼쪽→오른쪽 폭 4 마른 길 + 줄 사이 가로 마른 길 |
+| 산 앞 평지 | -60 ~ -72 | 와사비 패드 1개(12×5, `Wasabi`, 절벽 6~11 studs 앞) |
+| 와사비 산 | -72 ~ -112 | 높이 12. 왼쪽 몸통(x -12~4)은 앞이 절벽. 오른쪽 지면 통로(x 8~12)로 산 뒤까지 가서 경사로(x 4~8)를 되돌아 올라감 |
+| 날치알 내리막 | -112 ~ -160 | 높이 12 → 20 (결승 쪽이 높음). z -157에서 지름 5 공이 2~3초마다 생성, 최고 속도 28, 8초 또는 내리막 아래 끝을 지나면 삭제, 서버 소유 |
+| 결승 | -160 ~ -174 | 높이 20 단, FinishLine z -170 (위치 판정), EndWall |
+
+### 동작 요약
+- 간장: 매 Heartbeat에 HumanoidRootPart가 웅덩이 판 위 0~5 studs 안이면 WalkSpeed 8·JumpPower 0, 벗어나면 즉시 `Config.Character` 값. 통과·탈락해서 레이서가 아니게 된 사람은 되돌리지 않고 잊는다(탈락 고정을 풀지 않게. 통과자/탈락자/다음 라운드 배치 때 `CharacterUtil`이 기본값으로 돌린다 → AC9).
+- 와사비: 패드 위 0~4.5 studs면 `LinearVelocity`로 위 80·앞 30을 0.08초 걸고 머리 위 "매워!!" BillboardGui 1초. 플레이어별 1초 쿨다운.
+- 날치알: 공과 HumanoidRootPart 거리 ≤ 4면 `PlatformStand = true` 1초 뒤 복구(아직 레이서일 때만), 맞은 순간부터 1.5초 쿨다운.
+- 모든 연결·스레드·공·GUI·LinearVelocity는 `ctx.cleanup`, 상태는 start 안 지역 변수 (방마다 따로).
+
+### Studio 확인 방법
+1. `rojo serve --port 34873`, Studio 플러그인을 34873에 연결.
+2. 구조(AC3): Command bar에서
+   `local M=require(game.ReplicatedStorage.Shared.maps).get("soy-swamp"); local m=M.build(CFrame.new(0,10,0)); m.Parent=workspace`
+   → Spawns 24개, FinishLine, SoyPuddles(3, 태그 SoySauce), WasabiPads(1, 태그 Wasabi). 태그는 `game.CollectionService:GetTags(part)`로 확인. 확인 후 `m:Destroy()`.
+3. 동작(AC4~AC9, AC11): `Config.DEBUG.forceMapPlan = { "soy-swamp", "rotating-belt", "skewer-showdown" } :: { string }?`로 바꾸고 F5 혼자 시작 (커밋 전 nil로 되돌림).
+   - 간장 웅덩이에 들어가면 절반 속도, Space 무시 → 나오면 바로 정상 (AC5)
+   - 초록 네온 패드 밟기 → 크게 튀어 "매워!!", 절벽 위로 착지 (AC6). 오른쪽 통로 끝에서 경사로로 돌아서도 올라갈 수 있는지
+   - 내리막에서 주황 공이 굴러오고 맞으면 약 1초 넘어짐. 30초 뒤 Explorer에서 `soy-swamp > TobikoBalls` 자식이 5개 이하 (AC7)
+   - 결승선 직전 점프로 넘기 → "✅ 1번째로 통과했어요!" 한 번 (AC8)
+   - 간장 안에 서서 시간 종료(90초)까지 기다린 뒤 다음 라운드에서 속도·점프 정상, 맵과 공 사라짐 (AC9)
+   - 결승까지 걸린 시간 (AC11, 결정 기록의 질문 참고)
+4. 다인원(AC10): Test → Clients and Servers 4명, 서로 다른 장애물 효과가 각자에게만 걸리는지, 서버 Output 에러 없음.
+
+### 남은 이슈 / 확인 필요
+- 와사비 튕김·공 속도·넘어짐은 튜닝 초기값. 특히 패드에서 서 있기만 해도(입력 없이) 산 위에 착지하는지 Studio에서 확인 필요.
+- 서버가 설정한 PlatformStand가 클라이언트 소유 캐릭터에서 눈에 띄게 "넘어짐"으로 보이는지는 Studio 확인 필요 (래그돌은 M3).
+

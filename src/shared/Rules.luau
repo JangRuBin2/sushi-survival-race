@@ -57,6 +57,52 @@ function Rules.nextRound(finishedIndex: number, roundCount: number, aliveCount: 
 	return finishedIndex + 1
 end
 
+-- 이번에 실제로 돌릴 라운드 번호. 계획한 라운드가 결승 전인데 남은 인원이 2명 이하가 됐으면
+-- (예: 라운드 소개 중에 누가 나감) 결승 번호를 돌려줘요. nextRound는 결과 단계 뒤에만 불리니까
+-- 소개 직전·직후에 이걸로 한 번 더 확인해요 (GDD 4.1).
+function Rules.roundToPlay(plannedIndex: number, roundCount: number, aliveCount: number): number
+	if plannedIndex < roundCount and Rules.shouldSkipToFinal(aliveCount) then
+		return roundCount
+	end
+	return plannedIndex
+end
+
+-- 이번 라운드에서 eliminatedCount번째로 탈락한 사람의 매치 등수.
+-- 먼저 탈락할수록 나쁜(큰) 등수예요: 8명 중 첫 탈락 → 8등.
+function Rules.eliminationPlace(totalRacers: number, eliminatedCount: number): number
+	return totalRacers - eliminatedCount + 1
+end
+
+-- 라운드가 끝날 때 아직 결판이 안 난 사람들을 정리하는 순서.
+-- progress가 클수록(멀리 갈수록) 앞이에요. 앞에서 openSlots명은 통과(잘 간 순),
+-- 나머지는 탈락인데 **못 간 사람부터** 돌려줘요. 그 순서대로 eliminationPlace를 매기면
+-- 탈락자 중 가장 멀리 간 사람이 가장 좋은 등수를 받아요. 진행도가 같으면 entries 순서를 따라요.
+function Rules.settleLeftover<T>(entries: { T }, progressOf: (T) -> number, openSlots: number): ({ T }, { T })
+	local ranked = {}
+	for i, entry in entries do
+		table.insert(ranked, { entry = entry, progress = progressOf(entry), index = i })
+	end
+	table.sort(ranked, function(a, b)
+		if a.progress ~= b.progress then
+			return a.progress > b.progress
+		end
+		return a.index < b.index
+	end)
+
+	local slots = math.max(openSlots, 0)
+	local qualify: { T } = {}
+	local eliminate: { T } = {}
+	for i, item in ranked do
+		if i <= slots then
+			table.insert(qualify, item.entry)
+		end
+	end
+	for i = #ranked, slots + 1, -1 do
+		table.insert(eliminate, ranked[i].entry)
+	end
+	return qualify, eliminate
+end
+
 local function pick(rng: Rng, pool: { MapInfo }, kind: MapKind?, used: { [string]: boolean }): MapInfo?
 	local candidates = {}
 	for _, map in pool do

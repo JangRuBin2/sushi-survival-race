@@ -4,12 +4,25 @@
 
 | 에이전트 | 역할 | 쓰는 곳 (소유) | 읽기만 하는 곳 |
 |---|---|---|---|
-| `planner` | 기획 | `docs/GDD.md`, `docs/specs/`, `docs/proposals/` | 전부 |
-| `developer` | 개발 | `src/`, `tests/`, `default.project.json`, 스펙의 "개발 메모" | `docs/` |
+| `planner` | 기획 | `docs/GDD.md`, `docs/specs/`, `docs/proposals/`, `docs/planner/` | 전부 |
+| `developer` | 개발 | `src/`, `tests/`, `default.project.json`, 스펙의 "개발 메모", `docs/developer/` | `docs/` |
 | `qa` | QA | `docs/qa/`, `tests/` (테스트 추가만) | `src/`, `docs/` |
-| `docs-writer` | 문서화 | `CLAUDE.md`, `README.md`, `docs/DEV-SETUP.md`, `docs/CHANGELOG.md` | 전부 |
+| `docs-writer` | 문서화 | `CLAUDE.md`, `README.md`, `docs/DEV-SETUP.md`, `docs/CHANGELOG.md`, `docs/docs-writer/` | 전부 |
 
 모든 에이전트는 담당 스펙의 `status:` 줄과 "결정 기록"은 수정할 수 있다.
+
+### 작업 기록 (역할 폴더)
+기존 폴더(`specs/`, `qa/`, `proposals/`)는 그대로 두고, **작업 단계 기록(인계 메모)만 자기 역할 폴더에** 남긴다.
+
+| 역할 | 작업 기록 파일 |
+|---|---|
+| 기획 | `docs/planner/<스펙id>-<slug>.md` |
+| 개발 | `docs/developer/<스펙id>-<slug>.md` |
+| QA | `docs/qa/<스펙id>-<slug>.md` (QA 리포트가 작업 기록을 겸한다) |
+| 문서화 | `docs/docs-writer/<스펙id 또는 날짜>.md` |
+
+- 단계가 끝날 때마다 갱신한다: **지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점**. 최신 내용을 맨 위에 둔다.
+- 스펙 안의 "개발 메모"(바뀐 파일, Studio 확인 방법)와 "결정 기록"은 다른 역할이 읽는 곳이라 계속 쓴다. 작업 기록은 그와 별개로 "어디까지 했고 다음에 뭘 하는지"를 남기는 곳이다.
 
 ## 흐름
 
@@ -57,19 +70,19 @@ Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `3487
 
 **평소에 (모든 에이전트)**
 - 의미 있는 단위로 커밋할 때마다 자기 브랜치를 push한다: worktree면 `git push -u origin HEAD`, `main`은 메인 세션만 push한다.
-- 작업 중인 스펙의 "개발 메모"(QA는 리포트, 기획은 스펙 "결정 기록")에 **인계 메모**를 최신으로 둔다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점.
+- 자기 역할 폴더의 작업 기록(`docs/<역할>/<스펙id>-<slug>.md`, 위 "작업 기록" 참고)에 **인계 메모**를 최신으로 둔다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점.
 - 끝나지 않은 작업도 세션을 마치기 전에 `wip:` 커밋으로 남기고 push한다. 커밋 안 된 변경은 인계되지 않는다.
 
 **한도 경고가 뜨거나 세션을 마쳐야 할 때**
 1. 인계 메모를 갱신하고 `wip:` 커밋 + push.
 2. 이어받을 클라우드 세션을 연다 (본인이 못 하면 메인 세션이나 사용자가 연다):
    ```bash
-   claude --cloud "sushi-survival-race: <역할> 에이전트(.claude/agents/<역할>.md)로 docs/specs/<스펙>.md 이어서 진행. 브랜치 <브랜치>. 스펙의 인계 메모부터 읽을 것."
+   claude --cloud "sushi-survival-race: <역할> 에이전트(.claude/agents/<역할>.md)로 docs/specs/<스펙>.md 이어서 진행. 브랜치 <브랜치>. docs/<역할>/<스펙>.md의 인계 메모부터 읽을 것."
    ```
 3. 메인 세션에 어떤 클라우드 세션으로 넘겼는지 알린다.
 
 **클라우드 세션이 받으면**
-- 그 브랜치를 체크아웃하고 `CLAUDE.md`, 이 문서, 역할 정의, 스펙의 인계 메모 순서로 읽고 시작한다.
+- 그 브랜치를 체크아웃하고 `CLAUDE.md`, 이 문서, 역할 정의, `docs/<역할>/<스펙>.md`의 인계 메모 순서로 읽고 시작한다.
 - 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 도구(rojo, stylua, selene, lune)를 설치할 수 없으면 검증하지 못한 항목을 보고에 분명히 적는다.
 - 사용량 한도는 계정 단위라서, 한도 때문에 로컬이 멈췄다면 클라우드 세션도 한도가 풀린 뒤에 돈다.
 

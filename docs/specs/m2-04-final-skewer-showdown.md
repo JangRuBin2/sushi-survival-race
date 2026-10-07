@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-04 — Final 맵 "회전 꼬치 쇼다운" (생존형 결승, 회색 박스)
@@ -66,6 +66,30 @@ status: ready
 - 2026-10-08 · 생존형 결승을 어떤 맵으로 · ⑥을 Jump Showdown형으로 다시 설계. ④"셰프의 도마"를 결승으로 올리는 안도 있었지만 기울어지는 물리 원판이라 회색 박스 판정이 불안정하고, ⑤"뜨거운 철판"은 중간 Survival과 겹친다. 기존 ⑥의 꼬치·셰프 손 테마를 그대로 살렸다. · planner
 - 2026-10-08 · 결승이 반드시 끝나게 하는 방법 · 시간이 갈수록 빨라지고 조각이 줄어드는 서든데스(60초~), 90초는 안전망. 수치는 초기값 · planner
 - 2026-10-08 · 이전 레이스형 결승의 "떨어지는 장국 그릇" · 이 맵에서는 빼고 꼬치·손에 집중 (GDD §5.2 ⑥ v0.3에서도 뺌) · planner
+- 2026-10-08 · (개발 판단, 초기값) 스펙에 없던 세부: 두 꼬치 회전 방향은 같은 방향, 무대는 팔각형 근사, 높은 꼬치 서든데스 속도 120°/s(낮은 꼬치 150과 다르게). 기획 의도와 다르면 알려 주세요 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 브랜치 `worktree-m2-skewer-showdown` (base 03d752a). 공용 파일은 건드리지 않음.
+- 바뀐 파일
+  - `src/shared/maps/SkewerShowdown.luau` — stub을 실제 맵으로 교체 (build: 조각 8개 무대·기둥·꼬치 2개·셰프 손·가게 문·Spawns 24 / start: 꼬치 회전·맞음 넉백·낙하 탈락·손 일정)
+  - `src/shared/maps/SkewerShowdownLogic.luau` (새 파일, 순수 로직) — `speeds(elapsed)`, `handInterval`, `minSlices`, `grabTimes(sliceCount)`, `angleOf`, `angleSwept`, `isHit`. 수치 초기값은 전부 이 파일 상단.
+  - `tests/map-skewer-showdown.spec.luau` (새 파일) — AC1, AC3, 맞음 판정 테스트 10개
+- 구현 메모 (스펙이 정하지 않은 세부, 초기값)
+  - 무대: 지름 44. 조각은 직사각형 띠 8개로 만든 45° 부채꼴이라 무대가 **팔각형**(꼭짓점 반지름 22, 변까지 20.3)으로 보인다. 무대 윗면 = origin 높이, 중심 = origin.
+  - 기둥: 지름 5, 무대 위로 16 studs (점프 최고점 약 6.4라 못 올라감). 꼬치·손·가게 문은 `CanCollide=false`라 올라탈 수 없다.
+  - 꼬치: 기둥 표면(2.5)~무대 끝(22), 굵기 1.2. 낮은 꼬치 높이 1.75, 높은 꼬치 6.8. 둘 다 같은 방향으로 돈다 (방향은 스펙에 없어서 같은 방향 + 다른 속도로 둠).
+  - 속도(°/s): 낮은 꼬치 0~10초 45 → 10~60초 45→100 → 60초~ 150. 높은 꼬치 10초 30으로 등장 → 80 → 60초~ 120.
+  - 손 일정: 20, 28, 36, 44, 52, 60, 63초에 조각을 고른다 (8조각 → 서든데스 직전 3조각 → 63초 고른 조각이 사라지는 약 66초에 1조각). 한 번 = 경고 2초(빨강 깜빡임+흔들림) → 손 내려옴 0.4초 → 조각 충돌 끔(그 위 캐릭터 낙하) → 손과 조각 0.5초 들어 올림 → 조각 삭제. 손은 다음 차례까지 그 위에 떠 있다.
+  - 맞음 판정: 서버 Heartbeat에서 이번 프레임에 꼬치가 쓸고 지나간 각도 범위 × 반지름 범위 × 몸통 높이(루트 -3 ~ +2.3)로 검사 (빠른 회전에도 안 빠짐). 맞으면 `PlatformStand` 1초 + 바깥 32 / 위 22 studs/s 속도, 같은 플레이어 1초 쿨다운. 1초 뒤 아직 레이서일 때만 `PlatformStand` 해제.
+  - 낙하: 루트가 무대 윗면보다 20 아래 → `ctx.eliminate`. `ctx.pass`는 안 부른다.
+  - 태그: `SkewerShowdownSkewer`(꼬치 파츠), `SkewerShowdownSlice`(조각 Model), `SkewerShowdownHand`(손 Model). `start`는 `ctx.model:IsAncestorOf`로 거른 것만 쓴다.
+  - 스폰: 반지름 14 원 위 24칸, 앞 번호부터 쓰면 고르게 흩어지는 순서(2명 반대편, 4명 90°씩). 낮은 꼬치 시작 각도(0)에서 반 칸 비켜 둠.
+- Studio 확인 방법
+  1. `rojo serve --port 34875`로 연결.
+  2. 구조(AC4): 서버 Command bar에서 `require(game.ReplicatedStorage.Shared.maps).get("skewer-showdown").build(CFrame.new(0,10,0)).Parent = workspace` → 조각 Slice1~8, Pillar, LowSkewer, HighSkewer, ChefHand, ShopDoor, Spawns(24) 확인. Play로 기둥에 뛰어 올라가 보기 (못 올라가야 함).
+  3. 동작(AC5~AC10): `Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "skewer-showdown" }`(커밋 금지)로 혼자 시작해 3라운드에서 확인. 0초 낮은 꼬치, 10초 높은 꼬치 등장, 20초부터 조각 경고→손, 60초 이후 빨라짐, 약 66초에 1조각.
+  4. 다인원(AC11): Test → Clients and Servers 3~4명. 결승 우승 판정은 m2-05 머지 후 확인.
+- 남은 이슈 / 확인 필요
+  - Studio에서 직접 돌려 보지 못함 → AC4~AC11 전부 **사용자 확인 필요**. 특히 넉백 세기(서버가 클라이언트 소유 캐릭터에 속도를 줌, 회전 벨트와 같은 방식), 꼬치 높이·속도 체감, AC10 난이도.
+  - 한 판 결승 체감이 너무 쉽거나 어려우면 `SkewerShowdownLogic.luau` 상단 상수와 `SkewerShowdown.luau`의 KNOCK_* 값으로 조정.

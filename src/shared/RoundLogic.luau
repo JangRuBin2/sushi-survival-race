@@ -12,6 +12,12 @@
 --             같은 묶음(판정 틱)에 떨어져 0명이 되면 그 묶음에서 점수(높이)가 가장 큰 사람이 우승.
 --             시간 종료면 점수가 가장 큰 사람이 우승. 맵이 pass를 부르면 첫 통과자가 우승(fallback).
 -- 점수(score)는 클수록 잘한 거예요: Race는 진행도, Survival·Final은 높이(HumanoidRootPart Y).
+--
+-- 결승 진출 2명 보장 (m2-07, m2-05 QA F1, GDD 4.1 "최소 2명은 결승에 가요")
+--   결승이 아닌 라운드에서 탈락 묶음 때문에 이번 라운드에서 살아남을 수 있는 인원(통과 + 남은 레이서)이
+--   2명 아래로 내려가면, 그 묶음의 낙하(cause "Fall") 중 점수가 큰 사람부터 2명이 찰 때까지
+--   탈락 대신 통과(구제)시켜요. 리셋·사망·퇴장(cause "Reset")은 구제하지 않아요.
+--   매치 우승자는 Won을 받은 사람만이에요 (Standings.winnerUserId, decideWinner).
 
 local Rules = require(script.Parent.Rules)
 
@@ -27,10 +33,17 @@ export type Outcome = {
 	place: number?,
 }
 
+-- 탈락 사유. Fall = 맵이 판정한 낙하(구제 대상), Reset = 리셋·사망·퇴장·캐릭터 없음(구제 안 함).
+export type FallCause = "Fall" | "Reset"
+
 export type Fall = {
 	userId: number,
 	score: number, -- 탈락 순간의 점수 (Final·Survival은 높이)
+	cause: FallCause?, -- 없으면 "Fall"
 }
+
+-- 결승 전 라운드에서 살아남아야 하는 최소 인원 (GDD 4.1 결승 진출 최소 인원)
+local MIN_FINALISTS = 2
 
 export type Round = {
 	mode: Mode,
@@ -53,6 +66,7 @@ export type Standings = {
 	entries: { { userId: number, name: string } },
 	places: { [number]: number },
 	nextWorst: number,
+	winnerUserId: number?, -- Won을 받은 사람 (매치에서 많아야 1명)
 }
 
 ------------------------------------------------------------------------
@@ -279,8 +293,33 @@ function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -
 		return out
 	end
 
+	-- 결승 진출 2명 보장: 이 묶음을 다 빼면 살아남을 사람이 2명 아래인지 봐요.
+	local survivableAfter = round.passedCount + RoundLogic.remainingCount(round) - #worstFirst
+	local rescueSlots = math.max(MIN_FINALISTS - survivableAfter, 0)
+	local rescued: { [number]: boolean } = {}
+	if rescueSlots > 0 then
+		for i = #worstFirst, 1, -1 do -- 점수가 큰 사람부터
+			local fall = worstFirst[i]
+			if rescueSlots == 0 then
+				break
+			end
+			if (fall.cause or "Fall") == "Fall" then
+				rescued[fall.userId] = true
+				rescueSlots -= 1
+			end
+		end
+	end
+
 	for _, fall in worstFirst do
-		addEliminated(round, out, fall.userId)
+		if not rescued[fall.userId] then
+			addEliminated(round, out, fall.userId)
+		end
+	end
+	for i = #worstFirst, 1, -1 do -- 구제는 점수가 큰 사람이 먼저 통과한 순서
+		local fall = worstFirst[i]
+		if rescued[fall.userId] then
+			addPassed(round, out, fall.userId)
+		end
 	end
 	checkEnd(round, out, scoreOf)
 	return out
@@ -330,17 +369,28 @@ function RoundLogic.placeWinner(standings: Standings, userId: number): number
 		return existing
 	end
 	standings.places[userId] = 1
+	standings.winnerUserId = userId
 	return 1
 end
 
--- 1등 userId (없으면 nil)
+-- 우승자(Won을 받은 사람) userId. 없으면 nil. 탈락 등수가 1까지 내려간 사람은 우승자가 아니에요.
 function RoundLogic.winnerOf(standings: Standings): number?
-	for userId, place in standings.places do
-		if place == 1 then
-			return userId
-		end
+	return standings.winnerUserId
+end
+
+-- 매치가 끝날 때 우승자를 정해요. 이미 Won을 받은 사람이 있으면 그 사람(새로 보낼 필요 없음).
+-- 없고 생존자가 정확히 1명이면 그 사람이 부전승 우승이고 Won을 새로 보내야 해요 (needsWon = true,
+-- 이때 Standings에 1등으로 기록해요). 생존자가 0명이거나 2명 이상이면 우승자 없음.
+function RoundLogic.decideWinner(standings: Standings, aliveUserIds: { number }): (number?, boolean)
+	if standings.winnerUserId then
+		return standings.winnerUserId, false
 	end
-	return nil
+	if #aliveUserIds == 1 then
+		local userId = aliveUserIds[1]
+		RoundLogic.placeWinner(standings, userId)
+		return userId, true
+	end
+	return nil, false
 end
 
 -- 라운드 결과에 매치 등수를 채워서 돌려줘요 (Eliminated·Won만 Standings에 기록).

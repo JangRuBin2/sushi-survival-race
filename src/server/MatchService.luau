@@ -218,13 +218,12 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		roundIndex = nextRound(roundIndex)
 	end
 
-	-- 라운드 밖에서 승부가 난 경우(소개 중 이탈, 혼자 시작 등) 남은 1명이 우승이에요.
-	local winnerUserId = RoundLogic.winnerOf(ctx.standings)
-	if winnerUserId == nil and aliveCount(ctx) == 1 then
-		local last = aliveList(ctx)[1]
-		RoundLogic.placeWinner(ctx.standings, last)
-		EliminationService.won(roomId, last)
-		winnerUserId = last
+	-- 우승자는 Won을 받은 사람뿐이에요 (m2-05 QA F1). 결승 없이 생존자가 1명이 되면(나머지가 리셋·퇴장,
+	-- 소개 중 이탈, 혼자 시작 등) 그 사람이 부전승 — Won을 보낸 뒤 Victory도 같은 사람으로 보내요.
+	-- 생존자가 0명이면 Victory 없이 끝내요.
+	local winnerUserId, needsWon = RoundLogic.decideWinner(ctx.standings, aliveList(ctx))
+	if winnerUserId and needsWon then
+		EliminationService.won(roomId, winnerUserId)
 	end
 
 	local standings = RoundLogic.standingsList(ctx.standings)

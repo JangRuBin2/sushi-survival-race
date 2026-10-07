@@ -143,6 +143,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		local released = false -- 출발했으면 늦게 배치되는 사람도 잠그지 않아요
 		local qualified: { number } = {}
 		local eliminated: { number } = {}
+		-- 스폰에 배치가 끝난 레이서. 맵(getRacers)에는 배치된 사람만 보여요 — 라운드 시작 순간
+		-- 리스폰 중이라 아직 로비에 있는 캐릭터를 맵이 "떨어졌다"고 판정하지 않게 해요 (QA N1/H1/B2/W1).
+		local placed: { [number]: boolean } = {}
 
 		-- 점수가 클수록 잘한 거예요. Race 맵은 코스 진행도(origin의 로컬 -Z, MapTypes 문서),
 		-- 그 밖(Survival·결승)은 높이. 캐릭터가 없으면 가장 낮은 점수.
@@ -229,12 +232,13 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			apply(RoundLogic.eliminate(round, falls, scoreOf))
 		end
 
-		local function queueFall(userId: number, score: number?)
+		-- cause: "Fall"(맵의 낙하 판정, 결승 진출 2명 보장의 구제 대상) / "Reset"(리셋·사망·퇴장·캐릭터 없음)
+		local function queueFall(userId: number, score: number?, cause: RoundLogic.FallCause)
 			if closed or round.ended or pendingIds[userId] or not RoundLogic.isRacing(round, userId) then
 				return
 			end
 			pendingIds[userId] = true
-			table.insert(pending, { userId = userId, score = score or scoreOf(userId) })
+			table.insert(pending, { userId = userId, score = score or scoreOf(userId), cause = cause })
 			if not flushScheduled then
 				flushScheduled = true
 				task.defer(flush)
@@ -248,16 +252,16 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			local humanoid = character:FindFirstChildOfClass("Humanoid")
 			if humanoid then
 				cleanup:add(humanoid.Died:Connect(function()
-					queueFall(userId)
+					queueFall(userId, nil, "Reset")
 				end))
 			end
 			cleanup:add(character.AncestryChanged:Connect(function()
 				if not character:IsDescendantOf(game) then
-					queueFall(userId, -math.huge)
+					queueFall(userId, -math.huge, "Reset")
 				end
 			end))
 			cleanup:add(player.CharacterAdded:Connect(function()
-				queueFall(userId, -math.huge)
+				queueFall(userId, -math.huge, "Reset")
 			end))
 		end
 
@@ -267,7 +271,10 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				return
 			end
 			if character == nil then
-				warn(`[RoundService] {player.Name} has no character to place at round start`)
+				-- 캐릭터가 끝내 안 생기면 감시도 배치도 못 하니 탈락이에요 (m2-05 QA F3).
+				-- 그대로 두면 Survival 시간 종료에 "버틴 사람"으로 통과해 버려요.
+				warn(`[RoundService] {player.Name} has no character to place at round start; eliminating`)
+				queueFall(player.UserId, -math.huge, "Reset")
 				return
 			end
 			local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -281,6 +288,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			character:PivotTo(spawn.CFrame + SPAWN_LIFT)
 			watch(player, character)
+			placed[player.UserId] = true
 		end
 
 		for i, player in args.players do
@@ -301,7 +309,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				local list = {}
 				for _, userId in RoundLogic.racers(round) do
 					local player = playersById[userId]
-					if player and not pendingIds[userId] then
+					if player and placed[userId] and not pendingIds[userId] then
 						table.insert(list, player)
 					end
 				end
@@ -315,7 +323,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				apply(RoundLogic.pass(round, player.UserId, scoreOf))
 			end,
 			eliminate = function(player: Player)
-				queueFall(player.UserId)
+				if placed[player.UserId] then -- 배치 전 캐릭터(로비 위치)의 낙하 판정은 무시해요
+					queueFall(player.UserId, nil, "Fall")
+				end
 			end,
 		}
 
@@ -331,7 +341,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 
 		activeRemovers[roomId] = function(player: Player): boolean
 			if RoundLogic.isRacing(round, player.UserId) then
-				queueFall(player.UserId, -math.huge)
+				queueFall(player.UserId, -math.huge, "Reset")
 				return true
 			end
 			return pendingIds[player.UserId] == true
@@ -402,10 +412,14 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				end
 				flush()
 				close()
-				for _, userId in RoundLogic.racers(round) do
+				-- 아직 달리는 사람과, 소개 중에 이미 통과·우승한 사람(결승 소개 중 상대가 나가 우승 등,
+				-- m2-05 QA F2) 모두 로비로 보내요. 이동 잠금도 풀어요.
+				local toMove = RoundLogic.racers(round)
+				table.move(qualified, 1, #qualified, #toMove + 1, toMove)
+				for _, userId in toMove do
 					local player = playersById[userId]
 					if player and player.Parent then
-						CharacterUtil.toLobby(player) -- 이동 잠금도 풀어요
+						CharacterUtil.toLobby(player)
 					end
 				end
 			end,

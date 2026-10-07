@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-07 — M2 통합: 3~4라운드 한 판이 끝까지 돈다
@@ -58,3 +58,34 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 인계 메모 (developer, main)
+- 브랜치: `main` (push는 메인 세션)
+- 끝난 것: ① F1 "결승 진출 2명 보장" + AC11~AC13 테스트, ② 통합 P3(N1/H1/B2/W1, m2-05 F2, F3), ③ StubMap 삭제(별도 커밋)
+- 남은 것: AC2 실제 풀 테스트 확인, AC3~AC10 Studio 확인(사용자), 확인 방법을 아래 "Studio 확인 방법"에 정리
+- 다음 첫 단계: `lune run tests` 통과 확인 후 AC2가 실제 `Maps.infos()`로 도는 테스트가 있는지 보고, 없으면 추가
+- 막힌 점: 없음
+
+### F1 — 결승 진출 2명 보장
+- `shared/RoundLogic.luau`
+  - `Fall.cause: "Fall" | "Reset"` (없으면 Fall).
+  - `eliminate`: 결승이 아닌 라운드에서 묶음을 다 빼면 살아남을 인원(통과 + 남은 레이서)이 2 아래로 내려가면, 묶음의 Fall 중 점수가 큰 사람부터 2명이 찰 때까지 `Passed`로 구제한다. 나머지는 지금처럼 못한 사람부터 탈락 등수를 받는다. Reset은 구제하지 않는다.
+  - `Standings.winnerUserId`: `placeWinner`가 기록한다. `winnerOf`는 이제 "Won을 받은 사람"만 돌려준다. 탈락 등수가 1까지 내려간 사람은 우승자가 아니다.
+  - `decideWinner(standings, aliveIds) -> (winner?, needsWon)`: 이미 Won이 있으면 그 사람, 없고 생존자가 1명이면 부전승(Standings에 1등 기록, `needsWon = true`), 0명이나 2명 이상이면 nil.
+- `server/RoundService.luau`
+  - 맵의 `ctx.eliminate`는 cause `Fall`로 넘긴다.
+  - 사망(`Died`), 캐릭터 제거·교체, 퇴장, 캐릭터 없음은 `Reset`으로 넘긴다.
+  - 구제 결과는 기존 `Passed` 분기로 가서 `passed` 방송 후 대기석(로비 스폰)으로 옮긴다.
+- `server/MatchService.luau`: 매치 끝에 `decideWinner`를 쓴다. 부전승이면 `EliminationService.won`을 보낸 뒤 Victory를 같은 사람으로 보낸다. 생존자 0명이면 Victory 없이 끝낸다.
+- 테스트: `tests/round-logic.spec.luau`에 AC11·AC11(같은 틱)·AC12·AC13, 리셋과 낙하가 섞인 묶음, 전원 리셋, 결승 Won 기록 테스트를 추가했다 (+7).
+- 정하지 않은 동작 (스펙에 없음): Race 결승 전 라운드에서 다른 사람이 전부 리셋해 혼자 남아도 라운드는 바로 끝나지 않는다. 그 사람이 결승선을 넘거나 시간이 끝나면 통과하고, 그다음 부전승 Won을 받는다. Survival은 통과 + 남은 인원이 목표 이하라 바로 끝난다.
+
+### 통합 P3
+- **N1 / H1(m2-03) / B2(m2-04) / W1(m2-02)** — 라운드 시작 순간 리스폰 중인 캐릭터가 로비 위치에서 낙하 판정됨: **고침.**
+  - RoundService가 스폰 배치를 끝낸 레이서만 `ctx.getRacers()`에 넣는다. 배치 전 레이서에 대한 `ctx.eliminate`도 무시한다.
+  - 네 맵 모두 낙하·장애물 판정을 `ctx.getRacers()`로 돌아서 맵 파일은 고치지 않았다.
+  - 늦게 배치된 레이서는 배치되는 순간부터 판정된다.
+- **m2-05 F2** — 결승 소개 중 우승이 확정되면 잠긴 우승자가 지워진 맵에서 떨어짐: **고침.** `cancel()`이 아직 달리는 사람과 이번 라운드 통과·우승자(`qualified`)도 로비로 보낸다 (이동 잠금도 풀림).
+- **m2-05 F3** — 캐릭터가 5초 안에 안 생긴 레이서가 감시 없이 레이서로 남음: **고침.** `placeAt`이 캐릭터를 못 얻으면 `Reset` 탈락으로 처리한다. 그대로 두면 Survival 시간 종료에 통과해 버린다.
+
+### StubMap
+- m2-02 병합으로 SoySwamp·HotPlate·SkewerShowdown이 모두 실제 맵이 되어, 아무도 쓰지 않는 `src/shared/maps/StubMap.luau`를 지웠다.

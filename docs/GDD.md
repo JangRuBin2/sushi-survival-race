@@ -312,5 +312,6 @@ RoomWaiting → Starting(카운트다운) → [RoundIntro → RoundActive → Ro
 ---
 
 ## 14. 다음 할 일
-1. M0: Rojo 프로젝트 구조 생성
-2. M1: `RoomService`(방 만들기·인원 설정) + `MatchService` 상태 머신 + 회전 벨트 회색 박스 맵
+1. ~~M0: Rojo 프로젝트 구조 생성~~ (완료)
+2. ~~M1: `RoomService`(방 만들기·인원 설정) + `MatchService` 상태 머신 + 회전 벨트 회색 박스 맵~~ (완료)
+3. M2: Race 1개·Survival 1개·Final 1개 맵 추가(회색 박스), 랜덤 라운드 구성, 관전·우승 처리 — `docs/specs/`에 기능별 스펙으로 나눠 진행

@@ -6,8 +6,8 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 v0.2 완료. **코드는 아직 없음.**
-- 다음 단계: **M0 (Rojo 뼈대)** → **M1 (방 시스템 + 매치 상태 머신 + 회전 벨트 회색 박스 맵)**
+- 기획서 v0.2 완료. **M0 완료**: Rojo 구조, Config, Remotes, Types, Rules(+테스트), 맵 인터페이스, 서비스 껍데기(`init`/`start`만 있음).
+- 다음 단계: **M1 (방 시스템 + 매치 상태 머신 + 회전 벨트 회색 박스 맵)** — 아래 병렬 작업 계획대로.
 - **스킨·상점·로벅스 결제는 가장 마지막에 개발한다.** 그 전까지는 모든 플레이어가 기본 계란초밥(회색 박스 캐릭터여도 됨)으로 플레이한다. 스킨이 나중에 붙을 수 있게 캐릭터 외형 적용 지점만 한 곳(`applyAppearance` 같은 함수)으로 모아 둔다.
 
 ## 확정된 기획 요약 (자세한 건 GDD)
@@ -25,36 +25,44 @@
 ```
 default.project.json
 src/
-  server/            -> ServerScriptService
-    init.server.luau     # 서비스 부트스트랩
+  server/            -> ServerScriptService.Server
+    init.server.luau     # 서비스 부트스트랩: 모든 서비스 init() 다음 start()
     RoomService.luau     # 방 생성/참가/퇴장/방장/시작
     MatchService.luau    # 방 하나의 매치 상태 머신
     RoundService.luau    # 맵 로드/시작/종료, 통과자 집계
     EliminationService.luau
-  client/            -> StarterPlayerScripts
+  client/            -> StarterPlayerScripts.Client
     init.client.luau
-    ui/                  # 로비, 방 대기실, HUD, 결과
+    ui/                  # 로비, 방 대기실, HUD, 결과 (M1에서 생성)
   shared/            -> ReplicatedStorage.Shared
-    Config.luau          # 인원 선택지, 비율, 시간 제한, DEBUG 설정
-    Rules.luau           # 순수 함수: roundCount, qualifyCount, buildRoundPlan
+    Config.luau          # 인원 선택지, 비율, 시간 제한, DEBUG 설정 (Roblox API 없음)
+    Rules.luau           # 순수 함수: roundCount, qualifyCount, nextRound, buildRoundPlan
     Remotes.luau         # RemoteEvent/Function 이름을 한 곳에서 정의
-    maps/                # 맵 모듈 (공통 인터페이스)
+    Types.luau           # 리모트로 주고받는 데이터 모양
+    Cleanup.luau         # 연결/인스턴스/스레드 정리 목록
+    maps/
+      init.luau          # 맵 풀 (ALL에 맵 모듈 추가)
+      MapTypes.luau      # 공통 인터페이스 타입 + validate
 tests/               # 순수 로직 테스트 (스튜디오 없이 실행)
+  init.luau            # 실행기: tests/*.spec.luau
+  lib/RobloxRequire.luau  # src 모듈의 require(script.Parent.X)를 Lune에서 흉내
 docs/GDD.md
 ```
 
-### 맵 모듈 공통 인터페이스
+### 맵 모듈 공통 인터페이스 (`shared/maps/MapTypes.luau`)
 ```lua
 export type MapModule = {
   id: string,
   kind: "Race" | "Survival" | "Final",
   displayName: string,
-  timeLimit: number,
-  build: (origin: CFrame) -> Model,          -- 회색 박스 생성
-  start: (ctx: RoundContext) -> (),          -- 장애물 가동, 결승선/낙하 판정 연결
-  cleanup: () -> (),
+  rule: string,                              -- 라운드 소개 한 줄 규칙
+  timeLimit: number?,                        -- 없으면 Config.TimeLimit[kind]
+  build: (origin: CFrame) -> Model,          -- 회색 박스 생성 (Spawns 폴더 필수)
+  start: (ctx: RoundContext) -> (),          -- 장애물 가동, 결승선/낙하 판정 → ctx.pass / ctx.eliminate
+  cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만 정리
 }
 ```
+- 맵 상태는 모듈이 아니라 `ctx`에 둔다 (한 서버에서 여러 방이 같은 맵을 동시에 돌릴 수 있다).
 - 장애물은 `CollectionService` 태그(`Chopstick`, `Wasabi`, `SoySauce`, `HotTile`)로 동작시킨다.
 
 ## 규칙
@@ -64,11 +72,12 @@ export type MapModule = {
 - 클라이언트에서 온 RemoteEvent 인자는 서버에서 항상 검증한다 (타입, 범위, 방 소속, 방장 여부).
 
 ## 검증 (작업 끝내기 전에 반드시)
+도구는 `rokit.toml`에 버전이 고정돼 있다. 처음 한 번 `rokit install` (Windows: `~/.rokit/bin`이 PATH에 있어야 함).
 ```bash
 rojo build -o build.rbxl       # 프로젝트 구조 확인 (build.rbxl은 커밋하지 않음)
-stylua --check src tests       # 포맷/문법
-selene src                     # 린트 (설정 후)
-lune run tests                 # 순수 로직 테스트 (Lune 설치 후)
+stylua --check src tests       # 포맷/문법 (고칠 때는 stylua src tests)
+selene src                     # 린트
+lune run tests                 # 순수 로직 테스트
 ```
 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다.
 

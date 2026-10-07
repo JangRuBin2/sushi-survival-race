@@ -1,0 +1,51 @@
+{
+  "name": "SushiSurvivalRace",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Players": {
+      "$properties": {
+        "RespawnTime": 1
+      }
+    },
+    "Workspace": {
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Locked": true,
+          "Size": [256, 4, 256],
+          "Position": [0, -2, 0],
+          "Color": [0.85, 0.75, 0.6],
+          "Material": "WoodPlanks"
+        }
+      },
+      "LobbySpawn": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Neutral": true,
+          "Duration": 0,
+          "Size": [12, 1, 12],
+          "Position": [0, 0.5, 0]
+        }
+      }
+    }
+  }
+}

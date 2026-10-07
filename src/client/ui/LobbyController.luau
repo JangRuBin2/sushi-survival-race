@@ -14,7 +14,7 @@ local RoomScreen = require(script.Parent.RoomScreen)
 
 local LobbyController = {}
 
-function LobbyController.start()
+function LobbyController.start(): ScreenGui
 	local player = Players.LocalPlayer
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "LobbyGui"
@@ -97,6 +97,7 @@ function LobbyController.start()
 	end)
 
 	refreshVisibility()
+	return gui
 end
 
 return LobbyController

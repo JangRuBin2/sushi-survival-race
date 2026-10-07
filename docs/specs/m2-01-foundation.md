@@ -27,9 +27,9 @@ M2 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
      |---|---|---|---|---|
      | `maps/SoySwamp.luau` | `soy-swamp` | Race | 간장 늪 & 와사비 산 | 간장 웅덩이는 피하고, 와사비 패드로 튀어 올라 결승선까지! |
      | `maps/HotPlate.luau` | `hot-plate` | Survival | 뜨거운 철판 | 밟은 철판은 곧 사라져요. 계속 움직여서 끝까지 버티세요! |
-     | `maps/SkewerBridge.luau` | `skewer-bridge` | Final | 꼬치 다리 대탈출 | 떨어지면 끝! 가장 먼저 가게 문을 통과하면 우승 |
+     | `maps/SkewerShowdown.luau` | `skewer-showdown` | Final | 회전 꼬치 쇼다운 | 돌아오는 꼬치를 뛰어넘고 끝까지 버티세요! 마지막 1명만 탈출해요 |
 
-     stub의 `build`는 회색 바닥 + `Spawns` 24개 (+ Race/Final은 `FinishLine`), `start`는 결승선 Touched → `ctx.pass`, origin 아래 40 studs 낙하 → `ctx.eliminate`만 한다. Survival stub은 결승선 없이 떨어지면 탈락하는 바닥만 둔다. 실제 코스는 m2-02~04가 같은 파일을 덮어쓴다.
+     stub의 `build`는 회색 바닥 + `Spawns` 24개 (+ Race는 `FinishLine`), `start`는 (Race만) 결승선 Touched → `ctx.pass`, origin 아래 40 studs 낙하 → `ctx.eliminate`만 한다. Survival·Final stub은 결승선 없이 떨어지면 탈락하는 바닥만 둔다(결승은 v0.3부터 생존형). 실제 맵은 m2-02~04가 같은 파일을 덮어쓴다.
   4. **`shared/Types.luau` 데이터 모양 추가** (값을 채우는 건 m2-05, 쓰는 건 m2-06):
      ```lua
      export type Standing = { userId: number, name: string, place: number }
@@ -55,13 +55,13 @@ M2 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
 - [ ] AC2: 같은 풀로 `buildRoundPlan(3, …)`을 시드 1~500에서 만들면 중복 0회이고, 가운데 라운드가 Race인 경우와 Survival인 경우가 둘 다 나온다.
 - [ ] AC3: 같은 풀의 4라운드 구성에서 Survival이 2라운드에 오는 경우와 3라운드에 오는 경우가 둘 다 나온다.
 - [ ] AC4: 기존 테스트(6맵 GDD 풀 규칙, 맵 1개뿐일 때 fallback, 빈 풀 에러)가 그대로 통과한다.
-- [ ] AC5: `Rules.resolveForcedPlan({"soy-swamp","hot-plate","skewer-bridge"}, pool)`은 그 순서의 MapInfo 3개를 돌려준다. 길이 2·5인 목록, 모르는 id가 섞인 목록은 `nil`과 이유 문자열을 돌려준다.
-- [ ] AC6: `Maps.infos()`에 Race가 2개 이상, Survival 1개 이상, Final 1개 이상 있고, `soy-swamp`/`hot-plate`/`skewer-bridge`가 각각 위 표의 kind로 `MapTypes.validate`를 통과한다.
+- [ ] AC5: `Rules.resolveForcedPlan({"soy-swamp","hot-plate","skewer-showdown"}, pool)`은 그 순서의 MapInfo 3개를 돌려준다. 길이 2·5인 목록, 모르는 id가 섞인 목록은 `nil`과 이유 문자열을 돌려준다.
+- [ ] AC6: `Maps.infos()`에 Race가 2개 이상, Survival 1개 이상, Final 1개 이상 있고, `soy-swamp`/`hot-plate`/`skewer-showdown`이 각각 위 표의 kind로 `MapTypes.validate`를 통과한다.
 - [ ] AC7: `rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests`가 통과한다.
 
 ### Studio 확인
 - [ ] AC8: 혼자(F5) `forceMapPlan = nil`로 방을 만들고 시작하면 지금처럼 매치가 돌고, 서버 Output에 빨간 에러가 없다.
-- [ ] AC9: `Config.DEBUG.forceMapPlan = { "soy-swamp", "hot-plate", "rotating-belt", "skewer-bridge" }`로 두고 혼자 시작하면 라운드 소개 배너가 "라운드 1/4 · 간장 늪 & 와사비 산" → "2/4 · 뜨거운 철판" → "3/4 · 회전 벨트" → "4/4 · 꼬치 다리 대탈출" 순서로 뜨고, 각 stub 맵에 캐릭터가 배치된다. 결승선 통과로 Race 라운드가 끝나고, Survival은 시간 종료(60초)로 끝나고, 결승선 통과 시 "🏆 우승!"이 뜬다.
+- [ ] AC9: `Config.DEBUG.forceMapPlan = { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }`로 두고 혼자 시작하면 라운드 소개 배너가 "라운드 1/4 · 간장 늪 & 와사비 산" → "2/4 · 뜨거운 철판" → "3/4 · 회전 벨트" → "4/4 · 회전 꼬치 쇼다운" 순서로 뜨고, 각 stub 맵에 캐릭터가 배치된다. 결승선 통과로 Race 라운드가 끝나고, Survival은 시간 종료(60초)로 끝난다. 결승 stub은 혼자일 때 떨어지거나 시간(90초)이 끝나면 "🏆 우승!"이 뜬다 (혼자 결승의 우승 처리는 m2-05 규칙. m2-05 전에는 시간 종료 때 우승이면 된다).
 - [ ] AC10: `forceMapPlan`에 `"no-such-map"`을 넣고 시작하면 서버 Output에 경고가 한 번 찍히고 랜덤 구성으로 매치가 돈다.
 - [ ] AC11: Play 중 서버에서 `workspace.StreamingEnabled`가 `false`다.
 
@@ -69,12 +69,13 @@ M2 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
 - `shared/Config.luau`: `DEBUG.forceMapPlan` (기본 nil), `Character.JumpPower = 50`
 - `shared/Remotes.luau`: 없음
 - `shared/Types.luau`: `Standing`, `MatchPhaseInfo.aliveUserIds/standings`, `RoundProgress.racerUserIds`
-- `shared/maps/init.luau`: `ALL`에 SoySwamp, HotPlate, SkewerBridge 추가
+- `shared/maps/init.luau`: `ALL`에 SoySwamp, HotPlate, SkewerShowdown 추가
 - `default.project.json`: `Workspace.$properties.StreamingEnabled = false`
 - 이 스펙 머지 이후 위 파일을 바꿔야 하면 해당 worktree는 직접 고치지 말고 사용자에게 알린다.
 
 ## 결정 기록
-- 2026-10-08 · M2에 어떤 맵을 만들지 · Race ②"간장 늪 & 와사비 산", Survival ⑤"뜨거운 철판", Final ⑥"꼬치 다리 대탈출". 이유: CLAUDE.md에 예약된 태그(`SoySauce`, `Wasabi`, `HotTile`)를 그대로 쓰고, ⑤가 ④"셰프의 도마"(기울어지는 물리 원판)보다 회색 박스로 판정이 안정적이다. ③라멘 급류·④도마는 M4 이후. · planner (사용자가 바꾸면 이 표만 고치면 됨)
+- 2026-10-08 · M2에 어떤 맵을 만들지 · Race ②"간장 늪 & 와사비 산", Survival ⑤"뜨거운 철판", Final ⑥. 이유: CLAUDE.md에 예약된 태그(`SoySauce`, `Wasabi`, `HotTile`)를 그대로 쓰고, ⑤가 ④"셰프의 도마"(기울어지는 물리 원판)보다 회색 박스로 판정이 안정적이다. ③라멘 급류·④도마는 M4 이후. · planner
+- 2026-10-08 · **확정 (사용자 결정, 메인 세션 경유)** · "마지막 라운드는 무조건 서바이벌로. 폴가이즈 참고" → 결승은 마지막 1명이 남을 때까지 버티는 생존형(GDD v0.3). 레이스형이던 ⑥"꼬치 다리 대탈출"(`skewer-bridge`)을 생존형 ⑥"회전 꼬치 쇼다운"(`skewer-showdown`, 폴가이즈 Jump Showdown 참고)으로 다시 설계했다. kind 세 종류와 라운드 구성 규칙(`Rules`)은 그대로라 AC1~AC4는 바뀌지 않는다. · user / planner
 - 2026-10-08 · 혼자 테스트로 Survival/Final을 확인할 방법 · `Config.DEBUG.forceMapPlan`(Studio 전용) 추가 · planner
 - 2026-10-08 · 관전 카메라가 먼 아레나를 보려면 · MVP는 `StreamingEnabled = false`. M4 플레이스 분리 때 재검토 · planner
 

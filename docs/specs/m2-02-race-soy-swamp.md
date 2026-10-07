@@ -26,7 +26,7 @@ status: ready
     - `Wasabi` 태그 (패드 파츠): 밟으면 위(+앞)로 크게 튕긴다. 같은 플레이어는 1초 쿨다운. 튕길 때 그 캐릭터 머리 위에 "매워!!" 글자(BillboardGui)를 1초 띄운다.
     - 날치알 공: 내리막 위쪽에서 2~3초 간격으로 생성되는 공(지름 4~6 studs, 주황색). 굴러 내려가다 바닥 끝이나 8초 뒤 사라진다. 레이서에 닿으면 그 레이서가 **1초 동안 넘어진다**(`Humanoid.PlatformStand = true` 후 복구, 같은 플레이어 1.5초 쿨다운). 공의 네트워크 소유권은 서버로 고정한다.
   - **판정**: 결승선 통과 → `ctx.pass(player)` (플레이어당 1번). 점프해서 넘어도 통과로 판정돼야 한다 (M1 B2와 같은 문제를 만들지 않게: 키 큰 트리거나 위치 기반 판정 — B2 수정에서 쓴 방식을 따른다). 결승선 뒤에 바닥과 끝 벽이 있다. origin보다 40 studs 아래로 떨어지면 `ctx.eliminate(player)` (안전망).
-  - **태그 규칙 (M1 B10)**: 장애물 파츠에 태그를 붙이고, `start`에서 **`ctx.model` 하위에 있는 태그 파츠만** 찾아 동작시킨다 (예: `CollectionService:GetTagged("SoySauce")`를 `ctx.model:IsAncestorOf(part)`로 거름). 사용자가 결정 기록의 B10 질문에서 다른 안을 고르면 그 방식으로 바꾼다 — 수용 기준은 어느 쪽이든 같다.
+  - **태그 규칙 (M1 B10)**: 장애물 파츠에 태그를 붙이고, `start`에서 **`ctx.model` 하위에 있는 태그 파츠만** 찾아 동작시킨다 (예: `CollectionService:GetTagged("SoySauce")`를 `ctx.model:IsAncestorOf(part)`로 거름). (B10 (A)로 확정)
   - 모든 연결·스레드·생성한 공은 `ctx.cleanup`에 넣는다. 상태는 모듈 전역이 아니라 `ctx`/지역 변수에 둔다(여러 방 동시 진행).
   - 튜닝 초기값(맵 모듈 안 지역 상수, 플레이테스트로 조정): 와사비 튕김 위 80 / 앞 30 studs/s, 공 간격 2~3초, 넘어짐 1초.
 - 제외:
@@ -40,7 +40,7 @@ status: ready
 - [ ] AC2: `lune run tests` 전체가 통과한다 (모듈을 require만 해도 Roblox API를 부르지 않는다 — Roblox API는 함수 안에서만 쓴다).
 
 ### Studio 확인
-구조 확인은 DEV-SETUP 3-6과 같은 방식(Command bar로 `Maps.get("soy-swamp").build(CFrame.new(0,10,0))`), 동작 확인은 `Config.DEBUG.forceMapPlan = { "soy-swamp", "rotating-belt", "skewer-bridge" }`로 혼자 시작한다.
+구조 확인은 DEV-SETUP 3-6과 같은 방식(Command bar로 `Maps.get("soy-swamp").build(CFrame.new(0,10,0))`), 동작 확인은 `Config.DEBUG.forceMapPlan = { "soy-swamp", "rotating-belt", "skewer-showdown" }`로 혼자 시작한다.
 - [ ] AC3: 지은 Model 안에 `Spawns`(Spawn01~Spawn24), `FinishLine`, `SoySauce` 태그 파츠 1개 이상, `Wasabi` 태그 파츠 1개 이상이 있다.
 - [ ] AC4: 출발 → 간장 늪 → 와사비 산 → 날치알 내리막 → 결승 순서로 바닥이 이어지고, 양옆 벽 때문에 코스 밖으로 걸어서 나갈 수 없다.
 - [ ] AC5: 간장 웅덩이에 들어가면 눈에 띄게 느려지고 Space를 눌러도 점프가 안 된다. 나오면 바로 원래 속도로 걷고 점프할 수 있다.
@@ -58,7 +58,7 @@ status: ready
 ## 결정 기록
 - 2026-10-08 · 날치알 공 "맞으면 넘어져요"를 M2에서 어떻게 · `PlatformStand` 1초로 표현, 래그돌은 M3 · planner
 - 2026-10-08 · 간장 효과가 언제 풀리나 · 웅덩이 영역을 벗어나는 즉시 · planner (GDD에 지속시간 없음, 가장 단순한 해석)
-- 2026-10-08 · **[사용자 확인 필요] M1 B10 — 장애물 동작 규칙** · 선택지: (A) 태그를 붙이고 `start`에서 `ctx.model` 하위의 태그 파츠만 찾아 동작 **(추천: CLAUDE.md 태그 규칙을 지키면서 여러 방 동시 진행에도 안전)** / (B) 태그는 표시용, 동작은 맵 Model 안 폴더(`Hazards` 등) 순회 — 지금 회전 벨트 방식, CLAUDE.md 문구를 고쳐야 함 / (C) 전역 태그 서비스 하나가 모든 방의 태그 파츠를 돌림 — 방별 ctx와 연결하기 번거로움. 결정 전까지 (A)로 개발하고, 다른 안이 정해지면 개발 메모에 맞춰 바꾼다. 수용 기준은 바뀌지 않아서 이 스펙은 ready로 둔다. 같은 규칙이 m2-03, m2-04에도 적용된다. · planner
+- 2026-10-08 · **확정 M1 B10 — 장애물 동작 규칙** (메인 세션 경유) · (A) 장애물 파츠에 태그를 붙이고, `start`에서 `ctx.model` 하위의 태그 파츠만 찾아 동작시킨다. m2-03, m2-04에도 같은 규칙. 회전 벨트를 이 규칙으로 바꾸는 건 M2 범위 밖(필요하면 별도 작업) · user
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

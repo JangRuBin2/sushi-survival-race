@@ -161,8 +161,18 @@ function Chopstick.run(station: Model, ctx: MapTypes.RoundContext)
 		task.wait(DEPLOY_TWEEN)
 		-- 젓가락이 내려온 순간 영역 안에 있는 선수만 붙잡는다 (GDD: 내려와 3초간 들어 올렸다 떨어뜨림)
 		local grabbed = grab(overlappingRacers(zone, ctx.getRacers()))
+		-- 잡고 있는 사이 라운드가 끝나면 이 스레드는 task.cancel로 멈춰서 아래 release까지 못 가요.
+		-- 그래서 풀어주는 일을 ctx.cleanup에도 걸어 두고, 어느 쪽이 먼저 불러도 한 번만 돌려줘요.
+		local released = false
+		local function releaseOnce()
+			if not released then
+				released = true
+				release(grabbed)
+			end
+		end
+		ctx.cleanup:add(releaseOnce)
 		task.wait(GRAB_DURATION)
-		release(grabbed)
+		releaseOnce()
 		moveSticks(station, zone, REST_HEIGHT, RETRACT_TWEEN)
 	end
 end

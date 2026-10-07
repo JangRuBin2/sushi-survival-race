@@ -27,6 +27,7 @@ local PUSH_SPEED = 10 -- 벨트가 선수를 뒤로 미는 최고 속도 (studs/
 local PUSH_ACCEL = 24 -- 그 속도까지 끌어올리는 가속도 (studs/s^2). 즉시 적용하면 뚝뚝 끊겨 보여서 완만하게.
 local VOID_DROP = 40 -- origin보다 이만큼 아래로 떨어지면 탈락 (바깥으로 튕겨나갔을 때의 안전망)
 local CHOPSTICK_OFFSETS = { -3, 3 } -- 벨트 B 구간에서 두 젓가락이 자리잡을 좌우 위치 (반대 레인으로 피하게)
+local FINISH_LINE_INSET = 4 -- 결승선을 결승 구역 끝 벽보다 이만큼 앞에 둬요 (넘은 뒤 서 있을 자리)
 
 -- Instance.new + 속성 적용. Parent는 맨 마지막에 넣어서 복제 이벤트를 줄여요.
 local function makePart(props: { [string]: any }): BasePart
@@ -186,10 +187,21 @@ local function build(origin: CFrame): Model
 	local finishCenter = nextSegment(DEPTH_FINISH)
 	addFloor(finishCenter, DEPTH_FINISH, WIDTH_NORMAL + 4, Color3.fromRGB(214, 202, 190))
 	addWalls(finishCenter, DEPTH_FINISH, WIDTH_NORMAL + 4)
+	-- 코스 끝을 막는 벽: 결승선을 점프로 넘어도 코스 밖으로 떨어지지 않아요
+	makePart({
+		Name = "EndWall",
+		Size = Vector3.new(WIDTH_NORMAL + 4 + 1, WALL_HEIGHT * 2, 0.5),
+		CFrame = toWorld(CFrame.new(0, WALL_HEIGHT, cursor - 0.25)),
+		Color = Color3.fromRGB(235, 230, 220),
+		Transparency = 0.5,
+		Material = Enum.Material.Glass,
+		Parent = model,
+	})
+	-- 결승선은 표시용이에요. 통과 판정은 start()의 Heartbeat가 이 파츠의 로컬 z를 기준으로 해요.
 	makePart({
 		Name = "FinishLine",
 		Size = Vector3.new(WIDTH_NORMAL + 4, 0.4, 1),
-		CFrame = toWorld(CFrame.new(0, 0.2, cursor + 0.5)),
+		CFrame = toWorld(CFrame.new(0, 0.2, cursor + FINISH_LINE_INSET)),
 		Color = Color3.fromRGB(255, 196, 40),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -206,7 +218,6 @@ local function isWithinZone(zone: BasePart, worldPosition: Vector3): boolean
 end
 
 local function start(ctx: MapTypes.RoundContext)
-	local Players = game:GetService("Players")
 	local RunService = game:GetService("RunService")
 
 	local origin = ctx.origin
@@ -223,19 +234,13 @@ local function start(ctx: MapTypes.RoundContext)
 		end
 	end
 
-	-- 결승선 통과: 서버에서만 판정하고, 플레이어당 한 번만 ctx.pass를 부른다.
-	local passed: { [Player]: boolean } = {}
+	-- 결승선 통과: 서버 Heartbeat에서 HumanoidRootPart가 결승선의 로컬 z를 지났는지로 판정한다.
+	-- Touched는 얇은 판 위로 점프해 넘으면 안 닿아서 쓰지 않는다 (높이와 상관없이 지나가면 통과).
+	-- ctx.pass는 이미 통과/탈락한 사람을 무시하고, 통과한 사람은 getRacers에서 빠져서 한 번만 불린다.
+	local finishProgress = math.huge
 	local finishLine = model:FindFirstChild("FinishLine")
 	if finishLine and finishLine:IsA("BasePart") then
-		local finishConn = finishLine.Touched:Connect(function(hit: BasePart)
-			local character = hit.Parent
-			local player = character and Players:GetPlayerFromCharacter(character :: Model)
-			if player and ctx.isActive() and not passed[player] then
-				passed[player] = true
-				ctx.pass(player)
-			end
-		end)
-		ctx.cleanup:add(finishConn)
+		finishProgress = -origin:PointToObjectSpace(finishLine.Position).Z
 	end
 
 	-- 매 프레임: 벨트 구간이면 뒤로 밀고, 코스 밖(아래)으로 떨어졌으면 탈락시킨다 (낙하 판정 안전망).
@@ -247,6 +252,13 @@ local function start(ctx: MapTypes.RoundContext)
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			if root and root:IsA("BasePart") then
+				if -origin:PointToObjectSpace(root.Position).Z >= finishProgress then
+					ctx.pass(player)
+					if not ctx.isActive() then
+						break -- 이 통과로 라운드가 끝났어요
+					end
+					continue
+				end
 				if root.Position.Y < origin.Position.Y - VOID_DROP then
 					ctx.eliminate(player)
 					continue

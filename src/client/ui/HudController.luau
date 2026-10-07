@@ -28,7 +28,7 @@ function HudController.start(gui: Instance)
 		return if other then other.DisplayName else `#{userId}`
 	end
 
-	local hud = HudScreen.new(gui, nameOf)
+	local hud = HudScreen.new(gui, nameOf, player.UserId)
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
 		hud:setVisible(room ~= nil and room.state == "InMatch")

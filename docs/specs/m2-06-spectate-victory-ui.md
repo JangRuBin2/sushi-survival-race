@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-06 — 관전 모드 · 탈락 선택 · 우승 순위 화면 (클라이언트)
@@ -63,6 +63,40 @@ Test → Clients and Servers 3~4명. 혼자 확인은 어렵다(관전 대상이
 - 2026-10-08 · **확정 Q3** (메인 세션 경유) · (B) "로비로" = 관전만 끄고 방 멤버십 유지, 아무것도 안 누르면 연출 뒤 자동 관전 · user
 - 2026-10-08 · **확정 Q4** · Race 통과자도 대기석에서 관전 화면 사용 (서버 이동은 m2-05) · user
 - 2026-10-08 · 생존형 라운드 HUD 표시 · Survival·결승에서는 "남은 인원 n"을 보여 줌 (통과 목표가 의미 없음) · planner
+- 2026-10-08 · 개발 판단 (QA·기획 확인 권장): Race 통과자 관전은 버튼을 누르지 않아도 **통과 즉시 자동 시작**한다 (대기석에서 할 일이 없고, 탈락자와 같은 흐름). [내 캐릭터 보기]로 끄면 [관전하기]로 다시 켤 수 있다. Survival 통과(라운드 끝에 남은 사람)는 볼 레이서가 없으므로 관전을 켜지 않는다 · developer
+- 2026-10-08 · 개발 판단: 관전 후보 순서는 userId 오름차순으로 고정 (서버 목록 순서가 바뀌어도 ◀/▶ 순서가 흔들리지 않게). 캐릭터(Humanoid)가 없는 사람은 후보에서 잠시 빠진다 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 인계 메모
+- 브랜치: `worktree-m2-spectate` (03d752a 위). 구현·검증·커밋 완료, 상태 `in-qa`. 남은 것: QA, m2-05 머지 뒤 m2-07에서 실제 값으로 Studio 확인. 막힌 점 없음.
+
+### 바뀐 파일
+- `src/shared/SpectateLogic.luau` (새, 순수): `candidates(racers, alive, me, isAvailable?)` — 달리는 사람 우선, 없으면 생존자, 나·중복 제외, userId 오름차순. `step(list, current, dir)` — 순환. `reconcile(old, new, current)` — 대상이 사라지면 old에서 다음 자리부터 new에 남은 첫 사람, 비면 nil.
+- `tests/spectate.spec.luau` (새): AC1~AC3 + 경계(중복, isAvailable, 목록 통째로 바뀜) 11개.
+- `src/client/ui/SpectateScreen.luau` (새): 아래 가운데 패널(폭 340, 버튼 높이 48). watching = "👀 관전 중: 이름" + ◀ ▶ + [로비로]/[내 캐릭터 보기], idle = [👀 관전하기] 하나.
+- `src/client/ui/SpectateController.luau` (새): 상태(role None/Eliminated/Passed, watching, 탈락 연출 중, Victory). 카메라는 `CameraType = Custom` + `CameraSubject = 대상 Humanoid`만 바꾸고, 우리가 바꿨을 때만 내 Humanoid로 되돌린다. 0.25초마다 대상 존재·CameraSubject를 다시 맞춘다(리스폰 때 기본 카메라가 되돌려도 복구). ←/→, Q/E 키. 리모트 호출 없음.
+  - 탈락(PlayerResult Eliminated, 나) → `Config.Match.EliminationCutscene` 동안 UI 없음 → 자동 관전.
+  - Race 통과(PlayerResult Passed + 현재 mapKind Race) → 즉시 관전, 다음 `RoundIntro`에서 해제.
+  - `RoundIntro`마다 지난 라운드 `racerUserIds`를 버리고 새 `RoundProgress`가 올 때까지 생존자를 후보로 쓴다.
+  - `Victory` → 관전 UI 숨기고 모두 우승자 Humanoid를 비춤. `RoomUpdated`가 InMatch가 아니거나 nil → 전부 초기화 + 카메라 복구. `Starting`에서도 초기화.
+  - `aliveUserIds`/`racerUserIds`/`standings`가 nil이어도 동작 (후보 없음 → "관전할 사람이 없어요", 순위표 생략).
+- `src/client/ui/HudScreen.luau`: `new(parent, nameOf, myUserId)`. Victory 때 배너를 위(0.2)로 올리고 그 아래 순위표(ScrollingFrame, 등수순 정렬, 내 줄 노란색 + "(나)"). 다른 단계·숨김 때 순위표 제거. 우승자 이름은 순위표 이름 우선(이미 나간 경우). 진행 표시: mapKind Survival/Final이면 "남은 인원 n", Race는 기존 "통과 n/목표 · 남은 인원 n".
+- `src/client/ui/HudController.luau`: `HudScreen.new`에 `player.UserId` 전달.
+- `src/client/init.client.luau`: `SpectateController.start(gui)` 한 줄.
+
+### Studio 확인 방법 (m2-05 머지 뒤가 정확함)
+- Test → Clients and Servers 3~4명, 한 명이 방을 만들고 나머지 참가 → 시작 (`minPlayersToStart` 1).
+- AC5~AC7, AC10: 1라운드에서 한 명이 일부러 떨어진다 → 탈락 안내 3초 뒤 아래 가운데에 "👀 관전 중: 이름"과 [◀][▶][로비로]. ◀▶·←/→·Q/E로 순환, 보던 사람이 통과/탈락하면 0.25초 안에 다음 사람. 다음 라운드에도 관전이 이어지는지.
+- AC8: 관전자 화면에서 아레나·장애물이 보이는지 (`workspace.StreamingEnabled == false`).
+- AC9: [로비로] → 내 캐릭터 카메라, 로비 이동 가능, 방 멤버 유지(서버 Output·다른 클라 방 목록), [👀 관전하기]로 재관전, 매치 끝나면 방 대기실.
+- AC9-1: Race 결승선 통과 → 바로 관전 + [내 캐릭터 보기], 다음 라운드 소개 때 자동으로 내 카메라.
+- AC9-2: 철판·결승에서 왼쪽 위 "남은 인원 n".
+- AC11~AC12: 우승 때 4개 화면 모두 우승자 캐릭터, 순위표 줄 수 = 시작 인원, 내 줄 노란색, 각자 "n등"과 같음. 대기실로 돌아오면 UI 없음·카메라 정상, 한 판 더.
+- AC13: Studio Device Emulator(휴대폰 가로)에서 패널 버튼 터치, 점프 버튼과 겹치지 않는지.
+- AC14: 관전 중 방 나가기 / 클라이언트 창 닫기 → 다른 창·서버 Output 에러 없음.
+- m2-05 전(이 브랜치만): `aliveUserIds`가 안 와서 레이서가 없는 라운드 사이엔 "관전할 사람이 없어요"가 나오고, 순위표는 안 뜬다(배너만). 탈락 관전 자체는 `racerUserIds`(m2-01)로 동작한다.
+
+### 남은 이슈 / 알아둘 점
+- 기본 카메라 스크립트는 ←/→ 키로 카메라를 돌리기도 해서 관전 중 ←/→를 누르면 시점도 살짝 돈다. 거슬리면 Q/E만 쓰거나 ContextActionService로 입력을 가로채면 된다.
+- 순위표 패널 높이는 `0.8 × 화면 − 170px`라 아주 작은 화면에선 몇 줄만 보이고 스크롤된다.

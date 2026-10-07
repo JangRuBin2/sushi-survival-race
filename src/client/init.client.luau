@@ -8,3 +8,4 @@ require(ReplicatedStorage.Shared.Remotes)
 
 local gui = require(script.ui.LobbyController).start()
 require(script.ui.HudController).start(gui)
+require(script.ui.SpectateController).start(gui)

@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-05 — 한 판 흐름 마무리 (출발 공정성 · 라운드 종료 규칙 · 생존형 결승 · 순위 · 생존자 방송)
@@ -89,3 +89,43 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 인계 메모 (2026-10-08)
+- 브랜치 `worktree-m2-match-flow` (main 03d752a 기준). 구현·검증 완료 → `in-qa`. 남은 것: QA, Studio 확인(AC11~19, 사용자).
+- 다음 첫 단계(QA): 아래 "Studio 확인 방법"과 `tests/round-logic.spec.luau`.
+
+### 바뀐 파일
+- **새 `src/shared/RoundLogic.luau`** (순수): 라운드 상태(`newRound/activate/pass/eliminate/timeout`), 방식 결정(`modeFor`), 매치 순위(`newStandings/applyOutcomes/placeEliminated/placeWinner/winnerOf/standingsList`).
+  - 방식: 마지막 라운드 → `Final`(생존형), Race 맵 → `Race`, 그 밖(Survival 맵, 강제 플랜으로 중간에 놓인 Final 맵) → `Survival`.
+  - 매치 등수는 "아직 비어 있는 가장 나쁜 등수"를 차례로 주고(탈락·이탈), 우승자는 1등. 라운드 밖에서 나간 사람·이미 통과하고 나간 사람도 겹치지 않는 등수를 받는다.
+- **`src/server/RoundService.luau`**: `runRound` → `prepareRound(args)` + `handle.run(target)` / `handle.cancel()`.
+  - prepare(소개 시작): 맵 build·Workspace에 넣기, 생존자 배치 + 이동 잠금(WalkSpeed·JumpPower 0), 배치가 끝난 캐릭터의 `Died`/제거/`CharacterAdded` 감시 → 탈락.
+  - run(RoundActive와 같은 순간): 잠금 해제(`CharacterUtil.resetMovement`) → `map.start(ctx)`. `ctx.eliminate`는 `task.defer`로 한 프레임 모아 `RoundLogic.eliminate`에 묶음으로 넘긴다. 점수는 Race 맵이면 진행도(로컬 -Z), 그 밖은 HumanoidRootPart Y.
+  - Race 통과자는 `Passed` 즉시 `CharacterUtil.toLobby` (대기석 = 로비 스폰, QA m2-01 알림대로).
+  - `handlePlayerLeft`가 이제 boolean(이번 라운드 레이서였는지)을 돌려준다.
+  - 라운드 사이에 리셋해 죽은 채 남은 캐릭터는 배치하지 않고 리스폰을 기다린다(`Health > 0`).
+- **`src/server/MatchService.luau`**: m2-01 강제 플랜 분기(`isForced`, `minAlive`, 지역 `roundToPlay`/`nextRound`) 그대로 유지. 소개 방송 직후 `prepareRound`, 소개 뒤 인원 확인(부족하면 `cancel` 후 break/결승으로 continue), `RoundActive` 방송 후 `run`. 모든 MatchPhase에 `aliveUserIds`, Victory에 `standings` + 서버 Output에 순위표 한 줄(`[MatchService] room … standings: 1. …`). 탈락은 `onEliminated` 콜백으로 즉시 생존자에서 뺀다. 라운드 밖에서 나간 사람은 여기서 등수를 주고 `EliminationService.left`로 발표. 라운드 밖에서 승부가 나면(소개 중 이탈) 남은 1명에게 `Won`도 보낸다.
+- **`src/server/EliminationService.luau`**: 함수가 `roomId`를 받는다(`passed(roomId, player, place)`, `won(roomId, userId)`, `eliminate(roomId, player, place)`, 새 `left(roomId, userId, place)`). 방을 막 나간 사람의 결과도 방 멤버에게 간다. 탈락 고정 때 JumpPower도 0.
+- **새 `tests/round-logic.spec.luau`**: AC1~AC9 + 경계(소개 중 탈락, 중복 탈락, pass fallback, 동점 무작위, 라운드 밖 이탈 등수) 19개.
+
+### 스펙에서 내가 정한 세부 (QA·기획 확인 바람)
+- 결승에 Race 맵이 쓰인 fallback에서 **시간 종료**는 높이가 아니라 진행도 기준으로 우승자를 고른다 (Race 맵에서 높이는 의미가 없어서). Final/Survival 맵이면 스펙대로 높이.
+- Race·Survival 라운드에서 같은 프레임 탈락 묶음도 점수(진행도/높이) 낮은 사람부터 나쁜 등수.
+- Survival 종료 조건은 `통과 + 남은 인원 ≤ 목표`(맵이 pass를 안 부르면 스펙의 "남은 인원 ≤ 목표"와 같다). 출발 순간에는 판정하지 않아 디버그 혼자 Survival(목표 2)도 60초를 돈다.
+- 소개 중 탈락(리셋)한 사람은 그 라운드의 탈락자로 등수를 받고, 목표 인원은 출발 순간 생존자로 계산한다.
+- 결승 소개 중 2명 → 1명이 되면 그 자리에서 우승(라운드 취소 후 Victory).
+- Q7은 (A)로 구현 (Survival 시간 종료 전원 통과, 탈락 0명 허용).
+
+### Studio 확인 방법 (사용자 확인 필요)
+`rojo serve --port 34876`. 강제 플랜은 `Config.DEBUG.forceMapPlan`을 로컬에서만 바꾸고 커밋하지 않는다.
+- AC11: 아무 판 시작 → 소개 배너 중 이미 새 맵 위 스폰에 서 있고 WASD·Space 무반응, 배너가 사라지고 타이머가 시작되면 움직임.
+- AC12: 라운드 중 Esc → Reset Character → "탈락" 안내, 다음 라운드에 배치 안 됨. 결과 화면(5초) 중 리셋 → 다음 라운드에 정상 배치.
+- AC13: `forceMapPlan = { "rotating-belt", "soy-swamp", "skewer-showdown" }` 2명 이상 → 결승선 통과 1초 안에 로비 스폰으로 이동.
+- AC14: `{ "hot-plate", "rotating-belt", "skewer-showdown" }` 4명 → 철판(지금은 stub이면 평평한 바닥)에서 60초 버티면 4명 전원 통과.
+- AC15·16: 결승에서 한 명씩 떨어지다 1명 남는 순간 "🏆 우승!", 라운드 즉시 종료. 서버 Output의 `standings:` 줄이 인원 수만큼이고 각자 받은 등수와 같은지.
+- AC17: 5명 랜덤 판 끝까지 → 우승자 1명, Workspace에 `Round…` 모델이 남지 않음.
+- AC18: 정원 4명 방 매치 뒤 대기실에서 10초 자동 시작 카운트다운 (RoomService 미변경, 회귀 확인).
+- AC19: 매치 중 한 명 접속 종료 → 에러 없음, 남은 인원 표시에서 빠짐. 결승에서 2명 중 1명이 나가면 남은 사람 우승.
+
+### 남은 이슈
+- m2-06(HUD/관전)은 `EliminationService` 시그니처 변경과 무관(클라이언트 리모트 모양은 그대로).
+- 로컬에 luau 타입 검사기가 없어 `--!strict` 타입 오류는 Studio Script Analysis로 한 번 봐 주면 좋다.

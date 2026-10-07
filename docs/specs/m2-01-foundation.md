@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-01 — M2 기반 작업 (공용 파일 · 맵 풀 · 라운드 구성 · 디버그 플랜)
@@ -78,6 +78,7 @@ M2 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
 - 2026-10-08 · **확정 (사용자 결정, 메인 세션 경유)** · "마지막 라운드는 무조건 서바이벌로. 폴가이즈 참고" → 결승은 마지막 1명이 남을 때까지 버티는 생존형(GDD v0.3). 레이스형이던 ⑥"꼬치 다리 대탈출"(`skewer-bridge`)을 생존형 ⑥"회전 꼬치 쇼다운"(`skewer-showdown`, 폴가이즈 Jump Showdown 참고)으로 다시 설계했다. kind 세 종류와 라운드 구성 규칙(`Rules`)은 그대로라 AC1~AC4는 바뀌지 않는다. · user / planner
 - 2026-10-08 · 혼자 테스트로 Survival/Final을 확인할 방법 · `Config.DEBUG.forceMapPlan`(Studio 전용) 추가 · planner
 - 2026-10-08 · 관전 카메라가 먼 아레나를 보려면 · MVP는 `StreamingEnabled = false`. M4 플레이스 분리 때 재검토 · planner
+- 2026-10-08 · QA 판단: stub 결승선을 Touched 대신 위치로 판정한 것은 승인 (M1 B2 수정·m2-02 지침과 일치). `resolveForcedPlan`이 종류 순서를 검사하지 않는 것도 승인 (m2-03 AC8·m2-05 AC14가 Survival 1라운드 플랜을 씀). 근거는 `docs/qa/m2-01-foundation.md` · qa
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

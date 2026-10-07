@@ -13,6 +13,10 @@
       }
     },
     "StarterPlayer": {
+      "$properties": {
+        "CharacterUseJumpPower": true,
+        "CharacterJumpPower": 50
+      },
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client"

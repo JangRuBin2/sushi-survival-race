@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-03 — Survival 맵 "뜨거운 철판" (회색 박스)

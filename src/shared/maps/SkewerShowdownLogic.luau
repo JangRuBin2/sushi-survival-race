@@ -44,6 +44,76 @@ export type SkewerSpec = {
 
 export type Speeds = { low: number, high: number }
 
+-- 무대·꼬치 치수 (studs)
+Logic.STAGE_RADIUS = 22 -- 지름 44 (팔각형 근사: 조각마다 직사각형 띠를 이어 붙여요)
+Logic.PILLAR_DIAMETER = 5
+local SKEWER_RADIUS = 0.6 -- 굵기 1.2
+Logic.LOW_SKEWER = {
+	height = 1.75,
+	radius = SKEWER_RADIUS,
+	innerReach = Logic.PILLAR_DIAMETER / 2,
+	outerReach = Logic.STAGE_RADIUS,
+} :: SkewerSpec
+Logic.HIGH_SKEWER = {
+	height = 6.8,
+	radius = SKEWER_RADIUS,
+	innerReach = Logic.PILLAR_DIAMETER / 2,
+	outerReach = Logic.STAGE_RADIUS,
+} :: SkewerSpec
+
+-- 시작 각도. 꼬치는 각도가 커지는 방향으로 돌아요.
+Logic.LOW_START_ANGLE = 0
+Logic.HIGH_START_ANGLE = math.pi -- 낮은 꼬치와 반대쪽 (10초에 등장)
+
+-- 스폰: 반지름 SPAWN_RADIUS 원 위. 낮은 꼬치 시작 각도 바로 앞(회전 방향) SPAWN_CLEAR_ARC는 비워 둬서
+-- 어느 스폰에 서 있어도 시작 직후 바로 맞지 않아요 (QA B1: 반 칸 7.5°만 비켜서 0.017초에 맞았음).
+-- 45°/s에서 90° 비우면 가장 먼저 맞는 스폰도 약 2초 뒤에 꼬치가 와요.
+Logic.SPAWN_RADIUS = 14
+Logic.SPAWN_CLEAR_ARC = math.rad(90)
+-- 시작 각도 바로 뒤도 조금 비워요 (맞음 판정 여유 약 6.5° 안이면 첫 프레임에 맞아요)
+Logic.SPAWN_CLEAR_BEHIND = math.rad(15)
+-- 앞 번호부터 써도 고르게 흩어지는 칸 순서 (2명 → 반대편쯤, 4명 → 4등분, 8명 → 8등분)
+Logic.SPAWN_SLOT_ORDER = {
+	0,
+	12,
+	6,
+	18,
+	3,
+	15,
+	9,
+	21,
+	1,
+	13,
+	7,
+	19,
+	4,
+	16,
+	10,
+	22,
+	2,
+	14,
+	8,
+	20,
+	5,
+	17,
+	11,
+	23,
+}
+
+-- 스폰 이름순(Spawn01, Spawn02, ...)의 각도 목록. count는 SPAWN_SLOT_ORDER 길이(24) 이하.
+-- 칸은 비워 둔 앞쪽 90°·뒤쪽 15°를 뺀 나머지(255°)를 24칸으로 고르게 나눈 것이에요.
+function Logic.spawnAngles(count: number): { number }
+	local slots = #Logic.SPAWN_SLOT_ORDER
+	assert(count <= slots, "not enough spawn slots")
+	local usable = TAU - Logic.SPAWN_CLEAR_ARC - Logic.SPAWN_CLEAR_BEHIND
+	local angles = {}
+	for i = 1, count do
+		local slot = Logic.SPAWN_SLOT_ORDER[i]
+		table.insert(angles, Logic.LOW_START_ANGLE + Logic.SPAWN_CLEAR_ARC + (slot + 0.5) * usable / slots)
+	end
+	return angles
+end
+
 local function lerp(a: number, b: number, alpha: number): number
 	return a + (b - a) * math.clamp(alpha, 0, 1)
 end

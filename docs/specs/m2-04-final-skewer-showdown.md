@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-04 — Final 맵 "회전 꼬치 쇼다운" (생존형 결승, 회색 박스)
@@ -67,6 +67,7 @@ status: in-dev
 - 2026-10-08 · 결승이 반드시 끝나게 하는 방법 · 시간이 갈수록 빨라지고 조각이 줄어드는 서든데스(60초~), 90초는 안전망. 수치는 초기값 · planner
 - 2026-10-08 · 이전 레이스형 결승의 "떨어지는 장국 그릇" · 이 맵에서는 빼고 꼬치·손에 집중 (GDD §5.2 ⑥ v0.3에서도 뺌) · planner
 - 2026-10-08 · (개발 판단, 초기값) 스펙에 없던 세부: 두 꼬치 회전 방향은 같은 방향, 무대는 팔각형 근사, 높은 꼬치 서든데스 속도 120°/s(낮은 꼬치 150과 다르게). 기획 의도와 다르면 알려 주세요 · developer
+- 2026-10-08 · **질문 (QA B4, 기획 확인 필요)** · 손이 20초부터 8초마다 가져가면 60초 전에 5조각만 가져가서 서든데스 시작 때 3조각이 남는다 (표는 "2개가 될 때까지"). (a) 지금대로 둔다 ("2개까지"를 상한으로 읽음), (b) 서든데스 전 간격을 7초로 (20~55초 6번 → 60초에 2조각), (c) 첫 손을 16초로. 답이 오기 전까지는 (a) · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
@@ -84,12 +85,21 @@ status: in-dev
   - 맞음 판정: 서버 Heartbeat에서 이번 프레임에 꼬치가 쓸고 지나간 각도 범위 × 반지름 범위 × 몸통 높이(루트 -3 ~ +2.3)로 검사 (빠른 회전에도 안 빠짐). 맞으면 `PlatformStand` 1초 + 바깥 32 / 위 22 studs/s 속도, 같은 플레이어 1초 쿨다운. 1초 뒤 아직 레이서일 때만 `PlatformStand` 해제.
   - 낙하: 루트가 무대 윗면보다 20 아래 → `ctx.eliminate`. `ctx.pass`는 안 부른다.
   - 태그: `SkewerShowdownSkewer`(꼬치 파츠), `SkewerShowdownSlice`(조각 Model), `SkewerShowdownHand`(손 Model). `start`는 `ctx.model:IsAncestorOf`로 거른 것만 쓴다.
-  - 스폰: 반지름 14 원 위 24칸, 앞 번호부터 쓰면 고르게 흩어지는 순서(2명 반대편, 4명 90°씩). 낮은 꼬치 시작 각도(0)에서 반 칸 비켜 둠.
+  - 스폰: 반지름 14 원 위 24칸, 앞 번호부터 쓰면 고르게 흩어지는 순서. **QA B1 수정 후**: 낮은 꼬치 시작 각도(0) 바로 앞(회전 방향) 90°와 바로 뒤 15°를 비우고 나머지 255°에 24칸 (`SkewerShowdownLogic.spawnAngles`). 가장 먼저 맞는 스폰(Spawn01, 약 95°)도 꼬치가 오기까지 약 2초.
 - Studio 확인 방법
   1. `rojo serve --port 34875`로 연결.
   2. 구조(AC4): 서버 Command bar에서 `require(game.ReplicatedStorage.Shared.maps).get("skewer-showdown").build(CFrame.new(0,10,0)).Parent = workspace` → 조각 Slice1~8, Pillar, LowSkewer, HighSkewer, ChefHand, ShopDoor, Spawns(24) 확인. Play로 기둥에 뛰어 올라가 보기 (못 올라가야 함).
   3. 동작(AC5~AC10): `Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "skewer-showdown" }`(커밋 금지)로 혼자 시작해 3라운드에서 확인. 0초 낮은 꼬치, 10초 높은 꼬치 등장, 20초부터 조각 경고→손, 60초 이후 빨라짐, 약 66초에 1조각.
   4. 다인원(AC11): Test → Clients and Servers 3~4명. 결승 우승 판정은 m2-05 머지 후 확인.
+- QA 반려 수정 (docs/qa/m2-04-final-skewer-showdown.md)
+  - B1 [P1] 수정: 스폰 각도·꼬치 시작 각도·꼬치 치수를 `SkewerShowdownLogic`으로 옮기고 위처럼 배치. 테스트 `B1: 어느 스폰에 서 있어도 시작 1.5초 안에는 꼬치에 맞지 않아요`(60fps 시뮬레이션, 낮은·높은 꼬치 모두), `B1: 스폰은 무대 안, 서로 캐릭터 폭보다 멀리…` 추가. 스폰 간격 약 2.6 studs.
+  - B4 [P3] 그대로 둠: 스펙 표의 "20초부터 8초마다, 2개가 될 때까지"는 60초 전까지 5번(20~52초)만 가능해서 서든데스 시작 때 3조각이 남는다. 정확히 2개로 맞추려면 간격(8초)이나 시작(20초) 같은 확정 수치를 바꿔야 해서 결정 기록에 질문으로 남겼다. AC8(90초 전 1조각)은 만족(약 66초).
+  - B2: 맵 범위 밖(m2-05)이라 그대로. B3: Studio 확인 항목이라 그대로.
 - 남은 이슈 / 확인 필요
   - Studio에서 직접 돌려 보지 못함 → AC4~AC11 전부 **사용자 확인 필요**. 특히 넉백 세기(서버가 클라이언트 소유 캐릭터에 속도를 줌, 회전 벨트와 같은 방식), 꼬치 높이·속도 체감, AC10 난이도.
   - 한 판 결승 체감이 너무 쉽거나 어려우면 `SkewerShowdownLogic.luau` 상단 상수와 `SkewerShowdown.luau`의 KNOCK_* 값으로 조정.
+- 인계 메모 (2026-10-08, developer)
+  - 브랜치 `worktree-m2-skewer-showdown`. 끝난 것: 구현, QA B1 수정, 검증 4종 통과(115 passed). 스펙 `in-qa`.
+  - 남은 것: QA 재검증(B1), Studio 확인(AC4~AC11), B4 기획 답변.
+  - 다음 첫 단계: QA가 B1 재검증. 반려되면 `docs/qa/m2-04-final-skewer-showdown.md` 읽고 수정.
+  - 막힌 점: 없음.

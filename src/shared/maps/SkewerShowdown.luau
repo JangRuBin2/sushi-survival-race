@@ -23,30 +23,18 @@ local TAG_SLICE = "SkewerShowdownSlice"
 local TAG_HAND = "SkewerShowdownHand"
 
 -- 무대 (studs). 무대 중심 = origin, 무대 윗면 = origin 높이.
-local STAGE_RADIUS = 22 -- 지름 44 (팔각형 근사: 조각마다 직사각형 띠를 이어 붙여요)
+local STAGE_RADIUS = Logic.STAGE_RADIUS
 local STAGE_THICKNESS = 1.5
 local STRIPS_PER_SLICE = 8
-local PILLAR_DIAMETER = 5
+local PILLAR_DIAMETER = Logic.PILLAR_DIAMETER
 local PILLAR_TOP = 16 -- 무대 위로 이만큼 솟아서 뛰어 올라갈 수 없어요
 local PILLAR_BOTTOM = -10
-local SPAWN_RADIUS = 14
 local FALL_DEPTH = 20 -- 무대 윗면보다 이만큼 아래로 내려가면 탈락
 
--- 꼬치 (기둥 표면부터 무대 끝까지)
-local SKEWER_THICKNESS = 1.2
-local LOW_SKEWER: Logic.SkewerSpec = {
-	height = 1.75,
-	radius = SKEWER_THICKNESS / 2,
-	innerReach = PILLAR_DIAMETER / 2,
-	outerReach = STAGE_RADIUS,
-}
-local HIGH_SKEWER: Logic.SkewerSpec = {
-	height = 6.8,
-	radius = SKEWER_THICKNESS / 2,
-	innerReach = PILLAR_DIAMETER / 2,
-	outerReach = STAGE_RADIUS,
-}
-local HIGH_START_ANGLE = math.pi -- 낮은 꼬치와 반대쪽에서 출발
+-- 꼬치 치수·시작 각도는 스폰 배치와 함께 SkewerShowdownLogic에 있어요 (시작 직후 맞지 않는지 테스트로 고정)
+local LOW_SKEWER = Logic.LOW_SKEWER
+local HIGH_SKEWER = Logic.HIGH_SKEWER
+local SKEWER_THICKNESS = LOW_SKEWER.radius * 2
 
 -- 꼬치에 맞았을 때
 local KNOCK_OUTWARD = 32 -- 바깥쪽 속도 (studs/s)
@@ -68,35 +56,6 @@ assert(WARN_TIME + HAND_DESCEND_TIME + HAND_LIFT_TIME < Logic.SUDDEN_DEATH_INTER
 -- 색은 Color3(Roblox API)라서 require 때가 아니라 쓸 때 만들어요 (Lune에서 require 안전)
 local WARN_RGB = { 230, 40, 40 }
 local WOOD_RGB = { 205, 168, 112 }
-
--- 스폰 순서: 앞쪽 몇 명만 써도 무대에 고르게 흩어지게 (2명 → 반대편, 4명 → 90°씩, 8명 → 45°씩)
-local SPAWN_SLOT_ORDER = {
-	0,
-	12,
-	6,
-	18,
-	3,
-	15,
-	9,
-	21,
-	1,
-	13,
-	7,
-	19,
-	4,
-	16,
-	10,
-	22,
-	2,
-	14,
-	8,
-	20,
-	5,
-	17,
-	11,
-	23,
-}
-assert(#SPAWN_SLOT_ORDER == MAX_PLAYERS, "spawn slots must cover the largest room size")
 
 local function makePart(props: { [string]: any }): BasePart
 	local parent = props.Parent
@@ -275,22 +234,20 @@ local function build(origin: CFrame): Model
 		Parent = model,
 	})
 
-	buildSkewer(model, origin, "LowSkewer", LOW_SKEWER, 0)
-	buildSkewer(model, origin, "HighSkewer", HIGH_SKEWER, HIGH_START_ANGLE)
+	buildSkewer(model, origin, "LowSkewer", LOW_SKEWER, Logic.LOW_START_ANGLE)
+	buildSkewer(model, origin, "HighSkewer", HIGH_SKEWER, Logic.HIGH_START_ANGLE)
 	buildHand(model, origin)
 	buildShopDoor(model, origin)
 
 	local spawns = Instance.new("Folder")
 	spawns.Name = "Spawns"
 	spawns.Parent = model
-	local slotAngle = 2 * math.pi / MAX_PLAYERS
-	for i, slot in SPAWN_SLOT_ORDER do
-		-- 반 칸 비켜서 시작 위치가 낮은 꼬치(각도 0) 바로 위에 오지 않게
-		local angle = (slot + 0.5) * slotAngle
+	-- 각도는 Logic.spawnAngles: 낮은 꼬치 시작 각도 바로 앞(회전 방향) 90°는 비워서 시작 직후 맞지 않아요 (QA B1)
+	for i, angle in Logic.spawnAngles(MAX_PLAYERS) do
 		makePart({
 			Name = string.format("Spawn%02d", i),
 			Size = Vector3.new(2, 0.2, 2),
-			CFrame = radialCFrame(origin, angle, SPAWN_RADIUS, 0.1),
+			CFrame = radialCFrame(origin, angle, Logic.SPAWN_RADIUS, 0.1),
 			Color = Color3.fromRGB(246, 196, 70),
 			Transparency = 0.4,
 			CanCollide = false,
@@ -423,8 +380,8 @@ local function start(ctx: MapTypes.RoundContext)
 		highSkewer.Transparency = 1 -- 10초에 등장
 	end
 
-	local lowAngle = 0
-	local highAngle = HIGH_START_ANGLE
+	local lowAngle = Logic.LOW_START_ANGLE
+	local highAngle = Logic.HIGH_START_ANGLE
 	local lastHitAt: { [number]: number } = {}
 
 	local function isRacer(player: Player): boolean

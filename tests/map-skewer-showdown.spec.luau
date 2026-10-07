@@ -106,6 +106,53 @@ return function(t: Test.Test)
 		t.ok(not Logic.isHit(dx, dz, STANDING + 6.3, 1.95, 2.05, LOW))
 	end)
 
+	t.test("B1: 어느 스폰에 서 있어도 시작 1.5초 안에는 꼬치에 맞지 않아요", function()
+		local angles = Logic.spawnAngles(24)
+		t.eq(#angles, 24)
+		local dt = 1 / 60
+		for i, angle in angles do
+			local dx = Logic.SPAWN_RADIUS * math.cos(angle)
+			local dz = -Logic.SPAWN_RADIUS * math.sin(angle)
+			local lowAngle, highAngle = Logic.LOW_START_ANGLE, Logic.HIGH_START_ANGLE
+			local firstHit = math.huge
+			local elapsed = 0
+			while elapsed < 12 do
+				local speeds = Logic.speeds(elapsed)
+				local lowTo = lowAngle + math.rad(speeds.low) * dt
+				local highTo = highAngle + math.rad(speeds.high) * dt
+				local hit = Logic.isHit(dx, dz, STANDING, lowAngle, lowTo, Logic.LOW_SKEWER)
+					or (
+						Logic.highSkewerActive(elapsed)
+						and Logic.isHit(dx, dz, STANDING, highAngle, highTo, Logic.HIGH_SKEWER)
+					)
+				elapsed += dt
+				lowAngle, highAngle = lowTo, highTo
+				if hit then
+					firstHit = elapsed
+					break
+				end
+			end
+			t.ok(firstHit >= 1.5, `Spawn{i} hit at {firstHit}s`)
+			t.ok(firstHit < 12, `Spawn{i} should still meet the low skewer`)
+		end
+	end)
+
+	t.test(
+		"B1: 스폰은 무대 안, 서로 캐릭터 폭보다 멀리, 앞 번호는 고르게 흩어져요",
+		function()
+			local angles = Logic.spawnAngles(24)
+			t.ok(Logic.SPAWN_RADIUS + Logic.BODY_RADIUS < Logic.STAGE_RADIUS * math.cos(math.pi / Logic.SLICE_COUNT))
+			for i = 1, #angles do
+				for j = i + 1, #angles do
+					local gap = math.abs(angles[i] - angles[j])
+					t.ok(2 * Logic.SPAWN_RADIUS * math.sin(gap / 2) > 2.5, `Spawn{i}/Spawn{j} too close`)
+				end
+			end
+			-- 2명이면 120° 넘게 떨어져 있어요
+			t.ok(math.abs(angles[1] - angles[2]) > math.rad(120))
+		end
+	)
+
 	t.test("isHit: 꼬치 끝 바깥과 기둥 안쪽은 안 맞아요", function()
 		t.ok(Logic.isHit(22.5, 0, STANDING, -0.01, 0.01, LOW), "끝 근처는 몸 반지름만큼 맞아요")
 		t.ok(not Logic.isHit(25, 0, STANDING, -0.01, 0.01, LOW), "outside the stage")

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-06 — 관전 모드 · 탈락 선택 · 우승 순위 화면 (클라이언트)

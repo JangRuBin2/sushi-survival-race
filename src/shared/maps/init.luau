@@ -6,7 +6,7 @@ local MapTypes = require(script.MapTypes)
 local Rules = require(script.Parent.Rules)
 
 local ALL: { MapTypes.MapModule } = {
-	-- require(script.RotatingBelt),
+	require(script.RotatingBelt),
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

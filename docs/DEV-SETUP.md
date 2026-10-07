@@ -109,6 +109,69 @@ Explorer 창에서:
 - [ ] 게임 중(시작 직후 3초 사이)인 방은 로비 목록에 "게임 중"으로 보이고 참가가 안 돼요
 - [ ] 버튼을 아주 빠르게 연타하면 "너무 빨라요. 잠시 뒤 다시 눌러 주세요"가 뜰 수 있어요 (요청 간격 0.3초 제한, 정상)
 
+### 3-6. 회전 벨트 맵 확인 (M1 race-belt)
+아직 `RoundService`가 비어 있어서(TODO, match-flow 트랙 작업 중) 맵이 실제 라운드에 연결돼 있지 않아요.
+그 전까지는 **Command bar**(View → Command Bar)에서 맵 모듈을 직접 불러 Workspace에 지어 보고 확인해요.
+
+**구조 확인 (혼자, F5 없이도 가능 — Edit 모드에서)**
+1. Command bar에 아래를 입력해서 맵을 지어요.
+   ```lua
+   local Shared = game:GetService("ReplicatedStorage").Shared
+   local Maps = require(Shared.maps)
+   local map = Maps.get("rotating-belt")
+   local origin = CFrame.new(0, 10, 0)
+   local model = map.build(origin)
+   model.Parent = workspace
+   ```
+2. Explorer에서 생긴 `rotating-belt` Model을 확인해요.
+   - [ ] `Spawns` 폴더 안에 `Spawn01`~`Spawn24` 24개가 있어요
+   - [ ] `Conveyors`, `Hazards`(`ChopstickStation` 2개), `FinishLine` 파츠가 있어요
+   - [ ] 출발 구간(넓음) → 벨트(어두운 금속 바닥) → 병목(간장 종지로 좁아짐) → 벨트(젓가락 2개) → 결승(네온 노란 줄) 순서로 바닥이 이어져요
+   - [ ] 벽(반투명 유리색)이 양옆을 막고 있어서 코스 밖으로 안 떨어져요
+3. 다 봤으면 `model:Destroy()`로 치워요.
+
+**동작 확인 (Play, F5 — `RoundContext`를 손으로 흉내 내서 start() 호출)**
+`RoundService`가 아직 없어서 진짜 라운드 없이 아래 스크립트로 흉내 낼 수 있어요. Command bar에:
+```lua
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Players = game:GetService("Players")
+local Cleanup = require(Shared.Cleanup)
+local Maps = require(Shared.maps)
+local map = Maps.get("rotating-belt")
+
+local origin = CFrame.new(0, 10, 0)
+local model = map.build(origin)
+model.Parent = workspace
+
+local cleanup = Cleanup.new()
+local ctx = {
+	model = model,
+	origin = origin,
+	rng = Random.new(),
+	targetCount = 1,
+	cleanup = cleanup,
+	isActive = function() return true end,
+	getRacers = function() return Players:GetPlayers() end,
+	pass = function(player) print("[race-belt] PASS", player.Name) end,
+	eliminate = function(player) print("[race-belt] ELIMINATE", player.Name) end,
+}
+map.start(ctx)
+_G.beltCtx = ctx -- 정리할 때 쓰려고 전역에 보관
+```
+캐릭터를 `Spawns.Spawn01` 근처로 순간이동(또는 그냥 걸어서)시켜 확인해요.
+- [ ] 벨트(어두운 금속 바닥) 구간에 서 있으면 진행 반대 방향(결승 반대쪽)으로 서서히 밀려나요
+- [ ] 걸어서 버티면(WalkSpeed로 밀리는 속도를 이길 수 있게) 전진할 수 있어요 — 완전히 못 움직이면 안 돼요
+- [ ] 병목 구간에서는 간장 종지 때문에 옆으로 못 빠져나가요
+- [ ] 젓가락 구간에 가까워지면 빨간 경고 바닥이 1초간 떴다가, 젓가락(갈색 막대 2개)이 내려와요
+- [ ] 경고가 뜬 자리에 서 있으면 젓가락이 내려오는 순간 3초간 WalkSpeed/JumpPower가 0이 돼요(Output에는 안 뜨지만 캐릭터가 안 움직여야 해요), 3초 뒤 풀려요
+- [ ] 반대쪽 레인(젓가락이 없는 쪽)으로 피하면 안 붙잡혀요
+- [ ] 결승선(노란 네온 줄)을 밟으면 Output에 `[race-belt] PASS (내 이름)`이 떠요 (한 번만)
+- [ ] 코스 옆 벽을 넘어가거나 일부러 바닥 아래로 떨어지면(예: `origin`보다 40 studs 아래) Output에 `[race-belt] ELIMINATE (내 이름)`이 떠요
+- [ ] 확인이 끝나면 `_G.beltCtx.cleanup:run()`으로 벨트/젓가락 루프를 멈추고 `_G.beltCtx.model:Destroy()`로 치워요 (안 하면 Heartbeat 연결이 계속 돌아요)
+
+**`RoundService`에 연결된 뒤 (match-flow 머지 후)**
+- [ ] 방을 만들어 1라운드(항상 Race)를 시작하면 회전 벨트 맵이 뜨고, 위 동작들이 실제 라운드 흐름(목표 인원 통과 시 라운드 종료, 탈락 시 관전 전환) 안에서도 그대로 일어나요
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|

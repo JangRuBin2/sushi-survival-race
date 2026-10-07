@@ -108,29 +108,86 @@ Explorer 창에서:
 - [ ] 매치가 도는 동안 그 방은 로비 목록에 "게임 중"으로 보이고 참가가 안 돼요
 - [ ] 버튼을 아주 빠르게 연타하면 "너무 빨라요. 잠시 뒤 다시 눌러 주세요"가 뜰 수 있어요 (요청 간격 0.3초 제한, 정상)
 
-### 3-5. 매치 플로우 확인 (M1 match-flow)
-방이 출발하면 `MatchService`가 `RoomWaiting → Starting → [RoundIntro → RoundActive → RoundResults] × 3~4 → Victory → RoomWaiting` 순서로 진행하고, 화면은 로비/방 대기실 대신 매치 HUD(위: 라운드 번호·맵 이름·규칙, 오른쪽 위: 남은 시간, 왼쪽 위: 통과 인원/목표/남은 인원, 가운데: 라운드 소개·결과·우승 배너, 아래: 내 통과/탈락/우승 안내)로 바뀌어요.
-
-**지금 단계에서 중요한 점**: 실제 맵(회전 벨트 등)은 `race-belt` 트랙이 따로 작업 중이라 `src/shared/maps/init.luau`의 `ALL`이 아직 비어 있어요. 맵이 없으면 라운드를 전부 건너뛰고 **"매치 시작!" 배너 → 바로 "🏆 우승!" 배너**(참가자 중 아무나 1명)로 넘어가요. 서버 Output에 `[MatchService] room N: no maps registered in Shared.maps yet — skipping rounds` 경고가 뜨는 게 정상이에요. `race-belt`가 머지돼 `ALL`에 맵이 등록되면, 이 체크리스트의 라운드 진행 항목들이 그대로 동작해야 해요 (코드 수정 불필요).
+### 3-5. 매치 플로우 확인 (M1 match-flow + race-belt)
+방이 출발하면 `MatchService`가 `RoomWaiting → Starting → [RoundIntro → RoundActive → RoundResults] × 3~4 → Victory → RoomWaiting` 순서로 진행하고, 화면은 로비/방 대기실 대신 매치 HUD(위: 라운드 번호·맵 이름·규칙, 오른쪽 위: 남은 시간, 왼쪽 위: 통과 인원/목표/남은 인원, 가운데: 라운드 소개·결과·우승 배너, 아래: 내 통과/탈락/우승 안내)로 바뀌어요. 1라운드는 항상 `race-belt` 트랙이 만든 회전 벨트 맵(`rotating-belt`)이 떠요.
 
 **혼자 (Play, F5)**
-- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너가 잠깐 뜨고, 맵이 없으므로 곧바로 "🏆 우승! (내 이름)님이 우승했어요!" 배너가 떠요
-- [ ] 우승 배너가 몇 초 뒤 사라지고 화면이 방 대기실로 돌아와요 (같은 멤버로 바로 "시작!"을 다시 누를 수 있어요)
-- [ ] 서버 Output에 빨간 에러 없이 위에서 설명한 "no maps registered" 경고만 보여요
-
-**여러 명 (Test → Clients and Servers, 4명)**
-- [ ] 4명이 들어간 방에서 방장이 **시작!** → 4명 모두 화면이 매치 HUD로 바뀌고 같은 "매치 시작!" → "우승!" 배너를 동시에 봐요 (맵이 없어서 라운드 없이 바로 끝나요)
-- [ ] 우승 배너에 적힌 이름이 네 화면 모두 똑같아요 (서버가 정한 우승자 한 명을 모두에게 방송)
-- [ ] 매치 중 한 명이 **Stop**으로 접속을 끊어도 서버 Output에 에러가 없어요 (`RoomService.onMemberLeft` → `MatchService`가 생존자 명단에서 빼요)
-- [ ] 매치가 끝나면 4명 모두 방 대기실로 돌아오고, 인원수가 줄어든 멤버 목록이 보여요
-
-**`race-belt`가 머지된 뒤 (맵이 있을 때) 확인할 것** — 지금은 건너뛰어도 돼요
-- [ ] "매치 시작!" 다음 "라운드 1 / N · (맵 이름)" 소개 배너가 뜨고, 잠깐 뒤 맵이 보이고 캐릭터가 Spawns 위치로 이동해요
+- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너 뒤 "라운드 1 / N · 회전 벨트" 소개 배너가 뜨고, 잠깐 뒤 맵이 보이고 캐릭터가 Spawns 위치로 이동해요
 - [ ] 라운드 중 왼쪽 위 "통과 n/목표" 숫자와 오른쪽 위 남은 시간이 줄어들어요
+- [ ] 벨트 구간에 서 있으면 뒤로 밀리고, 젓가락 구간에서 경고 뒤 붙잡히면 화면이 잠깐 멈춰요 (3-6의 동작 상세 참고)
 - [ ] 결승선을 통과하거나 탈락하면 화면 아래에 "✅ n번째로 통과했어요!" 또는 "🥢 탈락했어요… (n등)"이 떠요
 - [ ] 탈락하면 캐릭터가 그 자리에 멈췄다가 몇 초 뒤 로비 스폰으로 돌아가요
-- [ ] 시작 인원 4~8명이면 3라운드, 9명 이상이면 4라운드가 돌고, 남은 인원이 2명 이하가 되면 중간 라운드를 건너뛰고 바로 결승(Final 맵)으로 가요
-- [ ] 결승에서 1명만 남으면 "🏆 우승!" 배너가 뜨고 매치가 끝나요
+- [ ] Studio는 혼자라 통과 목표(`targetCount`)가 1명이라, 결승선을 넘으면 바로 그 라운드가 끝나요. 시작 인원 4~8명이면 3라운드, 9명 이상이면 4라운드가 돌고, 남은 인원이 2명 이하가 되면 중간 라운드를 건너뛰고 바로 결승(Final 맵)으로 가요
+- [ ] 결승에서 1명만 남으면 "🏆 우승!" 배너가 뜨고 몇 초 뒤 방 대기실로 돌아와요 (같은 멤버로 바로 "시작!"을 다시 누를 수 있어요)
+- [ ] 서버 Output에 빨간 에러가 없어요
+
+**여러 명 (Test → Clients and Servers, 4명)**
+- [ ] 4명이 들어간 방에서 방장이 **시작!** → 4명 모두 화면이 매치 HUD로 바뀌고 같은 라운드 소개·결과·우승 배너를 동시에 봐요
+- [ ] 라운드 중 한 명씩 결승선을 넘으면 각자 "n번째로 통과" 안내를 받고, 목표 인원이 다 통과하면 라운드가 끝나요 (나머지는 그 라운드 기준으론 탈락이 아니라 다음 라운드로 안 넘어가는 것 — Survival 맵이면 다름, GDD 참고)
+- [ ] 우승 배너에 적힌 이름이 네 화면 모두 똑같아요 (서버가 정한 우승자 한 명을 모두에게 방송)
+- [ ] 매치 중 한 명이 **Stop**으로 접속을 끊어도 서버 Output에 에러가 없어요 (`RoomService.onMemberLeft` → `MatchService`가 생존자 명단에서 빼요)
+- [ ] 매치가 끝나면 전원 방 대기실로 돌아오고, 인원수가 줄어든 멤버 목록이 보여요
+
+### 3-6. 회전 벨트 맵 단독 확인 (M1 race-belt)
+위 3-5로 실제 매치 흐름 안에서 확인할 수 있지만, 맵 자체의 구조나 장애물 동작만 따로 빨리 보고 싶을 때는 **Command bar**(View → Command Bar)에서 맵 모듈을 직접 불러 Workspace에 지어 보고 확인해요.
+
+**구조 확인 (혼자, F5 없이도 가능 — Edit 모드에서)**
+1. Command bar에 아래를 입력해서 맵을 지어요.
+   ```lua
+   local Shared = game:GetService("ReplicatedStorage").Shared
+   local Maps = require(Shared.maps)
+   local map = Maps.get("rotating-belt")
+   local origin = CFrame.new(0, 10, 0)
+   local model = map.build(origin)
+   model.Parent = workspace
+   ```
+2. Explorer에서 생긴 `rotating-belt` Model을 확인해요.
+   - [ ] `Spawns` 폴더 안에 `Spawn01`~`Spawn24` 24개가 있어요
+   - [ ] `Conveyors`, `Hazards`(`ChopstickStation` 2개), `FinishLine` 파츠가 있어요
+   - [ ] 출발 구간(넓음) → 벨트(어두운 금속 바닥) → 병목(간장 종지로 좁아짐) → 벨트(젓가락 2개) → 결승(네온 노란 줄) 순서로 바닥이 이어져요
+   - [ ] 벽(반투명 유리색)이 양옆을 막고 있어서 코스 밖으로 안 떨어져요
+3. 다 봤으면 `model:Destroy()`로 치워요.
+
+**동작 확인 (Play, F5 — `RoundContext`를 손으로 흉내 내서 start() 호출)**
+`RoundService`가 아직 없어서 진짜 라운드 없이 아래 스크립트로 흉내 낼 수 있어요. Command bar에:
+```lua
+local Shared = game:GetService("ReplicatedStorage").Shared
+local Players = game:GetService("Players")
+local Cleanup = require(Shared.Cleanup)
+local Maps = require(Shared.maps)
+local map = Maps.get("rotating-belt")
+
+local origin = CFrame.new(0, 10, 0)
+local model = map.build(origin)
+model.Parent = workspace
+
+local cleanup = Cleanup.new()
+local ctx = {
+	model = model,
+	origin = origin,
+	rng = Random.new(),
+	targetCount = 1,
+	cleanup = cleanup,
+	isActive = function() return true end,
+	getRacers = function() return Players:GetPlayers() end,
+	pass = function(player) print("[race-belt] PASS", player.Name) end,
+	eliminate = function(player) print("[race-belt] ELIMINATE", player.Name) end,
+}
+map.start(ctx)
+_G.beltCtx = ctx -- 정리할 때 쓰려고 전역에 보관
+```
+캐릭터를 `Spawns.Spawn01` 근처로 순간이동(또는 그냥 걸어서)시켜 확인해요.
+- [ ] 벨트(어두운 금속 바닥) 구간에 서 있으면 진행 반대 방향(결승 반대쪽)으로 서서히 밀려나요
+- [ ] 걸어서 버티면(WalkSpeed로 밀리는 속도를 이길 수 있게) 전진할 수 있어요 — 완전히 못 움직이면 안 돼요
+- [ ] 병목 구간에서는 간장 종지 때문에 옆으로 못 빠져나가요
+- [ ] 젓가락 구간에 가까워지면 빨간 경고 바닥이 1초간 떴다가, 젓가락(갈색 막대 2개)이 내려와요
+- [ ] 경고가 뜬 자리에 서 있으면 젓가락이 내려오는 순간 3초간 WalkSpeed/JumpPower가 0이 돼요(Output에는 안 뜨지만 캐릭터가 안 움직여야 해요), 3초 뒤 풀려요
+- [ ] 반대쪽 레인(젓가락이 없는 쪽)으로 피하면 안 붙잡혀요
+- [ ] 결승선(노란 네온 줄)을 밟으면 Output에 `[race-belt] PASS (내 이름)`이 떠요 (한 번만)
+- [ ] 코스 옆 벽을 넘어가거나 일부러 바닥 아래로 떨어지면(예: `origin`보다 40 studs 아래) Output에 `[race-belt] ELIMINATE (내 이름)`이 떠요
+- [ ] 확인이 끝나면 `_G.beltCtx.cleanup:run()`으로 벨트/젓가락 루프를 멈추고 `_G.beltCtx.model:Destroy()`로 치워요 (안 하면 Heartbeat 연결이 계속 돌아요)
+
+`RoundService`는 이미 이 맵을 실제 라운드에 연결해서 쓰고 있어요 — 3-5에서 실제 매치 흐름 안의 동작(목표 인원 통과 시 라운드 종료, 탈락 시 관전 전환)을 확인할 수 있어요.
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |

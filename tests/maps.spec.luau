@@ -8,6 +8,7 @@ local Shared = RobloxRequire.root("src/shared")
 local Config = RobloxRequire.require(Shared.Config)
 local Maps = RobloxRequire.require(Shared.maps)
 local MapTypes = RobloxRequire.require(Shared.maps.MapTypes)
+local RotatingBelt = RobloxRequire.require(Shared.maps.RotatingBelt)
 
 local function validMap(): { [string]: any }
 	return {
@@ -56,6 +57,15 @@ return function(t: Test.Test)
 			t.ok(not seen[info.id], `duplicate {info.id}`)
 			seen[info.id] = true
 		end
+	end)
+
+	t.test("RotatingBelt: MapModule 인터페이스를 지키고 Race 맵이에요", function()
+		t.eq(MapTypes.validate(RotatingBelt), nil)
+		t.eq(RotatingBelt.kind, "Race")
+		t.ok(RotatingBelt.id ~= "", "id should not be empty")
+		t.ok(#RotatingBelt.rule > 0, "rule should describe the round")
+		-- build/start는 Roblox API(Instance, game 등)를 써서 Lune에서 직접 호출할 수 없어요.
+		-- 여기서는 맵 모듈의 "모양"만 검사하고, 실제 생성/동작은 Studio에서 확인해요 (docs/DEV-SETUP.md).
 	end)
 
 	t.test("Maps.timeLimit: 맵 값이 없으면 종류별 기본값", function()

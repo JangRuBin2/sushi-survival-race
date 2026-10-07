@@ -6,9 +6,15 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 v0.2 완료. **M0 완료**: Rojo 구조, Config, Remotes, Types, Rules(+테스트), 맵 인터페이스, 서비스 껍데기(`init`/`start`만 있음).
-- 다음 단계: **M1 (방 시스템 + 매치 상태 머신 + 회전 벨트 회색 박스 맵)** — 아래 병렬 작업 계획대로.
+- 기획서 v0.2. **M0, M1 완료** (방 시스템, 매치 상태 머신, 회전 벨트 Race 맵, HUD). 자세한 내역은 `docs/CHANGELOG.md`.
+- 다음 단계: **M2 (한 판 MVP)** — Race 2 / Survival 1 / Final 1 회색 박스 맵, 랜덤 구성, 탈락·관전·우승. 기획 담당이 `docs/specs/`에 M2 스펙을 쓰는 것부터 시작한다.
+- 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영).
 - **스킨·상점·로벅스 결제는 가장 마지막에 개발한다.** 그 전까지는 모든 플레이어가 기본 계란초밥(회색 박스 캐릭터여도 됨)으로 플레이한다. 스킨이 나중에 붙을 수 있게 캐릭터 외형 적용 지점만 한 곳(`applyAppearance` 같은 함수)으로 모아 둔다.
+
+## 역할 분담 (에이전트 협업)
+기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
+작업은 **스펙 파일(`docs/specs/`) → 구현 → QA 리포트(`docs/qa/`) → 문서 반영** 순서로 파일을 통해 넘긴다.
+흐름, 상태값, 파일 소유권, 실행 방법은 **`docs/WORKFLOW.md`**를 따른다.
 
 ## 확정된 기획 요약 (자세한 건 GDD)
 - **방 시스템**: 방장이 방을 만들 때 최대 인원(4/8/12/16/24), 공개/비공개(4자리 코드)를 설정. 최소 4명이면 방장이 시작, 정원이 차면 자동 시작.
@@ -30,23 +36,28 @@ src/
     RoomService.luau     # 방 생성/참가/퇴장/방장/시작
     MatchService.luau    # 방 하나의 매치 상태 머신
     RoundService.luau    # 맵 로드/시작/종료, 통과자 집계
-    EliminationService.luau
+    EliminationService.luau  # 탈락 처리
   client/            -> StarterPlayerScripts.Client
     init.client.luau
-    ui/                  # 로비, 방 대기실, HUD, 결과 (M1에서 생성)
+    ui/                  # LobbyScreen/Controller, RoomScreen, RoomUiKit, HudScreen/Controller
   shared/            -> ReplicatedStorage.Shared
     Config.luau          # 인원 선택지, 비율, 시간 제한, DEBUG 설정 (Roblox API 없음)
     Rules.luau           # 순수 함수: roundCount, qualifyCount, nextRound, buildRoundPlan
+    RoomLogic.luau       # 방 순수 로직: 설정 검증, 코드 생성, 참가/퇴장/방장 위임, 시작 조건
     Remotes.luau         # RemoteEvent/Function 이름을 한 곳에서 정의
     Types.luau           # 리모트로 주고받는 데이터 모양
     Cleanup.luau         # 연결/인스턴스/스레드 정리 목록
     maps/
       init.luau          # 맵 풀 (ALL에 맵 모듈 추가)
       MapTypes.luau      # 공통 인터페이스 타입 + validate
+      RotatingBelt.luau  # Race 맵: 회전 벨트 (+ RotatingBeltChopstick 장애물)
 tests/               # 순수 로직 테스트 (스튜디오 없이 실행)
   init.luau            # 실행기: tests/*.spec.luau
   lib/RobloxRequire.luau  # src 모듈의 require(script.Parent.X)를 Lune에서 흉내
-docs/GDD.md
+docs/
+  GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md
+  specs/  qa/  proposals/
+.claude/agents/          # planner, developer, qa, docs-writer
 ```
 
 ### 맵 모듈 공통 인터페이스 (`shared/maps/MapTypes.luau`)
@@ -82,13 +93,6 @@ lune run tests                 # 순수 로직 테스트
 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다.
 설치·Studio 연결·마일스톤별 확인 목록은 `docs/DEV-SETUP.md`에 있다. 새 마일스톤에서 확인할 항목이 생기면 거기에 추가한다.
 
-## 병렬 작업 계획 (M0 이후)
-M0 뼈대가 `main`에 병합된 뒤에만 병렬로 진행한다. 각 에이전트는 `claude --worktree <이름>`으로 띄운다.
-
-| worktree | 담당 | 주로 수정하는 파일 |
-|---|---|---|
-| `room-system` | 방 생성/참가/시작 + 로비·방 대기실 UI | `RoomService`, `client/ui/Lobby*`, `client/ui/Room*` |
-| `match-flow` | 라운드 구성, 통과·탈락 집계, 관전, 우승 처리 + HUD | `MatchService`, `RoundService`, `EliminationService`, `shared/Rules`, `client/ui/Hud*` |
-| `race-belt` | 회전 벨트 Race 맵 + 젓가락 장애물 | `shared/maps/RotatingBelt*`, 장애물 스크립트 |
-
-- Rojo는 worktree마다 포트를 다르게: `rojo serve --port 34872`, `34873`, `34874`.
+## 병렬 개발
+서로 다른 파일을 건드리는 스펙은 worktree를 나눠 동시에 개발한다 (`claude --worktree <이름>`, Rojo 포트는 worktree마다 34872, 34873, ...). 자세한 건 `docs/WORKFLOW.md`.
+M1은 `room-system` / `match-flow` / `race-belt` 세 worktree로 병렬 개발해 `main`에 병합했다.

@@ -10,6 +10,8 @@
 ## 문서
 - [게임 기획서 (GDD)](docs/GDD.md)
 - [개발 환경 세팅과 테스트 방법](docs/DEV-SETUP.md)
+- [협업 워크플로 (기획·개발·QA·문서화 에이전트)](docs/WORKFLOW.md)
+- [변경 기록](docs/CHANGELOG.md)
 
 ## 개발 환경
 - Roblox Studio + [Rojo](https://rojo.space/), 도구 버전은 [Rokit](https://github.com/rojo-rbx/rokit)으로 고정 (`rokit.toml`)

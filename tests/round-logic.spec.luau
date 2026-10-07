@@ -423,7 +423,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"m2-07 AC13: 결승 전 라운드에서 4명 중 3명이 리셋하면 구제 없이 탈락, 남은 1명이 부전승 Won",
+		"m2-07 AC13: 결승 전 라운드에서 4명 중 3명 리셋 → 구제 없이 탈락, 3번째 리셋 순간 종료, 남은 1명 부전승 Won",
 		function()
 			local st = standingsFor(4)
 			local round = RoundLogic.newRound("Race", { 1, 2, 3, 4 })
@@ -445,8 +445,13 @@ return function(t: Test.Test)
 			t.eq(RoundLogic.placeOf(st, 1), 4)
 			t.eq(RoundLogic.placeOf(st, 2), 3)
 			t.eq(RoundLogic.placeOf(st, 3), 2)
-			t.ok(RoundLogic.isRacing(round, 4), "남은 1명은 아직 달려요")
-			record(RoundLogic.timeout(round, noScore)) -- 남은 사람은 시간 종료로 통과
+			t.ok(round.ended, "결승선·시간 종료를 기다리지 않고 바로 끝나요")
+			t.ok(not RoundLogic.isRacing(round, 4))
+			t.eq(
+				#RoundLogic.timeout(round, noScore),
+				0,
+				"이미 끝난 라운드라 시간 종료는 아무 일도 안 해요"
+			)
 			t.eq(wonCount, 0, "라운드 안에서는 Won이 나가지 않아요")
 
 			local aliveIds = {}
@@ -505,4 +510,68 @@ return function(t: Test.Test)
 		t.eq(winner, 2)
 		t.eq(needsWon, false)
 	end)
+	-- m2-07 결정: 결승 전 라운드에서 혼자 남으면 즉시 종료 ---------------------------
+
+	t.test(
+		"m2-07 혼자 남음: Race(목표 2) 4명 중 3명 리셋 → 3번째 리셋 순간 종료, 남은 1명 통과",
+		function()
+			local round = RoundLogic.newRound("Race", { 1, 2, 3, 4 })
+			RoundLogic.activate(round, 2)
+			local last: { Outcome } = {}
+			for _, id in { 1, 2, 3 } do
+				t.ok(not round.ended, `리셋 {id} 전에는 진행 중`)
+				last = RoundLogic.eliminate(round, { { userId = id, score = 0, cause = "Reset" } }, noScore)
+			end
+			t.eq(summary(last), { [3] = "Eliminated:nil", [4] = "Passed:1" })
+			t.ok(round.ended)
+		end
+	)
+
+	t.test(
+		"m2-07 혼자 남음: 통과 1 + 레이서 1에서 레이서가 리셋 → 종료 (구제 없음)",
+		function()
+			local round = RoundLogic.newRound("Race", { 1, 2, 3 })
+			RoundLogic.activate(round, 2)
+			RoundLogic.eliminate(round, { { userId = 3, score = 0, cause = "Reset" } }, noScore)
+			RoundLogic.pass(round, 1, noScore)
+			t.ok(not round.ended, "통과 1 + 레이서 1(합 2명)이면 계속 진행해요")
+			local out = RoundLogic.eliminate(round, { { userId = 2, score = 0, cause = "Reset" } }, noScore)
+			t.eq(summary(out), { [2] = "Eliminated:nil" })
+			t.ok(round.ended)
+			t.eq(round.passedCount, 1)
+		end
+	)
+
+	t.test(
+		"m2-07 혼자 남음: 통과 1 + 레이서 1에서 레이서가 떨어지면 구제로 둘 다 결승",
+		function()
+			local round = RoundLogic.newRound("Race", { 1, 2, 3 })
+			RoundLogic.activate(round, 2)
+			RoundLogic.eliminate(round, { { userId = 3, score = 0, cause = "Reset" } }, noScore)
+			RoundLogic.pass(round, 1, noScore)
+			local out = RoundLogic.eliminate(round, { { userId = 2, score = 0 } }, noScore)
+			t.eq(summary(out), { [2] = "Passed:2" })
+			t.ok(round.ended)
+		end
+	)
+
+	t.test(
+		"m2-07 혼자 남음: Survival도 같아요, 결승은 이 규칙이 아니라 1명 남으면 Won",
+		function()
+			local survival = RoundLogic.newRound("Survival", { 1, 2, 3 })
+			RoundLogic.activate(survival, 2)
+			-- 목표 2라 한 명씩 빠지면 2명 남을 때 이미 끝나요. 같은 틱에 둘이 리셋하면 1명만 남아요.
+			local out = RoundLogic.eliminate(survival, {
+				{ userId = 1, score = 0, cause = "Reset" },
+				{ userId = 2, score = 0, cause = "Reset" },
+			}, noScore)
+			t.eq(summary(out), { [1] = "Eliminated:nil", [2] = "Eliminated:nil", [3] = "Passed:1" })
+			t.ok(survival.ended)
+
+			local final = RoundLogic.newRound("Final", { 1, 2 })
+			RoundLogic.activate(final, 1)
+			local finalOut = RoundLogic.eliminate(final, { { userId = 1, score = 0, cause = "Reset" } }, noScore)
+			t.eq(summary(finalOut), { [1] = "Eliminated:nil", [2] = "Won:1" })
+		end
+	)
 end

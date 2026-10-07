@@ -74,9 +74,9 @@ status: in-qa
 - 막힌 점: 없음. `Config.DEBUG.forceMapPlan`은 `nil`로 커밋돼 있다 (Studio에서는 로컬에서만 바꾼다)
 
 ### 순수 로직 결과
-- AC1: `rojo build`, `stylua --check`, `selene`(0/0), `lune run tests` 202 passed. StubMap을 지운 뒤에도 같다.
+- AC1: `rojo build`, `stylua --check`, `selene`(0/0), `lune run tests` 206 passed (혼자 남음 반영 뒤).
 - AC2: QA가 만든 `tests/m2-01-qa.spec.luau`의 "실제 맵 풀: 3·4라운드 구성 500판씩" 테스트가 실제 `Maps.infos()`로 돈다. 지금 풀은 rotating-belt·soy-swamp(Race), hot-plate(Survival), skewer-showdown(Final) 4개이고 통과한다. 새 테스트는 추가하지 않았다.
-- AC11~AC13: `tests/round-logic.spec.luau`의 `m2-07 AC11/AC12/AC13` 테스트.
+- AC11~AC13: `tests/round-logic.spec.luau`의 `m2-07 AC11/AC12/AC13` 테스트와 `m2-07 혼자 남음` 테스트.
 
 ### Studio 확인 방법 (DEV-SETUP "M2 확인 목록"용)
 `rojo serve` 후 Studio 연결. 여러 명은 Test 탭 → 플레이어 수 → Start (Clients and Servers). 매번 서버·클라이언트 Output의 빨간 에러를 본다 (AC10).
@@ -102,6 +102,7 @@ status: in-qa
    - R1 Race에서 아무도 결승선을 못 넘고 차례로 떨어지면, 마지막 2명이 "✅ 통과"를 받고 결승으로 가야 한다 (AC11).
    - 결승 소개 중 상대가 나가면 남은 사람이 로비 스폰에서 우승 화면을 봐야 한다. 허공에서 떨어지면 안 된다 (F2).
    - 라운드 사이 결과 화면에서 리셋한 사람이 다음 라운드 시작 때 바로 탈락하지 않아야 한다 (N1).
+   - 4명 R1에서 3명이 차례로 리셋하면, 3번째 리셋 순간 결과 화면 없이 남은 1명에게 "🏆 우승!"과 Victory가 바로 떠야 한다 (AC13).
 
 ### F1 — 결승 진출 2명 보장
 - `shared/RoundLogic.luau`
@@ -115,7 +116,11 @@ status: in-qa
   - 구제 결과는 기존 `Passed` 분기로 가서 `passed` 방송 후 대기석(로비 스폰)으로 옮긴다.
 - `server/MatchService.luau`: 매치 끝에 `decideWinner`를 쓴다. 부전승이면 `EliminationService.won`을 보낸 뒤 Victory를 같은 사람으로 보낸다. 생존자 0명이면 Victory 없이 끝낸다.
 - 테스트: `tests/round-logic.spec.luau`에 AC11·AC11(같은 틱)·AC12·AC13, 리셋과 낙하가 섞인 묶음, 전원 리셋, 결승 Won 기록 테스트를 추가했다 (+7).
-- 정하지 않은 동작 (스펙에 없음): Race 결승 전 라운드에서 다른 사람이 전부 리셋해 혼자 남아도 라운드는 바로 끝나지 않는다. 그 사람이 결승선을 넘거나 시간이 끝나면 통과하고, 그다음 부전승 Won을 받는다. Survival은 통과 + 남은 인원이 목표 이하라 바로 끝난다.
+- **혼자 남음 (결정 기록 "결승 전 라운드에서 혼자 남았을 때" 반영, 해결)**
+  - `RoundLogic.checkEnd`: 결승 전 라운드(Race·Survival)에서 출발 뒤 통과자 + 남은 레이서가 1명 이하가 되면 그 자리에서 끝낸다. 남은 레이서는 통과다. 이 조건은 기존 "목표 도달 / 남은 0명" 판정보다 먼저 본다.
+  - `MatchService`: 결승 전 라운드 뒤 생존자가 1명 이하면 `RoundResults` 없이 루프를 빠져나와 `decideWinner` → `won` → `Victory`로 간다. 생존자 0명이면 Victory가 없다. 강제 플랜(디버그)은 예외로, 혼자여도 끝까지 돈다.
+  - 소개 중에 혼자 남는 경우는 예전처럼 `cancel` 뒤 같은 경로(부전승)로 간다.
+  - 테스트: AC13을 "3번째 리셋 순간 종료"로 바꿨다. 혼자 남음 케이스 4개를 추가했다: Race 3명 리셋, 통과 1 + 레이서 1에서 리셋 → 종료, 같은 상황에서 낙하 → 구제로 둘 다 통과, Survival 같은 틱 리셋과 결승 비교.
 
 ### 통합 P3
 - **N1 / H1(m2-03) / B2(m2-04) / W1(m2-02)** — 라운드 시작 순간 리스폰 중인 캐릭터가 로비 위치에서 낙하 판정됨: **고침.**

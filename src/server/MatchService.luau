@@ -207,6 +207,12 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		prepared.run(targetCount) -- 잠금 해제와 map.start가 이 방송과 같은 순간이에요
 		ctx.round = nil
 
+		-- 결승 전 라운드가 끝났는데 생존자가 1명 이하면(나머지가 리셋·퇴장) 결과 단계 없이 바로
+		-- 부전승 Won → Victory로 가요 (m2-07 결정). 강제 플랜(디버그)은 혼자여도 끝까지 돌아요.
+		if not isForced and roundIndex < roundCount and aliveCount(ctx) <= 1 then
+			break
+		end
+
 		broadcast(ctx, {
 			phase = "RoundResults",
 			endsAt = workspace:GetServerTimeNow() + Config.Match.ResultsDuration,

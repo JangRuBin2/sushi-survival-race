@@ -18,6 +18,7 @@
 --   2명 아래로 내려가면, 그 묶음의 낙하(cause "Fall") 중 점수가 큰 사람부터 2명이 찰 때까지
 --   탈락 대신 통과(구제)시켜요. 리셋·사망·퇴장(cause "Reset")은 구제하지 않아요.
 --   매치 우승자는 Won을 받은 사람만이에요 (Standings.winnerUserId, decideWinner).
+--   결승 전 라운드에서 통과 + 남은 레이서가 1명 이하가 되면 바로 끝나고 남은 사람은 통과예요 (부전승 준비).
 
 local Rules = require(script.Parent.Rules)
 
@@ -225,6 +226,16 @@ local function checkEnd(round: Round, out: { Outcome }, scoreOf: (number) -> num
 	end
 	local target = round.target :: number
 	local left = RoundLogic.remainingCount(round)
+	-- 혼자 남음 (m2-07 결정): 결승 전 라운드에서 통과자 + 남은 레이서가 1명 이하면 경쟁할 상대가
+	-- 없으니 바로 끝내요. 남은 레이서는 통과예요. MatchService가 결과 단계 없이 부전승으로 보내요.
+	if round.passedCount + left <= 1 then
+		for _, id in RoundLogic.racers(round) do
+			addPassed(round, out, id)
+		end
+		round.ended = true
+		round.active = false
+		return
+	end
 	local done = left == 0
 		or (round.mode == "Race" and round.passedCount >= target)
 		or (round.mode == "Survival" and round.passedCount + left <= target)

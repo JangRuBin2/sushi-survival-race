@@ -190,10 +190,16 @@ function RoundService.runRound(args: RunRoundArgs): RoundResult
 						finalizeEliminated(player)
 					end
 				end
-			else
-				-- 목표에 닿아서 자연히 끝난 경우(주로 Survival): 남은 사람 전원이 통과예요.
+			elseif map.kind == "Survival" then
+				-- Survival: 목표 인원만 남을 때까지 버티는 거라, 남은 사람(=살아남은 사람) 전원이 통과예요.
 				for _, player in leftover do
 					finalizeQualified(player)
+				end
+			else
+				-- Race/Final: 결승선에 목표 인원이 들어오면 그 자리에서 끝나요 (GDD 5.2).
+				-- 아직 결승선을 못 넘은 나머지는 탈락이에요 (GDD 4.1: 매 라운드 최소 1명은 꼭 탈락).
+				for _, player in leftover do
+					finalizeEliminated(player)
 				end
 			end
 		end

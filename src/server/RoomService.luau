@@ -235,18 +235,25 @@ local function leaveRoom(player: Player)
 	if roomId == nil then
 		return
 	end
-	roomIdByUser[player.UserId] = nil
 	local room = rooms[roomId]
 	if room == nil then
+		roomIdByUser[player.UserId] = nil
 		return
 	end
+
+	-- 매치 중이면 방에서 빼기 **전에** 알려요. 그래야 탈락 결과(PlayerResult)가 남은 멤버에게도 방송돼요.
+	if room.state == "InMatch" and memberLeftHandler then
+		local ok, err = pcall(memberLeftHandler, room.id, player)
+		if not ok then
+			warn(`[RoomService] member left handler failed for {player.Name}: {err}`)
+		end
+	end
+
+	roomIdByUser[player.UserId] = nil
 	RoomLogic.removeMember(room, player.UserId)
 
 	if player.Parent then
 		roomUpdatedEvent:FireClient(player, nil)
-	end
-	if room.state == "InMatch" and memberLeftHandler then
-		task.spawn(memberLeftHandler, room.id, player)
 	end
 
 	if #room.members == 0 then
@@ -279,6 +286,9 @@ function handlers.CreateRoom(player: Player, rawSettings: any): (boolean, string
 		return false, err
 	end
 	local name = settings.name and filterRoomName(settings.name, player)
+	if player.Parent == nil then -- 필터가 yield하는 동안 게임을 떠났으면 방을 만들지 않아요 (유령 방 방지)
+		return false, "게임을 떠났어요"
+	end
 	if roomIdByUser[player.UserId] ~= nil then -- 필터가 yield하는 동안 다른 요청으로 방에 들어갔을 수 있어요
 		return false, "이미 방에 들어가 있어요"
 	end

@@ -44,9 +44,9 @@ rojo plugin install
 rojo build -o build.rbxl     # Rojo 프로젝트 구조가 맞는지 (build.rbxl은 커밋 안 함, .gitignore에 있음)
 stylua --check src tests     # 포맷 검사. 고칠 때는: stylua src tests
 selene src                   # 린트
-lune run tests               # 순수 로직 테스트 (라운드 수, 통과 인원, 라운드 구성, 맵 인터페이스)
+lune run tests               # 순수 로직 테스트 (라운드 수·통과 인원·라운드 구성, 방 로직, 맵 인터페이스)
 ```
-4개 모두 에러 없이 끝나야 해요. `lune run tests`는 마지막 줄에 `N passed, 0 failed`가 나와요.
+4개 모두 에러 없이 끝나야 해요. `lune run tests`는 파일별 결과(`rules`, `room`, `maps`) 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M1 기준 38개).
 
 ## 3. Studio에서 게임 테스트
 
@@ -56,11 +56,11 @@ lune run tests               # 순수 로직 테스트 (라운드 수, 통과 �
 3. 상단 **Plugins** 탭 → **Rojo** → 열린 창에서 **Connect**.
 4. 연결되면 파일을 저장할 때마다 Studio에 바로 반영돼요. 테스트용 플레이스 파일은 저장하지 않아도 돼요 (코드는 전부 저장소에 있어요).
 
-### 3-2. 지금 단계(M0)에서 확인할 것
+### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
 - [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `RoomService`, `MatchService`, `RoundService`, `EliminationService`
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `Remotes`, `Types`, `Cleanup`, `maps`
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client`
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoomLogic`, `Remotes`, `Types`, `Cleanup`, `maps`(안에 `MapTypes`, `RotatingBelt`, `RotatingBeltChopstick`)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `ui` 폴더)
 - [ ] `Workspace`에 나무 바닥판 `Baseplate`와 `LobbySpawn`
 
 **Play**(F5)를 눌러서:
@@ -109,17 +109,26 @@ Explorer 창에서:
 - [ ] 버튼을 아주 빠르게 연타하면 "너무 빨라요. 잠시 뒤 다시 눌러 주세요"가 뜰 수 있어요 (요청 간격 0.3초 제한, 정상)
 
 ### 3-5. 매치 플로우 확인 (M1 match-flow + race-belt)
-방이 출발하면 `MatchService`가 `RoomWaiting → Starting → [RoundIntro → RoundActive → RoundResults] × 3~4 → Victory → RoomWaiting` 순서로 진행하고, 화면은 로비/방 대기실 대신 매치 HUD(위: 라운드 번호·맵 이름·규칙, 오른쪽 위: 남은 시간, 왼쪽 위: 통과 인원/목표/남은 인원, 가운데: 라운드 소개·결과·우승 배너, 아래: 내 통과/탈락/우승 안내)로 바뀌어요. 1라운드는 항상 `race-belt` 트랙이 만든 회전 벨트 맵(`rotating-belt`)이 떠요.
+방이 출발하면 `MatchService`가 `RoomWaiting → Starting → [RoundIntro → RoundActive → RoundResults] × 3~4 → Victory → RoomWaiting` 순서로 진행하고, 화면은 로비/방 대기실 대신 매치 HUD(위: 라운드 번호·맵 이름·규칙, 오른쪽 위: 남은 시간, 왼쪽 위: 통과 인원/목표/남은 인원, 가운데: 라운드 소개·결과·우승 배너, 아래: 내 통과/탈락/우승 안내)로 바뀌어요.
 
-**혼자 (Play, F5)**
-- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너 뒤 "라운드 1 / N · 회전 벨트" 소개 배너가 뜨고, 잠깐 뒤 맵이 보이고 캐릭터가 Spawns 위치로 이동해요
-- [ ] 라운드 중 왼쪽 위 "통과 n/목표" 숫자와 오른쪽 위 남은 시간이 줄어들어요
-- [ ] 벨트 구간에 서 있으면 뒤로 밀리고, 젓가락 구간에서 경고 뒤 붙잡히면 화면이 잠깐 멈춰요 (3-6의 동작 상세 참고)
-- [ ] 결승선을 통과하거나 탈락하면 화면 아래에 "✅ n번째로 통과했어요!" 또는 "🥢 탈락했어요… (n등)"이 떠요
-- [ ] 탈락하면 캐릭터가 그 자리에 멈췄다가 몇 초 뒤 로비 스폰으로 돌아가요
-- [ ] Studio는 혼자라 통과 목표(`targetCount`)가 1명이라, 결승선을 넘으면 바로 그 라운드가 끝나요. 시작 인원 4~8명이면 3라운드, 9명 이상이면 4라운드가 돌고, 남은 인원이 2명 이하가 되면 중간 라운드를 건너뛰고 바로 결승(Final 맵)으로 가요
-- [ ] 결승에서 1명만 남으면 "🏆 우승!" 배너가 뜨고 몇 초 뒤 방 대기실로 돌아와요 (같은 멤버로 바로 "시작!"을 다시 누를 수 있어요)
+> **지금 맵 풀에는 회전 벨트(`rotating-belt`, Race) 하나뿐이에요.** 그래서 2라운드·결승을 포함한 모든 라운드가 회전 벨트로 돌아요. 결승도 회전 벨트(Race 맵)라서, 결승 1등의 개인 안내는 "🏆 우승했어요!"가 아니라 "✅ 1번째로 통과했어요!"로 떠요. 우승은 그 뒤 가운데 "🏆 우승!" 배너로 확인해요. Final 맵이 생기면(M2) 바뀌어요.
+>
+> 시간(초)은 `Config`에 있어요: 매치 시작 3 · 라운드 소개 3 · 결과 5 · 우승 6 · 탈락 연출 3, 라운드 제한 Race 90 / Survival 60 / Final 90.
+
+**혼자 (Play, F5)** — 라운드는 안 돌아요
+- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너가 3초 뜬 뒤, **라운드 없이 바로** "🏆 우승!" 배너에 내 이름이 떠요 (살아 있는 사람이 이미 1명이라 매치가 바로 끝나요)
+- [ ] 6초 뒤 방 대기실로 돌아오고, 같은 방에서 **시작!**을 다시 누를 수 있어요
 - [ ] 서버 Output에 빨간 에러가 없어요
+- 라운드 안의 동작(맵, 벨트, 젓가락, 결승선)을 혼자 보고 싶으면 3-6의 Command bar 방법을 써요.
+
+**두 명 (Test → Clients and Servers, 2명)** — 라운드를 가장 빨리 보는 방법
+- [ ] 방장이 **시작!** → "매치 시작!" 뒤 위쪽에 "라운드 1 / 3", 가운데 배너에 맵 이름 "회전 벨트"와 규칙 한 줄이 뜨고, 3초 뒤 맵이 보이고 캐릭터가 Spawns 위치로 이동해요
+- [ ] 라운드 중 왼쪽 위 "통과 n/2 · 남은 인원 n"과 오른쪽 위 남은 시간(90초부터)이 바뀌어요. 2명이면 1라운드 목표가 2명이라 둘 다 결승선을 넘어야 라운드가 끝나요
+- [ ] 벨트 구간에 서 있으면 뒤로 밀리고, 젓가락 구간에서 경고 뒤 붙잡히면 3초간 못 움직여요 (3-6의 동작 상세 참고)
+- [ ] 결승선을 통과하면 화면 아래에 "✅ n번째로 통과했어요!"가 떠요
+- [ ] 1라운드가 끝나고 남은 인원이 2명이라 2라운드를 건너뛰고 "라운드 3 / 3"(결승)으로 바로 가요
+- [ ] 결승에서 먼저 결승선을 넘은 사람이 이기고, 나머지는 그 자리에서 "🥢 탈락했어요… (2등)"이 뜨며 캐릭터가 멈췄다가 3초 뒤 로비 스폰으로 돌아가요
+- [ ] "🏆 우승!" 배너에 이긴 사람 이름이 두 화면 모두 똑같이 뜨고, 6초 뒤 방 대기실로 돌아와요
 
 **여러 명 (Test → Clients and Servers, 4명)**
 - [ ] 4명이 들어간 방에서 방장이 **시작!** → 4명 모두 화면이 매치 HUD로 바뀌고 같은 라운드 소개·결과·우승 배너를 동시에 봐요
@@ -149,7 +158,7 @@ Explorer 창에서:
 3. 다 봤으면 `model:Destroy()`로 치워요.
 
 **동작 확인 (Play, F5 — `RoundContext`를 손으로 흉내 내서 start() 호출)**
-`RoundService`가 아직 없어서 진짜 라운드 없이 아래 스크립트로 흉내 낼 수 있어요. Command bar에:
+혼자서는 매치 라운드가 돌지 않으니(3-5), 방·매치 없이 맵만 띄워서 아래 스크립트로 라운드를 흉내 내요. Command bar에:
 ```lua
 local Shared = game:GetService("ReplicatedStorage").Shared
 local Players = game:GetService("Players")
@@ -187,7 +196,7 @@ _G.beltCtx = ctx -- 정리할 때 쓰려고 전역에 보관
 - [ ] 코스 옆 벽을 넘어가거나 일부러 바닥 아래로 떨어지면(예: `origin`보다 40 studs 아래) Output에 `[race-belt] ELIMINATE (내 이름)`이 떠요
 - [ ] 확인이 끝나면 `_G.beltCtx.cleanup:run()`으로 벨트/젓가락 루프를 멈추고 `_G.beltCtx.model:Destroy()`로 치워요 (안 하면 Heartbeat 연결이 계속 돌아요)
 
-`RoundService`는 이미 이 맵을 실제 라운드에 연결해서 쓰고 있어요 — 3-5에서 실제 매치 흐름 안의 동작(목표 인원 통과 시 라운드 종료, 탈락 시 관전 전환)을 확인할 수 있어요.
+실제 라운드에서는 `RoundService`가 이 맵을 지어서 돌려요 — 3-5에서 매치 흐름 안의 동작(목표 인원 통과 시 라운드 종료, 탈락 시 로비 스폰 복귀)을 확인할 수 있어요. 관전 모드는 아직 없어요(M2).
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |
@@ -200,10 +209,12 @@ _G.beltCtx = ctx -- 정리할 때 쓰려고 전역에 보관
 | 포트가 이미 쓰임 | 다른 `rojo serve`를 끄거나 `rojo serve --port 34873` 후 플러그인에서 포트 변경 |
 | `stylua --check`가 모든 파일이 다르다고 함 | 줄바꿈 문제예요. `.gitattributes`가 LF로 고정하니까 `git add --renormalize .` 후 다시 체크아웃 |
 
-## 5. 병렬 작업할 때 (M1~)
-`CLAUDE.md`의 병렬 작업 계획대로 worktree마다 Rojo 포트를 다르게 써요:
-`rojo serve --port 34872` (room-system), `34873` (match-flow), `34874` (race-belt).
-Studio 플러그인 창에서 포트를 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
+## 5. 에이전트 협업·병렬 작업할 때
+작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
+
+- **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모
 - Rokit은 [릴리스 페이지](https://github.com/rojo-rbx/rokit/releases)에서 `windows-x86_64.zip`을 받아 `rokit.exe self-install` 하면 사용자 PATH에 `%USERPROFILE%\.rokit\bin`이 추가돼요. 터미널을 새로 열어야 적용돼요.

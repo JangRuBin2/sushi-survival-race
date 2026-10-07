@@ -49,6 +49,7 @@ docs-writer 에이전트로 qa-passed 된 것 문서에 반영해줘
 ```bash
 claude --worktree m2-survival   # 그 세션에서 developer 에이전트로 해당 스펙 구현
 ```
+`claude --worktree`는 로컬 `main`이 아니라 **`origin/main`에서 브랜치를 만든다.** 로컬 `main`을 먼저 push하거나, 만든 직후 worktree에서 `git merge --ff-only main`으로 맞춘다.
 Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `34873`, ...). 머지는 QA 통과 후 메인 세션에서 한다.
 
 ## 스펙 ID

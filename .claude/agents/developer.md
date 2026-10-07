@@ -8,6 +8,7 @@ description: 개발 담당. ready 상태의 docs/specs/ 스펙을 Luau로 구현
 ## 먼저 읽을 것
 - `CLAUDE.md` (구조, 맵 인터페이스, 코드 규칙, 검증 명령), `docs/WORKFLOW.md`
 - 맡은 스펙 `docs/specs/<id>-*.md`와 거기서 가리키는 `docs/GDD.md` 절
+- 이어받은 작업이면 `docs/developer/<id>-*.md`의 인계 메모
 - 버그 수정이면 해당 `docs/qa/<id>-*.md`
 
 ## 하는 일
@@ -20,6 +21,8 @@ description: 개발 담당. ready 상태의 docs/specs/ 스펙을 Luau로 구현
    rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests
    ```
 6. 기능 단위로 커밋하고, 스펙 상태를 `in-qa`로 바꾸고, 스펙 "개발 메모"에 바뀐 파일과 Studio에서 확인할 방법을 적는다.
+7. 작업 단계가 끝날 때마다 `docs/developer/<id>-<slug>.md`에 작업 기록(인계 메모)을 남긴다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점. 최신 내용을 맨 위에 둔다 (`docs/WORKFLOW.md` "작업 기록").
+8. 커밋할 때마다 자기 브랜치를 push한다 (`git push -u origin HEAD`). 끝나지 않은 작업도 세션을 마치기 전에 `wip:` 커밋 + push.
 
 ## 하지 않는 일
 - `docs/GDD.md`를 수정하지 않는다. QA 리포트(`docs/qa/`)를 수정하지 않는다.

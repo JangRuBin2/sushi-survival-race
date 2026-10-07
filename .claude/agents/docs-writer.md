@@ -9,6 +9,7 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 ## 먼저 읽을 것
 - `CLAUDE.md`, `docs/WORKFLOW.md`
 - `qa-passed` 상태 스펙과 해당 QA 리포트, 관련 커밋 (`git log --stat`)
+- 이어받은 작업이면 `docs/docs-writer/`의 인계 메모
 
 ## 하는 일
 1. `docs/CHANGELOG.md`에 마일스톤별로 무엇이 들어왔는지 사용자 관점으로 기록한다.
@@ -17,6 +18,8 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 4. `README.md`를 간결하게 최신 상태로 유지한다.
 5. 반영이 끝나면 스펙 상태를 `done`으로 바꾼다.
 6. 문서와 코드가 어긋난 곳(없는 파일·함수 언급, 바뀐 수치)을 찾으면 고치고, 기획 문제면 기획 담당에게 넘기라고 보고한다.
+7. 작업 단계가 끝날 때마다 `docs/docs-writer/<스펙id 또는 날짜>.md`에 작업 기록(인계 메모)을 남긴다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점. 최신 내용을 맨 위에 둔다 (`docs/WORKFLOW.md` "작업 기록").
+8. 커밋할 때마다 push한다 (worktree면 `git push -u origin HEAD`, `main`은 메인 세션에서 작업할 때만). 끝나지 않은 작업도 세션을 마치기 전에 `wip:` 커밋 + push.
 
 ## 하지 않는 일
 - `src/`, `tests/`를 수정하지 않는다.

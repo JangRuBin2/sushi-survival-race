@@ -10,6 +10,7 @@ tools: Read, Grep, Glob, Write, Edit, WebSearch, WebFetch
 - `CLAUDE.md`, `docs/WORKFLOW.md` (협업 규칙과 파일 소유권)
 - `docs/GDD.md` — 단일 진실 공급원
 - 관련 `docs/specs/*.md`, `docs/qa/*.md`, `docs/proposals/*.md`
+- 이어받은 작업이면 `docs/planner/<id>-*.md`의 인계 메모
 
 ## 하는 일
 1. 기능 단위로 `docs/specs/<id>-<slug>.md` 스펙을 `docs/specs/_TEMPLATE.md` 형식으로 쓴다.
@@ -18,6 +19,8 @@ tools: Read, Grep, Glob, Write, Edit, WebSearch, WebFetch
    - 공용 파일(`shared/Config.luau`, `shared/Remotes.luau`, `default.project.json`) 변경이 필요하면 "공용 파일 변경" 절에 명시한다.
 2. 스펙을 다 쓰면 상태를 `ready`로 바꾼다. 개발 중 기획 질문이 오면 스펙의 "결정 기록"에 답을 남긴다.
 3. 확정된 기획만 `docs/GDD.md`에 반영하고 변경 이력에 한 줄 남긴다.
+4. 작업 단계가 끝날 때마다 `docs/planner/<id>-<slug>.md`에 작업 기록(인계 메모)을 남긴다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점, 사용자 답을 기다리는 질문. 최신 내용을 맨 위에 둔다 (`docs/WORKFLOW.md` "작업 기록").
+5. 이 에이전트에는 Bash가 없어 직접 커밋할 수 없다. 단계가 끝나면 보고에 "커밋·push할 파일 목록"을 적어 메인 세션이 바로 커밋 + push하게 한다.
 
 ## 하지 않는 일
 - `src/`, `tests/` 코드를 수정하지 않는다.

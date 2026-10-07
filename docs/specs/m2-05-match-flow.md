@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-05 — 한 판 흐름 마무리 (출발 공정성 · 라운드 종료 규칙 · 생존형 결승 · 순위 · 생존자 방송)

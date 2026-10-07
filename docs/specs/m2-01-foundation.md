@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-01 — M2 기반 작업 (공용 파일 · 맵 풀 · 라운드 구성 · 디버그 플랜)

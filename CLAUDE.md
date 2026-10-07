@@ -6,10 +6,11 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 v0.2. **M0, M1 완료** (방 시스템, 매치 상태 머신, 회전 벨트 Race 맵, HUD). 자세한 내역은 `docs/CHANGELOG.md`.
-- 맵 풀에는 아직 **`rotating-belt`(Race) 하나뿐**이다. `Rules.buildRoundPlan`이 모자란 종류를 다른 맵으로 채우므로 Survival·Final 라운드도 지금은 회전 벨트로 돈다 (결승도 `kind = "Race"`라 `EliminationService.won` 대신 `passed`가 불린다).
-- 아직 없는 것: 관전 모드(탈락하면 연출 시간 뒤 로비 스폰으로 돌아감), 라운드 소개 플라이스루·카메라 연출, 젓가락 외 장애물(`Wasabi`, `SoySauce`, `HotTile` 태그는 예약만 됨), `applyAppearance`.
-- 다음 단계: **M2 (한 판 MVP)** — Race 2 / Survival 1 / Final 1 회색 박스 맵, 랜덤 구성, 탈락·관전·우승. 기획 담당이 `docs/specs/`에 M2 스펙을 쓰는 것부터 시작한다. 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- 기획서 **v0.3** (결승 = 마지막 1명이 남을 때까지 버티는 생존형, 폴가이즈 참고). **M0, M1, M2 완료** — M2는 사용자 Studio 확인(`docs/DEV-SETUP.md` 3-7) 대기. 자세한 내역은 `docs/CHANGELOG.md`.
+- 맵 풀 4개: `rotating-belt`·`soy-swamp`(Race), `hot-plate`(Survival), `skewer-showdown`(Final). 3~4라운드 한 판이 처음부터 우승까지 돈다. 탈락하면 자동 관전, 우승 화면에 순위표.
+- 아직 없는 것: 라운드 소개 플라이스루·카메라 연출, 탈락·우승 연출, 다이브/잡기, 사운드(M3), `applyAppearance`.
+- 남은 P3: 결승의 같은 틱 묶음에서 리셋·퇴장한 사람이 우승할 수 있음, 검증에 Luau 타입 검사 없음 (`docs/qa/m2-07-full-match-integration.md` I1·I2), 회전 벨트는 아직 태그가 아니라 `Hazards` 폴더로 장애물을 돌림.
+- 다음 단계: **M3 (맛 내기)** — 기획 담당이 `docs/specs/`에 M3 스펙을 쓰는 것부터. 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). M4 맵 제작 리서치: `docs/REFERENCE-map-production.md` (참고용, 결정 아님).
 - **스킨·상점·로벅스 결제는 가장 마지막에 개발한다.** 그 전까지는 모든 플레이어가 기본 계란초밥(회색 박스 캐릭터여도 됨)으로 플레이한다. 스킨이 나중에 붙을 수 있게 캐릭터 외형 적용 지점만 한 곳(`applyAppearance` 같은 함수, 아직 없음 — 캐릭터 외형을 처음 손댈 때 만든다)으로 모아 둔다.
 
@@ -24,6 +25,8 @@
 - **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~24명 → 4라운드. 한 판 4~5분.
 - **통과 인원**: `clamp(round(시작 × 비율), 2, 시작 - 1)`. 비율 3라운드 [0.60, 0.50, 결승], 4라운드 [0.65, 0.55, 0.50, 결승]. 결승 전 남은 인원 ≤ 2면 바로 결승. 코드(`Rules.qualifyCount`)는 "시작"을 **그 라운드를 시작할 때 살아 있는 인원**으로 계산한다.
 - **맵**: 라운드마다 맵이 바뀌고 맵마다 규칙이 다르다. 종류는 Race / Survival / Final. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
+- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
+- **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제(통과). 리셋·퇴장은 구제 없음. 결승 전 라운드에서 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
 - **판정은 전부 서버**(결승선, 탈락, 순위, 구매). 클라이언트는 입력·UI·연출만.
 
 ## 기술 스택과 구조
@@ -39,15 +42,18 @@ src/
   server/            -> ServerScriptService.Server
     init.server.luau     # 서비스 부트스트랩: 모든 서비스 init() 다음 start()
     RoomService.luau     # 방 생성/참가/퇴장/방장/시작, 요청 간격 0.3초 제한. onMatchStart/onMemberLeft/endMatch/getArenaOrigin
-    MatchService.luau    # 방 하나의 매치 상태 머신 (MatchPhase 방송)
-    RoundService.luau    # runRound: 맵 build/배치/start/판정/정리, RoundProgress 방송
-    EliminationService.luau  # passed/won/eliminate → PlayerResult 방송, 탈락자 고정 후 로비 스폰 복귀
+    MatchService.luau    # 방 하나의 매치 상태 머신 (MatchPhase 방송, decideWinner로 우승 확정)
+    RoundService.luau    # prepareRound(args) → { run(target), cancel(), racerCount() }: 맵 build/배치/start, 판정은 RoundLogic에 위임
+    EliminationService.luau  # passed/won/left/eliminate(roomId, ...) → PlayerResult 방송
+    CharacterUtil.luau   # resetMovement(Config 값으로 이동 복구), toLobby(로비 스폰 = 대기석)
   client/            -> StarterPlayerScripts.Client
     init.client.luau     # LobbyController.start() → HudController.start(gui)
-    ui/                  # LobbyScreen/Controller, RoomScreen, RoomUiKit, HudScreen/Controller
+    ui/                  # LobbyScreen/Controller, RoomScreen, RoomUiKit, HudScreen/Controller, SpectateScreen/Controller
   shared/            -> ReplicatedStorage.Shared
     Config.luau          # Room, Rules(비율), Match(연출 시간), TimeLimit, Arena, Character, DEBUG (Roblox API 없음)
     Rules.luau           # 순수 함수: roundCount, qualifyCount, shouldSkipToFinal, nextRound, roundKinds, buildRoundPlan
+    RoundLogic.luau      # 라운드 판정·매치 순위 순수 로직: Mode(Race/Survival/Final), pass/eliminate/timeout → Outcome, Standings, decideWinner
+    SpectateLogic.luau   # 관전 대상 후보·전환 순수 로직
     RoomLogic.luau       # 방 순수 로직: 설정 검증, 코드 생성, 참가/퇴장/방장 위임, 시작 조건, 빠른 참가
     Remotes.luau         # RemoteFunction 6 + RemoteEvent 5 이름을 한 곳에서 정의 (Remotes.fn / Remotes.event)
     Types.luau           # 리모트로 주고받는 데이터 모양
@@ -55,11 +61,13 @@ src/
     maps/
       init.luau          # 맵 풀 (ALL에 맵 모듈 추가): Maps.get, Maps.infos, Maps.timeLimit
       MapTypes.luau      # 공통 인터페이스 타입(MapModule, RoundContext) + validate
-      RotatingBelt.luau  # Race 맵 "회전 벨트" (id rotating-belt)
-      RotatingBeltChopstick.luau  # 회전 벨트의 젓가락 장애물 (Chopstick 태그)
+      RotatingBelt.luau  # Race "회전 벨트" (+ RotatingBeltChopstick)
+      SoySwamp.luau      # Race "간장 늪 & 와사비 산" (+ SoySwampLayout, SoySwampHazards)
+      HotPlate.luau      # Survival "뜨거운 철판" (+ HotPlateLogic)
+      SkewerShowdown.luau  # Final "회전 꼬치 쇼다운" (+ SkewerShowdownLogic)
 tests/               # 순수 로직 테스트 (스튜디오 없이 실행)
   init.luau            # 실행기: tests/*.spec.luau
-  rules.spec.luau  room.spec.luau  maps.spec.luau
+  *.spec.luau          # rules, room, maps, round-logic, spectate, map-*, 그리고 QA가 추가한 *-qa / m1-* 테스트
   lib/Test.luau        # 작은 테스트 도우미 (t.test, t.eq, t.ok)
   lib/RobloxRequire.luau  # src 모듈의 require(script.Parent.X)를 Lune에서 흉내
 docs/
@@ -92,15 +100,18 @@ export type RoundContext = {
 }
 ```
 - `Spawns` 폴더에는 최대 인원(24)만큼 BasePart를 둔다 (이름순 배치). 코스는 `origin`의 앞쪽(LookVector, 로컬 -Z)으로 뻗는다 — 시간 종료 때 "가장 멀리 간" 순위를 이 축으로 잰다.
-- 라운드 종료(`RoundService`): Race/Final은 통과자가 `targetCount`에 닿는 순간 끝나고 나머지는 탈락. Survival은 남은 인원이 `targetCount` 이하가 되면 끝나고 남은 사람이 통과. 시간 종료 시에는 앞으로 간 순서로 빈 자리를 채운다. 결승 1등 처리는 맵 `kind == "Final"`일 때만 한다.
+- 라운드 종료 판정은 `RoundLogic`(순수)이 한다. 맵은 `ctx.pass`/`ctx.eliminate`만 부르고, `ctx.eliminate`는 한 판정 틱 동안 모아서 한 묶음으로 처리된다. 결승 여부는 맵 종류가 아니라 "마지막 라운드인가"로 정한다. 규칙 요약은 `RoundLogic.luau` 맨 위 주석.
+- 점수: Race는 진행도(로컬 -Z), Survival·Final은 높이(HumanoidRootPart Y). 같은 묶음·시간 종료 때 순위를 이걸로 정한다.
+- `ctx.getRacers()`에는 스폰에 배치된 레이서만 나온다 (리스폰 중인 사람은 판정하지 않음).
 - 맵 상태는 모듈이 아니라 `ctx`에 둔다 (한 서버에서 여러 방이 같은 맵을 동시에 돌릴 수 있다).
-- 장애물은 `CollectionService` 태그(`Chopstick`, `Wasabi`, `SoySauce`, `HotTile`)로 동작시킨다. 지금 구현된 건 `Chopstick`뿐.
+- 장애물은 `CollectionService` 태그를 달고, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다 (여러 방 동시 진행). 간장 늪(`SoySauce`, `Wasabi`), 철판(`HotTile`), 꼬치 쇼다운이 이 방식. 회전 벨트는 아직 `Hazards` 폴더 순회(태그만 붙임).
 - GDD 11절의 인터페이스 표기(`setup(map)`, `start(players, targetCount)`)는 초안이고, 실제 계약은 위 `MapTypes.luau`다.
 
 ## 규칙
-- 공용 파일(`shared/Config.luau`, `shared/Remotes.luau`, `default.project.json`)은 **병렬 작업 중에는 한 에이전트만 수정**한다. 다른 에이전트는 필요한 변경을 사용자에게 알린다.
+- 공용 파일(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/maps/init.luau`, `default.project.json`)은 **병렬 작업 중에는 한 에이전트만 수정**한다. 다른 에이전트는 필요한 변경을 사용자에게 알린다.
 - `Rules.luau` 같은 순수 로직은 Roblox API에 의존하지 않게 분리하고 `tests/`에 테스트를 둔다.
 - `Config.DEBUG.minPlayersToStart`(1)처럼 **혼자 테스트할 수 있는 디버그 설정**을 둔다. 서버는 `RunService:IsStudio()`일 때만 적용한다 (`RoomLogic.minPlayersToStart`). 다인원은 스튜디오 Test → Clients and Servers.
+- `Config.DEBUG.forceMapPlan`에 맵 id 3~4개를 넣으면 그 순서대로 라운드를 돌린다 (혼자여도 끝까지). 맵 하나를 Studio에서 확인할 때 쓰고, **커밋할 때는 `nil`**.
 - 클라이언트에서 온 리모트 인자(지금은 전부 RemoteFunction)는 서버에서 항상 검증한다 (타입, 범위, 방 소속, 방장 여부).
 
 ## 검증 (작업 끝내기 전에 반드시)

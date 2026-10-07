@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-04 — Final 맵 "회전 꼬치 쇼다운" (생존형 결승, 회색 박스)

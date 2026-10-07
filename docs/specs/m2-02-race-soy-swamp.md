@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-02 — Race 맵 "간장 늪 & 와사비 산" (회색 박스)

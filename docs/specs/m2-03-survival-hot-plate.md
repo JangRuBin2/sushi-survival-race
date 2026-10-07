@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-03 — Survival 맵 "뜨거운 철판" (회색 박스)
@@ -58,3 +58,39 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 바뀐 파일
+- `src/shared/maps/HotPlate.luau` (stub 덮어씀): 실제 맵.
+  - `build`: Model 아래 `Layer1`(맨 위)·`Layer2`·`Layer3` 폴더, 각 81개 `Tile01`~`Tile81` (6×1×6, DiamondPlate, `HotTile` 태그, 속성 `Layer`). 층 윗면 높이 0 / -20 / -40 (origin 기준), 철판 중심은 로컬 z = -27 (origin 앞쪽). `Spawns`에 `Spawn01`~`Spawn24` (맨 위층에 6×4 칸으로 고르게, CanCollide/CanTouch/CanQuery false). 벽 없음.
+  - `start`: `CollectionService:GetTagged("HotTile")`을 `ctx.model:IsAncestorOf`로 걸러 이 방 타일만 씀 (B10 (A)). Heartbeat 하나에서
+    1) 레이서 HumanoidRootPart가 맨 아래층 윗면보다 15 studs 아래(로컬 y < -55)면 `ctx.eliminate`.
+    2) 발밑 판정: 루트 중심과 앞뒤좌우 ±0.9 studs, 5개 지점에서 아래로 4.5 studs 레이캐스트(이 방 타일만 Include). 닿은 타일은 처음 밟힌 시각을 기록 — 이미 달아오르는 타일은 리셋 안 됨, 내려와도 계속 진행.
+    3) 달아오르는 타일 색을 0.1초 단위로 갱신, 1.5초가 되면 `Transparency 1`, `CanCollide/CanQuery false` (재생성 없음).
+  - 상태(`heatStart`, `colorStep`, `gone`)는 `start` 지역 변수, 연결은 `ctx.cleanup`. `ctx.pass`는 부르지 않음. `cleanup` 함수 없음(모델은 RoundService가 지움).
+- `src/shared/maps/HotPlateLogic.luau` (새, 순수 로직): 치수 상수(3층, 9×9, 타일 6, 간격 20, 탈락 깊이 15, 스폰 24), `heatVisual(elapsed) -> (rgb, gone)`(0초 회색 163,162,165 → 0.75초 주황 255,140,0 → 1.5초 빨강 220,30,0, 1.5초 이상 gone), `tileOffsets`, `spawnOffsets`, `layerTopY`, `centerZ`, `eliminationY`.
+- `tests/map-hot-plate.spec.luau` (새): AC1, AC3, 색이 빨강 쪽으로만 변함, 층/타일 81개 틈 없음/층 간격 범위, 스폰 24개 분포, 탈락 높이. 6 passed.
+- 공용 파일 변경 없음. `StubMap.luau`는 그대로 둠 (다른 stub이 아직 씀).
+
+### 검증
+`rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests` → 빌드 성공, stylua 통과, selene 0 errors/0 warnings, **100 passed, 0 failed**.
+
+### Studio 확인 방법 (사용자 확인 필요)
+- AC4: Play(F5) 중 서버 Command bar에서
+  `local m = require(game.ReplicatedStorage.Shared.maps).get("hot-plate").build(CFrame.new(0,10,0)); m.Parent = workspace; for i=1,3 do print(m["Layer"..i].Name, #m["Layer"..i]:GetChildren()) end; print(#m.Spawns:GetChildren(), #game:GetService("CollectionService"):GetTagged("HotTile"))`
+  → Layer1~3 각 81, Spawns 24, HotTile 243. 노란 스폰 판이 맨 위층 전체에 흩어져 있는지 눈으로 확인.
+- AC5~AC7, AC9: `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`로 혼자 시작 → 2라운드. 가만히 서 있으면 발밑 타일이 회색→주황→빨강 후 약 1.5초에 사라지고 아래층으로 떨어짐. 뛰어다니면 지나간 타일이 차례로 사라짐. 맨 아래층에서 떨어지면 "🥢 탈락했어요…". (AC9는 2인: 한 명이 밟은 타일에 다른 사람이 늦게 올라가도 처음 밟힌 시각 기준으로 사라지는지.)
+- AC8: Test → Clients and Servers 4명, `forceMapPlan = { "hot-plate", "rotating-belt", "skewer-showdown" }` → 목표 2명. 두 명이 떨어지는 순간 라운드 종료, 남은 두 명 통과 안내.
+- AC10: 라운드 종료 후 Workspace에서 `Round*_hot-plate` 모델이 사라지고 Output에 에러 없음. 두 방 동시 진행은 m2-07에서.
+- 확인 뒤 `forceMapPlan`은 `nil`로 되돌린다.
+
+### 남은 이슈 / 알아둘 점
+- **시간 종료 처리(m2-05 범위)**: 지금 main의 `RoundService.finish(isTimeout=true)`는 Survival도 `settleLeftover`로 목표 인원까지만 통과시키고 나머지를 탈락시킨다. 확정 Q1("시간 끝까지 버틴 사람 전원 통과")은 m2-05가 고칠 부분이라 이 worktree에서는 건드리지 않았다. m2-05 머지 전 Studio에서 60초를 버티면 목표 초과 인원이 탈락으로 보일 수 있다.
+- 발밑 판정은 "서 있을 때"만(레이 길이 4.5) 잡는다. 점프 중 공중에 떠 있는 동안은 타일이 달아오르지 않는다 — 계속 점프만 하면 착지할 때만 달아오름. 의도와 맞는지 플레이테스트로 확인 필요.
+- 위층 가장자리에서 밖으로 떨어지면 아래층 범위 밖이라 바로 탈락 깊이까지 떨어진다 (스펙상 허용).
+- 수치(층 간격 20, 9×9, 1.5초)는 초기값. 60초 안에 누군가 떨어지는지는 다인원 플레이테스트로 조정.
+
+### 인계 메모 (2026-10-08)
+- 브랜치: `worktree-m2-hot-plate` (base `03d752a`, 구현 커밋 `ca87607`). push됨.
+- 끝난 것: 스펙 범위 구현 전부. 검증 4종 통과(100 passed). 상태 `in-qa`.
+- 남은 것: QA 결과 대기. Studio 확인 AC4~AC10은 사용자 확인 필요.
+- 다음 첫 단계: `docs/qa/m2-03-survival-hot-plate.md`가 생기면 읽고, P0/P1이 있으면 그 버그부터 고친다. 없으면 할 일 없음.
+- 막힌 점: 없음. Survival 시간 종료(남은 사람 전원 통과)는 m2-05 담당이고 메인 세션이 m2-05에 전달했다.

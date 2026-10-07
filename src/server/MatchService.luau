@@ -8,6 +8,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -62,6 +63,19 @@ local function sendHome(roomId: string)
 	end
 end
 
+-- Studio 전용 디버그 강제 플랜 (Config.DEBUG.forceMapPlan). 없거나 잘못됐으면 nil (잘못됐으면 경고).
+local function forcedPlan(roomId: string): { Rules.MapInfo }?
+	local ids = Config.DEBUG.forceMapPlan
+	if ids == nil or not RunService:IsStudio() then
+		return nil
+	end
+	local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())
+	if plan == nil then
+		warn(`[MatchService] room {roomId}: ignoring Config.DEBUG.forceMapPlan — {problem}`)
+	end
+	return plan
+end
+
 local function runMatch(room: RoomService.Room, players: { Player })
 	local roomId = room.id
 	local ctx: MatchContext = { roomId = roomId, aliveUserIds = {} }
@@ -74,19 +88,46 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	broadcast(roomId, { phase = "Starting", endsAt = workspace:GetServerTimeNow() + Config.Match.StartCountdown })
 	task.wait(Config.Match.StartCountdown)
 
-	local roundCount = Rules.roundCount(startCount)
-	-- 맵 풀이 아직 비어 있으면(race-belt 트랙이 머지되기 전) 라운드 없이 바로 결과로 가요.
-	-- 맵이 등록되면 이 분기는 저절로 안 타게 돼요.
-	local planOk, planResult = pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new())
-	local plan: { Rules.MapInfo }? = if planOk then planResult else nil
-	if plan == nil then
-		warn(`[MatchService] room {roomId}: no maps registered in Shared.maps yet — skipping rounds ({planResult})`)
+	-- 강제 플랜이면 목록을 끝까지 돌아요: 결승 건너뛰기 없음, 혼자(생존자 1명)여도 계속.
+	local forced = forcedPlan(roomId)
+	local isForced = forced ~= nil
+	local minAlive = if isForced then 1 else 2 -- 이 인원 이상 살아 있어야 다음 라운드를 해요
+
+	local roundCount: number
+	local plan: { Rules.MapInfo }?
+	if forced then
+		plan = forced
+		roundCount = #forced
+	else
+		roundCount = Rules.roundCount(startCount)
+		-- 맵 풀이 비어 있으면 라운드 없이 바로 결과로 가요.
+		local planOk, planResult = pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new())
+		plan = if planOk then planResult else nil
+		if plan == nil then
+			warn(
+				`[MatchService] room {roomId}: no maps registered in Shared.maps yet — skipping rounds ({planResult})`
+			)
+		end
+	end
+
+	-- 결승 건너뛰기(GDD 4.1)는 강제 플랜에서는 쓰지 않아요.
+	local function roundToPlay(index: number): number
+		if isForced then
+			return index
+		end
+		return Rules.roundToPlay(index, roundCount, aliveCount(ctx))
+	end
+	local function nextRound(finished: number): number?
+		if isForced then
+			return if finished < roundCount then finished + 1 else nil
+		end
+		return Rules.nextRound(finished, roundCount, aliveCount(ctx))
 	end
 
 	local roundIndex: number? = 1
-	while plan and roundIndex and aliveCount(ctx) > 1 do
+	while plan and roundIndex and aliveCount(ctx) >= minAlive do
 		-- 결과 단계 뒤 nextRound가 정한 번호를, 그 사이 이탈까지 반영해서 한 번 더 맞춰요 (GDD 4.1)
-		roundIndex = Rules.roundToPlay(roundIndex, roundCount, aliveCount(ctx))
+		roundIndex = roundToPlay(roundIndex)
 		local mapInfo = (plan :: { Rules.MapInfo })[roundIndex]
 		local map = Maps.get(mapInfo.id)
 		local timeLimit = Maps.timeLimit(map)
@@ -103,10 +144,10 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		})
 		task.wait(Config.Match.IntroDuration)
 
-		if aliveCount(ctx) <= 1 then
+		if aliveCount(ctx) < minAlive then
 			break -- 소개 보여주는 사이에 인원이 줄어서 이미 승부가 났어요
 		end
-		if Rules.roundToPlay(roundIndex, roundCount, aliveCount(ctx)) ~= roundIndex then
+		if roundToPlay(roundIndex) ~= roundIndex then
 			continue -- 소개 중 이탈로 2명 이하가 됐어요: 이 라운드 대신 결승 소개부터 다시 해요
 		end
 		local targetCount = Rules.qualifyCount(aliveCount(ctx), roundCount, roundIndex)
@@ -142,7 +183,7 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		})
 		task.wait(Config.Match.ResultsDuration)
 
-		roundIndex = Rules.nextRound(roundIndex, roundCount, aliveCount(ctx))
+		roundIndex = nextRound(roundIndex)
 	end
 
 	local winnerUserId: number? = nil

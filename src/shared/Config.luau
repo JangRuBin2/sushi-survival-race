@@ -49,13 +49,19 @@ Config.Arena = {
 	SlotSpacing = 2000,
 }
 
+-- 캐릭터 이동 기본값. 서버가 이동 잠금(장애물, 출발 대기 등)을 풀 때 이 값으로 되돌려요.
 Config.Character = {
 	WalkSpeed = 16,
+	JumpPower = 50,
 }
 
 -- 혼자 테스트용 설정. 서버 코드는 RunService:IsStudio()일 때만 이 값을 적용해요.
 Config.DEBUG = {
 	minPlayersToStart = 1,
+	-- 맵 id 3~4개를 넣으면 라운드 구성을 그 순서 그대로 써요 (라운드 수 = 목록 길이).
+	-- 이때는 2명 이하여도 결승으로 건너뛰지 않고, 혼자여도 모든 라운드를 끝까지 돌아요.
+	-- 예: { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }. 커밋할 때는 nil로.
+	forceMapPlan = nil :: { string }?,
 }
 
 return Config

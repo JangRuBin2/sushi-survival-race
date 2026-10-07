@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m2-01 — M2 기반 작업 (공용 파일 · 맵 풀 · 라운드 구성 · 디버그 플랜)
@@ -81,3 +81,26 @@ M2 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 바뀐 파일
+- `shared/Rules.luau`: `roundKinds(roundCount, rng, counts?)` — counts(종류별 맵 개수)를 주면 가운데 라운드를 종류별 남은 개수 안에서 고른다(첫 Race가 1개를 씀, 4라운드면 Survival 칸을 먼저 하나 뽑음). 개수가 모자라면 예전 방식(반반 + Survival 최소 1번)으로 fallback. `buildRoundPlan`이 풀에서 개수를 세어 넘긴다. `resolveForcedPlan(ids, pool)` 추가 (길이 3·4, 모든 id가 풀에 있어야 함, **종류 순서는 검사하지 않음** — m2-05 AC14처럼 Survival을 1라운드에 두는 플랜을 허용).
+- `server/MatchService.luau`: Studio + `Config.DEBUG.forceMapPlan`이면 그 플랜·라운드 수를 쓰고, 결승 건너뛰기(`roundToPlay`/`nextRound`의 2명 이하 규칙)를 끄고, 루프 조건을 "생존자 1명 이상"으로 바꾼다. 잘못된 플랜은 매치마다 경고 한 번 + 랜덤 구성.
+- `shared/maps/StubMap.luau` (새): stub 공용 헬퍼. Race = 폭 20 × 길이 80 곧은 길 + 양옆 벽 + `EndWall` + `FinishLine`(끝에서 4 studs 앞), Survival/Final = 벽 없는 40×40 바닥. `Spawns` 24개(`Spawn01`~`Spawn24`). `start`는 Heartbeat에서 결승선 로컬 z 통과 → `ctx.pass`, origin 아래 40 studs → `ctx.eliminate`.
+  - 스펙은 "결승선 Touched"라고 했지만 M1 B2 수정과 m2-02 지침에 맞춰 **위치 기반 판정**으로 했다 (점프로 넘어도 통과).
+  - m2-02~04가 각자 맵 파일을 덮어쓰면 이 헬퍼는 안 쓰이게 된다. 셋 다 바뀌면 m2-07에서 지우면 된다. 맵 worktree는 이 파일을 고칠 필요가 없다.
+- `shared/maps/SoySwamp.luau`, `HotPlate.luau`, `SkewerShowdown.luau` (새): 확정 id·kind·이름·규칙으로 `StubMap.create`. `maps/init.luau`의 `ALL`에 등록.
+- `shared/Types.luau`: `Standing`, `MatchPhaseInfo.aliveUserIds?/standings?`, `RoundProgress.racerUserIds`.
+- `server/RoundService.luau`: RoundProgress에 `racerUserIds`(지금 `remaining` 그대로) 채움.
+- `shared/Config.luau`: `DEBUG.forceMapPlan = nil :: { string }?`, `Character.JumpPower = 50`. M1 B4 수정의 `CharacterUtil.resetMovement`가 StarterPlayer 값 대신 이 값을 쓰게 바꿨다 (서버의 이동 잠금 해제는 `CharacterUtil.resetMovement`를 쓰면 된다).
+- `default.project.json`: `Workspace.$properties.StreamingEnabled = false` (rbxlx로 빌드해 `false`가 들어간 것 확인).
+- 테스트: `tests/rules.spec.luau` +7 (AC1~AC3, AC5, 개수 상한·fallback), `tests/maps.spec.luau` +3 (AC6, Config 기본값). 전체 88 passed.
+
+### Studio 확인 방법
+- AC8: `forceMapPlan = nil` 그대로 F5 → 방 만들기 → 시작. 맵 풀이 4개라 혼자면 라운드 없이 바로 끝나는 건 예전과 같다(생존자 1명). Output에 빨간 에러 없음.
+- AC9: `Config.luau`에서 `forceMapPlan = { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" } :: { string }?`로 바꾸고 F5 혼자. 배너 1/4 간장 늪 → 2/4 뜨거운 철판 → 3/4 회전 벨트 → 4/4 회전 꼬치 쇼다운. 간장 늪 stub은 곧은 길 끝 결승선을 넘으면 통과, 철판 stub은 60초 버티면 통과, 결승 stub은 90초 버티면 "🏆 우승!" (떨어지면 탈락 — 혼자 떨어졌을 때 우승 처리는 m2-05).
+- AC10: `forceMapPlan = { "no-such-map", "hot-plate", "skewer-showdown" }` → Output에 `ignoring Config.DEBUG.forceMapPlan — ... unknown map id: no-such-map` 경고 한 번, 랜덤 구성으로 진행.
+- AC11: Play 중 서버 Command bar에서 `print(workspace.StreamingEnabled)` → `false`.
+- 확인이 끝나면 `forceMapPlan`을 `nil`로 되돌린다.
+
+### 남은 이슈 / 알아둘 점
+- 강제 플랜에서 결승 전 라운드를 1~2명으로 돌면 `qualifyCount`가 2(= 전원 통과 목표)를 돌려준다. Race는 전원이 통과하거나 시간이 끝나면 끝나고, 아무도 탈락하지 않는다 (디버그 전용이라 그대로 둠).
+- `roundKinds`의 세 번째 인자는 선택이라 기존 호출(`roundKinds(n, rng)`)은 예전처럼 동작한다.

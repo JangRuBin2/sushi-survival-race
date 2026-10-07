@@ -84,4 +84,51 @@ return function(t: Test.Test)
 			t.eq(#ratios, roundCount - 1, `ratios for {roundCount} rounds`)
 		end
 	end)
+	t.test("m2-01 AC6: 맵 풀에 Race 2개 이상, Survival·Final 1개 이상", function()
+		local counts = {}
+		for _, info in Maps.infos() do
+			counts[info.kind] = (counts[info.kind] or 0) + 1
+		end
+		t.ok((counts.Race or 0) >= 2, "need 2+ Race maps")
+		t.ok((counts.Survival or 0) >= 1, "need 1+ Survival map")
+		t.ok((counts.Final or 0) >= 1, "need 1+ Final map")
+	end)
+
+	t.test(
+		"m2-01 AC6: 새 맵 3개가 확정된 id·종류·이름·규칙으로 인터페이스를 지켜요",
+		function()
+			local expected = {
+				{
+					id = "soy-swamp",
+					kind = "Race",
+					displayName = "간장 늪 & 와사비 산",
+					rule = "간장 웅덩이는 피하고, 와사비 패드로 튀어 올라 결승선까지!",
+				},
+				{
+					id = "hot-plate",
+					kind = "Survival",
+					displayName = "뜨거운 철판",
+					rule = "밟은 철판은 곧 사라져요. 계속 움직여서 끝까지 버티세요!",
+				},
+				{
+					id = "skewer-showdown",
+					kind = "Final",
+					displayName = "회전 꼬치 쇼다운",
+					rule = "돌아오는 꼬치를 뛰어넘고 끝까지 버티세요! 마지막 1명만 탈출해요",
+				},
+			}
+			for _, want in expected do
+				local map = Maps.get(want.id)
+				t.eq(MapTypes.validate(map), nil, want.id)
+				t.eq(map.kind, want.kind, `{want.id} kind`)
+				t.eq(map.displayName, want.displayName, `{want.id} displayName`)
+				t.eq(map.rule, want.rule, `{want.id} rule`)
+			end
+		end
+	)
+
+	t.test("m2-01 Config: forceMapPlan은 기본 nil, 점프 복구 값이 있어요", function()
+		t.eq(Config.DEBUG.forceMapPlan, nil)
+		t.eq(Config.Character.JumpPower, 50)
+	end)
 end

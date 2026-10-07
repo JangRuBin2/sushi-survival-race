@@ -54,12 +54,22 @@ export type MatchPhaseInfo = {
 	mapKind: MapKind?,
 	rule: string?, -- 라운드 소개 한 줄 규칙
 	winnerUserId: number?, -- Victory
+	aliveUserIds: { number }?, -- 이 매치에서 아직 탈락하지 않은 플레이어 (모든 단계, 값은 m2-05가 채움)
+	standings: { Standing }?, -- Victory: 최종 순위 (1등부터, 값은 m2-05가 채움)
+}
+
+-- 매치 최종 순위 한 줄
+export type Standing = {
+	userId: number,
+	name: string,
+	place: number,
 }
 
 export type RoundProgress = {
 	passed: number,
 	target: number,
 	remaining: number, -- 아직 통과/탈락하지 않은 인원
+	racerUserIds: { number }, -- 이번 라운드에서 아직 통과/탈락하지 않은 플레이어
 }
 
 export type PlayerResult = {

@@ -116,10 +116,12 @@ local function pick(rng: Rng, pool: { MapInfo }, kind: MapKind?, used: { [string
 	return candidates[rng:NextInteger(1, #candidates)]
 end
 
--- 라운드별 맵 종류 (GDD 5.1)
--- 첫 라운드는 Race, 마지막은 Final, 가운데는 Race/Survival을 섞고 4라운드면 Survival이 최소 1번.
-function Rules.roundKinds(roundCount: number, rng: Rng): { MapKind }
-	assert(roundCount >= 2, "need at least 2 rounds")
+-- 종류별 맵 개수 (buildRoundPlan이 풀에서 세어 roundKinds에 넘겨요)
+export type KindCounts = { [MapKind]: number }
+
+-- 맵 개수를 보지 않는 구성: 가운데는 반반 확률, 4라운드면 Survival을 최소 1번 넣어요.
+-- 맵 풀이 GDD 구성을 채울 만큼 없을 때(개발 초기 fallback) 써요.
+local function unboundedKinds(roundCount: number, rng: Rng): { MapKind }
 	local kinds: { MapKind } = table.create(roundCount, "Race" :: MapKind)
 	kinds[roundCount] = "Final"
 
@@ -136,13 +138,64 @@ function Rules.roundKinds(roundCount: number, rng: Rng): { MapKind }
 	return kinds
 end
 
+-- 라운드별 맵 종류 (GDD 5.1)
+-- 첫 라운드는 Race, 마지막은 Final, 가운데는 Race/Survival을 섞고 4라운드면 Survival이 최소 1번.
+-- counts(종류별 맵 개수)를 주면 종류마다 맵 개수를 넘지 않게 골라서, 풀이 충분하면 같은 맵이
+-- 두 번 나올 일이 없게 해요. 개수가 모자라 그렇게 못 하면 개수를 보지 않고 골라요.
+function Rules.roundKinds(roundCount: number, rng: Rng, counts: KindCounts?): { MapKind }
+	assert(roundCount >= 2, "need at least 2 rounds")
+	if counts == nil then
+		return unboundedKinds(roundCount, rng)
+	end
+
+	local middle = roundCount - 2
+	local needSurvival = roundCount >= 4
+	-- 가운데 라운드에 쓸 수 있는 남은 개수 (첫 라운드가 Race 하나를 써요)
+	local cap: { [MapKind]: number } = {
+		Race = math.max((counts.Race or 0) - 1, 0),
+		Survival = counts.Survival or 0,
+	}
+	if cap.Race + cap.Survival < middle or (needSurvival and cap.Survival < 1) then
+		return unboundedKinds(roundCount, rng)
+	end
+
+	local kinds: { MapKind } = table.create(roundCount, "Race" :: MapKind)
+	kinds[roundCount] = "Final"
+	local open: { number } = {}
+	for i = 2, roundCount - 1 do
+		table.insert(open, i)
+	end
+	if needSurvival then
+		local slot = table.remove(open, rng:NextInteger(1, #open)) :: number
+		kinds[slot] = "Survival"
+		cap.Survival -= 1
+	end
+	-- 남은 칸은 자리가 남은 종류 중에서 고르게 골라요. 총 개수가 칸 수 이상이라 막히지 않아요.
+	for _, slot in open do
+		local choices: { MapKind } = {}
+		for _, kind in { "Race", "Survival" } :: { MapKind } do
+			if cap[kind] > 0 then
+				table.insert(choices, kind)
+			end
+		end
+		local kind = choices[rng:NextInteger(1, #choices)]
+		kinds[slot] = kind
+		cap[kind] -= 1
+	end
+	return kinds
+end
+
 -- 라운드별 맵 결정. 한 판 안에서 같은 맵은 안 나와요.
 -- 개발 초기처럼 맵 풀이 모자라면 같은 종류에서 중복을 허용하고, 그 종류가 아예 없으면 아무 맵이나 써요.
 function Rules.buildRoundPlan(roundCount: number, pool: { MapInfo }, rng: Rng): { MapInfo }
 	assert(#pool > 0, "map pool is empty")
+	local counts: KindCounts = {}
+	for _, map in pool do
+		counts[map.kind] = (counts[map.kind] or 0) + 1
+	end
 	local used: { [string]: boolean } = {}
 	local plan = {}
-	for i, kind in Rules.roundKinds(roundCount, rng) do
+	for i, kind in Rules.roundKinds(roundCount, rng, counts) do
 		local map = pick(rng, pool, kind, used) or pick(rng, pool, kind, {}) or pick(rng, pool, nil, used)
 		map = map or pick(rng, pool, nil, {})
 		local chosen = map :: MapInfo
@@ -150,6 +203,33 @@ function Rules.buildRoundPlan(roundCount: number, pool: { MapInfo }, rng: Rng): 
 		plan[i] = chosen
 	end
 	return plan
+end
+
+-- 디버그 강제 플랜(Config.DEBUG.forceMapPlan) 검사. 맵 id 목록을 그 순서의 MapInfo로 바꿔요.
+-- 길이는 3이나 4(라운드 수)여야 하고 모든 id가 풀에 있어야 해요. 종류 순서는 검사하지 않아요
+-- (예: Survival을 1라운드로 두고 테스트할 수 있게). 문제가 있으면 nil과 이유를 돌려줘요.
+function Rules.resolveForcedPlan(ids: any, pool: { MapInfo }): ({ MapInfo }?, string?)
+	if type(ids) ~= "table" then
+		return nil, "forceMapPlan must be a list of map ids"
+	end
+	local count = #ids
+	if count ~= 3 and count ~= 4 then
+		return nil, `forceMapPlan must have 3 or 4 map ids (got {count})`
+	end
+	local byId: { [string]: MapInfo } = {}
+	for _, map in pool do
+		byId[map.id] = map
+	end
+	local plan: { MapInfo } = {}
+	for i = 1, count do
+		local id = ids[i]
+		local map = if type(id) == "string" then byId[id] else nil
+		if map == nil then
+			return nil, `forceMapPlan has an unknown map id: {tostring(id)}`
+		end
+		table.insert(plan, map)
+	end
+	return plan, nil
 end
 
 return Rules

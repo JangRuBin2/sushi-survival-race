@@ -2,7 +2,6 @@
 -- 캐릭터 이동/순간이동 도우미 (서비스가 아니라 init/start가 없어요).
 -- 로비 스폰으로 보내기, 이동 값 되돌리기를 여러 서비스가 같은 방식으로 하게 한 곳에 모아요.
 
-local StarterPlayer = game:GetService("StarterPlayer")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -14,7 +13,7 @@ local SPAWN_LIFT = Vector3.new(0, 3, 0)
 -- 장애물이 바꿨을 수 있는 이동 값을 기본으로 돌려요 (젓가락은 WalkSpeed·JumpPower를 0으로 만들어요).
 function CharacterUtil.resetMovement(humanoid: Humanoid)
 	humanoid.WalkSpeed = Config.Character.WalkSpeed
-	humanoid.JumpPower = StarterPlayer.CharacterJumpPower
+	humanoid.JumpPower = Config.Character.JumpPower
 	humanoid.PlatformStand = false
 end
 

@@ -151,4 +151,136 @@ return function(t: Test.Test)
 			Rules.buildRoundPlan(3, {}, fakeRng(1))
 		end)
 	end)
+	-- m2-01: 종류별 맵 개수를 넘지 않는 라운드 구성, 디버그 강제 플랜 ------------------
+
+	local M2_POOL = {
+		{ id = "rotating-belt", kind = "Race" },
+		{ id = "soy-swamp", kind = "Race" },
+		{ id = "hot-plate", kind = "Survival" },
+		{ id = "skewer-showdown", kind = "Final" },
+	}
+
+	local function countKinds(plan: { Rules.MapInfo }): { [string]: number }
+		local counts = {}
+		for _, map in plan do
+			counts[map.kind] = (counts[map.kind] or 0) + 1
+		end
+		return counts
+	end
+
+	local function hasDuplicate(plan: { Rules.MapInfo }): boolean
+		local seen = {}
+		for _, map in plan do
+			if seen[map.id] then
+				return true
+			end
+			seen[map.id] = true
+		end
+		return false
+	end
+
+	t.test(
+		"m2-01 AC1: Race 2·Survival 1·Final 1 풀의 4라운드는 Race 첫·Final 끝·중복 0·Survival 1·Race 2",
+		function()
+			for seed = 1, 500 do
+				local plan = Rules.buildRoundPlan(4, M2_POOL, fakeRng(seed))
+				t.eq(#plan, 4, `seed {seed}`)
+				t.eq(plan[1].kind, "Race", `seed {seed} first`)
+				t.eq(plan[4].kind, "Final", `seed {seed} last`)
+				t.ok(not hasDuplicate(plan), `seed {seed} duplicate`)
+				local counts = countKinds(plan)
+				t.eq(counts.Survival, 1, `seed {seed} survival`)
+				t.eq(counts.Race, 2, `seed {seed} race`)
+			end
+		end
+	)
+
+	t.test(
+		"m2-01 AC2: 같은 풀의 3라운드는 중복 0, 가운데가 Race인 판과 Survival인 판이 둘 다 나와요",
+		function()
+			local middle = {}
+			for seed = 1, 500 do
+				local plan = Rules.buildRoundPlan(3, M2_POOL, fakeRng(seed))
+				t.ok(not hasDuplicate(plan), `seed {seed} duplicate`)
+				t.eq(plan[1].kind, "Race", `seed {seed} first`)
+				t.eq(plan[3].kind, "Final", `seed {seed} last`)
+				middle[plan[2].kind] = true
+			end
+			t.ok(middle.Race, "middle Race never chosen")
+			t.ok(middle.Survival, "middle Survival never chosen")
+		end
+	)
+
+	t.test(
+		"m2-01 AC3: 같은 풀의 4라운드에서 Survival이 2라운드인 판과 3라운드인 판이 둘 다 나와요",
+		function()
+			local survivalAt = {}
+			for seed = 1, 500 do
+				local plan = Rules.buildRoundPlan(4, M2_POOL, fakeRng(seed))
+				for i, map in plan do
+					if map.kind == "Survival" then
+						survivalAt[i] = true
+					end
+				end
+			end
+			t.ok(survivalAt[2], "survival never in round 2")
+			t.ok(survivalAt[3], "survival never in round 3")
+		end
+	)
+
+	t.test("m2-01 roundKinds: 개수를 주면 종류별 개수를 넘지 않아요", function()
+		for seed = 1, 200 do
+			local kinds = Rules.roundKinds(4, fakeRng(seed), { Race = 3, Survival = 1, Final = 1 })
+			local survival = 0
+			for _, kind in kinds do
+				if kind == "Survival" then
+					survival += 1
+				end
+			end
+			t.eq(survival, 1, `seed {seed}`)
+		end
+	end)
+
+	t.test("m2-01 roundKinds: 개수가 모자라면 개수를 보지 않고 골라요 (fallback)", function()
+		-- Survival 0개, 4라운드: GDD 규칙상 Survival 칸은 있어야 해서 개수를 넘겨요
+		local kinds = Rules.roundKinds(4, fakeRng(3), { Race = 1, Final = 1 })
+		local survival = 0
+		for _, kind in kinds do
+			if kind == "Survival" then
+				survival += 1
+			end
+		end
+		t.ok(survival >= 1, "4 rounds still need a Survival kind")
+		t.eq(kinds[1], "Race")
+		t.eq(kinds[4], "Final")
+	end)
+
+	t.test("m2-01 AC5: resolveForcedPlan은 그 순서의 MapInfo를 돌려줘요", function()
+		local plan, problem = Rules.resolveForcedPlan({ "soy-swamp", "hot-plate", "skewer-showdown" }, M2_POOL)
+		t.eq(problem, nil)
+		t.eq(plan, {
+			{ id = "soy-swamp", kind = "Race" },
+			{ id = "hot-plate", kind = "Survival" },
+			{ id = "skewer-showdown", kind = "Final" },
+		})
+		local four = Rules.resolveForcedPlan({ "hot-plate", "rotating-belt", "soy-swamp", "skewer-showdown" }, M2_POOL)
+		t.eq(#(four :: { any }), 4)
+		t.eq((four :: { any })[1].id, "hot-plate")
+	end)
+
+	t.test("m2-01 AC5: resolveForcedPlan은 길이 2·5, 모르는 id, 목록이 아닌 값을 거절해요", function()
+		local cases: { any } = {
+			{ "soy-swamp", "skewer-showdown" },
+			{ "soy-swamp", "hot-plate", "rotating-belt", "soy-swamp", "skewer-showdown" },
+			{ "soy-swamp", "no-such-map", "skewer-showdown" },
+			{ "soy-swamp", 3, "skewer-showdown" },
+			{},
+			"soy-swamp",
+		}
+		for i, ids in cases do
+			local plan, problem = Rules.resolveForcedPlan(ids, M2_POOL)
+			t.eq(plan, nil, `case {i}`)
+			t.ok(type(problem) == "string" and #problem > 0, `case {i} reason`)
+		end
+	end)
 end

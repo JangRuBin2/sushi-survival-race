@@ -126,10 +126,15 @@ local function playRound(args: RunRoundArgs, cleanup: Cleanup.Cleanup): RoundRes
 	end
 
 	local function broadcastProgress()
+		local racerUserIds = {}
+		for userId in remaining do
+			table.insert(racerUserIds, userId)
+		end
 		local progress: Types.RoundProgress = {
 			passed = #qualified,
 			target = args.targetCount,
-			remaining = remainingCount(),
+			remaining = #racerUserIds,
+			racerUserIds = racerUserIds,
 		}
 		for _, player in RoomService.getPlayers(args.roomId) do
 			roundProgressEvent:FireClient(player, progress)

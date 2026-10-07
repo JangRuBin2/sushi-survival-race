@@ -25,6 +25,9 @@
       }
     },
     "Workspace": {
+      "$properties": {
+        "StreamingEnabled": false
+      },
       "Baseplate": {
         "$className": "Part",
         "$properties": {

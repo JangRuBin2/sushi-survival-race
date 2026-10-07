@@ -7,6 +7,9 @@ local Rules = require(script.Parent.Rules)
 
 local ALL: { MapTypes.MapModule } = {
 	require(script.RotatingBelt),
+	require(script.SoySwamp),
+	require(script.HotPlate),
+	require(script.SkewerShowdown),
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

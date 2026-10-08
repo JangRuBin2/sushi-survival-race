@@ -6,11 +6,14 @@
 -- 상태는 이 모듈 전역이 아니라 방마다 생기는 MatchContext(aliveUserIds, standings)에 둬요
 -- (여러 방이 동시에 매치를 돌릴 수 있어요). RoomService.onMatchStart가 방마다 새 스레드로
 -- runMatch를 불러주기 때문에, 여기서는 그 스레드를 그냥 끝까지 쓰면 돼요.
+-- 매치 흐름 훅(MatchEvents): matchStart = Starting 방송 직후, roundStart = 출발 직전, matchEnd = 승부가 정해진 순간
+-- (우승자가 있으면 Victory 방송 직후), winnerShowcase = Victory가 끝나고 로비로 보내기 직전 (m4-01).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Rules = require(ReplicatedStorage.Shared.Rules)
@@ -20,6 +23,8 @@ local Maps = require(ReplicatedStorage.Shared.maps)
 
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local EliminationService = require(script.Parent.EliminationService)
+local MatchEvents = require(script.Parent.MatchEvents)
+local PlaceService = require(script.Parent.PlaceService)
 local RoomService = require(script.Parent.RoomService)
 local RoundService = require(script.Parent.RoundService)
 
@@ -30,6 +35,8 @@ type MatchContext = {
 	aliveUserIds: { [number]: boolean },
 	standings: RoundLogic.Standings, -- 매치를 시작한 모든 플레이어의 등수 (나간 사람 포함)
 	round: RoundService.PreparedRound?, -- 지금 소개/진행 중인 라운드
+	participants: { number }, -- 매치를 시작한 전원 (MatchEvents)
+	endFired: boolean, -- MatchEvents.fireMatchEnd를 이미 보냈는지 (매치당 한 번)
 }
 
 -- 방 id → 지금 진행 중인 매치. RoomService.onMemberLeft가 여기서 생존자 집계를 지워요.
@@ -78,6 +85,41 @@ local function sendHome(roomId: string)
 	end
 end
 
+-- 승부가 정해진 순간 (MatchEvents.onMatchEnd). 매치당 한 번만 보내요.
+local function fireMatchEnd(ctx: MatchContext, winnerUserId: number?, standings: { Types.Standing })
+	if ctx.endFired then
+		return
+	end
+	ctx.endFired = true
+	MatchEvents.fireMatchEnd(ctx.roomId, {
+		winnerUserId = winnerUserId,
+		standings = standings,
+		participants = table.clone(ctx.participants),
+	})
+end
+
+-- 로비 단상에 세울 우승자 (MatchEvents.onWinnerShowcase, m4-06). 한 플레이스 모드에서만 여기서 보내요 —
+-- 플레이스 분리 모드는 로비 서버가 보내요 (m4-11).
+local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number)
+	if PlaceService.role() ~= "Single" then
+		return
+	end
+	local name = tostring(winnerUserId)
+	for _, entry in ctx.standings.entries do
+		if entry.userId == winnerUserId then
+			name = entry.name
+		end
+	end
+	local appearanceId = Config.Appearance.Default
+	local player = Players:GetPlayerByUserId(winnerUserId)
+	local character = player and player.Character
+	local worn = character and character:GetAttribute(Attributes.AppearanceId)
+	if type(worn) == "string" and worn ~= "" then
+		appearanceId = worn
+	end
+	MatchEvents.fireWinnerShowcase({ userId = winnerUserId, name = name, appearanceId = appearanceId })
+end
+
 -- Studio 전용 디버그 강제 플랜 (Config.DEBUG.forceMapPlan). 없거나 잘못됐으면 nil (잘못됐으면 경고).
 local function forcedPlan(roomId: string): { Rules.MapInfo }?
 	local ids = Config.DEBUG.forceMapPlan
@@ -102,14 +144,18 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		aliveUserIds = {},
 		standings = RoundLogic.newStandings(entries),
 		round = nil,
+		participants = {},
+		endFired = false,
 	}
 	for _, player in players do
 		ctx.aliveUserIds[player.UserId] = true
+		table.insert(ctx.participants, player.UserId)
 	end
 	matches[roomId] = ctx
 
 	local startCount = #players
 	broadcast(ctx, { phase = "Starting", endsAt = workspace:GetServerTimeNow() + Config.Match.StartCountdown })
+	MatchEvents.fireMatchStart(roomId, ctx.participants)
 	task.wait(Config.Match.StartCountdown)
 
 	-- 강제 플랜이면 목록을 끝까지 돌아요: 결승 건너뛰기 없음, 혼자(생존자 1명)여도 계속.
@@ -204,6 +250,7 @@ local function runMatch(room: RoomService.Room, players: { Player })
 			mapKind = map.kind,
 			rule = map.rule,
 		})
+		MatchEvents.fireRoundStart(roomId, roundIndex, roundCount, aliveList(ctx))
 		prepared.run(targetCount) -- 잠금 해제와 map.start가 이 방송과 같은 순간이에요
 		ctx.round = nil
 
@@ -246,7 +293,12 @@ local function runMatch(room: RoomService.Room, players: { Player })
 			winnerUserId = winnerUserId,
 			standings = standings,
 		})
+		-- Victory 방송 직후: 우승 연출·순위표 10초 동안 보상 정산을 보여 줄 수 있게 (m4-08)
+		fireMatchEnd(ctx, winnerUserId, standings)
 		task.wait(Config.Match.VictoryDuration)
+		fireWinnerShowcase(ctx, winnerUserId)
+	else
+		fireMatchEnd(ctx, nil, standings)
 	end
 
 	sendHome(roomId)
@@ -266,6 +318,10 @@ function MatchService.start()
 			local ctx = matches[room.id]
 			if ctx and ctx.round then
 				pcall(ctx.round.cancel) -- 소개 중이던 맵이 남지 않게 치워요
+			end
+			if ctx then
+				-- 아직 안 보냈으면 우승자 없이 끝난 것으로 알려요 (매치당 한 번)
+				pcall(fireMatchEnd, ctx, nil, RoundLogic.standingsList(ctx.standings))
 			end
 			sendHome(room.id) -- 아레나에 남은 캐릭터를 로비로 돌려보내요
 			matches[room.id] = nil

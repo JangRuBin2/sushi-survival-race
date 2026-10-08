@@ -15,7 +15,7 @@
 -- "플레이어 이탈" 콜백(activeRemovers)과 "지금 달리는 중인가" 질의(activeRacing)만 담아 둬요.
 --
 -- 탈락 발표(PlayerResult)에는 연출용 cause·position을 채워요 (m3-01):
---   ctx.eliminate(맵 낙하) = "Fall", 사망·캐릭터 교체·캐릭터 없음 = "Reset",
+--   ctx.eliminate(맵 낙하) = "Fall"(위치는 마지막으로 땅을 밟은 곳, m4-01), 사망·캐릭터 교체·캐릭터 없음 = "Reset",
 --   방/게임을 나감 = "Left"(EliminationService.left), 시간 종료·통과 인원이 다 차서 남은 사람의 탈락 = "Timeout"(m3-09).
 -- 결승에서 탈락과 우승이 같은 묶음으로 나오면(마지막 낙하 등) 탈락 연출(Config.Match.EliminationCutscene)이
 -- 끝날 때까지 기다렸다가 Won을 보내요. 그 뒤 MatchService가 바로 Victory로 가요 (m3-03 QA B1, m3-09).
@@ -33,6 +33,7 @@ local Maps = require(ReplicatedStorage.Shared.maps)
 local MapSfx = require(ReplicatedStorage.Shared.maps.MapSfx)
 local MapSfxLogic = require(ReplicatedStorage.Shared.maps.MapSfxLogic)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
+local MoveExempt = require(ReplicatedStorage.Shared.MoveExempt)
 local RoundLogic = require(ReplicatedStorage.Shared.RoundLogic)
 
 local CharacterUtil = require(script.Parent.CharacterUtil)
@@ -64,8 +65,26 @@ export type PreparedRound = {
 
 local SPAWN_WAIT_TIMEOUT = 5
 local SPAWN_LIFT = Vector3.new(0, 3, 0)
+local GROUND_SAMPLE = 0.1 -- 마지막으로 땅을 밟은 위치를 기록하는 간격(초)
 
 local roundProgressEvent: RemoteEvent
+
+-- 결승선 통과를 받기 전에 묻는 함수 (m4-01 setPassValidator, m4-10 이동 감시가 등록). 하나만.
+local passValidator: ((player: Player) -> boolean)? = nil
+
+-- 등록된 검사가 없거나 true면 통과를 받아요. 검사가 에러 나면 통과를 막지 않아요(경고만).
+local function passAllowed(player: Player): boolean
+	local validator = passValidator
+	if validator == nil then
+		return true
+	end
+	local ok, allowed = pcall(validator, player)
+	if not ok then
+		warn(`[RoundService] pass validator failed: {allowed}`)
+		return true
+	end
+	return allowed ~= false
+end
 
 -- 방 하나당 지금 준비/진행 중인 라운드에서 플레이어 한 명이 나갔을 때 부르는 함수.
 -- 그 사람이 이 라운드의 레이서였으면 탈락 처리하고 true를 돌려줘요.
@@ -169,6 +188,8 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		-- 낙하·리셋으로 탈락 대기열에 들어간 사람의 사유와 위치 (PlayerResult.cause/position)
 		local causeOf: { [number]: RoundLogic.FallCause } = {}
 		local positionOf: { [number]: Vector3 } = {}
+		-- 배치된 레이서가 마지막으로 땅을 밟고 있던 HumanoidRootPart 위치 (GROUND_SAMPLE 간격, 낙하 탈락 연출 위치)
+		local lastGroundOf: { [number]: Vector3 } = {}
 
 		-- 점수가 클수록 잘한 거예요. Race 맵은 코스 진행도(origin의 로컬 -Z, MapTypes 문서),
 		-- 그 밖(Survival·결승)은 높이. 캐릭터가 없으면 가장 낮은 점수.
@@ -298,6 +319,10 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			pendingIds[userId] = true
 			causeOf[userId] = cause
+			if position == nil and cause == "Fall" then
+				-- 낙하는 판정 순간(코스 20~40 studs 아래) 대신 마지막으로 땅을 밟은 위치 (m4-01, m3-03 B2)
+				position = lastGroundOf[userId]
+			end
 			if position == nil and not knownCharacter then
 				local player = playersById[userId]
 				local root = player and rootOf(player)
@@ -357,7 +382,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			else
 				lockMovement(humanoid)
 			end
+			MoveExempt.mark(character) -- 서버가 옮겼어요: 이동 감시(m4-10) 오탐 방지
 			character:PivotTo(spawn.CFrame + SPAWN_LIFT)
+			lastGroundOf[player.UserId] = nil
 			watch(player, character)
 			placed[player.UserId] = true
 		end
@@ -366,6 +393,24 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			local spawn = spawns[((i - 1) % #spawns) + 1] :: BasePart
 			cleanup:add(task.spawn(placeAt, player, spawn))
 		end
+
+		-- 마지막으로 땅을 밟은 위치 기록 (m4-01, m3-03 B2). 배치된 레이서만, 라운드가 닫히면 멈춰요.
+		cleanup:add(task.spawn(function()
+			while not closed do
+				for _, userId in RoundLogic.racers(round) do
+					local player = playersById[userId]
+					if player and placed[userId] and not pendingIds[userId] then
+						local character = player.Character
+						local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+						local root = rootOf(player)
+						if humanoid and root and humanoid.FloorMaterial ~= Enum.Material.Air then
+							lastGroundOf[userId] = root.Position
+						end
+					end
+				end
+				task.wait(GROUND_SAMPLE)
+			end
+		end))
 
 		local ctx: MapTypes.RoundContext = {
 			model = model,
@@ -389,6 +434,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			pass = function(player: Player)
 				if closed or not round.active or not RoundLogic.isRacing(round, player.UserId) then
 					return
+				end
+				if not passAllowed(player) then
+					return -- 이동 감시(m4-10) 등이 막은 통과는 무시해요. 계속 달려요.
 				end
 				flush() -- 같은 프레임에 먼저 떨어진 사람부터 판정해요
 				apply(RoundLogic.pass(round, player.UserId, scoreOf))
@@ -519,6 +567,14 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		error(handleOrErr, 0)
 	end
 	return handleOrErr
+end
+
+-- 맵이 ctx.pass(player)를 부를 때 먼저 물어볼 검사를 등록해요 (하나만, m4-10 이동 감시).
+-- false를 돌려주면 그 통과는 무시돼요 (통과 처리·방송 없음, 플레이어는 계속 달려요).
+-- 결승 진출 2명 보장의 구제 통과(RoundLogic.eliminate 안)는 묻지 않아요.
+function RoundService.setPassValidator(fn: (player: Player) -> boolean)
+	assert(passValidator == nil, "RoundService.setPassValidator: a validator is already registered")
+	passValidator = fn
 end
 
 -- 매치 중에 플레이어가 방을 나가면 MatchService가 불러요. 지금 그 방의 라운드 레이서였으면

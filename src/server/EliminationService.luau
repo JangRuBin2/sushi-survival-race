@@ -13,6 +13,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local CharacterUtil = require(script.Parent.CharacterUtil)
+local MatchEvents = require(script.Parent.MatchEvents)
 local RoomService = require(script.Parent.RoomService)
 
 local EliminationService = {}
@@ -32,6 +33,7 @@ local function broadcast(roomId: string, result: Types.PlayerResult)
 			playerResultEvent:FireClient(target, result)
 		end
 	end
+	MatchEvents.fireResult(roomId, result) -- 보상(m4-08) 등 서버 쪽 구독자 (m4-01)
 end
 
 -- 라운드 통과 (결승이 아닌 라운드). place는 이번 라운드에서 통과한 순서(1부터)예요.

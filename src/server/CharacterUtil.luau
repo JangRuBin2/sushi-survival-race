@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local MoveExempt = require(ReplicatedStorage.Shared.MoveExempt)
 
 local CharacterUtil = {}
 
@@ -33,6 +34,7 @@ function CharacterUtil.toLobby(player: Player)
 	if humanoid then
 		CharacterUtil.resetMovement(humanoid)
 	end
+	MoveExempt.mark(character) -- 서버가 옮겼어요: 이동 감시(m4-10) 오탐 방지
 	character:PivotTo(spawn.CFrame + SPAWN_LIFT)
 end
 

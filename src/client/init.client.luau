@@ -10,7 +10,8 @@ require(ReplicatedStorage.Shared.Remotes)
 local gui = require(script.ui.LobbyController).start()
 
 local CONTROLLERS = {
-	require(script.Sfx), -- 먼저: 다른 컨트롤러가 Sfx.play를 불러요
+	require(script.ProfileStore), -- 맨 먼저: 다른 컨트롤러가 ProfileStore.get/changed를 읽어요 (m4-01)
+	require(script.Sfx), -- 그다음: 다른 컨트롤러가 Sfx.play를 불러요
 	require(script.ui.HudController),
 	require(script.ui.SpectateController),
 	require(script.fx.CharacterFxController),
@@ -19,6 +20,9 @@ local CONTROLLERS = {
 	require(script.fx.VictoryCutsceneController),
 	require(script.input.DiveController),
 	require(script.input.GrabController),
+	require(script.ui.UiScaleController), -- m4-09
+	require(script.ui.CoinController), -- m4-08
+	require(script.fx.LobbyFxController), -- m4-06
 }
 
 for _, controller in CONTROLLERS do

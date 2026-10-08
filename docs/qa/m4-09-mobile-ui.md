@@ -3,7 +3,7 @@
 - 스펙: `docs/specs/m4-09-mobile-ui.md`
 - 검증 커밋: `21747af` (브랜치 `m4-09-mobile`) + `origin/main` `aa4cc72`(m4-08 병합) 병합 = `5f0e52c` (충돌 없음)
 - QA 브랜치: `m4-09-qa`
-- 결과: **반려** (P1 1건) → `in-dev`
+- 결과: 1차 **반려**(P1 1건) → 재검증(`3b48391`) **통과** → `qa-passed` (아래 "재검증" 절이 최신)
 
 ## 자동 검증
 병합 뒤(`5f0e52c`) + QA 테스트 추가 상태.
@@ -101,8 +101,23 @@
 7. **화면 크기 바꾸기**: Device를 플레이 중에 iPhone SE ↔ 1920×1080으로 바꿔 배치가 바로 바뀌는지.
 8. **실제 휴대폰** (AC9): 퍼블리시 후 Android·iOS로 한 판, 불편한 점을 `docs/playtest/`에.
 
+## 재검증 (2026-10-08, 커밋 `3b48391`)
+- 기준: `origin/m4-09-qa` 병합(fast-forward 3b48391) 뒤 `origin/main` 병합은 "Already up to date"(3b48391에 main의 m4-07 병합 7357687·64330fa 포함). 충돌 없음.
+- 자동 검증: rojo build 통과 · stylua --check 통과 · selene 0 errors / 0 warnings · **lune 674 passed / 0 failed** (`m4-09-qa.spec` 13개 모두 통과, B1 재현 테스트 포함).
+
+| 버그 | 결과 | 근거 |
+|---|---|---|
+| B1 [P1] | **고쳐짐** | `UiScaleController.attach`가 이미 `TopbarSafeInsets`인 gui는 안전 영역을 건드리지 않음(`src/client/ui/UiScaleController.luau:99-110`). CoinGui가 위쪽 바 줄에 남아 배지는 위쪽 바 왼쪽, 토스트는 그 바로 아래(`Position (0, 4, 1, 4)` = 위쪽 바 아래 끝). QA "QA 병합: m4-08 CoinGui가 attach 뒤에도 TopbarSafeInsets를 유지" 통과 |
+| B2 [P3] | 고쳐짐 | 방 만들기 창 높이를 LobbyGui `AbsoluteSize.Y`(위쪽 바를 뺀 높이)로 계산하고, gui 크기가 바뀌면 다시 배치(`src/client/ui/LobbyScreen.luau:400-403, 509-514`). 맨 아래까지 스크롤해 보는 건 체크리스트 1-2 |
+| B3 [P3] | 고쳐짐 | `UiLayout.JUMP_LARGE.right = 170`(Roblox TouchJump 1.5 × 120 - 10과 일치), `ui-layout.spec` 기대값 1줄·스펙 범위 5 숫자 갱신 |
+| B4 [P3] | 고쳐짐 | 위쪽 바 gui는 기본으로 UIScale을 붙이지 않음(`options.scale = true`로만 강제). CoinGui 배지와 m4-07 이후 Sfx 음소거 버튼이 둘 다 배율 없음 · `TopbarSafeInsets` · 높이 상한 36 · 여백 4로 같은 규격. QA "QA 재검증: 위쪽 바 gui는 UIScale 없음…", "QA 재검증: 코인 배지와 음소거 버튼이 같은 위쪽 바 규격" |
+
+- 회귀: 정산 줄 `CoinSummaryGui`(기본 insets)·LobbyGui·VictoryCutscene은 그대로 배율 적용. 수정 커밋의 `tests/` 변경은 `ui-layout.spec` 기대값(B3)뿐이고 QA 테스트는 그대로. `src/` 변경은 `UiScaleController`·`LobbyScreen`·`UiLayout` 세 파일(모두 스펙 범위 안).
+- 메모(버그 아님): 글씨 크기는 코인 배지 18px, 음소거 14px로 m4-08·m4-07 각자 설계 그대로다. 휴대폰 위쪽 바 높이 안에 들어가는지는 체크리스트 1-1에서 본다.
+- 수용 기준: AC1·AC2·AC3 통과, AC4~AC9 사용자 확인 필요. P0/P1 없음 → **qa-passed**.
+
 ## 추가한 테스트
-`tests/m4-09-qa.spec.luau` (11개, 1개는 B1 재현으로 실패)
+`tests/m4-09-qa.spec.luau` (13개, 재검증에서 2개 추가, 전부 통과)
 - QA 배율: 경계값(432 → 0.6, 720 → 1, 900 → 1.25)과 단조 증가
 - QA compact: 500/501 경계, 세로 입력, iPad·PC는 compact 아님
 - QA 터치·글씨 최소 크기: 짧은 변 320~1200 전 구간
@@ -111,13 +126,15 @@
 - QA compact 관전 ◀ ▶: compact 전 구간에서 화면 안·터치 버튼과 8px 이상·서로 안 겹침
 - QA UiScaleController.attach: 두 번 불러도 UIScale 하나, 배율 = scaleFor (가짜 Roblox 환경에서 실제 모듈 실행)
 - QA UiScaleController: 화면 크기가 바뀌면 배율·리스너 갱신, 끊으면 더 안 불림
-- QA 병합: m4-08 CoinGui가 attach 뒤에도 TopbarSafeInsets를 유지 (m4-09 QA B1) — **실패 중**
+- QA 병합: m4-08 CoinGui가 attach 뒤에도 TopbarSafeInsets를 유지 (m4-09 QA B1) — 3b48391에서 통과
+- QA 재검증: 위쪽 바 gui는 UIScale 없음, 일반 gui는 있음, options.scale로 바꿀 수 있음
+- QA 재검증: 코인 배지와 음소거 버튼이 같은 위쪽 바 규격 (높이 상한 36, 여백 4)
 - QA 관전 키: ←/→ 바인딩 없음, Q/E만 (+ 관전 중 다이브 차단 확인)
 - QA 터치 버튼 gui에는 UIScale을 붙이지 않음
 
 ## 인계 메모
-- **지금 브랜치**: `m4-09-qa` (= `origin/m4-09-mobile` 21747af + `origin/main` aa4cc72 병합, 충돌 없음) + QA 커밋. push 완료.
-- **끝난 것**: 자동 검증 4개, 수용 기준 코드 리뷰, QA 테스트 11개, 리포트, 스펙 상태 `in-dev`.
-- **남은 것**: 개발이 B1 수정(가능하면 B2·B3도) → 재QA(QA 테스트 B1 통과 확인) → 사용자 Studio 체크리스트·AC9.
-- **다음에 할 첫 단계**: developer가 `m4-09-qa`(또는 main을 병합한 `m4-09-mobile`)에서 `UiScaleController.attach`가 `TopbarSafeInsets` gui를 덮어쓰지 않게 고치고 `lune run tests`로 `m4-09-qa.spec` 11개 통과 확인.
-- **막힌 점**: 없음. B1을 CoinController 쪽에서 고치려면 m4-08 파일이라 사용자/코디네이터 승인 필요.
+- **지금 브랜치**: `m4-09-qa` (3b48391 = m4-09 + B1~B4 수정 + main 병합) + QA 재검증 커밋. `origin/m4-09-qa`로 push 완료.
+- **끝난 것**: 1차 QA(반려), 재검증 통과, QA 테스트 13개, 스펙 `qa-passed`.
+- **남은 것**: 코디네이터가 `m4-09-qa`를 main에 병합. 사용자 Studio 체크리스트(AC4~AC8)와 실제 휴대폰(AC9).
+- **다음에 할 첫 단계**: main 병합 뒤 Device 에뮬레이터 iPhone SE로 체크리스트 1부터. 코인 배지와 음소거 버튼이 위쪽 바 줄 양 끝에 있는지 먼저 본다.
+- **막힌 점**: 없음.

@@ -318,6 +318,52 @@ return function(t: Test.Test)
 		)
 	end)
 
+	-- 재검증 (3b48391): B4 위쪽 바 gui는 기본 배율 없음 → 음소거 버튼(Sfx, attach 안 함)과 같은 크기
+	t.test(
+		"QA 재검증: 위쪽 바 gui는 UIScale 없음, 일반 gui는 있음, options.scale로 바꿀 수 있음",
+		function()
+			local env = loadUiScaleController(667, 375)
+			local topbar = env.newGui("TopbarSafeInsets")
+			env.controller.attach(topbar)
+			env.controller.attach(topbar)
+			t.eq(topbar.ScreenInsets, "TopbarSafeInsets")
+			t.eq(#env.children(topbar, "UIScale"), 0)
+			env.setViewport(1920, 1080) -- 화면 크기가 바뀌어도 그대로
+			t.eq(#env.children(topbar, "UIScale"), 0)
+			t.eq(topbar.ScreenInsets, "TopbarSafeInsets")
+
+			local forced = env.newGui("TopbarSafeInsets")
+			env.controller.attach(forced, { scale = true })
+			t.eq(forced.ScreenInsets, "TopbarSafeInsets")
+			t.eq(#env.children(forced, "UIScale"), 1)
+			t.eq(env.children(forced, "UIScale")[1].Scale, 1.25)
+
+			local device = env.newGui("DeviceSafeInsets") -- 일반 gui는 안전 영역을 CoreUISafeInsets로 맞춤
+			env.controller.attach(device)
+			t.eq(device.ScreenInsets, "CoreUISafeInsets")
+			t.eq(#env.children(device, "UIScale"), 1)
+
+			local noScale = env.newGui()
+			env.controller.attach(noScale, { scale = false })
+			t.eq(#env.children(noScale, "UIScale"), 0)
+		end
+	)
+
+	t.test(
+		"QA 재검증: 코인 배지와 음소거 버튼이 같은 위쪽 바 규격 (높이 상한 36, 여백 4)",
+		function()
+			local coin = fs.readFile("src/client/ui/CoinScreen.luau")
+			local sfx = fs.readFile("src/client/Sfx.luau")
+			t.ok(string.find(coin, "BADGE_MAX_HEIGHT = 36", 1, true) ~= nil)
+			t.ok(string.find(sfx, "MUTE_MAX_HEIGHT = 36", 1, true) ~= nil)
+			t.ok(string.find(coin, "local MARGIN = 4", 1, true) ~= nil)
+			t.ok(string.find(sfx, "MUTE_MARGIN = 4", 1, true) ~= nil)
+			t.ok(string.find(coin, "TopbarSafeInsets", 1, true) ~= nil)
+			t.ok(string.find(sfx, "TopbarSafeInsets", 1, true) ~= nil)
+			t.eq(string.find(sfx, "UiScaleController", 1, true), nil, "음소거 gui는 배율 없음")
+		end
+	)
+
 	---------------------------------------------------------------- 정적 점검
 	t.test("QA 관전 키: ←/→ 바인딩 없음, Q/E만", function()
 		local source = fs.readFile("src/client/ui/SpectateController.luau")

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-09 — 모바일 UI (화면 크기 대응 · 터치 버튼 배치 · 안전 영역)
@@ -80,3 +80,4 @@ status: in-qa
 
 ## QA
 - 2026-10-08 · 반려(in-dev) · `docs/qa/m4-09-mobile-ui.md`. P1 B1: main(m4-08) 병합 뒤 `UiScaleController.attach`가 CoinGui의 `TopbarSafeInsets`를 `CoreUISafeInsets`로 덮어써 코인 배지가 화면 왼쪽 가운데로, 토스트가 화면 밖으로 감. P3 B2~B4. · qa
+- 2026-10-08 · 재검증 통과(qa-passed) · `3b48391`에서 B1~B4 고쳐짐, lune 674 passed / 0 failed. Studio AC4~AC9는 사용자 확인 필요 · qa

@@ -17,6 +17,8 @@ export type Profile = {
 	ownedSkins: { [string]: boolean },
 	equippedSkin: string,
 	settings: Types.Settings,
+	-- 처리한 로벅스 결제 id (m4-14, 최근 Config.Shop.ReceiptHistoryMax개만). 같은 결제를 두 번 지급하지 않게
+	receipts: { { id: string, at: number } },
 }
 
 local ProfileSchema = {}
@@ -34,6 +36,7 @@ function ProfileSchema.new(): Profile
 		ownedSkins = { [default] = true },
 		equippedSkin = default,
 		settings = { muteLevel = 1 },
+		receipts = {},
 	}
 end
 

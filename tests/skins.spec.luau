@@ -58,7 +58,12 @@ return function(t: Test.Test)
 			t.eq(skin.tier, row[3], `{row[1]} tier`)
 			t.eq(skin.robux, row[4], `{row[1]} robux`)
 			t.eq(skin.coins, row[5], `{row[1]} coins`)
-			t.eq(skin.productId, nil, `{row[1]} productId (m4-14가 채워요)`)
+			-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
+			local pid = skin.productId
+			t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
+			if row[1] == "tamago" then
+				t.eq(pid, nil, "default skin has no product")
+			end
 			t.eq(Skins.get(row[1]), skin)
 		end
 	end)
@@ -134,8 +139,13 @@ return function(t: Test.Test)
 		t.ok(string.find(table.concat(problems2, ";"), "default skin", 1, true) ~= nil)
 	end)
 
-	t.test("forProduct: 상품 id가 아직 없어서 nil (m4-14가 채우면 그 스킨)", function()
-		t.eq(Skins.forProduct(123), nil)
+	t.test("forProduct: 상품 id → 그 스킨, 모르는 id·문자열은 nil (m4-14)", function()
+		t.eq(Skins.forProduct(-1), nil)
+		for _, skin in Skins.LIST do
+			if skin.productId then
+				t.eq(Skins.forProduct(skin.productId), skin, skin.id)
+			end
+		end
 		t.eq(Skins.forProduct("123"), nil)
 	end)
 

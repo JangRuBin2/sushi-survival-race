@@ -8,8 +8,11 @@
 --       DataService.update 안에서 부르는 것: 다시 판단하고 통과하면 차감 + 보유 + 장착을 한 번에 (중복·음수 방지).
 --   grantSkin(profile, skinId, equip?) -> boolean   보유 목록에 넣어요 (로벅스 결제 m4-14). 새로 넣었으면 true.
 --   message(reason, missing?) -> string              거절 이유 한국어 한 줄 (탈의실 결과 글씨)
---   cardState(skin, view) -> CardState               탈의실 카드 상태 (입는 중 / 입기 / 코인 해금 / 코인 부족 / 로벅스)
---   cardButtonText(state) -> string
+--   cardState(skin, view, robux?) -> CardState       탈의실 카드 상태 (입는 중 / 입기 / 코인 해금 / 코인 부족 / 로벅스)
+--       로벅스 버튼은 상품 id가 있거나 Studio 가짜 결제(robux.fake)일 때만 켜져요 (m4-14). 일반 스킨은 코인 해금 옆에
+--       로벅스 버튼이 하나 더 있어요 (robux·robuxEnabled → robuxButtonText).
+--   robuxOpen(skin, fake?) / robuxPrice(skin, robux?)  로벅스 판매 여부 / 보여 줄 가격 (실제 상품 가격 우선)
+--   cardButtonText(state) -> string · robuxButtonText(state) -> string?
 -- 소유·착용·코인의 진실은 서버 프로필뿐이에요. 클라이언트는 cardState로 보여 주기만 해요.
 
 local Skins = require(script.Parent.Skins)
@@ -45,7 +48,15 @@ export type CardState = {
 	kind: CardKind,
 	price: number?, -- Unlock·NeedCoins: 코인 가격, Robux: 로벅스 가격
 	missing: number?, -- NeedCoins
-	enabled: boolean, -- 누를 수 있는 버튼인지 (Robux는 m4-14 전까지 false)
+	enabled: boolean, -- 누를 수 있는 버튼인지 (Robux는 상품 id가 있거나 Studio 가짜 결제일 때만)
+	robux: number?, -- Unlock·NeedCoins: 로벅스로도 살 수 있는 가격 (일반 스킨, m4-14)
+	robuxEnabled: boolean?, -- 그 로벅스 버튼을 누를 수 있는지
+}
+
+-- 로벅스 표시 옵션 (클라이언트가 넘겨요, m4-14)
+export type RobuxOptions = {
+	fake: boolean?, -- Studio 가짜 결제 (Config.DEBUG.fakeRobuxInStudio + Studio)
+	prices: { [string]: number }?, -- 스킨 id → 실제 상품 가격 (MarketplaceService:GetProductInfo), 없으면 카탈로그 값
 }
 
 -- 탈의실에서 보는 내 프로필 부분 (Types.ProfileView)
@@ -57,8 +68,23 @@ export type ViewLike = {
 
 local ShopLogic = {}
 
--- m4-14가 로벅스 결제를 켜면 true로 바꿔요
-ShopLogic.ROBUX_ENABLED = false
+-- 로벅스로 살 수 있게 열렸는가 (m4-14): 기본 스킨이 아니고 가격이 있고, 상품 id가 있거나 Studio 가짜 결제
+function ShopLogic.robuxOpen(skin: Skins.Skin, fake: boolean?): boolean
+	if skin.id == Skins.DEFAULT_ID or skin.robux == nil then
+		return false
+	end
+	return skin.productId ~= nil or fake == true
+end
+
+-- 보여 줄 로벅스 가격: 실제 상품 가격을 받았으면 그 값, 아니면 카탈로그 값
+function ShopLogic.robuxPrice(skin: Skins.Skin, robux: RobuxOptions?): number?
+	local prices = robux and robux.prices
+	local real = prices and prices[skin.id]
+	if type(real) == "number" and real > 0 then
+		return real
+	end
+	return skin.robux
+end
 
 function ShopLogic.canEquip(skinId: unknown, ownedSkins: { [string]: boolean }, locked: boolean?): (boolean, Reason?)
 	local skin = Skins.get(skinId)
@@ -152,21 +178,30 @@ function ShopLogic.message(reason: Reason?, missing: number?): string
 	return MESSAGES[reason] or "다시 해 주세요"
 end
 
-function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike): CardState
+function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptions?): CardState
 	if view.equippedSkin == skin.id then
 		return { kind = "Equipped", enabled = false }
 	end
 	if table.find(view.ownedSkins, skin.id) or skin.id == Skins.DEFAULT_ID then
 		return { kind = "Equip", enabled = true }
 	end
+	local open = ShopLogic.robuxOpen(skin, robux and robux.fake)
+	local robuxPrice = ShopLogic.robuxPrice(skin, robux)
 	if skin.coins then
 		local coins = validCoins(view.coins)
 		if coins >= skin.coins then
-			return { kind = "Unlock", price = skin.coins, enabled = true }
+			return { kind = "Unlock", price = skin.coins, enabled = true, robux = robuxPrice, robuxEnabled = open }
 		end
-		return { kind = "NeedCoins", price = skin.coins, missing = skin.coins - coins, enabled = false }
+		return {
+			kind = "NeedCoins",
+			price = skin.coins,
+			missing = skin.coins - coins,
+			enabled = false,
+			robux = robuxPrice,
+			robuxEnabled = open,
+		}
 	end
-	return { kind = "Robux", price = skin.robux, enabled = ShopLogic.ROBUX_ENABLED }
+	return { kind = "Robux", price = robuxPrice, enabled = open }
 end
 
 function ShopLogic.cardButtonText(state: CardState): string
@@ -179,10 +214,21 @@ function ShopLogic.cardButtonText(state: CardState): string
 	elseif state.kind == "NeedCoins" then
 		return `🍚 {state.missing}개 더 필요해요`
 	end
-	if ShopLogic.ROBUX_ENABLED then
+	if state.enabled then
 		return `R$ {state.price}`
 	end
 	return `R$ {state.price} — 곧 열려요`
+end
+
+-- 일반 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)
+function ShopLogic.robuxButtonText(state: CardState): string?
+	if state.robux == nil or (state.kind ~= "Unlock" and state.kind ~= "NeedCoins") then
+		return nil
+	end
+	if state.robuxEnabled then
+		return `R$ {state.robux}로 사기`
+	end
+	return `R$ {state.robux} — 곧 열려요`
 end
 
 return ShopLogic

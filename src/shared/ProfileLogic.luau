@@ -2,7 +2,7 @@
 -- 프로필 저장 순수 로직 (m4-07). Roblox API를 쓰지 않아서 lune으로 테스트해요 (tests/profile-logic.spec.luau).
 --   ProfileLogic.migrate(raw) -> (Profile, { persistable, notes })
 --       DataStore에서 읽은 값을 지금 모양으로 정리해요. 없는 칸은 기본값, 잘못된 숫자는 0, tamago는 항상 보유,
---       보유하지 않은 장착 스킨은 tamago, 모르는 칸은 그대로 보존. version이 더 높으면(미래 데이터) persistable = false.
+--       보유하지 않은 장착 스킨은 tamago, 처리한 결제 id 목록은 정리(m4-14), 모르는 칸은 그대로 보존. version이 더 높으면(미래 데이터) persistable = false.
 --   ProfileLogic.lockDecision(lock?, myJobId, now, expiry, mySession?) -> "take" | "wait" | "steal"
 --   ProfileLogic.canWrite(lock?, myJobId, mySession?) -> boolean  내 잠금(같은 JobId + 같은 세션)일 때만 true
 --   ProfileLogic.dayNumber(unixTime) -> number            UTC 날짜 번호 (1970-01-01 = 0)
@@ -13,6 +13,7 @@
 
 local Config = require(script.Parent.Config)
 local ProfileSchema = require(script.Parent.ProfileSchema)
+local ReceiptLogic = require(script.Parent.ReceiptLogic)
 
 export type Profile = ProfileSchema.Profile
 export type Lock = { jobId: string, at: number, session: string? }
@@ -34,6 +35,7 @@ local KNOWN_FIELDS = {
 	ownedSkins = true,
 	equippedSkin = true,
 	settings = true,
+	receipts = true,
 }
 
 local COUNTERS = { "coins", "wins", "matchesPlayed" }
@@ -117,6 +119,10 @@ function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
 		else
 			table.insert(notes, "settings were invalid, reset")
 		end
+	end
+
+	if source.receipts ~= nil then
+		profile.receipts = ReceiptLogic.sanitizeHistory(source.receipts, Config.Shop.ReceiptHistoryMax)
 	end
 
 	return profile, { persistable = persistable, notes = notes }

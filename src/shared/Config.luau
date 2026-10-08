@@ -156,6 +156,9 @@ Config.Ui = {
 -- 스킨 탈의실 (m4-13). 가격·목록은 Shared.Skins
 Config.Shop = {
 	RequestCooldown = 0.3, -- EquipSkin·BuyWithCoins 요청 간격 제한(초, 두 요청이 같이 써요)
+	PurchaseRequestCooldown = 1, -- RequestRobuxPurchase 요청 간격 제한(초, m4-14)
+	ReceiptHistoryMax = 50, -- 프로필에 기억하는 처리한 결제 id 수 (오래된 것부터 지워요, m4-14)
+	PurchaseLogStore = "Purchases_v1", -- 구매 기록 DataStore (키 = PurchaseId, m4-14)
 }
 
 -- 서버 이동 감시 (m4-10)
@@ -188,6 +191,9 @@ Config.DEBUG = {
 	-- true면 매치가 끝날 때마다 서버 Output에 한 줄: Workspace 자식 수, 남은 아레나(맵) Model 수, 진행 중 매치 수,
 	-- 정리 안 된 라운드 훅 수, 서버 메모리(MB). 연속 매치 안정성 확인용 (m4-12). 커밋할 때는 false로.
 	logArenaStats = false,
+	-- true면 Studio에서 로벅스 버튼이 상품 id 없이도 켜지고, 누르면 결제 창 없이 가짜 영수증으로 결제 처리 흐름을
+	-- 그대로 타요 (m4-14). 저장이 메모리 모드면 메모리에. 실제 서버에서는 무시. 커밋할 때는 false로.
+	fakeRobuxInStudio = false,
 }
 
 return Config

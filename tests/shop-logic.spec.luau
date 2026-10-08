@@ -168,16 +168,28 @@ return function(t: Test.Test)
 		t.eq(poor.missing, 380)
 		t.eq(poor.enabled, false)
 		t.eq(ShopLogic.cardButtonText(poor), "🍚 380개 더 필요해요")
-		local rare = state("eel")
+		-- 상품 id가 없는 레어 (사용자가 id를 채워도 이 검사는 그대로)
+		local eel = table.clone(Skins.get("eel")) :: any
+		eel.productId = nil
+		local rare = ShopLogic.cardState(eel, v)
 		t.eq(rare.kind, "Robux")
 		t.eq(rare.enabled, false)
 		t.eq(ShopLogic.cardButtonText(rare), "R$ 99 — 곧 열려요")
-		t.eq(ShopLogic.cardButtonText(state("dragon-roll")), "R$ 399 — 곧 열려요")
+		local dragon = table.clone(Skins.get("dragon-roll")) :: any
+		dragon.productId = nil
+		t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(dragon, v)), "R$ 399 — 곧 열려요")
 	end)
 
-	t.test("AC11: 로벅스 구매는 m4-14 전까지 꺼져 있어요", function()
-		t.eq(ShopLogic.ROBUX_ENABLED, false)
-	end)
+	t.test(
+		"AC11: 로벅스 버튼은 상품 id가 없으면 꺼져 있어요 (m4-14: 상품 id 또는 Studio 가짜 결제면 켜짐)",
+		function()
+			for _, skin in Skins.LIST do
+				if skin.productId == nil then
+					t.eq(ShopLogic.robuxOpen(skin), false, skin.id)
+				end
+			end
+		end
+	)
 
 	t.test("message: 모든 거절 이유에 한국어 문구가 있어요", function()
 		for _, reason in

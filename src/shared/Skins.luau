@@ -9,7 +9,9 @@
 --   Skins.validate(list)    카탈로그 검사: (ok, 문제 목록). 테스트와 서버 시작 때 한 번
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
--- 가격: 로벅스는 m4-14가 개발자 상품으로 팔아요 (productId는 그때 채워요). 코인 해금은 일반 등급만 (GDD 9.4).
+-- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
+-- productId에 넣으면 그 스킨의 로벅스 버튼이 켜져요 (nil이면 "곧 열려요"). 계란초밥은 무료라 상품 없음.
+-- 코인 해금은 일반 등급만 (GDD 9.4).
 
 export type Tier = "Basic" | "Common" | "Rare" | "Epic" | "Legendary"
 
@@ -19,7 +21,7 @@ export type Skin = {
 	tier: Tier,
 	robux: number?, -- 로벅스 가격 (기본 스킨은 nil)
 	coins: number?, -- 밥알 코인 해금 가격 (일반 등급만, 나머지는 nil)
-	productId: number?, -- 개발자 상품 id (m4-14가 채워요, 지금은 nil)
+	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
 }

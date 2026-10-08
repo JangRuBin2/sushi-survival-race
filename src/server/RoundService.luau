@@ -35,6 +35,7 @@ local MapSfxLogic = require(ReplicatedStorage.Shared.maps.MapSfxLogic)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
 local MoveExempt = require(ReplicatedStorage.Shared.MoveExempt)
 local RoundLogic = require(ReplicatedStorage.Shared.RoundLogic)
+local Rules = require(ReplicatedStorage.Shared.Rules)
 
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local EliminationService = require(script.Parent.EliminationService)
@@ -181,7 +182,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		assert(spawnsFolder, `{map.id}: build() must create a Spawns folder`)
 		local spawns = spawnsFolder:GetChildren()
 		assert(#spawns > 0, `{map.id}: Spawns folder has no spawn parts`)
-		table.sort(spawns, function(a, b)
+		table.sort(spawns, function(a: Instance, b: Instance): boolean
 			return a.Name < b.Name
 		end)
 		model:SetAttribute(Attributes.RoomId, roomId)
@@ -198,7 +199,8 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			playersById[player.UserId] = player
 			table.insert(ids, player.UserId)
 		end
-		local round = RoundLogic.newRound(mode, ids, Random.new())
+		local roundRng: Rules.Rng = Random.new()
+		local round = RoundLogic.newRound(mode, ids, roundRng)
 		local released = false -- 출발했으면 늦게 배치되는 사람도 잠그지 않아요
 		local qualified: { number } = {}
 		local eliminated: { number } = {}
@@ -664,7 +666,7 @@ function RoundService.init()
 		if roomId == nil then
 			return nil
 		end
-		return RoomService.getPlayers(roomId)
+		return RoomService.getPlayers(roomId :: string)
 	end)
 end
 

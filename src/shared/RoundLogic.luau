@@ -139,14 +139,17 @@ function RoundLogic.remainingCount(round: Round): number
 	return n
 end
 
+type Keyed<T> = { item: T, score: number, tie: number, index: number }
+
 -- 점수 순 정렬. ascending이면 못한 사람부터. 점수가 같으면 rng가 있으면 무작위, 없으면 입력 순서.
 local function rank<T>(items: { T }, scoreOf: (T) -> number, ascending: boolean, rng: Rules.Rng?): { T }
-	local keyed = {}
+	local keyed: { Keyed<T> } = {}
 	for i, item in items do
 		local tie = if rng then rng:NextInteger(1, 2 ^ 30) else i
-		table.insert(keyed, { item = item, score = scoreOf(item), tie = tie, index = i })
+		local entry: Keyed<T> = { item = item, score = scoreOf(item), tie = tie, index = i }
+		table.insert(keyed, entry)
 	end
-	table.sort(keyed, function(a, b)
+	table.sort(keyed, function(a: Keyed<T>, b: Keyed<T>): boolean
 		if a.score ~= b.score then
 			if ascending then
 				return a.score < b.score
@@ -158,7 +161,7 @@ local function rank<T>(items: { T }, scoreOf: (T) -> number, ascending: boolean,
 		end
 		return a.index < b.index
 	end)
-	local out = {}
+	local out: { T } = {}
 	for _, k in keyed do
 		table.insert(out, k.item)
 	end
@@ -168,17 +171,20 @@ end
 local function addPassed(round: Round, out: { Outcome }, id: number)
 	round.remaining[id] = nil
 	round.passedCount += 1
-	table.insert(out, { userId = id, result = "Passed", place = round.passedCount })
+	local outcome: Outcome = { userId = id, result = "Passed", place = round.passedCount }
+	table.insert(out, outcome)
 end
 
 local function addEliminated(round: Round, out: { Outcome }, id: number)
 	round.remaining[id] = nil
-	table.insert(out, { userId = id, result = "Eliminated" })
+	local outcome: Outcome = { userId = id, result = "Eliminated" }
+	table.insert(out, outcome)
 end
 
 local function addWon(round: Round, out: { Outcome }, id: number)
 	round.remaining[id] = nil
-	table.insert(out, { userId = id, result = "Won", place = 1 })
+	local outcome: Outcome = { userId = id, result = "Won", place = 1 }
+	table.insert(out, outcome)
 end
 
 -- 라운드를 끝내고 남은 사람을 정리해요.
@@ -468,7 +474,7 @@ function RoundLogic.standingsList(standings: Standings): { Standing }
 		end
 		table.insert(list, { userId = e.userId, name = e.name, place = place :: number })
 	end
-	table.sort(list, function(a, b)
+	table.sort(list, function(a: Standing, b: Standing): boolean
 		if a.place ~= b.place then
 			return a.place < b.place
 		end

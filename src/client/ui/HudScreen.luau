@@ -193,7 +193,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			return
 		end
 		local sorted = table.clone(standings)
-		table.sort(sorted, function(a, b)
+		table.sort(sorted, function(a: Types.Standing, b: Types.Standing): boolean
 			return a.place < b.place
 		end)
 		local rowText = UiLayout.textSize(16, metrics)

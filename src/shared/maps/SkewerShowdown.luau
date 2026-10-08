@@ -160,7 +160,7 @@ local function buildHand(model: Model, origin: CFrame)
 	local CollectionService = game:GetService("CollectionService")
 	local hand = Instance.new("Model")
 	hand.Name = "ChefHand"
-	local skin = Color3.fromRGB(table.unpack(SKIN_RGB))
+	local skin = Color3.fromRGB(SKIN_RGB[1], SKIN_RGB[2], SKIN_RGB[3])
 	local base = origin * CFrame.new(0, HAND_REST_HEIGHT, 0)
 	local palm = makePart({
 		Name = "Palm",
@@ -302,7 +302,7 @@ local function grabSlice(ctx: MapTypes.RoundContext, slice: Model, hand: Model?)
 	end
 	local home = slice:GetPivot()
 	MapSfx.play(slice:FindFirstChildWhichIsA("BasePart") :: BasePart?, "ChefHandWarn")
-	local warnColor = Color3.fromRGB(table.unpack(WARN_RGB))
+	local warnColor = Color3.fromRGB(WARN_RGB[1], WARN_RGB[2], WARN_RGB[3])
 	local blinkOn = true
 	local warned = 0
 	while warned < WARN_TIME do
@@ -351,7 +351,7 @@ local function moveFood(food: FoodSet, skewerAt: CFrame)
 	if #food.parts == 0 then
 		return
 	end
-	local targets = table.create(#food.offsets)
+	local targets = table.create(#food.offsets) :: { CFrame }
 	for i, offset in food.offsets do
 		targets[i] = skewerAt * offset
 	end
@@ -407,7 +407,7 @@ local function start(ctx: MapTypes.RoundContext)
 			for _, child in folder:GetChildren() do
 				if child:IsA("BasePart") then
 					table.insert(set.parts, child)
-					table.insert(set.offsets, skewer.CFrame:ToObjectSpace(child.CFrame))
+					table.insert(set.offsets, (skewer.CFrame:ToObjectSpace(child.CFrame)))
 				end
 			end
 		end

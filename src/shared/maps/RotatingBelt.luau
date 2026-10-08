@@ -64,7 +64,7 @@ local function build(origin: CFrame): Model
 	model.Name = ID
 
 	local function toWorld(localCFrame: CFrame): CFrame
-		return origin:ToWorldSpace(localCFrame)
+		return (origin:ToWorldSpace(localCFrame))
 	end
 
 	local function addFloor(

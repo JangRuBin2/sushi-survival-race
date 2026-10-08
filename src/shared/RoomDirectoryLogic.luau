@@ -178,7 +178,7 @@ function RoomDirectoryLogic.merge(
 		seen[listing.id] = true
 		table.insert(result, listing)
 	end
-	local items: { RawItem } = table.create(#remote)
+	local items = table.create(#remote) :: { RawItem }
 	for i, entry in remote do
 		items[i] = { key = RoomDirectoryLogic.key(entry.jobId, entry.roomId), value = entry }
 	end
@@ -215,7 +215,7 @@ function RoomDirectoryLogic.pickQuickJoin(
 	if room then
 		return { kind = "local", room = room, entry = nil }
 	end
-	local items: { RawItem } = table.create(#remote)
+	local items = table.create(#remote) :: { RawItem }
 	for i, entry in remote do
 		items[i] = { key = RoomDirectoryLogic.key(entry.jobId, entry.roomId), value = entry }
 	end

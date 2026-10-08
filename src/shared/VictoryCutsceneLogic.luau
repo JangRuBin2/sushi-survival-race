@@ -132,7 +132,7 @@ end
 
 -- 우승자 이름: standings에 저장된 이름을 먼저 (우승자가 나갔어도 나와요), 없으면 fallback.
 function VictoryCutsceneLogic.winnerName(
-	standings: { { userId: number, name: string } }?,
+	standings: { read [number]: { read userId: number, read name: string } }?,
 	winnerUserId: number,
 	fallback: string
 ): string

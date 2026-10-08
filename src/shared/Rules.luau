@@ -78,11 +78,13 @@ end
 -- 나머지는 탈락인데 **못 간 사람부터** 돌려줘요. 그 순서대로 eliminationPlace를 매기면
 -- 탈락자 중 가장 멀리 간 사람이 가장 좋은 등수를 받아요. 진행도가 같으면 entries 순서를 따라요.
 function Rules.settleLeftover<T>(entries: { T }, progressOf: (T) -> number, openSlots: number): ({ T }, { T })
-	local ranked = {}
+	type Ranked = { entry: T, progress: number, index: number }
+	local ranked: { Ranked } = {}
 	for i, entry in entries do
-		table.insert(ranked, { entry = entry, progress = progressOf(entry), index = i })
+		local item: Ranked = { entry = entry, progress = progressOf(entry), index = i }
+		table.insert(ranked, item)
 	end
-	table.sort(ranked, function(a, b)
+	table.sort(ranked, function(a: Ranked, b: Ranked): boolean
 		if a.progress ~= b.progress then
 			return a.progress > b.progress
 		end
@@ -104,7 +106,7 @@ function Rules.settleLeftover<T>(entries: { T }, progressOf: (T) -> number, open
 end
 
 local function pick(rng: Rng, pool: { MapInfo }, kind: MapKind?, used: { [string]: boolean }): MapInfo?
-	local candidates = {}
+	local candidates: { MapInfo } = {}
 	for _, map in pool do
 		if (kind == nil or map.kind == kind) and not used[map.id] then
 			table.insert(candidates, map)

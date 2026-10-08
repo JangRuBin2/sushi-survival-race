@@ -35,7 +35,7 @@ local function collectPlates(platesFolder: Instance): { Plate }
 			for _, d in model:GetDescendants() do
 				if d:IsA("BasePart") then
 					table.insert(plate.parts, d)
-					table.insert(plate.offsets, base:ToObjectSpace(d.CFrame))
+					table.insert(plate.offsets, (base:ToObjectSpace(d.CFrame)))
 				end
 			end
 			table.insert(plates, plate)
@@ -108,7 +108,7 @@ local function run()
 	end
 	local center = LobbyLayout.RAIL.center
 	local railCenter = Vector3.new(center.x, center.y, center.z)
-	local cframes: { CFrame } = table.create(#parts)
+	local cframes = table.create(#parts) :: { CFrame }
 
 	local connection: RBXScriptConnection
 	connection = RunService.RenderStepped:Connect(function()

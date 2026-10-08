@@ -124,16 +124,14 @@ end
 function Logic.platforms(): { Platform }
 	local list: { Platform } = {}
 	for i, chashu in Layout.CHASHUS do
-		table.insert(
-			list,
+		local platform: Platform =
 			{ kind = "Chashu", index = i, x = chashu.x, z = chashu.z, radius = Layout.CHASHU_DIAMETER / 2 }
-		)
+		table.insert(list, platform)
 	end
 	for i, naruto in Layout.NARUTOS do
-		table.insert(
-			list,
+		local platform: Platform =
 			{ kind = "Naruto", index = i, x = naruto.x, z = naruto.z, radius = Layout.NARUTO_DIAMETER / 2 }
-		)
+		table.insert(list, platform)
 	end
 	return list
 end

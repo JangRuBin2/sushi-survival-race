@@ -138,7 +138,7 @@ function PlacePayload.validateMembers(raw: any): ({ number }?, string?)
 		return nil, "members not a list"
 	end
 	local seen = {}
-	local list = table.create(count)
+	local list = table.create(count) :: { number }
 	for i = 1, count do
 		local userId = raw[i]
 		if not isUserId(userId) then
@@ -420,7 +420,7 @@ end
 
 -- 방 멤버 정보에서 userId 목록 (들어온 순서)
 function PlacePayload.userIdsOf(members: { Types.MemberInfo }): { number }
-	local list = table.create(#members)
+	local list = table.create(#members) :: { number }
 	for i, member in members do
 		list[i] = member.userId
 	end
@@ -429,7 +429,7 @@ end
 
 -- 플레이어(UserId가 있는 값) 목록에서 userId 목록 (순서 그대로)
 function PlacePayload.userIdsOfPlayers(players: { any }): { number }
-	local list = table.create(#players)
+	local list = table.create(#players) :: { number }
 	for i, player in players do
 		list[i] = player.UserId
 	end

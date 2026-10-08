@@ -74,7 +74,7 @@ end
 -- 하나로 모음: ProfileLogic.dayNumber (m4-07)
 RewardLogic.dayNumber = ProfileLogic.dayNumber
 
-function RewardLogic.matchTotal(grants: { { amount: number } }): number
+function RewardLogic.matchTotal(grants: { read [number]: { read amount: number } }): number
 	local total = 0
 	for _, grant in grants do
 		total += grant.amount
@@ -137,7 +137,8 @@ function RewardLogic.onRoundStart(
 	local amount = RewardLogic.forRoundStart(roundIndex, roundCount)
 	if amount then
 		for _, userId in userIds do
-			table.insert(grants, { userId = userId, reason = "FinalQualify", amount = amount })
+			local grant: Grant = { userId = userId, reason = "FinalQualify", amount = amount }
+			table.insert(grants, grant)
 		end
 	end
 	return grants

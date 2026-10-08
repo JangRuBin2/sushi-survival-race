@@ -23,6 +23,11 @@ local function v(x: number, y: number, z: number): Vec3
 	return { x = x, y = y, z = z }
 end
 
+-- 타입을 정한 인자로 넣어야 shape 같은 문자열이 리터럴 타입으로 잡혀요 (타입 검사)
+local function add(specs: { DecorSpec }, spec: DecorSpec)
+	table.insert(specs, spec)
+end
+
 local function rgb(r: number, g: number, b: number): RGB
 	return { r = r, g = g, b = b }
 end
@@ -61,7 +66,7 @@ function Art.cellDecor(cell: Logic.Cell, hasNeighbor: (i: number, j: number) -> 
 	local size = Logic.CELL_SIZE
 	local y = GROOVE_HEIGHT / 2
 	if hasNeighbor(cell.i + 1, cell.j) then
-		table.insert(specs, {
+		add(specs, {
 			name = "Groove",
 			shape = "Block",
 			size = v(GROOVE_WIDTH, GROOVE_HEIGHT, size),
@@ -71,7 +76,7 @@ function Art.cellDecor(cell: Logic.Cell, hasNeighbor: (i: number, j: number) -> 
 		})
 	end
 	if hasNeighbor(cell.i, cell.j + 1) then
-		table.insert(specs, {
+		add(specs, {
 			name = "Groove",
 			shape = "Block",
 			size = v(size, GROOVE_HEIGHT, GROOVE_WIDTH),
@@ -81,7 +86,7 @@ function Art.cellDecor(cell: Logic.Cell, hasNeighbor: (i: number, j: number) -> 
 		})
 	end
 	if (cell.i * 3 + cell.j * 5) % 4 == 0 then
-		table.insert(specs, {
+		add(specs, {
 			name = "Scratch",
 			shape = "Block",
 			size = v(4.5, GROOVE_HEIGHT, 0.2),
@@ -105,7 +110,7 @@ end
 local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: number, skin: RGB)
 	local radius = 11
 	local c = v(cx, cy, cz)
-	table.insert(specs, {
+	add(specs, {
 		name = "CustomerHead",
 		shape = "Ball",
 		size = v(radius * 2, radius * 2, radius * 2),
@@ -118,7 +123,7 @@ local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: nu
 	local sx, sz = -tz, tx -- 얼굴 옆 방향
 	for _, side in { -1, 1 } do
 		local ex, ez = -tx * 0.45 + sx * side * 0.4, -tz * 0.45 + sz * side * 0.4
-		table.insert(specs, {
+		add(specs, {
 			name = "CustomerEye",
 			shape = "Ball",
 			size = v(3.4, 3.4, 3.4),
@@ -126,7 +131,7 @@ local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: nu
 			material = "SmoothPlastic",
 			offset = onSphere(c, radius - 0.8, ex, 1, ez),
 		})
-		table.insert(specs, {
+		add(specs, {
 			name = "CustomerPupil",
 			shape = "Ball",
 			size = v(1.6, 1.6, 1.6),
@@ -134,7 +139,7 @@ local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: nu
 			material = "SmoothPlastic",
 			offset = onSphere(c, radius + 0.6, ex, 1, ez),
 		})
-		table.insert(specs, {
+		add(specs, {
 			name = "CustomerCheek",
 			shape = "Ball",
 			size = v(3, 1.2, 3),
@@ -145,7 +150,7 @@ local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: nu
 	end
 	-- 벌린 입 (어두운 원판, 위를 봄) + 혀
 	local mouth = onSphere(c, radius - 0.4, tx * 0.5, 1, tz * 0.5)
-	table.insert(specs, {
+	add(specs, {
 		name = "CustomerMouth",
 		shape = "Cylinder",
 		size = v(1, 8, 8),
@@ -154,7 +159,7 @@ local function customerFace(specs: { DecorSpec }, cx: number, cy: number, cz: nu
 		offset = mouth,
 		rotation = v(0, 0, 90),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "CustomerTongue",
 		shape = "Ball",
 		size = v(4, 1.4, 3.4),
@@ -166,7 +171,7 @@ end
 
 local function kitchen(specs: { DecorSpec })
 	-- 아래 조리대 바닥 (멀리 보이는 주방 바닥)
-	table.insert(specs, {
+	add(specs, {
 		name = "Counter",
 		shape = "Block",
 		size = v(320, 4, 320),
@@ -175,7 +180,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(0, -72, 0),
 	})
 	-- 뒤쪽 타일 벽 (+Z)
-	table.insert(specs, {
+	add(specs, {
 		name = "Backsplash",
 		shape = "Block",
 		size = v(240, 130, 2),
@@ -184,7 +189,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(0, -5, 110),
 	})
 	-- 벽 아래 옻칠 띠
-	table.insert(specs, {
+	add(specs, {
 		name = "BacksplashTrim",
 		shape = "Block",
 		size = v(240, 4, 2.4),
@@ -194,7 +199,7 @@ local function kitchen(specs: { DecorSpec })
 	})
 
 	-- 칼꽂이 (나무 블록 + 꽂힌 칼 손잡이 4개)
-	table.insert(specs, {
+	add(specs, {
 		name = "KnifeBlock",
 		shape = "Block",
 		size = v(16, 26, 12),
@@ -204,7 +209,7 @@ local function kitchen(specs: { DecorSpec })
 		rotation = v(-15, 0, 0),
 	})
 	for k = 1, 4 do
-		table.insert(specs, {
+		add(specs, {
 			name = "KnifeBlockHandle",
 			shape = "Block",
 			size = v(2.4, 10, 2.4),
@@ -216,7 +221,7 @@ local function kitchen(specs: { DecorSpec })
 	end
 
 	-- 생선 한 마리 (큰 접시 위 연어)
-	table.insert(specs, {
+	add(specs, {
 		name = "FishPlate",
 		shape = "Cylinder",
 		size = v(2, 44, 44),
@@ -225,7 +230,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(72, -30, 70),
 		rotation = v(0, 0, 90),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishPlateRim",
 		shape = "Cylinder",
 		size = v(1.6, 46, 46),
@@ -234,7 +239,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(72, -30.4, 70),
 		rotation = v(0, 0, 90),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishBody",
 		shape = "Ball",
 		size = v(30, 9, 11),
@@ -243,7 +248,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(72, -25, 70),
 		rotation = v(0, 20, 0),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishBelly",
 		shape = "Ball",
 		size = v(24, 6, 9),
@@ -252,7 +257,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(72, -26.5, 70.5),
 		rotation = v(0, 20, 0),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishTail",
 		shape = "Wedge",
 		size = v(1, 10, 8),
@@ -261,7 +266,7 @@ local function kitchen(specs: { DecorSpec })
 		offset = v(86.5, -25, 75.3),
 		rotation = v(0, 110, 0),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishEye",
 		shape = "Ball",
 		size = v(2.2, 2.2, 2.2),
@@ -269,7 +274,7 @@ local function kitchen(specs: { DecorSpec })
 		material = "SmoothPlastic",
 		offset = v(59, -23.5, 64.5),
 	})
-	table.insert(specs, {
+	add(specs, {
 		name = "FishPupil",
 		shape = "Ball",
 		size = v(1.1, 1.1, 1.1),
@@ -281,7 +286,7 @@ local function kitchen(specs: { DecorSpec })
 	-- 머리 위 매달린 등 3개 (도마 위 높이 40 이상)
 	for k = -1, 1 do
 		local x = k * 26
-		table.insert(specs, {
+		add(specs, {
 			name = "LampCord",
 			shape = "Block",
 			size = v(0.4, 30, 0.4),
@@ -289,7 +294,7 @@ local function kitchen(specs: { DecorSpec })
 			material = "SmoothPlastic",
 			offset = v(x, 60, 10),
 		})
-		table.insert(specs, {
+		add(specs, {
 			name = "LampShade",
 			shape = "Cylinder",
 			size = v(4, 9, 9),
@@ -298,7 +303,7 @@ local function kitchen(specs: { DecorSpec })
 			offset = v(x, 44, 10),
 			rotation = v(0, 0, 90),
 		})
-		table.insert(specs, {
+		add(specs, {
 			name = "LampBulb",
 			shape = "Ball",
 			size = v(3.5, 3.5, 3.5),

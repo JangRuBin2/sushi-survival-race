@@ -224,7 +224,7 @@ end
 -- 저장할 사본 (저장 요청이 기다리는 동안 게임이 프로필을 바꿔도 섞이지 않게)
 function ProfileLogic.deepCopy<T>(value: T): T
 	if type(value) ~= "table" then
-		return value
+		return value :: any
 	end
 	local copy = {}
 	for key, item in value :: any do

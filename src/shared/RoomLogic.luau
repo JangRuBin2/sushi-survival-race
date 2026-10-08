@@ -256,7 +256,7 @@ end
 
 -- 방 멤버에게 보내는 상세 정보
 function RoomLogic.snapshot(room: Room): Types.RoomSnapshot
-	local members = table.create(#room.members)
+	local members = table.create(#room.members) :: { Types.MemberInfo }
 	for i, member in room.members do
 		members[i] = { userId = member.userId, name = member.name }
 	end
@@ -275,7 +275,7 @@ end
 
 -- 로비 방 목록: 공개 방만. 대기 중인 방 → 사람 많은 방 → 먼저 만든 방 순서.
 function RoomLogic.listPublic(rooms: { Room }): { Types.RoomListing }
-	local visible = {}
+	local visible: { Room } = {}
 	for _, room in rooms do
 		if not room.isPrivate then
 			table.insert(visible, room)
@@ -290,7 +290,7 @@ function RoomLogic.listPublic(rooms: { Room }): { Types.RoomListing }
 		end
 		return byId(a, b)
 	end)
-	local listings = table.create(#visible)
+	local listings = table.create(#visible) :: { Types.RoomListing }
 	for i, room in visible do
 		listings[i] = {
 			id = room.id,

@@ -132,7 +132,7 @@ local function onMatchEnd(roomId: string, info: MatchEvents.MatchEndInfo)
 	for _, userId in RewardLogic.matchEndRecipients(info.participants, memberIds) do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
-			task.spawn(grantWith, player, "DailyFirstMatch", function(profile): number?
+			task.spawn(grantWith, player, "DailyFirstMatch", function(profile: Profile): number?
 				profile.matchesPlayed += 1
 				local amount = RewardLogic.dailyBonus(profile.lastDailyBonusDay, today)
 				if amount then

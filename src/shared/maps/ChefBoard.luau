@@ -437,7 +437,8 @@ local function start(ctx: MapTypes.RoundContext)
 				movePivot,
 				knife,
 				origin * currentTilt * lineRel * CFrame.new(0, KNIFE_RAISED_HEIGHT, 0),
-				math.min(KNIFE_AIM_TIME, warnTime)
+				math.min(KNIFE_AIM_TIME, warnTime),
+				false
 			)
 			ctx.cleanup:add(aimThread)
 		end

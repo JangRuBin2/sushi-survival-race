@@ -126,7 +126,7 @@ function LobbyController.start(): ScreenGui
 
 	Remotes.event("RoomList").OnClientEvent:Connect(function(rooms: { Types.RoomListing })
 		-- 다른 로비 서버의 방은 이름 앞에 표시 (m4-11)
-		local shown = table.create(#rooms)
+		local shown = table.create(#rooms) :: { Types.RoomListing }
 		for i, listing in rooms do
 			if listing.remote then
 				local copy = table.clone(listing)

@@ -36,7 +36,7 @@ function Maps.infos(): { Rules.MapInfo }
 end
 
 function Maps.timeLimit(map: MapTypes.MapModule): number
-	return map.timeLimit or Config.TimeLimit[map.kind]
+	return map.timeLimit or (Config.TimeLimit :: { [string]: number })[map.kind]
 end
 
 return Maps

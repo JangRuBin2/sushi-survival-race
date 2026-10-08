@@ -115,7 +115,7 @@ local function originOf(model: Model, bounds: IntroCameraLogic.Bounds, kind: Typ
 			end
 		end
 	end
-	table.sort(spawns, function(a, b)
+	table.sort(spawns, function(a: BasePart, b: BasePart): boolean
 		return a.Name < b.Name
 	end)
 
@@ -153,7 +153,7 @@ local function pathOf(model: Model, kind: Types.MapKind): { Waypoint }
 				table.insert(parts, child)
 			end
 		end
-		table.sort(parts, function(a, b)
+		table.sort(parts, function(a: BasePart, b: BasePart): boolean
 			return a.Name < b.Name
 		end)
 		if #parts > 0 then

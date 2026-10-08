@@ -115,7 +115,8 @@ local function buildShop(model: Model, origin: CFrame): { Door }
 			hinge * CFrame.new(-side * leafWidth / 2, doorHeight / 2, 0),
 			WOOD
 		)
-		table.insert(doors, { part = leaf, hinge = hinge, side = side })
+		local door: Door = { part = leaf, hinge = hinge, side = side }
+		table.insert(doors, door)
 	end
 	return doors
 end

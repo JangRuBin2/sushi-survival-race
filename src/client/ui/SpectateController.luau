@@ -334,10 +334,11 @@ function SpectateController.start(gui: Instance)
 		if gameProcessed then
 			return
 		end
+		-- ←/→는 기본 카메라도 같이 돌려서 쓰지 않아요 (Q/E + 화면 ◀ ▶만, m4-09 · M2 P3 해소)
 		local key = input.KeyCode
-		if key == Enum.KeyCode.Left or key == Enum.KeyCode.Q then
+		if key == Enum.KeyCode.Q then
 			cycle(-1)
-		elseif key == Enum.KeyCode.Right or key == Enum.KeyCode.E then
+		elseif key == Enum.KeyCode.E then
 			cycle(1)
 		end
 	end)

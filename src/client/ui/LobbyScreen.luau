@@ -1,13 +1,17 @@
 --!strict
 -- 로비 화면 (GDD 3.1, 3.2, 10): 공개 방 목록, 빠른 참가, 방 만들기 창, 코드로 참가.
 -- 서버 요청은 actions로 넘겨받아요. 이 화면은 보여주기만 해요.
+-- 화면 크기 대응 (m4-09): 버튼은 배율 적용 뒤 Config.Ui.MinTouchSize 이상, compact(휴대폰 가로)에서는
+-- 패널·방 만들기 창을 위쪽에 붙이고(키보드가 올라와도 입력칸이 보이게) 글씨를 실제 14px 이상으로 키워요.
 -- TODO(M4): 스킨 상점, 탈의실, 코인 표시, 방 목록을 벨트 위 접시로
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
+local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
+local UiScaleController = require(script.Parent.UiScaleController)
 
 local Color = Kit.Color
 
@@ -28,6 +32,12 @@ export type LobbyScreen = {
 
 local LobbyScreen = {}
 
+local PANEL_MAX = Vector2.new(760, 560)
+local DIALOG_MAX_WIDTH = 460
+local GAP = 8
+local PADDING = 16
+local MAX_BUTTON_GAP = 6
+
 -- TextBox 글자 수 제한 (글자 단위)
 local function capText(box: TextBox, maxChars: number)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
@@ -42,6 +52,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local busy = false
 	local rooms: { Types.RoomListing } = {}
 	local busyButtons: { TextButton } = {}
+	local metrics = UiScaleController.metrics()
 
 	local root = Kit.new("Frame", {
 		Name = "Lobby",
@@ -58,12 +69,12 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		BackgroundColor3 = Color.Panel,
 	}, {
 		Kit.corner(16),
-		Kit.padding(16),
-		Kit.list(Enum.FillDirection.Vertical, 8),
-		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(760, 560) }),
+		Kit.padding(PADDING),
+		Kit.list(Enum.FillDirection.Vertical, GAP),
+		Kit.new("UISizeConstraint", { MaxSize = PANEL_MAX }),
 	})
 
-	Kit.label({
+	local titleLabel = Kit.label({
 		Parent = panel,
 		LayoutOrder = 1,
 		Text = "🍣 초밥 서바이벌 레이스",
@@ -110,7 +121,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		end
 	end)
 
-	Kit.label({
+	local listTitle = Kit.label({
 		Parent = panel,
 		LayoutOrder = 3,
 		Text = "공개 방",
@@ -118,19 +129,13 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		TextSize = 16,
 	})
 
-	local list = Kit.new("ScrollingFrame", {
+	local list = Kit.scrollList({
 		Parent = panel,
 		LayoutOrder = 4,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Size = UDim2.new(1, 0, 1, -(36 + 44 + 24 + 22 + 8 * 4)),
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color.SubText,
-	}, { Kit.list(Enum.FillDirection.Vertical, 6) })
+		Size = UDim2.new(1, 0, 1, -(36 + 44 + 24 + 22 + GAP * 4)),
+	}, 6)
 
-	local showMessage = Kit.messageLabel(panel, 5)
+	local showMessage, messageLabel = Kit.messageLabel(panel, 5)
 
 	------------------------------------------------------------------
 	-- 방 만들기 창
@@ -144,27 +149,37 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		Visible = false,
 		Text = "",
 		AutoButtonColor = false,
+		Selectable = false,
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color.Backdrop,
 		BackgroundTransparency = 0.4,
 		ZIndex = 10,
 	})
-	local dialogPanel = Kit.new("Frame", {
+	-- 작은 화면에서 창이 화면보다 길면 스크롤해요
+	local dialogPanel = Kit.new("ScrollingFrame", {
 		Parent = dialog,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.new(0.9, 0, 0, 400),
 		BackgroundColor3 = Color.Panel,
+		BorderSizePixel = 0,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ScrollBarThickness = 8,
+		ScrollBarImageColor3 = Color.SubText,
 		ZIndex = 11,
 	}, {
 		Kit.corner(16),
-		Kit.padding(16),
-		Kit.list(Enum.FillDirection.Vertical, 8),
-		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(460, 400) }),
+		Kit.padding(PADDING),
+		Kit.list(Enum.FillDirection.Vertical, GAP),
+		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(DIALOG_MAX_WIDTH, math.huge) }),
 	})
 
-	local function dialogLabel(order: number, text: string, size: number?)
-		Kit.label({
+	type DialogLabel = { label: TextLabel, base: number }
+	local dialogLabels: { DialogLabel } = {}
+	local function dialogLabel(order: number, text: string, size: number?): TextLabel
+		local label = Kit.label({
 			Parent = dialogPanel,
 			LayoutOrder = order,
 			Text = text,
@@ -172,6 +187,8 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			TextColor3 = if size then Color.Text else Color.SubText,
 			ZIndex = 12,
 		})
+		table.insert(dialogLabels, { label = label, base = size or 16 })
+		return label
 	end
 	local function dialogRow(order: number): Frame
 		return Kit.new("Frame", {
@@ -180,19 +197,31 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 44),
 			ZIndex = 12,
-		}, { Kit.list(Enum.FillDirection.Horizontal, 6) })
+		}, { Kit.list(Enum.FillDirection.Horizontal, MAX_BUTTON_GAP) })
 	end
 
 	dialogLabel(1, "방 만들기", 22)
 	dialogLabel(2, "최대 인원")
-	local maxRow = dialogRow(3)
+	-- 인원 버튼 5개: 한 줄에 안 들어가면 두 줄 (UIGridLayout 칸 크기는 applyLayout이 정해요)
+	local maxRow = Kit.new("Frame", {
+		Parent = dialogPanel,
+		LayoutOrder = 3,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 44),
+		ZIndex = 12,
+	})
+	local maxGrid = Kit.new("UIGridLayout", {
+		Parent = maxRow,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		CellPadding = UDim2.fromOffset(MAX_BUTTON_GAP, MAX_BUTTON_GAP),
+		CellSize = UDim2.new(0.2, -MAX_BUTTON_GAP, 0, 44),
+	}) :: UIGridLayout
 	local options = Config.Room.MaxPlayerOptions
 	local maxButtons: { [number]: TextButton } = {}
 	for i, count in options do
 		local button = Kit.button(`{count}명`, Color.Salmon, {
 			Parent = maxRow,
 			LayoutOrder = i,
-			Size = UDim2.new(1 / #options, -6, 1, 0),
 			ZIndex = 13,
 		})
 		maxButtons[count] = button
@@ -204,7 +233,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		end)
 	end
 
-	dialogLabel(4, "공개 여부")
+	local privacyLabel = dialogLabel(4, "공개 여부")
 	local privacyRow = dialogRow(5)
 	local publicButton = Kit.button("공개", Color.Nori, {
 		Parent = privacyRow,
@@ -231,7 +260,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		refreshPrivacy()
 	end)
 
-	dialogLabel(6, "방 이름")
+	local nameLabel = dialogLabel(6, "방 이름")
 	local nameBox = Kit.textBox({
 		Parent = dialogPanel,
 		LayoutOrder = 7,
@@ -256,7 +285,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		Size = UDim2.new(0.5, -3, 1, 0),
 		ZIndex = 13,
 	})
-	local showDialogMessage = Kit.messageLabel(dialogPanel, 9)
+	local showDialogMessage, dialogMessageLabel = Kit.messageLabel(dialogPanel, 9)
 
 	local function openDialog()
 		selectedMax = Config.Room.DefaultMaxPlayers
@@ -266,6 +295,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			Kit.setSelected(b, c == selectedMax)
 		end
 		refreshPrivacy()
+		dialogPanel.CanvasPosition = Vector2.zero
 		dialog.Visible = true
 	end
 
@@ -285,6 +315,9 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	-- 방 목록
 
 	local function renderRooms()
+		local m = metrics
+		local rowHeight = UiLayout.touchSize(44, m) + 8
+		local text = UiLayout.textSize(18, m)
 		for _, child in list:GetChildren() do
 			if child:IsA("GuiObject") then
 				child:Destroy()
@@ -295,9 +328,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				Parent = list,
 				Text = "열린 방이 없어요. 방을 만들거나 빠른 참가를 눌러 보세요!",
 				TextColor3 = Color.SubText,
-				TextSize = 16,
+				TextSize = UiLayout.textSize(16, m),
+				TextWrapped = true,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				Size = UDim2.new(1, -8, 0, 48),
+				Size = UDim2.new(1, -8, 0, math.max(48, UiLayout.textSize(16, m) * 2 + 8)),
 			})
 			return
 		end
@@ -306,10 +340,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				Parent = list,
 				LayoutOrder = i,
 				BackgroundColor3 = Color.Row,
-				Size = UDim2.new(1, -8, 0, 52),
+				Size = UDim2.new(1, -8, 0, rowHeight),
 			}, {
 				Kit.corner(10),
-				Kit.padding(6),
+				Kit.padding(4),
 				Kit.list(Enum.FillDirection.Horizontal, 8, {
 					VerticalAlignment = Enum.VerticalAlignment.Center,
 				}),
@@ -318,6 +352,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				Parent = row,
 				LayoutOrder = 1,
 				Text = room.name,
+				TextSize = text,
 				Size = UDim2.new(0.5, -8, 1, 0),
 			})
 			local full = room.memberCount >= room.maxPlayers
@@ -326,6 +361,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				LayoutOrder = 2,
 				Text = `{room.memberCount}/{room.maxPlayers}명`,
 				TextColor3 = Color.SubText,
+				TextSize = text,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				Size = UDim2.new(0.2, -8, 1, 0),
 			})
@@ -336,6 +372,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				{
 					Parent = row,
 					LayoutOrder = 3,
+					TextSize = text,
 					Size = UDim2.new(0.3, -8, 1, 0),
 				}
 			)
@@ -345,6 +382,105 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 				actions.joinRoom(room.id)
 			end)
 		end
+	end
+
+	------------------------------------------------------------------
+	-- 화면 크기 대응 (m4-09)
+
+	local function applyLayout(m: UiLayout.Metrics)
+		metrics = m
+		local touch = UiLayout.touchSize(44, m)
+		local function text(base: number): number
+			return UiLayout.textSize(base, m)
+		end
+		local function line(base: number, textBase: number): number
+			return UiLayout.lineHeight(base, m, textBase)
+		end
+		local virtualWidth = if m.width > 0 then m.width / m.scale else 1280
+		local virtualHeight = if m.height > 0 then m.height / m.scale else 720
+		local scrollBar = UiLayout.scrollBarThickness(m)
+
+		-- 로비 패널: compact면 위쪽에 붙여 코드 입력칸이 키보드에 가리지 않게 (높이는 화면 90% 이하)
+		if m.compact then
+			panel.AnchorPoint = Vector2.new(0.5, 0)
+			panel.Position = UDim2.fromScale(0.5, 0.03)
+			panel.Size = UDim2.fromScale(0.94, 0.9)
+		else
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.fromScale(0.5, 0.5)
+			panel.Size = UDim2.fromScale(0.92, 0.86)
+		end
+
+		local titleHeight = line(36, 26)
+		titleLabel.TextSize = text(26)
+		titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
+		actionRow.Size = UDim2.new(1, 0, 0, touch)
+		for _, button in { quickButton, createButton } do
+			button.TextSize = text(18)
+		end
+		codeBox.TextSize = text(18)
+		codeButton.TextSize = text(16)
+		local listTitleHeight = line(24, 16)
+		listTitle.TextSize = text(16)
+		listTitle.Size = UDim2.new(1, 0, 0, listTitleHeight)
+		local messageHeight = line(22, 16)
+		messageLabel.TextSize = text(16)
+		messageLabel.Size = UDim2.new(1, 0, 0, messageHeight)
+		list.ScrollBarThickness = scrollBar
+		list.Size = UDim2.new(1, 0, 1, -(titleHeight + touch + listTitleHeight + messageHeight + GAP * 4))
+
+		-- 방 만들기 창
+		local dialogWidth = math.min(virtualWidth * 0.9, DIALOG_MAX_WIDTH)
+		local inner = dialogWidth - PADDING * 2 - scrollBar
+		local perRow, rows = UiLayout.gridRows(#options, inner, touch + 16, MAX_BUTTON_GAP)
+		maxGrid.CellSize = UDim2.new(1 / perRow, -MAX_BUTTON_GAP, 0, touch)
+		local maxRowHeight = rows * touch + (rows - 1) * MAX_BUTTON_GAP
+		maxRow.Size = UDim2.new(1, 0, 0, maxRowHeight)
+		for _, button in maxButtons do
+			button.TextSize = text(18)
+		end
+		local labelsHeight = 0
+		for _, item in dialogLabels do
+			local height = line(24, item.base)
+			item.label.TextSize = text(item.base)
+			item.label.Size = UDim2.new(1, 0, 0, height)
+			labelsHeight += height
+		end
+		privacyRow.Size = UDim2.new(1, 0, 0, touch)
+		confirmRow.Size = UDim2.new(1, 0, 0, touch)
+		nameBox.Size = UDim2.new(1, 0, 0, touch)
+		nameBox.TextSize = text(18)
+		for _, button in { publicButton, privateButton, cancelButton, confirmButton } do
+			button.TextSize = text(18)
+		end
+		dialogMessageLabel.TextSize = text(16)
+		dialogMessageLabel.Size = UDim2.new(1, 0, 0, messageHeight)
+		dialogPanel.ScrollBarThickness = scrollBar
+
+		local content = labelsHeight + maxRowHeight + touch * 3 + messageHeight + GAP * 8 + PADDING * 2
+		if m.compact then
+			-- 위쪽에 두고 방 이름 칸을 맨 위로: 키보드가 올라와도 입력칸이 보여요
+			dialogPanel.AnchorPoint = Vector2.new(0.5, 0)
+			dialogPanel.Position = UDim2.new(0.5, 0, 0, 8)
+			nameLabel.LayoutOrder = 2
+			nameBox.LayoutOrder = 3
+			dialogLabels[2].label.LayoutOrder = 4
+			maxRow.LayoutOrder = 5
+			privacyLabel.LayoutOrder = 6
+			privacyRow.LayoutOrder = 7
+		else
+			dialogPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+			dialogPanel.Position = UDim2.fromScale(0.5, 0.5)
+			dialogLabels[2].label.LayoutOrder = 2
+			maxRow.LayoutOrder = 3
+			privacyLabel.LayoutOrder = 4
+			privacyRow.LayoutOrder = 5
+			nameLabel.LayoutOrder = 6
+			nameBox.LayoutOrder = 7
+		end
+		dialogPanel.Size = UDim2.new(0.9, 0, 0, math.min(content, virtualHeight * 0.9 - 8))
+
+		renderRooms()
 	end
 
 	------------------------------------------------------------------
@@ -366,7 +502,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		end
 	end)
 
-	renderRooms()
+	UiScaleController.onChanged(applyLayout) -- 바로 한 번 불러서 renderRooms까지 해요
 
 	local screen = {}
 

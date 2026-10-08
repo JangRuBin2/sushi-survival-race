@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-09 — 모바일 UI (화면 크기 대응 · 터치 버튼 배치 · 안전 영역)
@@ -58,5 +58,18 @@ status: ready
 - 2026-10-08 · 관전 ←/→ 바인딩 제거, Q/E + 화면 버튼만 · M2 P3 해소 · planner
 - 2026-10-08 · 콘솔 UI 확인은 M5 · GDD 13은 모바일만 요구 · **기본값으로 진행, 사용자 수정 가능** · planner
 
+- 2026-10-08 · compact 관전 ◀ ▶ 높이 · "아래 양쪽 끝"을 그대로 두면 ▶가 점프 버튼과 겹쳐서, 양 끝이되 오른쪽 터치 버튼 묶음(잡기 버튼) 바로 위 높이(`UiLayout.spectateArrows`)로 둠 · **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 터치 버튼(DiveGui·GrabGui)에는 UIScale을 붙이지 않음 · 실제 점프 버튼 픽셀 위치에 맞춰야 해서. 위치는 실제 점프 버튼을 기준으로 `UiLayout.touchButtons(w, h, jump)`가 계산(점프 버튼을 못 찾으면 버튼을 숨기는 기존 동작 유지) · developer
+- 2026-10-08 · 잡기 버튼 쿨다운 표시 · 잡기에는 쿨다운 값이 없고 GrabController(이 스펙 밖)가 버튼에 넘기지도 않아서, 지금처럼 잡는 동안 색이 바뀌는 표시만 둠 · 질문: 잡기 쿨다운이 생기면 GrabController 담당이 `setCooldown`을 요청 · developer
+- 2026-10-08 · 음소거 버튼(Sfx.luau, m4-07)은 이 스펙에서 손대지 않음 · 이미 자기 ScreenGui + `TopbarSafeInsets`라 예외 규칙과 맞음 · developer
+- 2026-10-08 · `tests/m3-06-qa.spec.luau` 글자 검사 갱신 · DiveButton 글씨가 "🤸 다이브", 간격 상수가 `UiLayout.TOUCH_GAP_RATIO`로 옮겨져서 · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 브랜치 `m4-09-mobile`. 새 파일 `src/shared/UiLayout.luau`(순수: scaleFor, isCompact, metrics, px/touchSize/textSize/lineHeight/scrollBarThickness, gridRows, defaultJump, touchButtons, spectateArrows), `tests/ui-layout.spec.luau`(9개, AC1·AC2).
+- `UiScaleController`: `attach(gui)`(UIScale 하나 + `ScreenInsets = CoreUISafeInsets`, 두 번 불러도 하나), `metrics()`, `onChanged(fn)`. LobbyController가 LobbyGui를 만들 때 붙이고(`start`도 같은 gui를 다시 붙임, 무해), VictoryCutsceneScreen이 자기 gui를 붙임.
+  - **다른 스펙 주의**: LobbyGui 안의 Offset은 이제 × scale로 그려져요. AbsolutePosition/AbsoluteSize(실제 픽셀)를 Offset에 넣으려면 `UiScaleController.metrics().scale`로 나눠야 해요(IntroScreen 참고). m4-08 CoinGui는 `attach` 뒤 `ScreenInsets = TopbarSafeInsets`로 바꾸면 돼요.
+- 화면별: LobbyScreen·RoomScreen(버튼 높이 `touchSize`, compact면 패널을 위쪽 3%에 0.9 높이, 방 만들기 창은 ScrollingFrame + compact에서 위쪽·방 이름 칸 먼저, 인원 버튼은 UIGridLayout으로 모자라면 두 줄), HudScreen(compact 한 줄 배치, 내 결과는 위쪽 오른쪽), SpectateScreen(compact ◀ ▶ 양 끝), SpectateController(←/→ 제거), IntroScreen(실제 픽셀 → UIScale 좌표), VictoryCutsceneScreen(배율·안전 영역, `IgnoreGuiInset` 제거), DiveButton·GrabButton(85% 크기, 🤸/✊ 글씨). EliminationCutsceneScreen은 이미 TextScaled + 최대 크기라 그대로.
+- 측정값(계산): iPhone SE 667×375 → scale 0.6, 로비·방 버튼 높이 74(가상) × 0.6 = 44.4px, 글씨 최소 24 × 0.6 = 14.4px, 스크롤바 14 × 0.6 = 8.4px. 1920×1080 → scale 1.25(버튼 55px).
+- Studio 확인: Test 탭 → Device에서 iPhone SE / iPhone 14 Pro Max / iPad / 1366×768 고르고 Play. `Config.DEBUG.forceMapPlan`으로 한 판을 빨리 돌려 로비 → 방 만들기 → 대기실 → HUD → 탈락 도장 → 관전 → 우승 순위표를 기기마다 확인(AC4). 휴대폰 에뮬레이터에서 점프 왼쪽 다이브·위쪽 잡기(AC6), 관전 중 ←/→ 무반응·Q/E 전환(AC7), PC 1920×1080 회귀(AC8).
+- 남은 이슈: UIScale을 ScreenGui 바로 아래에 둬서 전체를 키우는 방식이 실제 기기에서 예상대로(스케일 기반 크기 유지)인지 Studio 확인 필요. 관전 E 키는 다이브 키(E)와 같음(기존과 같음, 관전 중엔 캐릭터가 대기석). 1920×1080에서는 배율 1.25라 M3보다 UI가 25% 커요(스펙 상한대로).

@@ -12,6 +12,16 @@
         "$path": "src/server"
       }
     },
+    "ServerStorage": {
+      "MapArt": {
+        "$path": "assets/map-art"
+      }
+    },
+    "StarterGui": {
+      "$properties": {
+        "ScreenOrientation": "LandscapeSensor"
+      }
+    },
     "StarterPlayer": {
       "$properties": {
         "CharacterUseJumpPower": true,

@@ -8,7 +8,9 @@ local Rules = require(script.Parent.Rules)
 local ALL: { MapTypes.MapModule } = {
 	require(script.RotatingBelt),
 	require(script.SoySwamp),
+	require(script.RamenRapids), -- m4-01 stub → m4-04
 	require(script.HotPlate),
+	require(script.ChefBoard), -- m4-01 stub → m4-05
 	require(script.SkewerShowdown),
 }
 

@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-13 — 스킨 목록 · 탈의실(미리보기·장착) · 코인 해금
@@ -87,6 +87,35 @@ status: ready
 - 2026-10-08 · 코인 해금 = 일반 등급만(GDD 9.4) · planner
 - 2026-10-08 · 라운드 중 장착 변경 금지, 관전·대기석·로비는 허용 · **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 효과는 스킨당 1개(불꽃·반짝이) · 모바일 성능 · planner
+- 2026-10-08 · BuyWithCoins도 라운드·연출 중이면 거절 (해금하면 바로 입혀야 해서, 장착과 같은 문구) · 스펙에 없던 경우, 기본값으로 진행 · developer
+- 2026-10-08 · "🍣 스킨" 버튼은 매치 중에도 관전·대기석(통과 후·라운드 결과 사이)에서는 보임, 시작 카운트다운·소개·달리는 중·우승 연출에서는 숨김 (범위 5 "매치 중 숨김"과 AC9 "관전·대기석에서는 바뀐다"를 함께 만족) · developer
+- 2026-10-08 · 불꽃 효과는 Fire 오브젝트(최소 크기 2) 대신 작은 ParticleEmitter (스펙 범위 2 "ParticleEmitter, 한 개") · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 2026-10-08 · developer · 구현 완료 → in-qa
+**바뀐 파일**
+- 새 파일: `src/shared/Skins.luau`(카탈로그 16종·등급 정보·`validate`·`forProduct`), `src/shared/ShopLogic.luau`(장착·코인 해금·지급·카드 상태 판단), `src/server/ShopService.luau`(리모트 2개, 잠금 판단, `grantSkin`), `src/client/ui/ShopController.luau`, `src/client/ui/ShopScreen.luau`, `tests/skins.spec.luau`, `tests/shop-logic.spec.luau`
+- `src/shared/SushiBody.luau`: 스킨 15종 레이아웃(계란초밥과 같은 Body·눈·입·발 + 토핑), `PartSpec`에 선택 필드 `shape`·`rotation`(도)·`effect`·`effectColor`, `bounds`가 회전 반영, `hasLayout`, `effectCount`, `setEffectsEnabled`. 계란초밥 레이아웃은 그대로.
+- `src/server/AppearanceService.luau`: `setResolver`(appearanceId가 nil이면 ShopService가 고른 장착 스킨), `refresh(player)`. 외형을 입히는 곳은 여전히 `applyAppearance` 하나.
+- `src/server/MatchService.luau`: 매치 시작·라운드마다·우승 판정 직전에 생존자 스킨을 `ctx.appearances`에 기억 → 우승자가 쇼케이스 전에 나가도 단상 인형이 입던 스킨 (m4-06 QA L2의 외형 부분).
+- `src/shared/EliminationCutsceneLogic.luau`: `SKIN_LINES`를 `Skins.speech`에서 만듦 (계란초밥 대사 그대로).
+- `src/client/fx/EliminationCutsceneController.luau`: 진짜 캐릭터를 숨길 때 스킨 효과(불꽃·반짝이)도 끔.
+- 공용: `Remotes.luau`(RemoteFunction `EquipSkin`, `BuyWithCoins` → 리모트 19개), `Config.luau`(`Config.Shop.RequestCooldown = 0.3`), `init.server.luau`(ShopService), `init.client.luau`(ShopController). `Types.luau`·`default.project.json` 변경 없음 (`Skins.Tier` 타입은 Skins에).
+- `tests/m4-foundation.spec.luau`: 리모트 개수 17 → 19.
+
+**서버 검증 (ShopService)**: 인자 타입(문자열), 카탈로그, 보유, 가격(일반만 코인), 코인, 요청 간격 0.3초(두 리모트 공용), 잠금 = `RoundService.placedRoomOf`(소개 포함 이번 라운드 레이서) 또는 탈락 연출(3초)·우승(VictoryDuration + 1초). 코인 해금은 `DataService.update` 한 번 안에서 `ShopLogic.buyWithCoins`(재판단 → 차감 + 보유 + 장착), 저장 가능하면 바로 `saveNow`. `canPersist = false`는 Studio면 허용, 실제 서버면 "저장이 안 되는 상태예요".
+
+**Studio 확인 방법**
+1. AC6: Play → 왼쪽 위(코인 배지 아래) "🍣 스킨" → 16종 카드(등급 색 테두리), 탭 전환, 카드를 누르면 왼쪽 미리보기가 돌고 말풍선 대사. Device 에뮬레이터(휴대폰 가로)에서 카드 2열·미리보기 위쪽, 잘리지 않는지.
+2. AC7: 서버 Command Bar에서 코인 넣기 — `local D=require(game.ServerScriptService.Server.DataService) for _,p in game.Players:GetPlayers() do D.update(p,function(x) x.coins+=600 end) end` → "연어" 카드 → "🍚 500으로 해금" → 코인 100, 바로 연어초밥. 저장 확인은 `Config.DEBUG.persistDataInStudio = true`(API 접근 허용) 후 나갔다 들어오기.
+3. AC8: 연어를 입고 `forceMapPlan`으로 한 판 → 매치 캐릭터·탈락 인형·우승 인형·로비 단상이 연어, 탈락 말풍선에 "연어는 언제나 옳아!" 등이 나올 수 있음.
+4. AC9: 라운드 중 거절은 클라이언트 Command Bar로 — `game.ReplicatedStorage.Remotes.EquipSkin:InvokeServer("tamago")` → `false 매치가 끝나면 바꿀 수 있어요`. 달리는 동안 버튼은 숨겨지고, 탈락해 관전 중이거나 통과해 대기석에 있을 때 버튼이 다시 보이고 장착이 바뀜.
+5. AC10: Clients and Servers 2명 → 서로 스킨이 같은 모습, 스킨을 바꿔도 이름표 높이·키가 같음 (Body가 같아서).
+6. AC11: 레어 이상 카드의 버튼 "R$ 99 — 곧 열려요"가 회색이고 눌러도 아무 일 없음.
+
+**남은 이슈**
+- 단상 이름표의 칭호·승수는 우승자가 쇼케이스 전에 나가면 여전히 없음 (L2의 나머지, 프로필이 내려가서). 외형만 해결.
+- 우승 연출 인형(클라이언트)은 우승자가 연출 시작 전에 나가면 기본 계란초밥 (Victory 방송에 외형을 싣지 않음).
+- 스킨 모양은 코드 회색 박스 수준. 사용자 스크린샷을 보고 색·토핑만 `SushiBody` 레이아웃에서 고치면 됨.

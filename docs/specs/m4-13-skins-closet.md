@@ -90,6 +90,8 @@ status: qa-passed
 - 2026-10-08 · BuyWithCoins도 라운드·연출 중이면 거절 (해금하면 바로 입혀야 해서, 장착과 같은 문구) · 스펙에 없던 경우, 기본값으로 진행 · developer
 - 2026-10-08 · "🍣 스킨" 버튼은 매치 중에도 관전·대기석(통과 후·라운드 결과 사이)에서는 보임, 시작 카운트다운·소개·달리는 중·우승 연출에서는 숨김 (범위 5 "매치 중 숨김"과 AC9 "관전·대기석에서는 바뀐다"를 함께 만족) · developer
 - 2026-10-08 · 불꽃 효과는 Fire 오브젝트(최소 크기 2) 대신 작은 ParticleEmitter (스펙 범위 2 "ParticleEmitter, 한 개") · developer
+- 2026-10-08 · **가격 다시 정함 (사용자 지적 "스킨이 너무 비싸다, 로블록스 시세·문화를 고려하라")** · 로벅스 일반 49→**29**, 레어 99→**59**, 에픽 199→**99**, 전설 399→**199**. 코인 해금: 일반 500→**300**, **레어도 900코인으로 해금**(새로), 에픽·전설은 로벅스만. 평균 30코인/판 기준 일반 10판, 레어 30판. 이 줄이 범위 1의 표, 목표의 "500개", AC1("레어 이상은 coins = nil" → "에픽 이상은 coins = nil"), AC3(코인 500/499 → 300/299, "레어 → 코인으로 못 삼" → "에픽 → 코인으로 못 삼", 레어 900/899 추가), AC7(코인 500 → 300)의 숫자를 대신한다. 근거·계산·대안 B(39/79/149/249, 일반만 400코인): [`docs/REFERENCE-roblox-monetization.md`](../REFERENCE-roblox-monetization.md) 7절. 근거: 사례 A(Epic Minigames 효과 99~149)·B(Speed Run 4 트레일 50~55)·C(Hide and Seek Extreme 겉모습 50)·G(Piggy 스킨 대부분 플레이 재화 해금), 업계 가이드 "새 게임은 25~75 반사적 구매 구간". **기본값으로 진행, 사용자 수정 가능.** GDD 9.2·9.4는 사용자 확정 뒤 고침 · planner
+  - 개발이 바꿀 값: `Skins.luau`(각 `robux`, `COMMON_COINS` 300, 레어 4종에 `coins = RARE_COINS`(900) 추가, 맨 위 주석 "코인 해금은 일반 등급만"), `Skins.validate`의 "coin price only for Common" 규칙을 일반·레어 허용으로, `tests/skins.spec.luau`·`tests/shop-logic.spec.luau`·`tests/receipt-logic.spec.luau`·`tests/m4-13-qa.spec.luau`의 가격 숫자. `ShopLogic`은 `skin.coins`만 보므로 로직 변경 없음(레어 카드도 "🍚 900으로 해금" + "R$ 59로 사기" 두 버튼이 됨 — m4-14 결정 "일반은 두 번째 버튼"을 "코인 가격이 있는 스킨은 두 번째 버튼"으로 읽음). QA는 AC1·AC3·AC7 숫자만 다시 확인 · planner
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

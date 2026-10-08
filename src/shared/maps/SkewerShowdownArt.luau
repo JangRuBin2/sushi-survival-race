@@ -31,8 +31,11 @@ local SkewerShowdownArt = {}
 SkewerShowdownArt.LANTERN = "Lantern"
 SkewerShowdownArt.SIGHT_MIN = 2
 SkewerShowdownArt.SIGHT_MAX = 12
--- 가게 문 위치 (무대 앞쪽 = 로컬 -Z, 뛰어서 닿지 않는 거리. M2 ShopDoor와 같은 자리)
-SkewerShowdownArt.DOOR_Z = -(Logic.STAGE_RADIUS + 18)
+-- 가게 문 위치 (무대 앞쪽 = 로컬 -Z). QA B1 뒤로 M2 ShopDoor 자리(-40)보다 멀고 낮게 둬서
+-- 점프+다이브(약 14 studs)로 닿는 무대 높이 장식이 없어요 (tests/map-art-arena "가짜 바닥").
+SkewerShowdownArt.DOOR_Z = -(Logic.STAGE_RADIUS + 24)
+-- 가게는 무대보다 이만큼 낮게 지어요 (QA B1: 툇마루가 무대 높이면 다이브로 닿는 가짜 바닥처럼 보임)
+SkewerShowdownArt.DOOR_Y = -8
 
 -- SkewerShowdown.luau의 무대 치수와 같아요 (판정 수치를 바꾸지 않으려고 여기서 다시 계산해요)
 local STAGE_THICKNESS = 1.5
@@ -117,6 +120,7 @@ end
 -- 가게 문: 나무 미닫이 + 노렌 + 출구 판 + 등롱 + 가게 앞면
 local function addShopDoor(list: { DecorSpec })
 	local z = SkewerShowdownArt.DOOR_Z
+	local first = #list + 1
 	part(list, "Porch", "Block", v(32, 1, 10), PALETTE.Wood, "WoodPlanks", v(0, -0.5, z + 1))
 	part(list, "ShopBody", "Block", v(46, 24, 18), DARK_WOOD, "WoodPlanks", v(0, 12, z - 10.5))
 	for _, side in { -1, 1 } do
@@ -178,6 +182,11 @@ local function addShopDoor(list: { DecorSpec })
 		v(0, 22.4, z + 1),
 		v(20, 0, 0)
 	)
+	-- 가게 전체를 무대보다 DOOR_Y만큼 낮춰요
+	for i = first, #list do
+		local offset = list[i].offset
+		list[i].offset = v(offset.x, offset.y + SkewerShowdownArt.DOOR_Y, offset.z)
+	end
 end
 
 -- 무대 아래 깊은 곳에서 올려다보는 셰프 상체 (모자) — 떨어지면 셰프에게 간다는 느낌
@@ -333,7 +342,7 @@ function SkewerShowdownArt.introCamera(): { IntroPoint }
 	local center = v(0, 0, 0)
 	local z = SkewerShowdownArt.DOOR_Z
 	return {
-		{ pos = v(14, 8, z + 16), lookAt = v(0, 9, z) },
+		{ pos = v(14, 6, z + 20), lookAt = v(0, 9 + SkewerShowdownArt.DOOR_Y, z) },
 		{ pos = v(36, 12, -16), lookAt = center },
 		{ pos = v(18, 14, 34), lookAt = center },
 		{ pos = v(-32, 12, 20), lookAt = center },

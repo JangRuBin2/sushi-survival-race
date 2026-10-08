@@ -42,6 +42,7 @@ end
 local function buildArt(model: Model, origin: CFrame)
 	local decor = MapKit.decorFolder(model)
 	for _, part in MapKit.buildDecor(Art.decor(), origin, decor) do
+		part.CastShadow = false -- QA B4: 큰 장식(후드·벽) 그림자가 철판 경고 색을 가리지 않게
 		if part.Name == Art.STEAM_VENT then
 			local steam = Instance.new("ParticleEmitter")
 			steam.Name = "Steam"

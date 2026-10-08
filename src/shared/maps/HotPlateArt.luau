@@ -273,7 +273,7 @@ end
 
 -- 철판 뒤 주방 벽 (흰 타일)
 local function addKitchenWall(list: { DecorSpec })
-	local wallZ = HotPlateLogic.centerZ() - 48
+	local wallZ = HotPlateLogic.centerZ() - 90 -- QA B2: 카메라 줌아웃에 걸리지 않게 멀리
 	part(list, "KitchenWall", "Block", v(150, 140, 2), { r = 232, g = 236, b = 232 }, "CeramicTiles", v(0, -30, wallZ))
 	part(list, "KitchenShelf", "Block", v(60, 1, 5), STAINLESS, "Metal", v(0, 14, wallZ + 3.5))
 	-- 선반 위 소스 병·통

@@ -201,6 +201,7 @@ end
 -- 판정과 무관해요.
 local function buildArt(model: Model, origin: CFrame)
 	for _, part in MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model)) do
+		part.CastShadow = false -- QA B4: 가게·셰프 장식 그림자가 무대를 덮지 않게
 		if part.Name == Art.LANTERN then
 			local light = Instance.new("PointLight")
 			light.Color = Color3.fromRGB(255, 170, 120)

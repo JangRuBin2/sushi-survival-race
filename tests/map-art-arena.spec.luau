@@ -348,13 +348,97 @@ return function(t: Test.Test)
 		end
 	end)
 
+	-- QA B1 ---------------------------------------------------------------------------------
+	-- 점프 + 공중 다이브로 약 14 studs → 여유 포함 16. 그 안에 무대/층 높이(윗면 -4 ~ +2)로 넓은 윗면(가로·세로 3 이상)을
+	-- 가진 충돌 없는 장식이 있으면 밟을 수 있는 바닥처럼 보여서 뛰어들었다가 빠져 탈락해요.
+	local DIVE_REACH = 16
+
+	local function fakeFloors(
+		specs: { DecorSpec },
+		floorTops: { number },
+		distanceOutside: (Bounds) -> number
+	): { string }
+		local found = {}
+		for i, spec in specs do
+			local b = MapKitLogic.bounds({ spec }) :: Bounds
+			local wide = math.min(b.max.x - b.min.x, b.max.z - b.min.z) >= 3
+			local distance = distanceOutside(b)
+			if wide and distance > 0 and distance <= DIVE_REACH then
+				for _, top in floorTops do
+					if b.max.y >= top - 4 and b.max.y <= top + 2 then
+						table.insert(found, `#{i} {spec.name}`)
+					end
+				end
+			end
+		end
+		return found
+	end
+
+	-- 축 정렬 상자에서 원점까지 가장 가까운 수평 거리
+	local function nearestHorizontal(b: Bounds): number
+		local dx = math.max(b.min.x, 0, -b.max.x)
+		local dz = math.max(b.min.z, 0, -b.max.z)
+		return horizontal(dx, dz)
+	end
+
+	t.test(
+		"QA B1: 다이브 사거리 안에 무대 높이로 가짜 바닥처럼 보이는 장식이 없어요 (결승)",
+		function()
+			local found = fakeFloors(skewerStatic(), { 0 }, function(b)
+				return nearestHorizontal(b) - SkewerLogic.STAGE_RADIUS
+			end)
+			t.eq(#found, 0, table.concat(found, ", "))
+			-- 툇마루는 무대보다 확실히 낮아요
+			for _, spec in SkewerArt.decor() do
+				if spec.name == "Porch" then
+					t.ok(spec.offset.y + spec.size.y / 2 <= -6, "porch well below the stage")
+				end
+			end
+		end
+	)
+
+	t.test(
+		"QA B1: 다이브 사거리 안에 층 높이로 가짜 바닥처럼 보이는 장식이 없어요 (철판)",
+		function()
+			local half = HotPlateLogic.plateSize() / 2
+			local cz = HotPlateLogic.centerZ()
+			local tops = {}
+			for layer = 1, HotPlateLogic.LAYER_COUNT do
+				table.insert(tops, HotPlateLogic.layerTopY(layer))
+			end
+			local found = fakeFloors(HotPlateArt.decor(), tops, function(b)
+				local dx = math.max(b.min.x - half, 0, -half - b.max.x)
+				local dz = math.max(b.min.z - (cz + half), 0, (cz - half) - b.max.z)
+				return horizontal(dx, dz)
+			end)
+			t.eq(#found, 0, table.concat(found, ", "))
+		end
+	)
+
+	t.test("QA B1 보조: 무대 높이 넓은 판을 가장자리 12 studs 밖에 두면 걸려요", function()
+		local porch: DecorSpec = {
+			name = "OldPorch",
+			shape = "Block",
+			size = { x = 32, y = 1, z = 10 },
+			color = { r = 1, g = 1, b = 1 },
+			material = "Wood",
+			offset = { x = 0, y = -0.5, z = -39 },
+		}
+		local found = fakeFloors({ porch }, { 0 }, function(b)
+			return nearestHorizontal(b) - SkewerLogic.STAGE_RADIUS
+		end)
+		t.eq(#found, 1)
+	end)
+
 	-- 소스 계약 ------------------------------------------------------------------------------
 	t.test(
 		"맵 build가 MapKit 장식·IntroCamera·Studio 아트를 쓰고, 꼬치 넉백은 MoveExempt.mark",
 		function()
 			for _, path in { "src/shared/maps/HotPlate.luau", "src/shared/maps/SkewerShowdown.luau" } do
 				local source = fs.readFile(path)
-				for _, needle in { "MapKit.buildDecor(", "MapKit.introCamera(", "MapKit.attachStudioArt(" } do
+				for _, needle in
+					{ "MapKit.buildDecor(", "MapKit.introCamera(", "MapKit.attachStudioArt(", "CastShadow = false" }
+				do
 					t.ok(string.find(source, needle, 1, true) ~= nil, `{path} uses {needle}`)
 				end
 			end

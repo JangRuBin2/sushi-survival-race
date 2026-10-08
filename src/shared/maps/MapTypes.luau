@@ -16,6 +16,9 @@
 --                  "안전한 자리"가 남으면 안 돼요 (Fall Guys Jump Showdown infinite hang). 낙하 판정은 start에서
 --                  하던 대로 ctx.eliminate. 상태는 ctx/지역 변수에 둬요. 결승이 아닌 라운드에서는 부르지 않아요.
 --                  끝까지 안 끝나면 RoundService가 안전 상한(Config.Final.HardCapMargin 뒤)에 높이 순으로 판정해요.
+--                  훅 안에서 오래 기다리지 마세요(task.wait 등): 일정은 task.delay/task.spawn 스레드를 ctx.cleanup에
+--                  넣어 돌리고 바로 돌아와요. RoundService는 훅을 따로 스레드로 부르지만, 판정 일정은 훅을 기다리지 않아요.
+--                  (훅이 없는 맵이 디버그 강제 플랜으로 결승이 되면 연장전 없이 시간 제한에 높이 순으로 끝나요.)
 --
 -- build()가 돌려주는 Model 안의 약속
 --   Spawns (Folder)  시작 위치 BasePart들. 이름순으로 플레이어를 배치해요. 최대 인원(24)만큼 있어야 해요.

@@ -1,6 +1,7 @@
 --!strict
 -- m2-05 라운드 판정·매치 순위 순수 로직 (src/shared/RoundLogic.luau)
 
+local fs = require("@lune/fs")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -700,6 +701,92 @@ return function(t: Test.Test)
 			out = RoundLogic.eliminate(round, { { userId = 1, score = 0, cause = "Reset" } }, noScore)
 			t.eq(summary(out), { [1] = "Eliminated:nil" })
 			t.ok(round.ended, "should end")
+		end
+	)
+
+	-- m5-01 QA B1·B2 수정
+
+	-- RoundService 대기 루프를 loopAction으로 흉내 내요 (0.2초 간격). 연장전 훅은 따로 도니까 루프는 훅을 기다리지 않아요.
+	-- 끝난 시각과 연장전 시작 횟수를 돌려줘요.
+	local function runLoop(schedule: any, isEnded: (elapsed: number) -> boolean): (number, number)
+		local elapsed = 0
+		local started = false
+		local starts = 0
+		while not isEnded(elapsed) do
+			local action = RoundLogic.loopAction(schedule, elapsed, started)
+			if action == "Expire" then
+				break
+			end
+			if action == "StartOvertime" then
+				started = true
+				starts += 1
+				-- 훅이 영원히 멈춰도(yield) 루프는 이어져요: 여기서 아무것도 기다리지 않아요
+			end
+			elapsed += 0.2
+		end
+		return elapsed, starts
+	end
+
+	t.test("m5-01 QA B1: 연장전 훅이 멈춰도 루프는 안전 상한(150초)에 끝나요", function()
+		local schedule = RoundLogic.schedule("Final", 90, FINAL_TIMING)
+		local endedAt, starts = runLoop(schedule, function()
+			return false -- 아무도 안 떨어짐 (훅이 붕괴를 못 함)
+		end)
+		t.ok(math.abs(endedAt - 150) < 0.21, `ended at {endedAt}`)
+		t.eq(starts, 1)
+		t.eq(RoundLogic.loopAction(schedule, 89.9, false), "Wait")
+		t.eq(RoundLogic.loopAction(schedule, 90, false), "StartOvertime")
+		t.eq(RoundLogic.loopAction(schedule, 95, true), "Wait")
+		t.eq(RoundLogic.loopAction(schedule, 120, false), "StartOvertime") -- 늦게 깨어나도 한 번은 시작
+		t.eq(RoundLogic.loopAction(schedule, 150, false), "Expire")
+		t.eq(RoundLogic.loopAction(schedule, 150, true), "Expire")
+		-- RoundService는 훅을 루프 안에서 직접 pcall하지 않고 따로 스레드로 불러요
+		local source = fs.readFile("src/server/RoundService.luau")
+		t.ok(string.find(source, "RoundLogic.loopAction(", 1, true) ~= nil, "loop uses loopAction")
+		t.ok(string.find(source, "cleanup:add(task.spawn(function()", 1, true) ~= nil, "hook runs in its own thread")
+		t.ok(string.find(source, "pcall(overtimeHook", 1, true) == nil, "no direct pcall of the hook in the loop")
+	end)
+
+	t.test(
+		"m5-01 QA B2: 결승 맵에 overtime 훅이 없으면 연장전 없이 시간 제한에 높이 순으로 끝나요",
+		function()
+			t.eq(RoundLogic.schedule("Final", 90, FINAL_TIMING, nil, false), { hardCapAt = 90 })
+			t.eq(RoundLogic.schedule("Final", 90, FINAL_TIMING, 15, false), { hardCapAt = 90 })
+			t.eq(
+				RoundLogic.schedule("Final", 90, FINAL_TIMING, nil, true),
+				{ overtimeAt = 90, collapseAt = 110, hardCapAt = 150 }
+			)
+			local schedule = RoundLogic.schedule("Final", 90, FINAL_TIMING, nil, false)
+			local endedAt, starts = runLoop(schedule, function()
+				return false
+			end)
+			t.ok(math.abs(endedAt - 90) < 0.21, `ended at {endedAt}`)
+			t.eq(starts, 0) -- 연장전 표시(RoundProgress.overtime)를 보내지 않아요
+			local round = RoundLogic.newRound("Final", { 1, 2 }, fakeRng(9))
+			RoundLogic.activate(round, 1)
+			local out = RoundLogic.timeout(round, scores({ [1] = 4, [2] = 12 }))
+			t.eq(summary(out), { [1] = "Eliminated:nil", [2] = "Won:1" })
+			-- RoundService는 훅이 있는지 schedule에 넘겨요
+			local source = fs.readFile("src/server/RoundService.luau")
+			t.ok(string.find(source, 'type(overtimeHook) == "function"', 1, true) ~= nil, "hook presence passed")
+		end
+	)
+
+	t.test(
+		"m5-01 QA B2: 강제 플랜의 마지막이 Final 맵이 아니면 경고만 (플랜은 그대로)",
+		function()
+			local pool = {
+				{ id = "belt", kind = "Race" },
+				{ id = "plate", kind = "Survival" },
+				{ id = "skewer", kind = "Final" },
+			}
+			local plan = Rules.resolveForcedPlan({ "skewer", "plate", "belt" }, pool :: any)
+			t.ok(plan ~= nil, "plan still resolves")
+			t.ok(Rules.forcedPlanWarning(plan :: any) ~= nil, "warns when the last map is not Final")
+			local good = Rules.resolveForcedPlan({ "belt", "plate", "skewer" }, pool :: any)
+			t.eq(Rules.forcedPlanWarning(good :: any), nil)
+			local source = fs.readFile("src/server/MatchService.luau")
+			t.ok(string.find(source, "Rules.forcedPlanWarning(plan)", 1, true) ~= nil, "MatchService warns")
 		end
 	)
 end

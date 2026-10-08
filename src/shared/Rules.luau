@@ -234,4 +234,14 @@ function Rules.resolveForcedPlan(ids: any, pool: { MapInfo }): ({ MapInfo }?, st
 	return plan, nil
 end
 
+-- 강제 플랜의 마지막(결승) 맵이 Final 맵이 아니면 경고 문구 (m5-01 QA B2). 플랜은 그대로 써요(디버그 유연성) —
+-- 그 결승은 연장전 없이 시간 제한에 높이 순으로 끝나요. 문제가 없으면 nil.
+function Rules.forcedPlanWarning(plan: { MapInfo }): string?
+	local last = plan[#plan]
+	if last == nil or last.kind == "Final" then
+		return nil
+	end
+	return `forceMapPlan ends with {last.id} ({last.kind}), not a Final map: the final has no overtime and ends at the time limit by height`
+end
+
 return Rules

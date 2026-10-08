@@ -201,6 +201,11 @@ local function forcedPlan(roomId: string): { Rules.MapInfo }?
 	local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())
 	if plan == nil then
 		warn(`[MatchService] room {roomId}: ignoring Config.DEBUG.forceMapPlan — {problem}`)
+	else
+		local caution = Rules.forcedPlanWarning(plan)
+		if caution then
+			warn(`[MatchService] room {roomId}: {caution}`)
+		end
 	end
 	return plan
 end

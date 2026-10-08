@@ -538,29 +538,40 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 
 			-- 시간 일정 (m5-01): Race·Survival은 시간 제한에 끝, 결승은 시간 제한에 연장전 → 안전 상한에 끝.
+			-- 결승 맵에 overtime 훅이 없으면(디버그 강제 플랜으로 Race 맵이 결승 등) 연장전 없이 시간 제한에
+			-- 예전처럼 높이 순으로 끝내요 (m5-01 QA B2).
 			local overtimeOverride: number? = if RunService:IsStudio() then Config.DEBUG.overtimeAt else nil
-			local schedule = RoundLogic.schedule(mode, Maps.timeLimit(map), Config.Final, overtimeOverride)
+			local overtimeHook = map.overtime
+			local schedule = RoundLogic.schedule(
+				mode,
+				Maps.timeLimit(map),
+				Config.Final,
+				overtimeOverride,
+				type(overtimeHook) == "function"
+			)
 			local overtimeStarted = false
 			while not round.ended do
 				local elapsed = os.clock() - startedAt
-				local phase = RoundLogic.clockPhase(schedule, elapsed)
-				if phase == "Expired" then
+				local action = RoundLogic.loopAction(schedule, elapsed, overtimeStarted)
+				if action == "Expire" then
 					break
 				end
-				if phase ~= "Normal" and not overtimeStarted then
+				if action == "StartOvertime" then
 					overtimeStarted = true
 					local collapseAt = schedule.collapseAt or elapsed
 					overtimeCollapseAt = workspace:GetServerTimeNow() + math.max(collapseAt - elapsed, 0)
-					local overtimeHook = map.overtime
 					if overtimeHook then
+						local hook = overtimeHook
 						local info: MapTypes.OvertimeInfo = { collapseDuration = Config.Final.CollapseDuration }
-						local overtimeOk, overtimeErr = pcall(overtimeHook, ctx, info)
-						if not overtimeOk then
-							-- 판정은 안전 상한(Config.Final.HardCapMargin)이 마무리해요
-							warn(`[RoundService] {map.id} overtime() failed: {overtimeErr}`)
-						end
-					else
-						warn(`[RoundService] {map.id} has no overtime(); the hard cap will decide the final`)
+						-- 훅이 기다려도(yield) 이 루프와 안전 상한은 멈추지 않게 따로 돌려요 (m5-01 QA B1).
+						-- 라운드가 끝나면 cleanup이 아직 도는 훅 스레드를 멈춰요.
+						cleanup:add(task.spawn(function()
+							local overtimeOk, overtimeErr = pcall(hook, ctx, info)
+							if not overtimeOk then
+								-- 판정은 안전 상한(Config.Final.HardCapMargin)이 마무리해요
+								warn(`[RoundService] {map.id} overtime() failed: {overtimeErr}`)
+							end
+						end))
 					end
 					broadcastProgress()
 				end

@@ -1,6 +1,24 @@
 # m5-01 결승 연장전 — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA 후 수정 B1·B2·N1 (최신)
+
+**브랜치**: `m5-01-qa-fixes` (로컬 main 9e74961에서 시작, worktree에서 작업 — main 작업 폴더는 이 에이전트가 수정할 수 없어 메인 세션이 `git merge --ff-only m5-01-qa-fixes`로 main에 반영). push 안 함.
+
+### 끝난 것
+- B1: `RoundLogic.loopAction`, RoundService가 훅을 `cleanup:add(task.spawn(...))`로 호출. MapTypes 주석 추가.
+- B2: `RoundLogic.schedule`의 5번째 인자 `hasOvertimeHook`(false면 `{ hardCapAt = timeLimit }`), `Rules.forcedPlanWarning` + MatchService 경고.
+- N1: 스펙 문구 "약 2.7초마다(19/7초)", 결정 기록 "QA 후 수정". status qa-passed 유지.
+- 테스트 3개 추가(`tests/round-logic.spec.luau`). 검증 5단계 통과, lune 1090 passed / 0 failed.
+
+### 다음에 할 첫 단계
+- 메인 세션: main에 fast-forward 병합. 그 뒤 할 일 없음 (Studio AC11~17은 사용자).
+
+### 막힌 점
+- 이 에이전트는 worktree 밖(main 작업 폴더)을 고칠 수 없어서 브랜치로 넘김.
+
+## 2026-10-08 — 구현 완료, in-qa
+
+## 2026-10-08 — 구현 완료, in-qa
 
 **브랜치**: `m5-01-overtime` (origin/main b1ef1d2에서 시작, push 완료)
 

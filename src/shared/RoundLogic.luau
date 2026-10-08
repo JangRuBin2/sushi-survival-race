@@ -83,8 +83,16 @@ export type ClockPhase = "Normal" | "Overtime" | "Collapsed" | "Expired"
 export type FinalTiming = { CollapseDuration: number, HardCapMargin: number }
 
 -- overtimeAtOverride(Studio 디버그)가 있으면 결승의 연장전 시작만 그 값으로 당겨요.
-function RoundLogic.schedule(mode: Mode, timeLimit: number, final: FinalTiming, overtimeAtOverride: number?): Schedule
-	if mode ~= "Final" then
+-- hasOvertimeHook = false(결승 맵에 overtime 훅이 없음, 디버그 강제 플랜 등)면 연장전 없이 시간 제한에 끝나요
+-- (그때 timeout = 높이 순 판정, m5-01 QA B2). nil이면 훅이 있다고 봐요.
+function RoundLogic.schedule(
+	mode: Mode,
+	timeLimit: number,
+	final: FinalTiming,
+	overtimeAtOverride: number?,
+	hasOvertimeHook: boolean?
+): Schedule
+	if mode ~= "Final" or hasOvertimeHook == false then
 		return { hardCapAt = timeLimit }
 	end
 	local overtimeAt = overtimeAtOverride or timeLimit
@@ -105,6 +113,21 @@ function RoundLogic.clockPhase(schedule: Schedule, elapsed: number): ClockPhase
 		return "Overtime"
 	end
 	return "Collapsed"
+end
+
+export type LoopAction = "Wait" | "StartOvertime" | "Expire"
+
+-- RoundService 대기 루프의 한 번: 안전 상한이면 Expire, 연장전 구간에 처음 들어왔으면 StartOvertime(한 번만),
+-- 그 밖은 Wait. 연장전 훅이 끝났는지와 상관없이 정해져서, 훅이 멈춰도 hardCapAt에는 끝나요 (m5-01 QA B1).
+function RoundLogic.loopAction(schedule: Schedule, elapsed: number, overtimeStarted: boolean): LoopAction
+	local phase = RoundLogic.clockPhase(schedule, elapsed)
+	if phase == "Expired" then
+		return "Expire"
+	end
+	if phase ~= "Normal" and not overtimeStarted then
+		return "StartOvertime"
+	end
+	return "Wait"
 end
 
 ------------------------------------------------------------------------

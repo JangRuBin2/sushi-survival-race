@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-02 — 테스트용 관리자 기능: 스킨 무료 착용(미리보기)
@@ -110,3 +110,23 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · 브랜치 `m5-02-admin` (개발 담당). 스펙 기본값 그대로 구현, 막힌 질문 없음.
+- **바뀐 파일**
+  - 새로: `src/server/AdminConfig.luau`(서버 전용 목록 `{ 11402290839 }`, IncludeOwner/StudioAllAdmins/LiveEnabled = true), `src/shared/AdminLogic.luau`(isAdmin·checkPreview·pickAppearance·storeKey/encodeEntry/decodeEntry·message), `src/server/AdminService.luau`, `src/client/ui/AdminPanel.luau`, `src/client/ui/AdminController.luau`, `tests/admin-logic.spec.luau`(24개).
+  - 고침: `src/server/ShopService.luau`(미리보기 슬롯 `setPreview/getPreview/setPreviewListener`, 리졸버 = `AdminLogic.pickAppearance`, EquipSkin·BuyWithCoins 성공·grantSkin 실제 장착 때 미리보기 끔, PlayerRemoving에서 슬롯만 지움), 공용 4개(Remotes `AdminPreviewSkin`, Attributes `IsAdmin`·`AdminPreview`, init 스크립트 2개).
+  - 기존 테스트 숫자만 맞춤: `camera-priority`(속성 11→13), `m4-foundation`(리모트 20→21), `m4-14-qa`(가짜 환경에 Shared AdminLogic·Attributes 추가).
+- **개발 재량**
+  - `AdminInput`에 `liveEnabled: boolean?` 칸 추가(nil = 켜짐). 실서버에서 false면 목록·소유자 모두 false, Studio는 영향 없음.
+  - Player 속성 `AdminPreview`(string, 미리보기 중인 스킨, 끄면 없음)를 서버가 달아요 — 패널 강조용. 탈의실에서 입기로 꺼지거나 매치 서버에서 MemoryStore로 복원돼도 패널이 따라가요. 권한 판단에는 쓰지 않아요.
+  - 패널 ScreenGui DisplayOrder 15: 탈의실 창(20)이 열리면 그 아래로 가려져요.
+  - 잘못된 타입(숫자·테이블) 거절 문구는 "없는 스킨이에요", 너무 빠른 요청은 "잠시 뒤에 다시 해 주세요".
+  - MemoryStore 복원은 다시 쓰지 않아요(quiet). 잠금 중(라운드 레이서·연출)에 복원되면 슬롯만 바꾸고 다음에 입힐 때(리스폰·refresh) 반영.
+- **Studio 확인 방법** (AC6~AC11)
+  1. Play(혼자): 화면 왼쪽 가운데 "🛠" → 패널 → 황금 오토로(golden-otoro) → 내 초밥이 바로 바뀜. 탈의실("🍣 스킨")에서 그 스킨은 여전히 "R$ 199로 사기", 코인 그대로. 서버 Output `[Admin] <이름>(<id>) preview golden-otoro`.
+  2. 미리보기 중 탈의실에서 계란초밥 "입기" → 계란초밥으로 바뀌고 패널 초록 강조가 꺼짐. 다시 미리보기 → 패널 "끄기 (내 스킨으로)" → 장착 스킨으로.
+  3. Test → Clients and Servers 2명: Player1이 `dragon-roll` → Player2 화면에서도 용 롤, 이름표·칭호 위치 정상. 그대로 매치 → 라운드·탈락·우승 연출·로비 단상에서 같은 스킨.
+  4. 라운드 소개·달리는 중 패널 버튼 → "라운드 중에는 바꿀 수 없어요", 외형 그대로.
+  5. `src/server/AdminConfig.luau`의 `StudioAllAdmins = false` → Clients and Servers: PlayerGui에 `AdminPanel` 없음. 클라이언트 명령줄 `game.ReplicatedStorage.Remotes.AdminPreviewSkin:InvokeServer("uni")` → `false 권한이 없어요`, 서버 Output warn 한 줄. **확인 뒤 true로 되돌리기**.
+  6. (C1 뒤) `Config.DEBUG.persistDataInStudio = true`로 미리보기를 켰다 나가고 다시 들어와 프로필(`ownedSkins`·`equippedSkin`·`coins`)이 그대로인지, `Purchases_v1`에 새 기록이 없는지. **확인 뒤 false로**.
+- **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 1045 passed / 0 failed, luau-lsp analyze 에러 0.
+- **남은 이슈**: 실서버(AC12·AC13)는 퍼블리시 뒤 확인. m5-01과 병합할 때 `tests/m4-foundation.spec.luau` 리모트 개수(21)·`camera-priority` 속성 개수(13)가 m5-01 추가분과 겹치면 합산해야 해요.

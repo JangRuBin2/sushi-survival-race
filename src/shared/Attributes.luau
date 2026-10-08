@@ -20,6 +20,11 @@ local Attributes = {
 	-- Workspace (서버가 PlaceService.init에서 달아요, m4-11)
 	PlaceRole = "PlaceRole", -- string: "Single" | "Lobby" | "Match" — 클라이언트가 매치 서버에서 로비 UI를 숨겨요
 
+	-- Player (서버만 달아요, m5-02 테스트용 관리자)
+	-- boolean: 관리자면 true (아니면 없음). 클라이언트는 관리자 패널을 만들지만 정해요 — 권한은 서버 관리자 표로만 판단해요.
+	IsAdmin = "IsAdmin",
+	AdminPreview = "AdminPreview", -- string: 미리보기로 입은 스킨 id (끄면 없음). 관리자 패널 강조용 (ShopService.setPreview)
+
 	-- 라운드 맵 Model (RoundService.prepareRound가 Workspace에 넣기 전에 달아요)
 	RoomId = "RoomId", -- string: 이 맵을 쓰는 방
 	RoundIndex = "RoundIndex", -- number: 몇 번째 라운드인지 (1부터)

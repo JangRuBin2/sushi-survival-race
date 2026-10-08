@@ -312,6 +312,8 @@ local function loadServer(opts: Options?): any
 	local Skins, ReceiptLogic = patchedCatalog()
 	env.Skins = Skins
 	local sharedMods = {
+		AdminLogic = RobloxRequire.require(Shared.AdminLogic), -- m5-02: ShopService 미리보기 슬롯
+		Attributes = RobloxRequire.require(Shared.Attributes),
 		Config = cfg,
 		ProfileLogic = ProfileLogic,
 		ProfileSchema = ProfileSchema,

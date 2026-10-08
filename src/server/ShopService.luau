@@ -16,11 +16,23 @@
 --       equip이면 장착하고(잠금 중이 아니면) 바로 입혀요. 임시 프로필에도 true라서 결제(RobuxShopService)는
 --       이 결과가 아니라 canPersist + saveNow로 완료를 판단해요.
 -- 로벅스 결제(RequestRobuxPurchase·ProcessReceipt, m4-14)는 RobuxShopService.
+--
+-- 관리자 미리보기 슬롯 (m5-02, AdminService가 불러요). 서버 메모리에만 있고 프로필·코인·결제 기록에 쓰지 않아요.
+--   ShopService.setPreview(player, skinId?, quiet?) -> boolean
+--       카탈로그에 있는 스킨이면 미리보기로 입혀요 (nil이면 끄기, 모르는 스킨이면 false).
+--       잠금 중이면 슬롯만 바꾸고 다음에 입힐 때 반영돼요. quiet면 리스너를 부르지 않아요 (MemoryStore에서 복원할 때).
+--   ShopService.getPreview(player) -> string?
+--   ShopService.setPreviewListener(fn(player, skinId?))   미리보기가 바뀔 때 (AdminService가 MemoryStore에 써요)
+--   외형 = 미리보기 > 보유한 장착 스킨 > 계란초밥 (Shared.AdminLogic.pickAppearance). 미리보기는 보유를 보지 않아요.
+--   EquipSkin·BuyWithCoins 성공, grantSkin(…, equip)으로 실제 장착되면 미리보기를 꺼요 (직접 고른 스킨이 보이게).
+--   미리보기 중인 스킨은 Player 속성 AdminPreview(관리자 패널 강조용)에도 달아요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local AdminLogic = require(ReplicatedStorage.Shared.AdminLogic)
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
@@ -38,6 +50,9 @@ local lastRequestAt: { [Player]: number } = {}
 local lockedUntil: { [number]: number } = {} -- userId → os.clock() (탈락·우승 연출이 끝나는 시각)
 -- 로벅스 결제 창이 열린 스킨이면 true (RobuxShopService가 등록, m4-14 QA R2). 그동안 같은 스킨 코인 해금을 거절해요
 local coinBlocker: ((player: Player, skinId: string) -> boolean)? = nil
+-- 관리자 미리보기 (m5-02): userId → 스킨 id. 서버 메모리에만
+local previewOf: { [number]: string } = {}
+local previewListener: ((player: Player, skinId: string?) -> ())? = nil
 
 -- 우승 연출(VictoryDuration) 뒤 로비 단상이 외형을 읽을 때까지 조금 더 잠가요
 local VICTORY_MARGIN = 1
@@ -50,17 +65,53 @@ function ShopService.isLocked(player: Player): boolean
 	return untilAt ~= nil and os.clock() < untilAt
 end
 
--- 프로필의 장착 스킨 (카탈로그에 있고 보유 중일 때만). 없으면 nil → 기본 계란초밥.
+local function isKnownSkin(id: string): boolean
+	return Skins.get(id) ~= nil
+end
+
+-- 입을 스킨: 관리자 미리보기 > 프로필의 장착 스킨(카탈로그에 있고 보유 중일 때만) > nil(기본 계란초밥)
 local function equippedOf(player: Player): string?
 	local profile = DataService.get(player)
-	if profile == nil then
-		return nil
+	local equipped = if profile then profile.equippedSkin else nil
+	local owned = if profile then profile.ownedSkins else {}
+	return AdminLogic.pickAppearance(previewOf[player.UserId], equipped, owned, isKnownSkin)
+end
+
+-- 미리보기 슬롯만 바꿔요 (다시 입히기는 부른 쪽이 해요)
+local function assignPreview(player: Player, skinId: string?, notify: boolean)
+	if previewOf[player.UserId] == skinId then
+		return
 	end
-	local id = profile.equippedSkin
-	if Skins.get(id) == nil or profile.ownedSkins[id] ~= true then
-		return nil
+	previewOf[player.UserId] = skinId
+	player:SetAttribute(Attributes.AdminPreview, skinId)
+	local listener = previewListener
+	if notify and listener then
+		task.spawn(listener, player, skinId)
 	end
-	return id
+end
+
+-- 직접 고른 스킨이 보이게 미리보기를 꺼요 (장착·코인 해금·로벅스 장착 성공 뒤, 다시 입히기 전에)
+local function clearPreview(player: Player)
+	assignPreview(player, nil, true)
+end
+
+function ShopService.setPreview(player: Player, skinId: string?, quiet: boolean?): boolean
+	if skinId ~= nil and Skins.get(skinId) == nil then
+		return false
+	end
+	assignPreview(player, skinId, quiet ~= true)
+	if not ShopService.isLocked(player) then
+		AppearanceService.refresh(player)
+	end
+	return true
+end
+
+function ShopService.getPreview(player: Player): string?
+	return previewOf[player.UserId]
+end
+
+function ShopService.setPreviewListener(fn: ((player: Player, skinId: string?) -> ())?)
+	previewListener = fn
 end
 
 local function allowRequest(player: Player): boolean
@@ -97,6 +148,7 @@ local function onEquip(player: Player, skinId: unknown): (boolean, string?)
 			p.equippedSkin = skinId
 		end)
 	end
+	clearPreview(player)
 	AppearanceService.refresh(player)
 	return true, nil
 end
@@ -133,6 +185,7 @@ local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, string
 		return fail(decision.reason :: ShopLogic.Reason, decision.missing)
 	end
 	print(`[ShopService] {player.Name} unlocked {skinId} for {decision.price} coins`)
+	clearPreview(player)
 	AppearanceService.refresh(player)
 	if DataService.canPersist(player) then
 		task.spawn(DataService.saveNow, player) -- 코인을 쓴 건 바로 저장해요
@@ -154,6 +207,7 @@ function ShopService.grantSkin(player: Player, skinId: string, equip: boolean?):
 		ShopLogic.grantSkin(p, skinId, wear)
 	end)
 	if updated and wear then
+		clearPreview(player)
 		AppearanceService.refresh(player)
 	end
 	return updated
@@ -198,6 +252,7 @@ function ShopService.start()
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastRequestAt[player] = nil
 		lockedUntil[player.UserId] = nil
+		previewOf[player.UserId] = nil -- 서버 간 유지는 AdminService의 MemoryStore가 해요 (끄기로 쓰지 않아요)
 	end)
 end
 

@@ -24,6 +24,7 @@ local CONTROLLERS = {
 	require(script.ui.CoinController), -- m4-08
 	require(script.fx.LobbyFxController), -- m4-06
 	require(script.ui.ShopController), -- m4-13
+	require(script.ui.AdminController), -- m5-02 (관리자에게만 패널을 만들어요)
 }
 
 for _, controller in CONTROLLERS do

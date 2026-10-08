@@ -14,6 +14,8 @@
 --   BuyWithCoins(skinId: string)  일반·레어 스킨 코인 해금 + 자동 장착 (m4-13, ShopService)
 --   RequestRobuxPurchase(skinId: string)  로벅스 결제 창 열기 (m4-14, RobuxShopService: 상품·미보유·저장 가능 검증,
 --                                 Config.Shop.PurchaseRequestCooldown). 지급은 ProcessReceipt가 해요
+--   AdminPreviewSkin(skinId: string?)  테스트용 관리자 스킨 미리보기 (m5-02, AdminService: 서버 관리자 표·간격·카탈로그·잠금 검증,
+--                                 nil·""면 끄기). 프로필·코인·결제 기록에 쓰지 않아요
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
@@ -43,6 +45,7 @@ local FUNCTIONS = {
 	"EquipSkin",
 	"BuyWithCoins",
 	"RequestRobuxPurchase",
+	"AdminPreviewSkin",
 }
 local EVENTS = {
 	"RoomList",

@@ -1,6 +1,14 @@
 # m3-09 integration-polish — 개발 작업 기록
 
-## 2026-10-08 — QA 뒤 수정 2건 (최신)
+## 2026-10-08 — 사용자 수정 지시 2건 (최신)
+- **브랜치**: `main` (커밋만, push는 메인 세션)
+- **끝난 것**: 음소거 버튼을 Roblox 위쪽 바(`ScreenInsets = TopbarSafeInsets`)로 옮김(QA B5 해소). "출발!" 글씨를 HUD 위 배너 아래 가장자리 기준으로 배치·축소(`shared/IntroLayout.luau` + `tests/intro-layout.spec.luau`). 클라우드 브랜치 7ba8571·19a213f의 아이디어만 가져옴. 스펙 결정 기록·개발 메모에 적음.
+- **검증**: rojo build OK, stylua --check OK, selene 0/0, lune 493 passed / 0 failed.
+- **남은 것**: 사용자 Studio 확인(스펙 개발 메모 "사용자 수정 지시 2건"), docs-writer가 DEV-SETUP 3-8 음소거 버튼 위치 문구 갱신.
+- **다음에 할 첫 단계**: Studio Device 에뮬레이터 휴대폰 가로에서 두 항목 확인.
+- **막힌 점**: 없음. TopbarSafeInsets 영역의 실제 높이·폭은 Roblox 상단 바 버전에 따라 달라 Studio에서만 확인 가능.
+
+## 2026-10-08 — QA 뒤 수정 2건
 - **브랜치**: `main` (커밋만, push는 메인 세션)
 - **끝난 것**: QA B1(P2) 우승 글씨를 Victory까지 유지하고 Victory 시작 때 지움. QA B2(P3) 장애물 소리 신호를 그 방 사람에게만 보냄(`MapSfx.setAudience`, 방 모르면 전부). B3~B5는 결정 기록에 보류.
 - **검증**: rojo build OK, stylua --check OK, selene 0/0, lune 486 passed / 0 failed.

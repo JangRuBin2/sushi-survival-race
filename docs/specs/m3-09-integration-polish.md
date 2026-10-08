@@ -80,8 +80,15 @@ M3 기능 일곱 개가 한 판 안에서 서로 부딪히지 않고 함께 돈�
 - 2026-10-08 · QA 뒤 수정 (m3-09 QA B1, P2) · 우승 글씨: m3-09의 "Won 글씨 생략"은 결승 뒤 지연 3초 + RoundResults 5초 동안 우승자에게 아무 표시가 없게 만들었음(QA가 m3-05 B3 진단 오류도 확인). 이제 `HudController`가 Won 글씨 "🏆 우승했어요!"를 띄우고 4초 타이머 없이 Victory 단계까지 유지, `MatchPhase Victory`를 받으면 `HudScreen:clearPersonalResult()`로 지움. 이미 Victory 중이면 띄우지 않음(부전승처럼 Won 직후 Victory가 와도 연출과 겹치지 않음). `HudScreen.showPersonalResult(text, keep?)`·`clearPersonalResult` 추가 · developer
 - 2026-10-08 · QA 뒤 수정 (m3-09 QA B2, P3) · 장애물 소리 신호를 그 방 사람에게만: `MapSfx.setAudience(fn)`로 서버 `RoundService.init`이 받을 사람 함수를 넣음(맵 파트는 조상 맵 Model의 `RoomId`, 캐릭터 파트는 그 플레이어의 방 → `RoomService.getPlayers`). 방을 모르면 기존처럼 `FireAllClients`. shared 모듈이 서버 모듈을 require하지 않아 순환 없음. 순수 `MapSfxLogic.roomIdOf` 추가 · developer
 - 2026-10-08 · 보류 (m3-09 QA B3~B5, P3) · B3 리미터가 지워진 파트를 다음 호출까지 잡고 있음(1초마다 정리, 메모리 영향 매우 작음), B4 결승 소개 중 상대 리셋 시 리셋 연출이 Victory에 잘림(소개 중은 지연하지 않는 기존 결정), B5 900~980px 창에서 글자 음소거 버튼이 로비 패널 제목 줄 빈 곳 위에 놓임(글자는 안 가림). 친구 테스트 뒤 필요하면 처리 · developer
+- 2026-10-08 · 사용자 수정 지시(클라우드 브랜치에서 가져옴) — 음소거 버튼을 Roblox 위쪽 바로 · `origin/claude/resume-agent-execution-2doypv` 커밋 7ba8571의 아이디어만 가져옴. `Sfx.luau` buildMuteButton: `SoundGui`에 `ScreenInsets = TopbarSafeInsets`(IgnoreGuiInset은 ScreenInsets를 덮어써서 설정 안 함), 버튼은 바 오른쪽 끝 세로 가운데, 높이 = 바 높이 - 8(최대 36), 폭 110(좁은 화면 < 900px는 아이콘만 36). 3단계·NoClickSfx 규칙 그대로. 게임 화면(LobbyGui)은 위쪽 바 아래에만 그려져 로비·방·HUD·관전과 겹치지 않고, Roblox 기본 버튼은 안전 영역이 피함 → QA B5(P3) 해소. `m3-09-qa`의 y 60 가로 겹침 계산 테스트 2개는 전제가 사라져 "TopbarSafeInsets·세로 가운데" 소스 확인 + "게임 UI가 IgnoreGuiInset을 켜지 않음" 확인으로 바꿈, `m3-08-qa` start 테스트에 ScreenInsets 확인 추가 · user (메인 세션 경유) / developer
+- 2026-10-08 · 사용자 수정 지시(클라우드 브랜치에서 가져옴) — "출발!"이 HUD 배너를 덮지 않게 · 커밋 19a213f의 아이디어(배너 픽셀 아래 끝 기준 배치)만 가져옴. 순수 `shared/IntroLayout.luau`: HUD 위 배너(`HudScreen.TOP_BANNER_NAME` = "TopBanner")의 AbsolutePosition+AbsoluteSize(없으면 100 = y 16 + 84) 아래 6px부터, 가장 커진 1.4배 글씨가 들어가게 가운데 높이를 내리고, 모자라면 글씨를 줄임(120 → 최소 36, 화면 폭도 고려). 큰 화면은 예전 그대로 40%·120px·600×160. `IntroScreen`은 `showGo` 때마다 다시 계산 · user (메인 세션 경유) / developer
 
 ## 개발 메모
+### 2026-10-08 — 사용자 수정 지시 2건 (developer, 브랜치 main)
+- 음소거 버튼: `client/Sfx.luau`. Studio: 로비·방·매치·관전 중 버튼이 Roblox 위쪽 바 줄 오른쪽 끝에 있고(메뉴·채팅 버튼과 안 겹침) 우리 UI와 안 겹치는지. 창 폭 900 미만(Device 에뮬레이터 휴대폰 가로)에서는 아이콘만. 누르면 소리 켬 → 음악 끔 → 모두 끔, 클릭음 그대로.
+- "출발!": `shared/IntroLayout.luau`(신규), `client/fx/IntroScreen.luau`, `client/ui/HudScreen.luau`(Hud·TopBanner 이름 상수). Studio: Device 에뮬레이터로 휴대폰 가로(예: 844×390, 667×375)에서 라운드 시작 때 "출발!"이 위쪽 맵 이름·규칙 배너 아래에 뜨고 커져도 배너를 덮지 않는지, PC 창에서는 예전 자리(40%)·크기인지.
+- 테스트: `intro-layout.spec`(신규 7개), `m3-08-qa`·`m3-09-qa` 음소거 버튼 테스트 수정(결정 기록). 검증: rojo build OK, stylua OK, selene 0/0, lune 493 passed / 0 failed.
+
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
 ### 2026-10-08 — 구현 (developer, 브랜치 main)
 **커밋**: `3926a36` 통합 수정, `f3eebe6` 장애물 소리 (+ 문서 커밋)

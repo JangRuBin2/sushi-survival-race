@@ -23,6 +23,9 @@ export type HudScreen = {
 
 local HudScreen = {}
 
+HudScreen.ROOT_NAME = "Hud"
+HudScreen.TOP_BANNER_NAME = "TopBanner"
+
 local BANNER_POSITION = UDim2.fromScale(0.5, 0.42)
 local VICTORY_BANNER_POSITION = UDim2.fromScale(0.5, 0.2)
 local STANDING_ROW_HEIGHT = 28
@@ -37,7 +40,7 @@ end
 
 function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myUserId: number): HudScreen
 	local root = Kit.new("Frame", {
-		Name = "Hud",
+		Name = HudScreen.ROOT_NAME,
 		Parent = parent,
 		Visible = false,
 		Size = UDim2.fromScale(1, 1),
@@ -45,7 +48,9 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 	})
 
 	-- 위 가운데: 라운드 번호 / 맵 이름 / 규칙
+	-- 이름 "TopBanner"는 IntroScreen이 "출발!" 글씨를 이 아래에 두려고 찾아요 (Shared.IntroLayout)
 	local topBar = Kit.new("Frame", {
+		Name = HudScreen.TOP_BANNER_NAME,
 		Parent = root,
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 16),

@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-02 — 계란초밥 캐릭터 (`applyAppearance`) · 걷기/넘어짐 연출
@@ -57,6 +57,21 @@ status: ready
 - 2026-10-08 · 히트박스 · 초밥은 보이기만 하는 파츠이고 히트박스는 지금 휴머노이드 그대로(M2 맵 판정 감각 유지). 초밥 외곽을 히트박스 크기에 맞춤. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 생김새 · 세워진 계란초밥(밥 몸통 + 계란 지붕 + 김 띠 + 눈 + 짧은 발). 회색 박스 단계라 단순 파츠로. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 걷기·넘어짐 · 애니메이션 에셋 없이 클라이언트에서 초밥 파츠를 흔드는 방식(Studio 에셋 의존 없음, CLAUDE.md 맵 원칙과 같음) · planner
+- 2026-10-08 · 같은 히트박스 보장 · 아바타 체형(scale)이 사람마다 달라 HRP·HipHeight가 달라질 수 있어서, `AppearanceService`에서 `StarterPlayer.LoadCharacterAppearance = false` + 플레이어마다 `CanLoadCharacterAppearance = false`로 기본 체형만 쓰게 함 (AC7, GDD 6 "모든 스킨 히트박스 동일"). 숨김 처리(Transparency 1, 얼굴 decal 제거, 늦게 붙는 파츠도 숨김)는 그대로 둠. 아바타 외형을 다시 불러와야 하면 이 두 줄만 빼면 됨 · developer
+- 2026-10-08 · 초밥을 붙이는 관절 · `Body`를 `HumanoidRootPart`에 `Motor6D`(`SushiJoint`)로 붙이고, 클라이언트 연출은 `Motor6D.Transform`만 로컬로 바꿈 (복제되지 않고 판정과 무관). 초밥 Model 이름은 `SushiBody`. 공용 상수 파일(Attributes)을 못 고쳐서 이름은 `AppearanceService.MODEL_NAME/JOINT_NAME`과 `CharacterFxController` 안 상수로 두 번 적음 — m3-09에서 공용 상수로 옮길지 결정 · developer
+- 2026-10-08 · 외곽 크기 · 계란초밥 높이 4.7(발 0.7 + 밥 3.2 + 계란 0.8), 폭 2.8, 두께 약 2.3. Body 중심은 발바닥에서 2.3 위(`SushiBody.GROUND_OFFSET`), 휴머노이드 발바닥(R15: HipHeight + HRP 높이/2, R6: 3)에 맞춰 붙임 · developer
 
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 바뀐 파일
+  - `src/shared/SushiBody.luau` — `layout`(파츠 9개: Body, Egg, EggBack, Nori, EyeLeft/Right, Mouth, FootLeft/Right), `bounds`, `GROUND_OFFSET`, `build`(WeldConstraint로 Body에 용접, Body만 Anchored, 모두 Massless·충돌/쿼리/터치 없음, 원점에 만들어짐 → `PivotTo`로 옮김)
+  - `src/server/AppearanceService.luau` — `applyAppearance`: AppearanceId 속성, 기존 `SushiBody` 있으면 지우고 다시 붙임, 원래 몸·액세서리·decal 숨김(늦게 붙는 것도 `DescendantAdded`로 숨김), `SushiJoint` Motor6D로 HRP에 붙임. CharacterAdded마다 HRP를 기다렸다가 호출. 아바타 외형 로딩 끔(결정 기록).
+  - `src/client/fx/CharacterFxController.luau` — RenderStepped에서 모든 플레이어 캐릭터의 `SushiJoint.Transform`을 바꿈. 걷기: 위치 변화로 속도 계산(다른 사람도 같음), 수평 속도 > 1이고 위아래 속도 < 4일 때 |sin| 통통 + 좌우 기우뚱. 넘어짐: `PlatformStand`이고 살아 있으면 바닥(레이캐스트)에 옆으로 누워 떨고 "@_@" BillboardGui(로컬), 시작할 때 `Sfx.play("Knockdown", HRP)`. Body의 `LocalTransparencyModifier ≥ 0.99`(m3-03 숨김)면 다른 사람 캐릭터는 Transform을 원래대로 두고 아무것도 안 함 (내 캐릭터의 1인칭 숨김일 때는 소리만 남김).
+  - `tests/sushi-body.spec.luau` — 7개 (AC1~AC3, GROUND_OFFSET, 복사본)
+- Studio 확인 방법
+  - AC5·AC6·AC8: 혼자 F5. 로비에서 계란초밥인지, 마우스 휠로 1인칭까지 줌인, 걷고 멈추기, 리셋 후 다시 확인. Server 보기 Explorer에서 `Workspace.<이름>.SushiBody`가 하나뿐이고 캐릭터 속성 `AppearanceId = "tamago"`.
+  - AC7: Test → Clients and Servers 2명. 서버 Command bar: `for _,p in game.Players:GetPlayers() do print(p.Name, p.Character.HumanoidRootPart.Size, p.Character.Humanoid.HipHeight) end`
+  - AC9: `Config.DEBUG.forceMapPlan = { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }`(커밋 금지)로 날치알 공·꼬치에 맞아보기. 빨리 보려면 서버 Command bar: `game.Players:GetPlayers()[1].Character.Humanoid.PlatformStand = true` → 몇 초 뒤 `false`.
+  - AC10: 위 forceMapPlan으로 4맵 회귀.
+- 남은 이슈
+  - 플레이 솔로에서 서버 스크립트보다 플레이어가 먼저 들어오면 첫 캐릭터는 아바타 체형으로 나올 수 있음 (외형은 숨겨지고, 리스폰부터 기본 체형). Studio에서 확인 필요.
+  - 이름표: Head를 투명하게 해도 DisplayName이 머리 위에 뜨는 것이 Roblox 기본 동작이라 따로 손대지 않음 — AC7에서 확인.

@@ -171,6 +171,9 @@ Config.DEBUG = {
 	-- 이때는 2명 이하여도 결승으로 건너뛰지 않고, 혼자여도 모든 라운드를 끝까지 돌아요.
 	-- 예: { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }. 커밋할 때는 nil로.
 	forceMapPlan = nil :: { string }?,
+	-- forceMapPlan이 nil일 때 플랜(맵 id 3~4개) 목록을 넣으면, 한 서버에서 매치를 시작할 때마다 다음 플랜을 써요.
+	-- 혼자 연속 5판으로 6개 맵을 다 돌려 볼 때 (m4-12 AC4). 커밋할 때는 nil로.
+	forceMapPlans = nil :: { { string } }?,
 	-- true면 Studio에서도 진짜 DataStore에 저장해요 (게임 설정에서 API 접근 허용 필요, m4-07).
 	-- false면 Studio에서는 메모리 프로필만 써요 (나가면 사라짐).
 	persistDataInStudio = false,

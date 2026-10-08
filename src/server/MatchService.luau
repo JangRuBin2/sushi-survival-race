@@ -164,9 +164,19 @@ local function finish(roomId: string, winner: MatchEvents.WinnerShowcaseInfo?)
 end
 
 -- Studio 전용 디버그 강제 플랜 (Config.DEBUG.forceMapPlan). 없거나 잘못됐으면 nil (잘못됐으면 경고).
+-- forceMapPlan이 nil이고 forceMapPlans(플랜 목록)가 있으면 이 서버에서 시작하는 매치마다 다음 플랜을 써요 (m4-12).
+local forcedPlanTurn = 0
 local function forcedPlan(roomId: string): { Rules.MapInfo }?
-	local ids = Config.DEBUG.forceMapPlan
-	if ids == nil or not RunService:IsStudio() then
+	if not RunService:IsStudio() then
+		return nil
+	end
+	local ids: { string }? = Config.DEBUG.forceMapPlan
+	local rotation = Config.DEBUG.forceMapPlans
+	if ids == nil and rotation ~= nil and #rotation > 0 then
+		ids = rotation[forcedPlanTurn % #rotation + 1]
+		forcedPlanTurn += 1
+	end
+	if ids == nil then
 		return nil
 	end
 	local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())

@@ -360,6 +360,14 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test("연속 5판: forceMapPlans는 매치마다 다음 플랜을 써요 (Studio 전용)", function()
+		local match = read("src/server/MatchService.luau")
+		local studioAt = string.find(match, "if not RunService:IsStudio() then", 1, true)
+		local rotateAt = string.find(match, "ids = rotation[forcedPlanTurn % #rotation + 1]", 1, true)
+		t.ok(studioAt ~= nil and rotateAt ~= nil and studioAt < rotateAt, "studio guard before rotation")
+		t.ok(string.find(match, "if ids == nil and rotation ~= nil", 1, true) ~= nil, "forceMapPlan wins")
+	end)
+
 	t.test("연속 매치: 서버 모듈 전역 표마다 지우는 곳이 있어요 (누수 점검)", function()
 		-- 키가 플레이어·방·인스턴스인 모듈 전역 표. 크기가 정해진 표(소리 이름·경고 키)와 약한 키 표는 빼요.
 		local bounded: { [string]: boolean } = {
@@ -534,6 +542,7 @@ return function(t: Test.Test)
 
 	t.test("커밋 값: 디버그 설정이 기본값이에요", function()
 		t.eq(Config.DEBUG.forceMapPlan, nil, "forceMapPlan")
+		t.eq(Config.DEBUG.forceMapPlans, nil, "forceMapPlans")
 		t.eq(Config.DEBUG.simulateMatchServer, false, "simulateMatchServer")
 		t.eq(Config.DEBUG.persistDataInStudio, false, "persistDataInStudio")
 		t.eq(Config.DEBUG.logArenaStats, false, "logArenaStats")

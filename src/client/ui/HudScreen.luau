@@ -3,12 +3,16 @@
 -- 라운드 소개·결과·우승 배너, 내 개인 결과(통과/탈락/우승 + 순위) 안내, 우승 때 최종 순위표.
 -- Survival·결승(생존형)에서는 왼쪽 위에 "통과 n/목표" 대신 "남은 인원 n"을 보여요.
 -- LobbyScreen/RoomScreen과 같은 ScreenGui 위에 떠 있고, 매치 중(room.state == "InMatch")에만 보여요.
+-- compact(휴대폰 가로, m4-09): 위쪽 가운데 한 줄에 [인원] [라운드 · 맵 이름] [남은 시간], 내 결과는 그 아래
+-- 오른쪽 (오른쪽 아래는 점프·다이브·잡기 버튼 자리). 글씨는 실제 14px 이상. PC 큰 화면은 예전 배치 그대로.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
+local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
+local UiScaleController = require(script.Parent.UiScaleController)
 
 local Color = Kit.Color
 
@@ -49,6 +53,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 
 	-- 위 가운데: 라운드 번호 / 맵 이름 / 규칙
 	-- 이름 "TopBanner"는 IntroScreen이 "출발!" 글씨를 이 아래에 두려고 찾아요 (Shared.IntroLayout)
+	local topBarPadding = Kit.padding(10)
 	local topBar = Kit.new("Frame", {
 		Name = HudScreen.TOP_BANNER_NAME,
 		Parent = root,
@@ -57,7 +62,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		Size = UDim2.fromOffset(420, 84),
 		BackgroundColor3 = Color.Panel,
 		BackgroundTransparency = 0.05,
-	}, { Kit.corner(14), Kit.padding(10), Kit.list(Enum.FillDirection.Vertical, 2) })
+	}, { Kit.corner(14), topBarPadding, Kit.list(Enum.FillDirection.Vertical, 2) })
 
 	local roundLabel = Kit.label({
 		Parent = topBar,
@@ -155,17 +160,23 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		BackgroundColor3 = Color.Panel,
 		BackgroundTransparency = 0.05,
 	}, { Kit.corner(14), Kit.padding(10) })
-	local standingsList = Kit.new("ScrollingFrame", {
+	local standingsList = Kit.scrollList({
 		Parent = standingsPanel,
 		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color.SubText,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-	}, { Kit.list(Enum.FillDirection.Vertical, 2) })
+	}, 2)
+
+	local metrics = UiScaleController.metrics()
+	local roundText = ""
+	local mapName = ""
+
+	-- compact에서는 라운드 번호를 맵 이름 줄에 붙여요 (한 줄 배치)
+	local function refreshTitle()
+		if metrics.compact and roundText ~= "" then
+			mapLabel.Text = if mapName ~= "" then `{roundText} · {mapName}` else roundText
+		else
+			mapLabel.Text = mapName
+		end
+	end
 
 	local function clearStandings()
 		standingsPanel.Visible = false
@@ -185,25 +196,27 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		table.sort(sorted, function(a, b)
 			return a.place < b.place
 		end)
+		local rowText = UiLayout.textSize(16, metrics)
+		local rowHeight = math.max(STANDING_ROW_HEIGHT, rowText + 8)
 		for index, standing in sorted do
 			local mine = standing.userId == myUserId
 			local row = Kit.new("Frame", {
 				Parent = standingsList,
 				LayoutOrder = index,
-				Size = UDim2.new(1, -8, 0, STANDING_ROW_HEIGHT),
+				Size = UDim2.new(1, -8, 0, rowHeight),
 				BackgroundColor3 = if mine then Color.Egg else Color.Row,
 			}, { Kit.corner(6) })
 			Kit.label({
 				Parent = row,
 				Text = `{standing.place}등`,
-				TextSize = 16,
+				TextSize = rowText,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				Size = UDim2.new(0, 56, 1, 0),
 			})
 			Kit.label({
 				Parent = row,
 				Text = if mine then `{standing.name} (나)` else standing.name,
-				TextSize = 16,
+				TextSize = rowText,
 				Position = UDim2.fromOffset(60, 0),
 				Size = UDim2.new(1, -68, 1, 0),
 			})
@@ -232,6 +245,75 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			task.wait(0.25)
 		end
 	end)
+
+	-- 화면 크기 대응 (m4-09)
+	local function applyLayout(m: UiLayout.Metrics)
+		metrics = m
+		local function text(base: number): number
+			return UiLayout.textSize(base, m)
+		end
+		standingsList.ScrollBarThickness = UiLayout.scrollBarThickness(m)
+		if m.compact then
+			local mapText = text(22)
+			local rowHeight = mapText + 12
+			roundLabel.Visible = false
+			ruleLabel.Visible = false
+			mapLabel.TextSize = mapText
+			mapLabel.Size = UDim2.fromScale(1, 1)
+			topBar.Position = UDim2.new(0.5, 0, 0, 6)
+			topBar.Size = UDim2.new(0.38, 0, 0, rowHeight + 8)
+			topBarPadding.PaddingTop = UDim.new(0, 4)
+			topBarPadding.PaddingBottom = UDim.new(0, 4)
+			progressLabel.AnchorPoint = Vector2.new(1, 0)
+			progressLabel.Position = UDim2.new(0.31, -8, 0, 6)
+			progressLabel.Size = UDim2.new(0.3, 0, 0, rowHeight + 8)
+			progressLabel.TextXAlignment = Enum.TextXAlignment.Right
+			progressLabel.TextSize = text(16)
+			timerLabel.AnchorPoint = Vector2.new(0, 0)
+			timerLabel.Position = UDim2.new(0.69, 8, 0, 6)
+			timerLabel.Size = UDim2.new(0.14, 0, 0, rowHeight + 8)
+			timerLabel.TextXAlignment = Enum.TextXAlignment.Left
+			timerLabel.TextSize = text(26)
+			-- 내 결과: 위쪽 줄 오른쪽 (아래는 터치 버튼·관전 버튼 자리)
+			personalLabel.AnchorPoint = Vector2.new(1, 0)
+			personalLabel.Position = UDim2.new(1, -8, 0, rowHeight + 18)
+			personalLabel.Size = UDim2.new(0.5, 0, 0, text(22) + 8)
+			personalLabel.TextXAlignment = Enum.TextXAlignment.Right
+			personalLabel.TextSize = text(22)
+		else
+			roundLabel.Visible = true
+			ruleLabel.Visible = true
+			mapLabel.TextSize = 22
+			mapLabel.Size = UDim2.new(1, 0, 0, 26)
+			topBar.Position = UDim2.new(0.5, 0, 0, 16)
+			topBar.Size = UDim2.fromOffset(420, 84)
+			topBarPadding.PaddingTop = UDim.new(0, 10)
+			topBarPadding.PaddingBottom = UDim.new(0, 10)
+			progressLabel.AnchorPoint = Vector2.new(0, 0)
+			progressLabel.Position = UDim2.fromOffset(16, 16)
+			progressLabel.Size = UDim2.fromOffset(240, 36)
+			progressLabel.TextXAlignment = Enum.TextXAlignment.Left
+			progressLabel.TextSize = 16
+			timerLabel.AnchorPoint = Vector2.new(1, 0)
+			timerLabel.Position = UDim2.new(1, -16, 0, 16)
+			timerLabel.Size = UDim2.fromOffset(110, 36)
+			timerLabel.TextXAlignment = Enum.TextXAlignment.Right
+			timerLabel.TextSize = 26
+			personalLabel.AnchorPoint = Vector2.new(0.5, 1)
+			personalLabel.Position = UDim2.new(0.5, 0, 1, -24)
+			personalLabel.Size = UDim2.new(1, 0, 0, 30)
+			personalLabel.TextXAlignment = Enum.TextXAlignment.Center
+			personalLabel.TextSize = 22
+		end
+		-- 가운데 배너: 부제목이 두 줄이어도 들어가게
+		local subtitleText = text(18)
+		local subtitleHeight = math.max(48, subtitleText * 2 + 8)
+		bannerSubtitle.TextSize = subtitleText
+		bannerSubtitle.Size = UDim2.new(1, 0, 0, subtitleHeight)
+		banner.Size = UDim2.fromOffset(520, math.max(140, 28 + 40 + 6 + subtitleHeight))
+		refreshTitle()
+	end
+	UiScaleController.onChanged(applyLayout)
 
 	local personalToken = 0
 	-- 우승 배너·순위표를 연출 뒤에 띄울 때, 그 사이 단계가 바뀌거나 HUD가 숨겨졌는지 확인용 (m3-05)
@@ -266,6 +348,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 
 		if info.roundIndex and info.roundCount then
 			roundLabel.Text = `라운드 {info.roundIndex} / {info.roundCount}`
+			roundText = `라운드 {info.roundIndex}/{info.roundCount}`
+			refreshTitle()
 		end
 
 		if info.phase == "Starting" then
@@ -276,7 +360,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			bannerSubtitle.Text = "곧 첫 라운드가 시작돼요"
 		elseif info.phase == "RoundIntro" then
 			topBar.Visible = true
-			mapLabel.Text = info.mapName or ""
+			mapName = info.mapName or ""
+			refreshTitle()
 			ruleLabel.Text = info.rule or ""
 			progressLabel.Text = ""
 			banner.Visible = true

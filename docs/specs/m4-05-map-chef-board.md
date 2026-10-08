@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-05 — 새 Survival 맵: 셰프의 도마 (`chef-board`)
@@ -59,5 +59,18 @@ status: ready
 - 2026-10-08 · 도마를 격자 칸으로 · "조각이 잘려 나감"을 칼 줄 양 끝 칸 제거로 표현, 가운데 3×3은 보호(Survival이 0명으로 끝나지 않게). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 기울기는 앵커 회전 + 서버 밀기(8도, 6 studs/s) · 물리 기울기는 캐릭터가 불안정 · **기본값으로 진행, 사용자 수정 가능** · planner
 
+- 2026-10-08 · 칸 61개 기준 · "칸 중심이 반지름 36 원 안"을 그대로 쓰면 69칸이 돼서, 61칸이 나오도록 "칸 중심이 반지름 35 안(도마 반지름 36에서 1 stud 여유)"으로 정함(`ChefBoardLogic.CENTER_LIMIT`). 모든 칸 중심은 36 안이라 AC1 그대로 만족. 그 결과 Row/Column ±4 줄은 3칸 · **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 세부 기본값 · 줄 고르기 = 남은 칸 수(보호 칸 포함) 가중 랜덤, 첫 경고 3초, 넉백 1초 넘어짐(+ 같은 사람 1초 재피격 없음), 칼 맞음 폭 = 줄 폭 8 + 양쪽 1.5, 높이 도마 위 -4~14, 기울기 0.5초 동안 기울고 0.5초 동안 돌아옴(밀기 세기도 같이), 잘린 칸은 0.5초 흔들린 뒤 0.8초 동안 30 studs 떨어지며 사라짐. 도마 중심 = origin(SkewerShowdown처럼) · **기본값으로 진행** · developer
+
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- **바뀐 파일**: `src/shared/maps/ChefBoard.luau`(stub 덮어씀), 새 `src/shared/maps/ChefBoardLogic.luau`(순수 로직), 새 `src/shared/maps/ChefBoardArt.luau`(아트 데이터), 새 `tests/map-chef-board.spec.luau`(20개). 공용 파일 변경 없음.
+- **구조**: 칸 = `Cells/Cell_i_j` 파츠(태그 `ChefBoardCell`, 속성 `CellI`·`CellJ`), 칼자국 장식은 칸의 자식이라 같이 기울고 떨어짐. 칼 = `ChefKnife` Model(태그 `ChefKnife`, 충돌 없음, 맞음 판정은 서버가 줄 좌표로). 경고 줄 `KnifeWarning`(빨간 Neon 반투명)은 칼마다 만들고 지움. 장식 `Decor`(손님 얼굴 4개 도마 아래 -33~-58, 조리대·타일 벽·칼꽂이·생선·등), `IntroCamera` 3점, `attachStudioArt`.
+- **넉백·밀기**: `MoveExempt.mark(character, 2)`(칼), 기울기 밀기 중엔 0.5초마다 `MoveExempt.mark(character)`.
+- **소리**: 경고 `ChefHandWarn`(경고 줄), 내려침 `SkewerWhoosh`(칼날), 칸 떨어짐 `TileVanish`(칸). `tests/map-sfx.spec.luau`의 MAP_CUES 표에는 안 넣음(테스트 파일 소유가 m3-09 — QA가 필요하면 추가).
+- **Studio 확인**: `src/shared/Config.luau`의 `DEBUG.forceMapPlan = { "rotating-belt", "chef-board", "soy-swamp", "skewer-showdown" }`로 바꾸고(커밋 금지) Play → 첫 라운드 벨트 통과 → 2라운드 도마.
+  - AC8: 3초쯤 첫 빨간 줄 → 1.2초 뒤 칼이 내려침. 줄 위에 서 있으면 바깥으로 튕겨 1초 넘어짐, 줄 밖은 무사.
+  - AC9: 칼이 지나간 줄 양 끝 칸이 흔들리다 떨어짐. 가운데 3×3은 끝까지 남음.
+  - AC10: 10·20·30·40·50초에 도마가 8도 기울고 낮은 쪽으로 밀림, 3초 뒤 평평.
+  - AC11: 도마 아래 30 studs에서 탈락(손님 입 연출), 남은 인원 ≤ 목표면 바로 종료, 60초면 전원 통과.
+  - AC13: Test → Clients and Servers로 방 2개 동시 진행 시 칼·칸이 자기 방에서만 움직이는지.
+- **남은 이슈**: AC12 난이도는 사용자 체감 필요(조정 값은 `ChefBoardLogic` 맨 위 상수). 칼·경고 줄은 내려치는 순간의 기울기를 따르지만, 기울기가 바뀌는 0.5초 구간에 내려치면 칼날이 칸에 약간 묻히거나 뜰 수 있음(연출만, 판정 무관). Luau 타입 검사는 검증 명령에 없어서 Studio Script Analysis로 한 번 보는 게 좋음.

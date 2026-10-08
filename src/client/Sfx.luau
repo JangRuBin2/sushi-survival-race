@@ -6,7 +6,9 @@
 -- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고하고, id가 없는 cue는 조용히 넘어가요.
 -- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3, Config.Fx), 방/매치 단계에 맞춘 배경음, GuiButton 클릭음(조작 버튼 제외),
 -- 장애물 소리(서버 MapSfx 방송 → 3D 재생),
--- 내가 통과하면 Qualified, Roblox 위쪽 바 오른쪽 끝 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔, 이번 접속 동안만).
+-- 내가 통과하면 Qualified, Roblox 위쪽 바 오른쪽 끝 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔).
+-- 음소거 저장 (m4-07): 누르면 마지막 누름 0.5초 뒤 SaveSettings를 한 번 보내요. 첫 ProfileView가 오면 저장된 단계로
+-- 맞춰요 (그 전에 사용자가 이미 눌렀으면 사용자 값 우선).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +21,8 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SfxCues = require(ReplicatedStorage.Shared.SfxCues)
 local SfxLibrary = require(ReplicatedStorage.Shared.SfxLibrary)
 local Types = require(ReplicatedStorage.Shared.Types)
+
+local ProfileStore = require(script.Parent.ProfileStore)
 
 local Sfx = {}
 
@@ -38,6 +42,7 @@ local started = false
 local sfxGroup: SoundGroup? = nil
 local musicGroup: SoundGroup? = nil
 local muteLevel = 1
+local refreshMuteButton: (() -> ())? = nil
 
 local warned: { [string]: boolean } = {}
 local lastPlayed: { [string]: number } = {}
@@ -254,6 +259,59 @@ local MUTE_MAX_HEIGHT = 36 -- 바가 높아도(새 상단 바 58px) 버튼은 �
 local MUTE_WIDE_WIDTH = 110
 local MUTE_COMPACT_WIDTH = 36
 
+-- 음소거 저장·복원 (m4-07)
+local MUTE_SAVE_DELAY = 0.5 -- 마지막 누름 뒤 이만큼 지나서 한 번 보내요
+local MUTE_SEND_GAP = 1 -- 보내는 간격 최소값 (서버 SettingsMinInterval에 걸려 마지막 값이 버려지지 않게)
+local userChangedMute = false -- 첫 프로필이 오기 전에 사용자가 눌렀는가
+local muteRestored = false
+local muteSaveToken = 0
+local lastMuteSentAt = -math.huge
+local lastMuteSent: number? = nil -- 서버에 있는(보낸) 값
+
+local function sendMuteLevel(token: number)
+	if token ~= muteSaveToken then
+		return
+	end
+	local wait = MUTE_SEND_GAP - (os.clock() - lastMuteSentAt)
+	if wait > 0 then
+		task.delay(wait, sendMuteLevel, token)
+		return
+	end
+	if muteLevel == lastMuteSent then
+		return
+	end
+	lastMuteSentAt = os.clock()
+	lastMuteSent = muteLevel
+	Remotes.event("SaveSettings"):FireServer({ muteLevel = muteLevel })
+end
+
+local function scheduleMuteSave()
+	muteSaveToken += 1
+	task.delay(MUTE_SAVE_DELAY, sendMuteLevel, muteSaveToken)
+end
+
+local function restoreMute(view: Types.ProfileView)
+	if muteRestored then
+		return
+	end
+	muteRestored = true
+	local saved = if type(view.settings) == "table" then view.settings.muteLevel else nil
+	if type(saved) ~= "number" or saved % 1 ~= 0 or saved < 1 or saved > #MUTE_LABELS then
+		return
+	end
+	lastMuteSent = saved -- 서버에 있는 값
+	if userChangedMute then
+		-- 사용자 값 우선. 로드 전에 보낸 값은 서버가 버렸을 수 있으니 다르면 다시 보내요 (QA D4)
+		scheduleMuteSave()
+		return
+	end
+	muteLevel = saved
+	applyMute()
+	if refreshMuteButton then
+		refreshMuteButton()
+	end
+end
+
 local function buildMuteButton(playerGui: Instance)
 	local screen = Instance.new("ScreenGui")
 	screen.Name = "SoundGui"
@@ -304,13 +362,16 @@ local function buildMuteButton(playerGui: Instance)
 		camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
 		update()
 	end
+	refreshMuteButton = refresh
 	refresh()
 	watchViewport()
 
 	button.Activated:Connect(function()
 		muteLevel = muteLevel % #MUTE_LABELS + 1
+		userChangedMute = true
 		refresh()
 		applyMute()
+		scheduleMuteSave()
 	end)
 
 	button.Parent = screen
@@ -355,6 +416,18 @@ function Sfx.start(_gui: Instance)
 	playerGui.DescendantAdded:Connect(hookButton)
 
 	buildMuteButton(playerGui)
+
+	-- 저장된 음소거 단계: 이미 받은 프로필이 있으면 바로, 아니면 처음 올 때
+	local current = ProfileStore.get()
+	if current then
+		restoreMute(current)
+	else
+		local connection: ProfileStore.Connection
+		connection = ProfileStore.changed(function(view)
+			connection:Disconnect()
+			restoreMute(view)
+		end)
+	end
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
 		inMatch = room ~= nil and room.state == "InMatch"

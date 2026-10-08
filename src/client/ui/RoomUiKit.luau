@@ -140,8 +140,27 @@ function Kit.onClick(button: TextButton, handler: () -> ()): RBXScriptConnection
 	end)
 end
 
--- 화면 아래쪽 안내/오류 문구. 몇 초 뒤 사라져요.
-function Kit.messageLabel(parent: Instance, layoutOrder: number): (text: string, isError: boolean?) -> ()
+export type ShowMessage = (text: string, isError: boolean?) -> ()
+
+-- 터치 스크롤 목록 (세로만, 내용만큼 캔버스가 늘어나요). 두께는 화면 배율에 맞춰 바꿔요 (m4-09).
+function Kit.scrollList(props: { [string]: any }?, gap: number): ScrollingFrame
+	return Kit.new(
+		"ScrollingFrame",
+		merge({
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			CanvasSize = UDim2.new(),
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ScrollBarThickness = 8,
+			ScrollBarImageColor3 = Kit.Color.SubText,
+		}, props),
+		{ Kit.list(Enum.FillDirection.Vertical, gap) }
+	)
+end
+
+-- 화면 아래쪽 안내/오류 문구. 몇 초 뒤 사라져요. 두 번째 값은 크기를 바꿀 때 쓰는 라벨이에요.
+function Kit.messageLabel(parent: Instance, layoutOrder: number): (ShowMessage, TextLabel)
 	local label = Kit.label({
 		Parent = parent,
 		LayoutOrder = layoutOrder,
@@ -152,7 +171,7 @@ function Kit.messageLabel(parent: Instance, layoutOrder: number): (text: string,
 		Size = UDim2.new(1, 0, 0, 22),
 	})
 	local token = 0
-	return function(text: string, isError: boolean?)
+	local function show(text: string, isError: boolean?)
 		token += 1
 		local mine = token
 		label.Text = text
@@ -163,6 +182,7 @@ function Kit.messageLabel(parent: Instance, layoutOrder: number): (text: string,
 			end
 		end)
 	end
+	return show, label
 end
 
 return Kit

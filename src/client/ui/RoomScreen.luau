@@ -4,7 +4,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Types = require(ReplicatedStorage.Shared.Types)
+local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
+local UiScaleController = require(script.Parent.UiScaleController)
 
 local Color = Kit.Color
 
@@ -57,18 +59,12 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		Size = UDim2.new(1, 0, 0, 30),
 	})
 
-	local list = Kit.new("ScrollingFrame", {
+	local list = Kit.scrollList({
 		Parent = panel,
 		LayoutOrder = 4,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		-- 고정 높이: 제목 32, 정보 24, 코드 30, 상태 24, 버튼 48, 문구 22, 간격 8 × 6
+		-- 고정 높이: 제목 32, 정보 24, 코드 30, 상태 24, 버튼 48, 문구 22, 간격 8 × 6 (applyLayout이 화면에 맞춰 다시 정해요)
 		Size = UDim2.new(1, 0, 1, -(32 + 24 + 30 + 24 + 48 + 22 + 8 * 6)),
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
-		ScrollBarImageColor3 = Color.SubText,
-	}, { Kit.list(Enum.FillDirection.Vertical, 4) })
+	}, 4)
 
 	local status = Kit.label({
 		Parent = panel,
@@ -96,7 +92,8 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		TextSize = 22,
 	})
 
-	local showMessage = Kit.messageLabel(panel, 7)
+	local showMessage, messageLabel = Kit.messageLabel(panel, 7)
+	local metrics = UiScaleController.metrics()
 
 	Kit.onClick(leaveButton, actions.leave)
 	Kit.onClick(startButton, actions.start)
@@ -144,6 +141,7 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 				child:Destroy()
 			end
 		end
+		local rowText = UiLayout.textSize(18, metrics)
 		for i, member in current.members do
 			local isRoomHost = member.userId == current.hostUserId
 			local isMe = member.userId == localUserId
@@ -151,12 +149,13 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 				Parent = list,
 				LayoutOrder = i,
 				BackgroundColor3 = if isMe then Color.Egg else Color.Row,
-				Size = UDim2.new(1, -8, 0, 40),
+				Size = UDim2.new(1, -8, 0, math.max(40, rowText + 16)),
 			}, {
 				Kit.corner(8),
 				Kit.padding(8),
 				Kit.label({
 					Text = `{if isRoomHost then "👑 " else "🍣 "}{member.name}{if isMe then " (나)" else ""}`,
+					TextSize = rowText,
 					Size = UDim2.fromScale(1, 1),
 				}),
 			})
@@ -164,6 +163,49 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		status.Text = statusText(current)
 		refreshButtons()
 	end
+
+	-- 화면 크기 대응 (m4-09): 버튼은 배율 적용 뒤 44px 이상, compact면 위쪽에 붙이고 글씨를 키워요
+	local function applyLayout(m: UiLayout.Metrics)
+		metrics = m
+		local function text(base: number): number
+			return UiLayout.textSize(base, m)
+		end
+		local function line(base: number, textBase: number): number
+			return UiLayout.lineHeight(base, m, textBase)
+		end
+		if m.compact then
+			panel.AnchorPoint = Vector2.new(0.5, 0)
+			panel.Position = UDim2.fromScale(0.5, 0.03)
+			panel.Size = UDim2.fromScale(0.94, 0.9)
+		else
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.fromScale(0.5, 0.5)
+			panel.Size = UDim2.fromScale(0.92, 0.86)
+		end
+		local fixed = 0
+		for _, item in
+			{
+				{ label = title, height = 32, text = 24 },
+				{ label = info, height = 24, text = 16 },
+				{ label = codeLabel, height = 30, text = 22 },
+				{ label = status, height = 24, text = 17 },
+				{ label = messageLabel, height = 22, text = 16 },
+			}
+		do
+			local height = line(item.height, item.text)
+			item.label.TextSize = text(item.text)
+			item.label.Size = UDim2.new(1, 0, 0, height)
+			fixed += height
+		end
+		local buttonHeight = UiLayout.touchSize(48, m)
+		buttonRow.Size = UDim2.new(1, 0, 0, buttonHeight)
+		leaveButton.TextSize = text(18)
+		startButton.TextSize = text(22)
+		list.ScrollBarThickness = UiLayout.scrollBarThickness(m)
+		list.Size = UDim2.new(1, 0, 1, -(fixed + buttonHeight + 8 * 6))
+		render()
+	end
+	UiScaleController.onChanged(applyLayout)
 
 	-- 카운트다운 표시
 	task.spawn(function()

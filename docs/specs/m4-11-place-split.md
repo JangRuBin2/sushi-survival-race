@@ -88,6 +88,9 @@ status: qa-passed
 - 2026-10-08 · 텔레포트·MemoryStore는 새 파일 `src/server/PlaceBackend.luau`로 감싸 Studio에서는 메모리 가짜를 씀(의존성 주입, `PlaceService.setBackend`) · developer
 - 2026-10-08 · 원래 로비 서버로 못 가면(꽉 참·종료) 실패한 사람을 1초 모아 **같이** 아무 로비 서버로 다시 보냄. 그래도 갈라지면 각 서버에서 같은 키로 방이 따로 복원됨(제외 범위의 한계) · developer
 - 2026-10-08 · `Config.Data.LoadRetries`(5 × 2초)는 그대로: 텔레포트 직전에 `saveNow`로 저장해 두어 잠금을 가져가도 잃는 변경이 거의 없음. 실제 서버에서 잠금 경고가 잦으면 늘릴 것 · developer
+- 2026-10-08 · **QA 후 수정** R1(P2): MatchResult로 확인되지 않은 복귀 티켓은 같은 키의 기존 방에 넣지 않고 새 키의 새 방만 만듦(`PlacePayload.returnAction`). 기존 방 합치기·방장 변경(`joinRestored` verified)은 확인된 복귀만. 이번 복귀가 만든 방에는 들어가되 방장은 안 바뀜 · developer
+- 2026-10-08 · **QA 후 수정** R2: 다른 서버 방 참가로 이동 중(저장 포함)이면 방 요청 거부(`isTeleporting` 훅, LaunchTimeout 뒤 해제). R3: 크래시 경로도 Won 받은 우승자를 `finish`로 넘겨 MatchResult·단상에 반영 · developer
+- 2026-10-08 · QA R4(저장 5초 초과 시 늦은 저장 거부) 보류: 드물고, 실제 서버 `taking the lock` 경고를 보고 `LoadRetries`를 정함. R5(늦은 복귀의 단상 재세움·취소된 매치 복귀가 아직 InMatch인 원래 방을 찾음) 보류: 해 없음/드묾, R1 수정으로 확인 안 된 복귀는 원래 방을 찾지 않음. R6(정원 복귀 방 10초 뒤 자동 시작) 기본값 유지: Single 모드 `endMatch` 뒤와 같은 기존 동작, 바꾸려면 기획 결정 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

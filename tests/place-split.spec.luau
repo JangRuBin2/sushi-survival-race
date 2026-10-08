@@ -408,6 +408,63 @@ return function(t: Test.Test)
 		end
 	)
 
+	------------------------------------------------------------------ QA 후 수정 (docs/qa/m4-11-place-split.md)
+	t.test(
+		"R1 재현: MatchResult 없는(확인 안 된) 위조 티켓은 살아 있는 같은 키 방에 못 들어가고 새 방만",
+		function()
+			-- 2분 뒤 옛 멤버 B가 roomKey K 티켓을 위조해 옴: 같은 키 방이 있어도 create (새 키)
+			t.eq(PlacePayload.returnAction(false, false, true), "create")
+			t.eq(PlacePayload.returnAction(false, false, false), "create")
+			-- 확인된 복귀(MatchResult 멤버)만 같은 키 방에 합쳐요
+			t.eq(PlacePayload.returnAction(true, false, true), "joinKey")
+			t.eq(PlacePayload.returnAction(true, false, false), "create")
+			-- 이번 복귀가 만든 방이 있으면 거기로 (확인 여부와 무관, 방장 변경은 확인된 것만 — 아래 정적)
+			t.eq(PlacePayload.returnAction(false, true, true), "joinOwn")
+			t.eq(PlacePayload.returnAction(true, true, true), "joinOwn")
+		end
+	)
+
+	t.test("R1 정적: 확인 안 된 복귀는 방장을 못 바꾸고, 새 방은 새 키", function()
+		local room = source("src/server/RoomService.luau")
+		local join = string.match(room, "function RoomService%.joinRestored%(.-\nend\n") :: string
+		t.ok(join ~= nil, "joinRestored")
+		t.ok(string.find(join, "if ok and verified then", 1, true) ~= nil, "host change only when verified")
+		local place = source("src/server/PlaceService.luau")
+		local handle = string.match(place, "local function handleReturn.-\nend\n") :: string
+		t.ok(string.find(handle, "PlacePayload.returnAction(r.verified", 1, true) ~= nil)
+		t.ok(
+			string.find(handle, "RoomService.joinRestored(player, target.id, r.hostUserId, r.verified)", 1, true) ~= nil
+		)
+		t.ok(
+			string.find(handle, "key = if r.verified and keyRoom == nil then key else nil", 1, true) ~= nil,
+			"fresh key"
+		)
+		-- verified는 MatchResult를 읽었을 때만 켜져요
+		local load = string.match(place, "local function loadResult.-\nend\n") :: string
+		t.ok(string.find(load, "restore.verified = true", 1, true) ~= nil)
+		local _, count = string.gsub(place, "verified = true", "")
+		t.eq(count, 1, "only loadResult sets verified")
+	end)
+
+	t.test("R2 정적: 다른 서버로 이동 중이면 방 요청을 거부해요 (저장 중 포함)", function()
+		local room = source("src/server/RoomService.luau")
+		local blocked = string.match(room, "local function requireNoRoom.-\nend") :: string
+		t.ok(string.find(blocked, "hooks.isTeleporting", 1, true) ~= nil)
+		local place = source("src/server/PlaceService.luau")
+		local fn = string.match(place, "local function teleportToLobbyServer.-\nend\n") :: string
+		local markAt = string.find(fn, "joiningAt[player] = mark", 1, true) :: number
+		local saveAt = string.find(fn, "saveBeforeTeleport", 1, true) :: number
+		t.ok(markAt ~= nil and saveAt ~= nil and markAt < saveAt, "marked before saving")
+		t.ok(string.find(place, "return joiningAt[player] ~= nil or pending[player] ~= nil", 1, true) ~= nil)
+	end)
+
+	t.test("R3 정적: 크래시 경로도 Won 받은 우승자를 finish(MatchResult·단상)로 넘겨요", function()
+		local match = source("src/server/MatchService.luau")
+		t.ok(string.find(match, "finish(room.id, winner)", 1, true) ~= nil)
+		t.eq(string.find(match, "finish(room.id, nil)", 1, true), nil)
+		t.ok(string.find(match, "pcall(fireWinnerShowcase, ctx, winnerUserId)", 1, true) ~= nil)
+	end)
+
 	------------------------------------------------------------------ AC5 한 플레이스 모드
 	t.test("AC5: PlaceRole — Studio·id 없음은 Single, 흉내 모드는 Studio에서만 Match", function()
 		local empty = { LobbyPlaceId = nil, MatchPlaceId = nil }

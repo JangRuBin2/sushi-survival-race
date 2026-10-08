@@ -333,14 +333,19 @@ function MatchService.start()
 			if ctx and ctx.round then
 				pcall(ctx.round.cancel) -- 소개 중이던 맵이 남지 않게 치워요
 			end
+			local winner: MatchEvents.WinnerShowcaseInfo? = nil
 			if ctx then
 				-- 아직 안 보냈으면 끝난 것으로 알려요 (매치당 한 번). 이미 Won을 받은 사람이 있으면 그 사람이
-				-- 우승자예요 (m4-01 QA B2)
+				-- 우승자예요 (m4-01 QA B2). MatchResult·로비 단상에도 넘겨요 (m4-11 QA R3)
 				local winnerUserId = RoundLogic.winnerOf(ctx.standings)
 				pcall(fireMatchEnd, ctx, winnerUserId, RoundLogic.standingsList(ctx.standings))
+				if winnerUserId then
+					local okInfo, info = pcall(fireWinnerShowcase, ctx, winnerUserId)
+					winner = if okInfo then info else nil
+				end
 			end
 			-- 아레나에 남은 캐릭터를 로비로 돌려보내고, 매치 서버면 로비 서버로 텔레포트해요
-			finish(room.id, nil)
+			finish(room.id, winner)
 		end
 	end)
 

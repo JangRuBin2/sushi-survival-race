@@ -389,6 +389,23 @@ function PlacePayload.pickRestoreHost(hostUserId: number, arrivedInOrder: { numb
 	return arrivedInOrder[1]
 end
 
+export type ReturnAction = "joinOwn" | "joinKey" | "create"
+
+-- 로비 복귀 한 사람을 어디로 넣을지 (m4-11 QA R1).
+--   verified    MatchResult(매치 서버가 씀)로 멤버가 확인된 복귀인가. 아니면 티켓(클라이언트를 거침)만 믿은 것.
+--   hasOwnRoom  이번 복귀(RestoreWindow)가 이미 만든 방이 살아 있음
+--   hasKeyRoom  같은 roomKey의 방이 이 서버에 이미 있음 (예전에 복원된 방 등)
+-- 확인되지 않은 티켓은 원래 있던 같은 키 방에 절대 넣지 않아요 → 새 방(새 키)만. 방장 변경도 확인된 복귀만.
+function PlacePayload.returnAction(verified: boolean, hasOwnRoom: boolean, hasKeyRoom: boolean): ReturnAction
+	if hasOwnRoom then
+		return "joinOwn"
+	end
+	if verified and hasKeyRoom then
+		return "joinKey"
+	end
+	return "create"
+end
+
 -- 텔레포트 데이터 종류 (모양만 본 힌트. 실제 검증은 validate*)
 function PlacePayload.kindOf(raw: any): ("return" | "join" | "match")?
 	if type(raw) ~= "table" then

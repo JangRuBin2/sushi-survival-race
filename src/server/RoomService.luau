@@ -12,7 +12,7 @@
 --   RoomService.setPlaceHooks(hooks)             로비: 출발 = 텔레포트, 다른 서버 방 목록·참가, 서버 간 코드 예약.
 --                                               매치: 로비 요청 막기, 방 목록 안 보냄, 자동 시작 없음.
 --   RoomService.restoreRoom(spec, players, filterWith?)  같은 방을 다시 만들어요 (매치 서버 도착, 로비 복귀)
---   RoomService.joinRestored(player, roomId, hostUserId) 복귀한 멤버를 다시 묶어요 (원래 방장이 오면 방장으로)
+--   RoomService.joinRestored(player, roomId, hostUserId, verified) 복귀한 멤버를 다시 묶어요 (확인된 복귀면 원래 방장으로)
 --   RoomService.startRestored(roomId)            대기실 없이 바로 출발 (매치 서버)
 --   RoomService.addLateMember(roomId, player)    이미 출발한 방에 늦게 온 멤버 (매치 서버: 관전자)
 --   RoomService.removeFromRoom(player)           방에서 빼요 (텔레포트 실패 등)
@@ -50,10 +50,11 @@ export type PlaceHooks = {
 	onRoomGone: ((roomId: string) -> ())?, -- 로비: 방이 닫히거나 출발했어요 (목록에서 바로 지우기)
 	matchServer: boolean?, -- 매치: 로비 요청·방 목록·자동 시작 없음
 	onLeaveRoom: ((player: Player) -> ())?, -- 매치: 방을 떠난 사람 (로비로 텔레포트)
+	isTeleporting: ((player: Player) -> boolean)?, -- 로비: 다른 서버로 이동 중이면 방 요청을 받지 않아요 (QA R2)
 }
 
 export type RestoreSpec = {
-	key: string,
+	key: string?, -- nil이면 새 키 (MatchResult로 확인되지 않은 복귀, m4-11 QA R1)
 	settings: PlacePayload.Settings,
 	hostUserId: number,
 }
@@ -422,6 +423,10 @@ local function requireNoRoom(player: Player): string?
 	if roomIdByUser[player.UserId] ~= nil then
 		return "이미 방에 들어가 있어요"
 	end
+	local teleporting = hooks.isTeleporting
+	if teleporting and teleporting(player) then
+		return "다른 서버로 이동하고 있어요"
+	end
 	return nil
 end
 
@@ -655,7 +660,11 @@ end
 -- filterWith가 있으면 그 사람 기준으로 이름을 다시 필터해요 (로비 복귀, 실패하면 기본 이름). yield할 수 있어요.
 -- players 중 이미 방이 있거나 나간 사람은 빼요. 아무도 없거나 코드를 못 만들면 nil.
 function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterWith: Player?): Room?
-	if roomIdByKey[spec.key] ~= nil and rooms[roomIdByKey[spec.key]] ~= nil then
+	local function keyTaken(): boolean
+		local existing = if spec.key then roomIdByKey[spec.key] else nil
+		return existing ~= nil and rooms[existing] ~= nil
+	end
+	if keyTaken() then
 		return nil -- 이미 있어요 (joinRestored로)
 	end
 	local name = spec.settings.name
@@ -678,7 +687,7 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 			table.insert(ids, player.UserId)
 		end
 	end
-	if #present == 0 or (roomIdByKey[spec.key] ~= nil and rooms[roomIdByKey[spec.key]] ~= nil) then
+	if #present == 0 or keyTaken() then
 		if code then
 			releaseCode(code)
 		end
@@ -697,8 +706,14 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 	return room
 end
 
--- 복귀한 멤버를 같은 방에 다시 넣어요. 원래 방장이 돌아오면 방장을 돌려줘요.
-function RoomService.joinRestored(player: Player, roomId: string, hostUserId: number): (boolean, string?)
+-- 복귀한 멤버를 같은 방에 다시 넣어요. verified(MatchResult로 확인된 복귀)일 때만 원래 방장이 돌아오면
+-- 방장을 돌려줘요 — 확인되지 않은 티켓으로 방장을 바꿀 수 없게 (m4-11 QA R1).
+function RoomService.joinRestored(
+	player: Player,
+	roomId: string,
+	hostUserId: number,
+	verified: boolean
+): (boolean, string?)
 	if roomIdByUser[player.UserId] ~= nil then
 		return false, "이미 방에 들어가 있어요"
 	end
@@ -707,7 +722,7 @@ function RoomService.joinRestored(player: Player, roomId: string, hostUserId: nu
 		return false, "방을 찾을 수 없어요"
 	end
 	local ok, err = joinRoom(player, room)
-	if ok then
+	if ok and verified then
 		room.hostUserId = PlacePayload.pickRestoreHost(hostUserId, PlacePayload.userIdsOf(room.members))
 			or room.hostUserId
 		markChanged(room)

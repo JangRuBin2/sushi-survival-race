@@ -1,6 +1,14 @@
 # m4-11 place split — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA 후 수정 R1·R2·R3 (최신)
+- **브랜치**: `main` (QA 병합 ec57f00 위). push는 메인 세션이 함. 스펙은 qa-passed 유지.
+- **끝난 것**: R1(P2) 확인 안 된 복귀 티켓은 새 키의 새 방만·방장 변경은 확인된 복귀만(`PlacePayload.returnAction`, `RoomService.joinRestored(..., verified)`, `RestoreSpec.key` 선택), R2 이동 중 방 요청 거부(`isTeleporting` 훅, `joiningAt`), R3 크래시 경로 우승자 → `finish(room.id, winner)`. 테스트 4개 추가(`tests/place-split.spec.luau`).
+- **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 893 passed / 0 failed.
+- **보류**: R4·R5·R6 (스펙 결정 기록에 사유).
+- **다음에 할 첫 단계**: 사용자 Studio AC7·AC8, PlaceId 받으면 실제 서버 AC9~AC13. m4-12로.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `main` (커밋 178758f 코드 + 문서 커밋. push는 메인 세션이 함)
 - **끝난 것**: 스펙 범위 1~7 전부.
   - 순수 로직: `PlacePayload`(manifest·matchHint·returnTicket·joinTicket·matchResult 만들기/검증, `arrivalReady`, `pickRestoreHost`), `RoomDirectoryLogic`(merge·cleanRemote·pickQuickJoin·키 파싱), `RoomLogic.addLateMember`·`key`, `PlaceRole.resolve` 흉내 인자.

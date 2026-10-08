@@ -298,8 +298,9 @@ type Restore = {
 	settings: PlacePayload.Settings,
 	hostUserId: number,
 	members: { [number]: boolean },
-	roomId: string?,
+	roomId: string?, -- 이번 복귀가 만든 방
 	resultLoaded: boolean,
+	verified: boolean, -- MatchResult로 확인됨 (아니면 티켓만 믿은 것 — QA R1)
 	busy: boolean,
 }
 
@@ -330,6 +331,7 @@ local function loadResult(restore: Restore)
 	restore.settings = result.settings
 	restore.hostUserId = result.hostUserId
 	restore.members = memberSet(result.memberUserIds)
+	restore.verified = true
 	if result.winnerUserId and result.winnerName and result.appearanceId then
 		MatchEvents.fireWinnerShowcase({
 			userId = result.winnerUserId,
@@ -356,6 +358,7 @@ local function handleReturn(player: Player, raw: any)
 			members = memberSet(ticket.memberUserIds),
 			roomId = nil,
 			resultLoaded = false,
+			verified = false,
 			busy = false,
 		}
 		restores[key] = fresh
@@ -388,20 +391,21 @@ local function handleReturn(player: Player, raw: any)
 			warn(`[PlaceService] {player.Name} is not a member of returning room {key}`)
 			return
 		end
-		-- 이미 복원한 방, 또는 아직 닫히지 않은 원래 방(같은 키)
-		local room = if r.roomId then RoomService.getRoom(r.roomId) else nil
-		if room == nil or room.key ~= key then
-			room = RoomService.findByKey(key)
-		end
-		if room then
-			r.roomId = room.id
-			local joined, why = RoomService.joinRestored(player, room.id, r.hostUserId)
+		-- 어디로 넣을지 (QA R1): 확인되지 않은 티켓은 원래 있던 같은 키 방에 넣지 않고 새 키의 새 방만,
+		-- 방장 변경도 MatchResult로 확인된 복귀만
+		local own = if r.roomId then RoomService.getRoom(r.roomId) else nil
+		local keyRoom = RoomService.findByKey(key)
+		local action = PlacePayload.returnAction(r.verified, own ~= nil, keyRoom ~= nil)
+		local target = if action == "joinOwn" then own elseif action == "joinKey" then keyRoom else nil
+		if target then
+			r.roomId = target.id
+			local joined, why = RoomService.joinRestored(player, target.id, r.hostUserId, r.verified)
 			if not joined then
 				notice(player, `원래 방에 들어가지 못했어요: {why}`)
 			end
 		else
 			local created = RoomService.restoreRoom({
-				key = key,
+				key = if r.verified and keyRoom == nil then key else nil, -- 확인 안 됨: 새 키
 				settings = r.settings,
 				hostUserId = r.hostUserId,
 			}, { player }, player)
@@ -442,7 +446,12 @@ local function onLobbyPlayerAdded(player: Player)
 end
 
 -- 다른 로비 서버로 한 사람 보내기 (방 참가)
+-- 다른 서버로 이동을 시작한 사람 (저장 중 포함). 이 동안 방 요청을 받지 않아요 (QA R2)
+local joiningAt: { [Player]: number } = {}
+
 local function teleportToLobbyServer(player: Player, jobId: string, ticket: PlacePayload.JoinTicket)
+	local mark = os.clock()
+	joiningAt[player] = mark
 	notice(player, "방이 있는 서버로 이동하고 있어요…")
 	saveBeforeTeleport({ player })
 	teleportGroup({ player }, {
@@ -450,7 +459,17 @@ local function teleportToLobbyServer(player: Player, jobId: string, ticket: Plac
 		serverInstanceId = jobId,
 		data = ticket,
 	}, function(p: Player)
+		if joiningAt[p] == mark then
+			joiningAt[p] = nil
+		end
 		notice(p, "그 방이 있는 서버로 이동하지 못했어요")
+	end)
+	-- 텔레포트가 소리 없이 멈추면 다시 요청할 수 있게 풀어 줘요
+	task.delay(Config.Teleport.LaunchTimeout, function()
+		if joiningAt[player] == mark then
+			joiningAt[player] = nil
+			pending[player] = nil
+		end
 	end)
 end
 
@@ -487,6 +506,9 @@ local function startLobby()
 		claimCode = RoomDirectory.claimCode,
 		releaseCode = RoomDirectory.releaseCode,
 		onRoomGone = RoomDirectory.removeRoom,
+		isTeleporting = function(player: Player): boolean
+			return joiningAt[player] ~= nil or pending[player] ~= nil -- 이동 중·다시 시도 중 (QA R2)
+		end,
 	})
 	Players.PlayerAdded:Connect(onLobbyPlayerAdded)
 	for _, player in Players:GetPlayers() do
@@ -778,6 +800,7 @@ function PlaceService.start()
 	getBackend().onTeleportFailed(handleFailure)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		pending[player] = nil
+		joiningAt[player] = nil
 	end)
 	if role == "Lobby" then
 		startLobby()

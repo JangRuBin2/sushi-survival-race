@@ -298,13 +298,13 @@ local function addFinish(list: { DecorSpec })
 	end
 	local gateZ = lineZ + 3
 	for _, side in { -1, 1 } do
-		part(list, "GatePost", "Block", v(1, 16, 1), P.Lacquer, "Wood", v(side * 11.25, 8, gateZ))
+		part(list, "GatePost", "Block", v(1, 19, 1), P.Lacquer, "Wood", v(side * 11.25, 9.5, gateZ))
 	end
-	part(list, "GateBeam", "Block", v(25, 1, 1.2), P.Lacquer, "Wood", v(0, 15.6, gateZ))
+	part(list, "GateBeam", "Block", v(25, 1, 1.2), P.Lacquer, "Wood", v(0, 18.6, gateZ))
 	for i = 0, 3 do
 		local x = -7.5 + i * 5
-		part(list, "Noren", "Block", v(4.8, 2.8, 0.2), P.Noren, "Fabric", v(x, 13.6, gateZ))
-		part(list, "NorenMark", "Ball", v(1.4, 1.4, 1.4), WHITE, "Fabric", v(x, 13.8, gateZ + 0.2))
+		part(list, "Noren", "Block", v(4.8, 2.8, 0.2), P.Noren, "Fabric", v(x, 16.6, gateZ))
+		part(list, "NorenMark", "Ball", v(1.4, 1.4, 1.4), WHITE, "Fabric", v(x, 16.8, gateZ + 0.2))
 	end
 end
 

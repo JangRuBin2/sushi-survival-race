@@ -225,17 +225,21 @@ local function taggedInModel(model: Model, tag: string): { Instance }
 end
 
 -- Model을 duration 동안 to로 옮긴다 (Anchored 파츠라 Heartbeat마다 PivotTo).
-local function movePivot(target: Model, to: CFrame, duration: number, easeIn: boolean?)
+-- to가 함수면 매 프레임 목표를 다시 읽어요 — 기울기가 바뀌는 중에도 칼이 도마를 따라가게 (m4-05 QA C3).
+local function movePivot(target: Model, to: CFrame | () -> CFrame, duration: number, easeIn: boolean?)
 	local RunService = game:GetService("RunService")
+	local function goal(): CFrame
+		return if typeof(to) == "function" then to() else to
+	end
 	local from = target:GetPivot()
 	local elapsed = 0
 	while elapsed < duration do
 		elapsed += RunService.Heartbeat:Wait()
 		local a = math.min(elapsed / duration, 1)
 		local eased = if easeIn then a * a else 1 - (1 - a) * (1 - a)
-		target:PivotTo(from:Lerp(to, eased))
+		target:PivotTo(from:Lerp(goal(), eased))
 	end
-	target:PivotTo(to)
+	target:PivotTo(goal())
 end
 
 -- 칸 하나와 그 장식 (기울기·흔들림·떨어짐 때 같이 움직여요)
@@ -458,12 +462,9 @@ local function start(ctx: MapTypes.RoundContext)
 
 		if knife then
 			MapSfx.play(blade, "SkewerWhoosh")
-			movePivot(
-				knife,
-				origin * currentTilt * lineRel * CFrame.new(0, KNIFE_STRIKE_HEIGHT, 0),
-				KNIFE_SLAM_TIME,
-				true
-			)
+			movePivot(knife, function(): CFrame
+				return origin * currentTilt * lineRel * CFrame.new(0, KNIFE_STRIKE_HEIGHT, 0)
+			end, KNIFE_SLAM_TIME, true)
 		end
 		if not ctx.isActive() then
 			followers[stripe] = nil
@@ -503,7 +504,10 @@ local function start(ctx: MapTypes.RoundContext)
 		stripe:Destroy()
 		if knife then
 			task.wait(KNIFE_HOLD_TIME)
-			movePivot(knife, origin * lineRel * CFrame.new(0, KNIFE_REST_HEIGHT, 0), KNIFE_LIFT_TIME)
+			-- 도마 가운데 위로, 지금 기울기를 따라 올라가요 (m4-05 QA C2). 방향은 방금 친 줄 그대로.
+			movePivot(knife, function(): CFrame
+				return origin * currentTilt * CFrame.new(0, KNIFE_REST_HEIGHT, 0) * lineRel.Rotation
+			end, KNIFE_LIFT_TIME)
 		end
 	end
 

@@ -244,10 +244,10 @@ function SkewerShowdownArt.sliceDecor(index: number): { DecorSpec }
 		list,
 		"RimLip",
 		"Block",
-		v(0.4, STAGE_THICKNESS + 0.2, EDGE_LENGTH - 0.8),
+		v(0.4, STAGE_THICKNESS, EDGE_LENGTH - 0.8),
 		PALETTE.PorcelainRim,
 		"SmoothPlastic",
-		radial(bisector, APOTHEM + 0.2, -STAGE_THICKNESS / 2 + 0.1),
+		radial(bisector, APOTHEM + 0.2, -STAGE_THICKNESS / 2),
 		v(0, math.deg(bisector), 0)
 	)
 	return list

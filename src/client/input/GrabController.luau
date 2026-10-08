@@ -3,6 +3,7 @@
 --   입력: 마우스 왼쪽 / 게임패드 ButtonR2 / 모바일 GrabButton. 누르면 GrabInput(true), 떼면 GrabInput(false).
 --     UI가 먹은 누름(gameProcessed)과 관전 중(카메라가 내 Humanoid를 보지 않음)에는 보내지 않아요.
 --     누른 채로 창 포커스를 잃거나 캐릭터가 바뀌면 false를 보내요.
+--     입력원(마우스·게임패드·터치)별로 누름을 따로 들고, 0.1초 안에 다시 누르면 간격 뒤에 한 번 더 보내요 (GrabInputLogic, m4-12).
 --   감속: 내 캐릭터에 GrabbedBy가 있으면 이동 입력 × TargetSpeedMultiplier, GrabbingUserId가 있으면
 --     × GrabberSpeedMultiplier. 기본 조작 다음 렌더 단계에서 Humanoid:Move로 줄여요 (WalkSpeed는 안 건드려요).
 --   표시: GrabbingUserId가 있는 모든 캐릭터에 잡는 사람 → 대상 흰 Beam("밥알 팔")과 대상 머리 위 "잡혔다!".
@@ -15,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local GrabInputLogic = require(ReplicatedStorage.Shared.GrabInputLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Sfx = require(script.Parent.Parent.Sfx)
 local GrabButton = require(script.Parent.GrabButton)
@@ -33,7 +35,7 @@ local GrabController = {}
 
 local localPlayer = Players.LocalPlayer
 local grabInputEvent: RemoteEvent
-local holding = false
+local inputState = GrabInputLogic.new(Config.Grab.InputMinInterval)
 local visuals: { [number]: Visual } = {} -- 잡는 사람 userId → 표시
 
 local function myHumanoid(): Humanoid?
@@ -47,29 +49,52 @@ local function isSpectating(): boolean
 	return camera == nil or humanoid == nil or camera.CameraSubject ~= humanoid
 end
 
-local function press()
-	if holding or isSpectating() then
-		return
+local function send(values: { boolean })
+	for _, value in values do
+		grabInputEvent:FireServer(value)
 	end
-	holding = true
-	grabInputEvent:FireServer(true)
 end
 
-local function release()
-	if not holding then
+-- 너무 빨리 다시 누른 누름은 서버 간격 제한이 지난 뒤 한 번 더 보내요 (m3-07 QA G1).
+local function schedule(at: number?)
+	if at == nil then
 		return
 	end
-	holding = false
-	grabInputEvent:FireServer(false)
+	task.delay(math.max(at - os.clock(), 0), function()
+		if isSpectating() then
+			send(GrabInputLogic.cancel(inputState))
+			return
+		end
+		send(GrabInputLogic.flush(inputState, os.clock()))
+	end)
+end
+
+-- 입력원별 누름 (G4): 하나라도 누르고 있으면 잡기
+local function setSource(source: GrabInputLogic.Source, down: boolean)
+	if down and isSpectating() then
+		return
+	end
+	local values, at = GrabInputLogic.set(inputState, source, down, os.clock())
+	send(values)
+	schedule(at)
+end
+
+local function releaseAll()
+	send(GrabInputLogic.cancel(inputState))
 end
 
 -- 잡는 중에 다이브하면 잡기를 놓아요 (m3-09 기본값). 버튼을 계속 누르고 있어도 다시 눌러야 잡아요.
 function GrabController.cancelHold()
-	release()
+	releaseAll()
 end
 
-local function isGrabInput(input: InputObject): boolean
-	return input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2
+local function sourceOf(inputObject: InputObject): GrabInputLogic.Source?
+	if inputObject.UserInputType == Enum.UserInputType.MouseButton1 then
+		return "mouse"
+	elseif inputObject.KeyCode == Enum.KeyCode.ButtonR2 then
+		return "gamepad"
+	end
+	return nil
 end
 
 -- 감속 -------------------------------------------------------------------------
@@ -207,27 +232,25 @@ end
 function GrabController.start(_gui: Instance)
 	grabInputEvent = Remotes.event("GrabInput")
 
-	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)
-		if gameProcessed or not isGrabInput(input) then
+	UserInputService.InputBegan:Connect(function(inputObject: InputObject, gameProcessed: boolean)
+		local source = sourceOf(inputObject)
+		if gameProcessed or source == nil then
 			return
 		end
-		press()
+		setSource(source, true)
 	end)
-	UserInputService.InputEnded:Connect(function(input: InputObject)
-		if isGrabInput(input) then
-			release()
+	UserInputService.InputEnded:Connect(function(inputObject: InputObject)
+		local source = sourceOf(inputObject)
+		if source then
+			setSource(source, false)
 		end
 	end)
-	UserInputService.WindowFocusReleased:Connect(release)
-	localPlayer.CharacterAdded:Connect(release)
-	localPlayer.CharacterRemoving:Connect(release)
+	UserInputService.WindowFocusReleased:Connect(releaseAll)
+	localPlayer.CharacterAdded:Connect(releaseAll)
+	localPlayer.CharacterRemoving:Connect(releaseAll)
 
 	local button = GrabButton.create(function(isHolding: boolean)
-		if isHolding then
-			press()
-		else
-			release()
-		end
+		setSource("touch", isHolding)
 	end)
 
 	RunService:BindToRenderStep(RENDER_STEP_NAME, Enum.RenderPriority.Input.Value + 1, slowdown)

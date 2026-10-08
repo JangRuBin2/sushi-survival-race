@@ -26,7 +26,9 @@ export type Limiter = {
 }
 
 function MapSfxLogic.newLimiter(): Limiter
-	return { last = {}, lastPrune = -math.huge, gap = MapSfxLogic.MIN_INTERVAL }
+	-- 약한 키 표: 라운드가 끝나 맵 파트가 지워지면 그 기록도 GC가 가져가요 (m3-09 QA B3).
+	-- 정리(prune)는 다음 호출이 있을 때만 돌아서, 마지막 라운드 뒤 파트를 붙잡지 않게 해요.
+	return { last = setmetatable({}, { __mode = "k" }) :: any, lastPrune = -math.huge, gap = MapSfxLogic.MIN_INTERVAL }
 end
 
 local function prune(limiter: Limiter, now: number)

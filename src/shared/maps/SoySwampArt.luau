@@ -257,11 +257,12 @@ local function addFinishChecker(list: { DecorSpec })
 	end
 end
 
--- 늪 위 높은 곳의 종이 등
+local LANTERN_X = 6
+-- 늪 위 높은 곳의 종이 등. 소개 카메라 경로(x 0 근처)를 비켜 x 6에 둬요 (m4-02 QA Q1).
 local function addLanterns(list: { DecorSpec })
 	for _, z in { -24, -48 } do
-		part(list, "Lantern", "Ball", v(3, 3, 3), P.Lacquer, "Fabric", v(0, 22, z))
-		disc(list, "LanternCap", 0.4, 1.6, BLACK, "SmoothPlastic", 0, 23.4, z)
+		part(list, "Lantern", "Ball", v(3, 3, 3), P.Lacquer, "Fabric", v(LANTERN_X, 22, z))
+		disc(list, "LanternCap", 0.4, 1.6, BLACK, "SmoothPlastic", LANTERN_X, 23.4, z)
 	end
 end
 

@@ -81,16 +81,16 @@ local function addFrames(list: { DecorSpec })
 	local cz = HotPlateLogic.centerZ()
 	for layer = 1, HotPlateLogic.LAYER_COUNT do
 		local top = HotPlateLogic.layerTopY(layer)
-		local y = top - 0.4 -- 높이 1.4 → 윗면이 타일보다 0.3 높아요
+		local y = top - 0.7 -- 높이 1.4 → 윗면이 타일과 같아요 (턱처럼 보이지 않게, m4-03 QA B3)
 		for _, side in { -1, 1 } do
 			part(list, "Frame", "Block", v(2, 1.4, half * 2 + 4), STAINLESS, "Metal", v(side * (half + 1), y, cz))
 			part(list, "Frame", "Block", v(half * 2, 1.4, 2), STAINLESS, "Metal", v(0, y, cz + side * (half + 1)))
 		end
 		-- 기름 튄 자국 (테두리 위 얇은 노란 원판)
 		local spots = {
-			v(half + 1, top + 0.33, cz + 17 - 6 * layer),
-			v(-(half + 1), top + 0.33, cz - 11 + 4 * layer),
-			v(12 - 8 * layer, top + 0.33, cz - (half + 1)),
+			v(half + 1, top + 0.03, cz + 17 - 6 * layer),
+			v(-(half + 1), top + 0.03, cz - 11 + 4 * layer),
+			v(12 - 8 * layer, top + 0.03, cz - (half + 1)),
 		}
 		for i, at in spots do
 			local d = 1.1 + 0.25 * ((i + layer) % 3)
@@ -100,10 +100,10 @@ local function addFrames(list: { DecorSpec })
 	-- 김 나는 곳 (투명, HotPlate.build가 ParticleEmitter를 달아요). 타일 위가 아니라 테두리 위.
 	for _, at in
 		{
-			v(half + 1, HotPlateLogic.layerTopY(1) + 0.4, cz + 11),
-			v(-(half + 1), HotPlateLogic.layerTopY(1) + 0.4, cz - 13),
-			v(half + 1, HotPlateLogic.layerTopY(2) + 0.4, cz - 15),
-			v(-(half + 1), HotPlateLogic.layerTopY(2) + 0.4, cz + 15),
+			v(half + 1, HotPlateLogic.layerTopY(1) + 0.1, cz + 11),
+			v(-(half + 1), HotPlateLogic.layerTopY(1) + 0.1, cz - 13),
+			v(half + 1, HotPlateLogic.layerTopY(2) + 0.1, cz - 15),
+			v(-(half + 1), HotPlateLogic.layerTopY(2) + 0.1, cz + 15),
 		}
 	do
 		part(list, HotPlateArt.STEAM_VENT, "Block", v(1, 0.2, 1), STAINLESS, "SmoothPlastic", at, nil, 1)

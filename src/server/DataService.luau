@@ -453,7 +453,8 @@ local function onClose()
 		end
 	end
 	local deadline = os.clock() + CLOSE_TIMEOUT
-	while next(saving) ~= nil and os.clock() < deadline do
+	-- 로드 중인 사람도 기다려요: load가 closing을 보고 건 잠금을 풀어 저장해요 (m4-07 QA D5)
+	while (next(saving) ~= nil or next(loading) ~= nil) and os.clock() < deadline do
 		task.wait(0.1)
 	end
 end

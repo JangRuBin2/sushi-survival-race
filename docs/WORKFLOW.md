@@ -43,7 +43,7 @@
 ## 규칙
 - **질문은 위로 올린다.** 스펙이 모호하면 개발은 추측하지 않고 스펙 "결정 기록"에 질문을 적고 멈춘다. GDD 원칙과 어긋나거나 수치를 확정해야 하는 결정은 사용자가 내린다.
 - **남의 파일은 고치지 않는다.** 소유권 밖의 수정이 필요하면 보고에 "누가 무엇을 바꿔야 하는지"를 적는다.
-- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `default.project.json`)은 병렬 개발 중에는 스펙에 지정된 개발 에이전트 한 명만 수정한다.
+- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/maps/init.luau`, `default.project.json`)은 병렬 개발 중에는 스펙에 지정된 개발 에이전트 한 명만 수정한다.
 - **검증 통과 전에는 넘기지 않는다**: `rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests`
 - 돌려 보지 않은 것을 통과로 적지 않는다. Studio 확인이 필요한 항목은 "사용자 확인 필요"로 남긴다.
 

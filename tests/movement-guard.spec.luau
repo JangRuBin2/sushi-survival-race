@@ -2,6 +2,7 @@
 -- m4-10 서버 이동 감시: MovementGuardLogic check / advance / allowPass / strikeLog,
 -- 그리고 정상 이동 경로(걷기·다이브·와사비·넉백·벨트·낙하·리스폰) 시뮬레이션에서 오탐이 없는지.
 
+local fs = require("@lune/fs")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -10,6 +11,7 @@ local Logic = RobloxRequire.require(Shared.MovementGuardLogic)
 local Config = RobloxRequire.require(Shared.Config)
 
 local cfg = Config.MovementGuard
+local SAMPLE_DT = cfg.SampleInterval
 
 type Sample = { x: number, y: number, z: number, t: number }
 type PathFn = (t: number) -> (number, number, number)
@@ -177,7 +179,8 @@ return function(t: Test.Test)
 	end)
 
 	t.test("sim: wasabi launch marked with MoveExempt is exempt during the window", function()
-		local verdict = Logic.check(at(0, 0, 0, 10), at(0, 60, -40, 10.2), 11, cfg)
+		-- 기준(수평 22 / 위 34)은 넘지만 면제 상한(수평 32 / 위 46) 안
+		local verdict = Logic.check(at(0, 0, 0, 10), at(0, 40, -28, 10.2), 11, cfg)
 		t.eq(verdict, "exempt")
 	end)
 
@@ -228,11 +231,11 @@ return function(t: Test.Test)
 	end)
 
 	t.test("sim: replication stall then catch-up burst is not a violation", function()
-		-- 0~1초 정상 걷기, 1~1.6초 복제가 멈춰 서버가 같은 위치만 봄, 1.6초에 다이브 속도로 따라잡음
+		-- 0~1초 정상 걷기, 1~1.45초 복제가 멈춰 서버가 같은 위치만 봄(StallGrace 0.5 안), 그 뒤 다이브 속도로 따라잡음
 		local path: PathFn = function(time)
 			if time < 1 then
 				return 0, 0, -16 * time
-			elseif time < 1.6 then
+			elseif time < 1.45 then
 				return 0, 0, -16
 			end
 			return 0, 0, -16 - 40 * (time - 1)
@@ -240,17 +243,79 @@ return function(t: Test.Test)
 		t.eq(simulate(path, 2.2), 0)
 	end)
 
-	t.test("sim: spawn placement / toLobby teleport is exempt via MoveExempt", function()
-		local path: PathFn = function(time)
-			if time < 1 then
-				return 0, 0, 0
-			end
-			return 2000, 300, -50 -- 서버가 다른 아레나 스폰으로 옮김
+	t.test("B1: a far move is a violation even while MoveExempt is active", function()
+		-- 스폰 배치는 면제가 아니라 RoundService 배치 알림으로 기준점을 새로 잡아요 (아래 B2)
+		t.eq(Logic.check(at(0, 0, 0, 10), at(2000, 300, -50, 10.2), 11, cfg), "violation")
+		-- 벨트·급류 위(계속 면제)에서 결승선으로 순간이동
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 2, -120, 10.2), 11, cfg), "violation")
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 2, -120, 10.01), 11, cfg), "violation") -- 통과 순간 재검사(짧은 dt)
+		-- 면제 상한: 수평 130*0.2+6 = 32, 위 200*0.2+6 = 46
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 0, -33, 10.2), 11, cfg), "violation")
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 47, 0, 10.2), 11, cfg), "violation")
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 45, -31, 10.2), 11, cfg), "exempt")
+	end)
+
+	t.test("B1: exempt cap leaves room for the largest server impulses under jitter", function()
+		-- 칼 넉백 수평 45 + 걷기 16, 와사비 위 80: 0.35초 몰림(지연 흔들림)에도 면제 상한 안
+		local burst = 0.35
+		t.ok((45 + 16) * burst <= Logic.ExemptMaxHorizontalSpeed * SAMPLE_DT + cfg.Slack, "knife knockback")
+		t.ok(80 * burst <= Logic.ExemptMaxRiseSpeed * SAMPLE_DT + cfg.Slack, "wasabi rise")
+		local function exemptAll(_time: number): number?
+			return math.huge
 		end
-		local function exempt(time: number): number?
-			return if time >= 0.95 then 0.95 + Config.MovementGuard.ExemptAfterServerMove else nil
+		t.eq(simulate(ballistic(61, 25, 0, 16), 2, exemptAll, nil, 1 / 60), 0, "knife knockback marked")
+		t.eq(simulate(ballistic(0, 80, -46, 16), 3, exemptAll), 0, "wasabi marked")
+	end)
+
+	t.test("B2: teleport during the intro / right after start is caught from the spawn baseline", function()
+		-- 배치 알림으로 기준 = 스폰(t=0). 소개 중(이동 잠김)에 결승선 근처로 순간이동
+		local spawn = at(0, 3, 0, 0)
+		t.eq(Logic.check(spawn, at(0, 3, -110, 0.2), nil, cfg), "violation")
+		-- 소개가 길어 기준이 오래돼도(서 있음) dt 상한 때문에 큰 순간이동은 위반
+		local base = spawn
+		for i = 1, 30 do
+			local cur = at(0, 3, 0, i * 0.2)
+			base = Logic.advance(base, cur, Logic.check(base, cur, nil, cfg))
 		end
-		t.eq(simulate(path, 3, exempt), 0)
+		t.eq(Logic.check(base, at(0, 3, -110, 6.01), nil, cfg), "violation")
+	end)
+
+	t.test("B2: passDecision denies passes without a track or with a fresh violation", function()
+		t.eq(Logic.passDecision(false, false, nil, 10, cfg), false, "no track")
+		t.eq(Logic.passDecision(true, true, nil, 10, cfg), false, "violated at pass")
+		t.eq(Logic.passDecision(true, false, 9, 10, cfg), false, "violation 1s ago")
+		t.eq(Logic.passDecision(true, false, 7, 10, cfg), true, "violation 3s ago")
+		t.eq(Logic.passDecision(true, false, nil, 10, cfg), true, "clean")
+	end)
+
+	t.test("B3: StallGrace 0.5 caps a stand-still teleport at 80*0.5+6", function()
+		t.eq(Logic.StallGrace, 0.5)
+		local base = at(0, 0, 0, 0)
+		local time = 0
+		for _ = 1, 10 do
+			time += 0.2
+			local cur = at(0, 0, 0, time)
+			base = Logic.advance(base, cur, Logic.check(base, cur, nil, cfg))
+		end
+		-- 기준 나이는 0.5초 아래 → 다음 샘플 dt ≤ 0.7 → 허용 ≤ 62. 서 있다 70 studs 순간이동은 위반
+		t.eq(Logic.check(base, at(0, 0, -70, time + 0.2), nil, cfg), "violation")
+	end)
+
+	t.test("B5: violations within RevertSettle after a revert are not counted", function()
+		t.eq(Logic.countsStrike(10, nil), true)
+		t.eq(Logic.countsStrike(10.2, 10 + Logic.RevertSettle), false)
+		t.eq(Logic.countsStrike(10 + Logic.RevertSettle, 10 + Logic.RevertSettle), true)
+	end)
+
+	t.test("service contract: baseline from spawn placement, tracked from placement, no-track pass denied", function()
+		local guard = fs.readFile("src/server/MovementGuardService.luau")
+		t.ok(string.find(guard, "RoundService.setPlacementListener(", 1, true) ~= nil, "placement listener")
+		t.ok(string.find(guard, "RoundService.placedRoomOf(", 1, true) ~= nil, "watches placed racers")
+		t.ok(string.find(guard, "Logic.passDecision(", 1, true) ~= nil, "pass decision")
+		local round = fs.readFile("src/server/RoundService.luau")
+		local placeAt = string.match(round, "local function placeAt.-\n\t\tend\n")
+		t.ok(placeAt ~= nil, "placeAt found")
+		t.ok(string.find(placeAt :: string, "notifyPlaced(", 1, true) ~= nil, "placeAt notifies the guard")
 	end)
 
 	-- 위반이 나야 하는 경우

@@ -118,8 +118,25 @@ local function lerp(a: number, b: number, alpha: number): number
 	return a + (b - a) * math.clamp(alpha, 0, 1)
 end
 
+-- 결승 연장전 (m5-01): 연장전 시작부터 OVERTIME_RAMP초 동안 최고 속도에서 이 값까지 선형으로 올라가요.
+Logic.LOW_SPEED_OVERTIME = 190
+Logic.HIGH_SPEED_OVERTIME = 150
+Logic.OVERTIME_RAMP = 20 -- 기본값 (= Config.Final.CollapseDuration). 맵은 연장전 info.collapseDuration을 넘겨요
+Logic.COLLAPSE_WARN_TIME = 1 -- 접시 줄이 사라지기 전 빨간 깜빡임 경고(초)
+
 -- 경과 시간 → 꼬치 속도 (도/초). 높은 꼬치는 등장 전에는 0이에요.
-function Logic.speeds(elapsed: number): Speeds
+-- overtimeAt(연장전 시작, 라운드 출발 기준 초)이 있고 지났으면 rampDuration(기본 OVERTIME_RAMP) 동안 더 빨라져요.
+function Logic.speeds(elapsed: number, overtimeAt: number?, rampDuration: number?): Speeds
+	if overtimeAt ~= nil and elapsed >= overtimeAt then
+		-- 연장전 시작 순간의 속도에서 이어서 올라가요 (디버그로 일찍 시작해도 끊기지 않게)
+		local base = Logic.speeds(overtimeAt)
+		local ramp = rampDuration or Logic.OVERTIME_RAMP
+		local alpha = if ramp > 0 then (elapsed - overtimeAt) / ramp else 1
+		return {
+			low = lerp(base.low, Logic.LOW_SPEED_OVERTIME, alpha),
+			high = lerp(base.high, Logic.HIGH_SPEED_OVERTIME, alpha),
+		}
+	end
 	if elapsed >= Logic.SUDDEN_DEATH_AT then
 		return { low = Logic.LOW_SPEED_MAX, high = Logic.HIGH_SPEED_MAX }
 	end
@@ -172,6 +189,28 @@ function Logic.grabTimes(sliceCount: number): { number }
 		t += Logic.handInterval(t) :: number
 	end
 	return times
+end
+
+export type CollapseStep = { strip: number, warnAt: number, dropAt: number }
+
+-- 연장전 접시 붕괴 일정 (m5-01). 조각마다 띠가 stripsPerSlice줄(1 = 가장 안쪽)이고, 바깥 줄부터 한 줄씩
+-- collapseDuration / stripsPerSlice 간격으로 사라져요. 각 줄은 warnTime 동안 경고한 뒤 사라지고,
+-- 첫 경고는 연장전 시작(0), 마지막 줄(가장 안쪽)은 collapseDuration에 사라져요. 시각은 연장전 시작 기준 초.
+function Logic.collapseTimes(stripsPerSlice: number, collapseDuration: number, warnTime: number): { CollapseStep }
+	local steps: { CollapseStep } = {}
+	if stripsPerSlice <= 0 then
+		return steps
+	end
+	-- 줄 간격(collapseDuration / stripsPerSlice)보다 경고가 길면 간격에 맞춰 줄여요 (경고가 겹치지 않게)
+	local warn = math.min(warnTime, collapseDuration / stripsPerSlice)
+	-- 사라지는 시각: 첫 줄 = warn(첫 경고가 0), 마지막 줄 = collapseDuration, 그 사이는 고르게
+	local spacing = if stripsPerSlice > 1 then (collapseDuration - warn) / (stripsPerSlice - 1) else 0
+	for i = 1, stripsPerSlice do
+		local dropAt = if stripsPerSlice > 1 then warn + spacing * (i - 1) else collapseDuration
+		local step: CollapseStep = { strip = stripsPerSlice - i + 1, warnAt = dropAt - warn, dropAt = dropAt }
+		table.insert(steps, step)
+	end
+	return steps
 end
 
 -- 무대 중심 기준 점 (dx, dz)의 각도 (라디안, 꼬치 각도와 같은 기준)

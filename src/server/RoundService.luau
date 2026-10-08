@@ -8,6 +8,8 @@
 --   prepareRound(args)  RoundIntro 시작 때. 맵을 짓고 생존자를 스폰에 세운 뒤 움직이지 못하게 잠가요.
 --                       이때부터 레이서의 캐릭터가 죽거나 사라지거나 새로 생기면 탈락이에요.
 --   handle.run(target)  RoundActive 방송과 동시에. 잠금을 풀고 map.start(ctx)를 부른 뒤 끝날 때까지 기다려요.
+--                       기다리는 시간은 RoundLogic.schedule: 결승이면 시간 제한에 map.overtime(ctx, info)을 한 번
+--                       부르고(연장전, RoundProgress.overtime/collapseAt), 안전 상한에 높이 순으로 끝내요 (m5-01).
 --   handle.cancel()     소개 중 인원이 줄어 이 라운드를 건너뛸 때. 맵을 치우고 레이서를 로비 스폰으로 보내요.
 --
 -- 라운드 상태는 이 모듈 전역이 아니라 prepareRound 호출마다 생기는 지역 상태에 둬요
@@ -23,6 +25,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -228,6 +231,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			return root.Position.Y
 		end
 
+		-- 결승 연장전 중이면 바닥이 다 사라지는 시각 (workspace:GetServerTimeNow() 기준, m5-01). 연장전 전·결승 밖은 nil.
+		local overtimeCollapseAt: number? = nil
+
 		local function broadcastProgress()
 			if not (round.active or round.ended) then
 				return -- 소개 중에는 목표 인원이 아직 없어요. 출발할 때 한 번 보내요.
@@ -238,6 +244,8 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				target = round.target or 0,
 				remaining = #racerUserIds,
 				racerUserIds = racerUserIds,
+				overtime = if overtimeCollapseAt ~= nil then true else nil,
+				collapseAt = overtimeCollapseAt,
 			}
 			for _, player in RoomService.getPlayers(roomId) do
 				roundProgressEvent:FireClient(player, progress)
@@ -521,6 +529,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			broadcastProgress()
 
+			local startedAt = os.clock()
 			if not round.ended then
 				local startOk, startErr = pcall(map.start, ctx)
 				if not startOk then
@@ -528,8 +537,33 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				end
 			end
 
-			local deadline = os.clock() + Maps.timeLimit(map)
-			while not round.ended and os.clock() < deadline do
+			-- 시간 일정 (m5-01): Race·Survival은 시간 제한에 끝, 결승은 시간 제한에 연장전 → 안전 상한에 끝.
+			local overtimeOverride: number? = if RunService:IsStudio() then Config.DEBUG.overtimeAt else nil
+			local schedule = RoundLogic.schedule(mode, Maps.timeLimit(map), Config.Final, overtimeOverride)
+			local overtimeStarted = false
+			while not round.ended do
+				local elapsed = os.clock() - startedAt
+				local phase = RoundLogic.clockPhase(schedule, elapsed)
+				if phase == "Expired" then
+					break
+				end
+				if phase ~= "Normal" and not overtimeStarted then
+					overtimeStarted = true
+					local collapseAt = schedule.collapseAt or elapsed
+					overtimeCollapseAt = workspace:GetServerTimeNow() + math.max(collapseAt - elapsed, 0)
+					local overtimeHook = map.overtime
+					if overtimeHook then
+						local info: MapTypes.OvertimeInfo = { collapseDuration = Config.Final.CollapseDuration }
+						local overtimeOk, overtimeErr = pcall(overtimeHook, ctx, info)
+						if not overtimeOk then
+							-- 판정은 안전 상한(Config.Final.HardCapMargin)이 마무리해요
+							warn(`[RoundService] {map.id} overtime() failed: {overtimeErr}`)
+						end
+					else
+						warn(`[RoundService] {map.id} has no overtime(); the hard cap will decide the final`)
+					end
+					broadcastProgress()
+				end
 				task.wait(0.2)
 			end
 			flush()

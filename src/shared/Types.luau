@@ -72,6 +72,8 @@ export type RoundProgress = {
 	target: number,
 	remaining: number, -- 아직 통과/탈락하지 않은 인원
 	racerUserIds: { number }, -- 이번 라운드에서 아직 통과/탈락하지 않은 플레이어
+	overtime: boolean?, -- 결승 연장전 중이면 true (m5-01)
+	collapseAt: number?, -- 연장전에서 바닥이 다 사라지는 시각 (workspace:GetServerTimeNow() 기준)
 }
 
 -- 탈락 사유 (탈락 연출용). Fall = 맵 낙하 판정, Reset = 리셋·사망·캐릭터 없음, Left = 방/게임을 나감,

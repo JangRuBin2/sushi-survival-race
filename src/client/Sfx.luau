@@ -2,6 +2,7 @@
 -- 효과음·배경음 (m3-08). 소리 id·볼륨은 Shared.SfxLibrary가 정해요.
 --   Sfx.play(cue, at?)    효과음. at이 BasePart면 그 파트에서, Vector3면 그 위치에서 3D로, 없으면 2D로.
 --   Sfx.setMusic(name?)   배경음 바꾸기 (nil이면 끄기). 0.5초 동안 이전 곡을 줄이며 새 곡을 키워요.
+--   Sfx.setMusicSpeed(m)  배경음 재생 속도 배수 (결승 연장전 1.1, 끝나면 1, m5-01). 곡이 바뀌어도 유지돼요.
 --   Sfx.start(gui)        init.client.luau가 다른 컨트롤러와 함께 불러요.
 -- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고하고, id가 없는 cue는 조용히 넘어가요.
 -- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3, Config.Fx), 방/매치 단계에 맞춘 배경음, GuiButton 클릭음(조작 버튼 제외),
@@ -50,6 +51,7 @@ local activeSfx = 0
 
 local currentMusicName: string? = nil
 local currentMusic: Sound? = nil
+local musicSpeed = 1 -- Sfx.setMusicSpeed (m5-01)
 
 local fadeInfo = TweenInfo.new(MUSIC_FADE, Enum.EasingStyle.Linear)
 
@@ -196,11 +198,24 @@ function Sfx.setMusic(name: string?)
 	sound.SoundId = entry.id :: string
 	sound.Looped = true
 	sound.Volume = 0
+	sound.PlaybackSpeed = musicSpeed
 	sound.SoundGroup = musicGroup
 	sound.Parent = SoundService
 	sound:Play()
 	TweenService:Create(sound, fadeInfo, { Volume = entry.volume }):Play()
 	currentMusic = sound
+end
+
+-- 배경음 재생 속도 배수 (결승 연장전 1.1, 연장전 표시를 지울 때 1). start 전에도 값은 기억해요.
+function Sfx.setMusicSpeed(multiplier: number)
+	if type(multiplier) ~= "number" or multiplier ~= multiplier or multiplier <= 0 then
+		return
+	end
+	musicSpeed = multiplier
+	local sound = currentMusic
+	if sound then
+		sound.PlaybackSpeed = multiplier
+	end
 end
 
 -- 배경음: 방/매치 상태를 기억해 두고 바뀔 때마다 musicFor로 골라요

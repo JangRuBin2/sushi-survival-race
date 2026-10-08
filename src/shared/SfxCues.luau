@@ -13,6 +13,7 @@ SfxCues.Effects = {
 	"Qualified",
 	"Eliminated", -- "먹혔다!" 스탬프
 	"VictoryFanfare",
+	"Overtime", -- 결승 연장전 경적 (m5-01)
 	-- 탈락 연출
 	"ChopstickClack",
 	"Struggle",

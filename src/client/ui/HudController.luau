@@ -8,7 +8,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EliminationCutsceneLogic = require(ReplicatedStorage.Shared.EliminationCutsceneLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Sfx = require(script.Parent.Parent.Sfx)
 local HudScreen = require(script.Parent.HudScreen)
+
+local OVERTIME_MUSIC_SPEED = 1.1 -- 결승 연장전 동안 배경음 재생 속도 (m5-01)
 
 local HudController = {}
 
@@ -33,17 +36,32 @@ function HudController.start(gui: Instance)
 
 	-- 지금 매치 단계 (우승 글씨를 Victory 동안 띄우지 않으려고)
 	local currentPhase: Types.MatchPhase? = nil
+	-- 결승 연장전 표시 중 (m5-01). 처음 받을 때 한 번만 배너·경적·배경음 가속
+	local overtimeShown = false
+
+	local function clearOvertime()
+		if not overtimeShown then
+			return
+		end
+		overtimeShown = false
+		hud:clearOvertime()
+		Sfx.setMusicSpeed(1)
+	end
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
 		local inMatch = room ~= nil and room.state == "InMatch"
 		if not inMatch then
 			currentPhase = nil
+			clearOvertime()
 		end
 		hud:setVisible(inMatch)
 	end)
 
 	Remotes.event("MatchPhase").OnClientEvent:Connect(function(info: Types.MatchPhaseInfo)
 		currentPhase = info.phase
+		if info.phase ~= "RoundActive" then
+			clearOvertime()
+		end
 		hud:setPhase(info)
 		-- 우승 연출이 시작되면 "🏆 우승했어요!"를 지워요 — 연출 위에 겹치지 않게 (m3-05 QA B3, m3-09 QA B1)
 		if info.phase == "Victory" then
@@ -53,6 +71,18 @@ function HudController.start(gui: Instance)
 
 	Remotes.event("RoundProgress").OnClientEvent:Connect(function(progress: Types.RoundProgress)
 		hud:setProgress(progress)
+		local collapseAt = progress.collapseAt
+		if
+			progress.overtime == true
+			and type(collapseAt) == "number"
+			and not overtimeShown
+			and currentPhase == "RoundActive"
+		then
+			overtimeShown = true
+			hud:showOvertime(collapseAt)
+			Sfx.play("Overtime")
+			Sfx.setMusicSpeed(OVERTIME_MUSIC_SPEED)
+		end
 	end)
 
 	Remotes.event("PlayerResult").OnClientEvent:Connect(function(result: Types.PlayerResult)

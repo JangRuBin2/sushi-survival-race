@@ -574,4 +574,132 @@ return function(t: Test.Test)
 			t.eq(summary(finalOut), { [1] = "Eliminated:nil", [2] = "Won:1" })
 		end
 	)
+
+	------------------------------------------------------------------------
+	-- m5-01 결승 연장전: 일정과 결승 규칙 회귀
+
+	local FINAL_TIMING = { CollapseDuration = 20, HardCapMargin = 40 }
+
+	t.test(
+		"m5-01 AC1: schedule — 결승은 연장전·붕괴·안전 상한, Race·Survival은 시간 제한만",
+		function()
+			t.eq(RoundLogic.schedule("Final", 90, FINAL_TIMING), { overtimeAt = 90, collapseAt = 110, hardCapAt = 150 })
+			t.eq(RoundLogic.schedule("Race", 90, FINAL_TIMING), { hardCapAt = 90 })
+			t.eq(RoundLogic.schedule("Survival", 60, FINAL_TIMING), { hardCapAt = 60 })
+			t.eq(
+				RoundLogic.schedule("Final", 90, FINAL_TIMING, 15),
+				{ overtimeAt = 15, collapseAt = 35, hardCapAt = 75 }
+			)
+			-- 디버그 값은 결승에만 써요
+			t.eq(RoundLogic.schedule("Survival", 60, FINAL_TIMING, 15), { hardCapAt = 60 })
+		end
+	)
+
+	t.test("m5-01 AC2: clockPhase — 경계값", function()
+		local final = RoundLogic.schedule("Final", 90, FINAL_TIMING)
+		t.eq(RoundLogic.clockPhase(final, 0), "Normal")
+		t.eq(RoundLogic.clockPhase(final, 89.9), "Normal")
+		t.eq(RoundLogic.clockPhase(final, 90), "Overtime")
+		t.eq(RoundLogic.clockPhase(final, 109.9), "Overtime")
+		t.eq(RoundLogic.clockPhase(final, 110), "Collapsed")
+		t.eq(RoundLogic.clockPhase(final, 149.9), "Collapsed")
+		t.eq(RoundLogic.clockPhase(final, 150), "Expired")
+		t.eq(RoundLogic.clockPhase(final, 1000), "Expired")
+		local race = RoundLogic.schedule("Race", 90, FINAL_TIMING)
+		t.eq(RoundLogic.clockPhase(race, 0), "Normal")
+		t.eq(RoundLogic.clockPhase(race, 89.9), "Normal")
+		t.eq(RoundLogic.clockPhase(race, 90), "Expired")
+		local survival = RoundLogic.schedule("Survival", 60, FINAL_TIMING)
+		for _, elapsed in { 0, 30, 59.9 } do
+			t.eq(RoundLogic.clockPhase(survival, elapsed), "Normal")
+		end
+		t.eq(RoundLogic.clockPhase(survival, 60), "Expired")
+	end)
+
+	t.test(
+		"m5-01 AC3: 결승 3명이 다른 묶음으로 떨어지면 두 번째 묶음에서 남은 1명 우승",
+		function()
+			local round = RoundLogic.newRound("Final", { 1, 2, 3 }, fakeRng(5))
+			RoundLogic.activate(round, 1)
+			local first = RoundLogic.eliminate(round, { { userId = 1, score = 2 } }, noScore)
+			t.eq(summary(first), { [1] = "Eliminated:nil" })
+			t.ok(not round.ended, "should continue with 2 left")
+			local second = RoundLogic.eliminate(round, { { userId = 2, score = 7 } }, noScore)
+			t.eq(summary(second), { [2] = "Eliminated:nil", [3] = "Won:1" })
+			t.ok(round.ended, "should end")
+			t.eq(#RoundLogic.timeout(round, noScore), 0)
+		end
+	)
+
+	t.test(
+		"m5-01 AC4: 결승 2명 같은 묶음 — 더 높이, 리셋은 더 나쁨, 둘 다 리셋이면 우승 없음",
+		function()
+			local round = RoundLogic.newRound("Final", { 1, 2 }, fakeRng(1))
+			RoundLogic.activate(round, 1)
+			local out = RoundLogic.eliminate(round, { { userId = 1, score = 5 }, { userId = 2, score = 8 } }, noScore)
+			t.eq(summary(out), { [1] = "Eliminated:nil", [2] = "Won:1" })
+
+			round = RoundLogic.newRound("Final", { 1, 2 }, fakeRng(2))
+			RoundLogic.activate(round, 1)
+			out = RoundLogic.eliminate(
+				round,
+				{ { userId = 1, score = 50, cause = "Reset" }, { userId = 2, score = 3, cause = "Fall" } },
+				noScore
+			)
+			t.eq(summary(out), { [1] = "Eliminated:nil", [2] = "Won:1" })
+
+			round = RoundLogic.newRound("Final", { 1, 2 }, fakeRng(3))
+			RoundLogic.activate(round, 1)
+			out = RoundLogic.eliminate(
+				round,
+				{ { userId = 1, score = 5, cause = "Reset" }, { userId = 2, score = 8, cause = "Reset" } },
+				noScore
+			)
+			t.eq(summary(out), { [1] = "Eliminated:nil", [2] = "Eliminated:nil" })
+			t.ok(round.ended, "should end without a winner")
+		end
+	)
+
+	t.test(
+		"m5-01 AC5: 결승 안전 상한(timeout) — 점수가 가장 큰 1명만 Won, 낮은 사람이 더 나쁜 등수",
+		function()
+			local round = RoundLogic.newRound("Final", { 1, 2, 3 }, fakeRng(4))
+			RoundLogic.activate(round, 1)
+			local standings = standingsFor(3)
+			local out =
+				RoundLogic.applyOutcomes(standings, RoundLogic.timeout(round, scores({ [1] = 3, [2] = 9, [3] = 5 })))
+			t.eq(summary(out), { [1] = "Eliminated:3", [2] = "Won:1", [3] = "Eliminated:2" })
+			t.eq(RoundLogic.winnerOf(standings), 2)
+
+			for seed = 1, 30 do
+				local tied = RoundLogic.newRound("Final", { 1, 2, 3, 4 }, fakeRng(seed))
+				RoundLogic.activate(tied, 1)
+				local won = 0
+				for _, o in RoundLogic.timeout(tied, noScore) do
+					if o.result == "Won" then
+						won += 1
+					end
+				end
+				t.eq(won, 1, `seed {seed}`)
+			end
+		end
+	)
+
+	t.test(
+		"m5-01 AC6: 결승 혼자 — activate로는 안 끝나고 낙하면 Won, 리셋이면 우승 없음",
+		function()
+			local round = RoundLogic.newRound("Final", { 1 }, fakeRng(6))
+			RoundLogic.activate(round, 1)
+			t.ok(not round.ended, "solo final should keep running")
+			local out = RoundLogic.eliminate(round, { { userId = 1, score = -30, cause = "Fall" } }, noScore)
+			t.eq(summary(out), { [1] = "Won:1" })
+			t.ok(round.ended, "should end")
+
+			round = RoundLogic.newRound("Final", { 1 }, fakeRng(7))
+			RoundLogic.activate(round, 1)
+			out = RoundLogic.eliminate(round, { { userId = 1, score = 0, cause = "Reset" } }, noScore)
+			t.eq(summary(out), { [1] = "Eliminated:nil" })
+			t.ok(round.ended, "should end")
+		end
+	)
 end

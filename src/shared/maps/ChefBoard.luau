@@ -8,7 +8,7 @@
 -- 전원 통과)와 점수(높이)는 RoundService/RoundLogic이 해요.
 -- 칸(ChefBoardCell)과 칼(ChefKnife)은 CollectionService 태그를 달고, start에서 ctx.model 하위의 태그만 동작시켜요.
 -- 상태(남은 칸, 기울기 일정, 넉백 시각)는 전부 start 안의 지역 변수에 둬요 (여러 방이 같은 맵을 동시에 돌려도 안전).
--- 서버가 캐릭터를 튕기거나 밀 때는 MoveExempt.mark로 이동 감시(m4-10) 오탐을 막아요.
+-- 서버가 캐릭터를 튕길 때(칼 넉백)는 MoveExempt.mark로 이동 감시(m4-10) 오탐을 막아요. 기울기 밀기는 기준 안이라 표시 없음.
 -- 순수 로직은 ChefBoardLogic, 아트 데이터는 ChefBoardArt (tests/map-chef-board.spec.luau).
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
@@ -36,7 +36,6 @@ local CUT_FALL_TIME = 0.8
 local CUT_FALL_DISTANCE = 30
 local CUT_SHAKE = 0.3
 local BOARD_PUSH_MARGIN = 2 -- 도마 반지름 + 이만큼 안에 있으면 기울기에 밀려요
-local EXEMPT_REFRESH = 0.5 -- 밀리는 동안 MoveExempt 표시를 다시 다는 간격
 -- 칼이 내려치는 전체 과정이 가장 짧은 주기(3초)보다 짧아야 다음 경고가 밀리지 않아요
 assert(0.8 + KNIFE_SLAM_TIME + KNIFE_HOLD_TIME + KNIFE_LIFT_TIME < Logic.knifeInterval(math.huge), "knife too slow")
 
@@ -315,7 +314,6 @@ local function start(ctx: MapTypes.RoundContext)
 	end
 
 	local lastHitAt: { [Player]: number } = {}
-	local lastExemptAt: { [Player]: number } = {}
 
 	local function knockBack(player: Player, line: Logic.Line, root: BasePart, humanoid: Humanoid, x: number, z: number)
 		lastHitAt[player] = os.clock()
@@ -377,10 +375,7 @@ local function start(ctx: MapTypes.RoundContext)
 					local delta = math.min(Logic.TILT_PUSH_ACCEL * dt, pushSpeed - along)
 					root.AssemblyLinearVelocity = current + pushDirection * delta
 				end
-				if now - (lastExemptAt[player] or -math.huge) >= EXEMPT_REFRESH then
-					lastExemptAt[player] = now
-					MoveExempt.mark(character)
-				end
+				-- 기울기 밀기(최고 6)는 표시 없이도 감시 기준 안이라 MoveExempt를 달지 않아요 (m4-10 QA B1).
 			end
 		end
 	end))

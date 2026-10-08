@@ -380,13 +380,12 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"MoveExempt: 벨트 밀기·젓가락·간장·와사비·날치알에서 이동 감시 면제를 달아요",
+		"MoveExempt: 젓가락·간장·와사비·날치알에서 이동 감시 면제를 달고, 벨트 밀기에는 달지 않아요",
 		function()
+			-- 설계 변경 (m4-10 QA B1, 2026-10-08): 벨트 밀기(최고 10)는 표시 없이도 감시 기준 안이고,
+			-- 반복 면제를 달면 벨트 위 속도 조작이 안 잡혀서 뺐어요. 기준 안인지는 m4-02-qa·m4-10-qa가 고정해요.
 			local belt = readSource("src/shared/maps/RotatingBelt.luau")
-			t.ok(
-				string.find(functionBody(belt, "start"), "MoveExempt.mark(character)", 1, true) ~= nil,
-				"conveyor push"
-			)
+			t.eq(string.find(functionBody(belt, "start"), "MoveExempt.mark(", 1, true), nil, "no conveyor exempt")
 			local chop = readSource("src/shared/maps/RotatingBeltChopstick.luau")
 			t.ok(
 				string.find(functionBody(chop, "grab"), "MoveExempt.mark(character, GRAB_DURATION + 1)", 1, true) ~= nil,

@@ -86,12 +86,29 @@ local function passAllowed(player: Player): boolean
 	return allowed ~= false
 end
 
+-- 레이서를 스폰에 배치한 순간 알려 받을 함수 (m4-10 이동 감시가 기준점을 스폰으로 잡아요). 하나만.
+export type PlacementListener = (player: Player, character: Model, position: Vector3) -> ()
+local placementListener: PlacementListener? = nil
+
+local function notifyPlaced(player: Player, character: Model, position: Vector3)
+	local listener = placementListener
+	if listener == nil then
+		return
+	end
+	local ok, err = pcall(listener, player, character, position)
+	if not ok then
+		warn(`[RoundService] placement listener failed: {err}`)
+	end
+end
+
 -- 방 하나당 지금 준비/진행 중인 라운드에서 플레이어 한 명이 나갔을 때 부르는 함수.
 -- 그 사람이 이 라운드의 레이서였으면 탈락 처리하고 true를 돌려줘요.
 local activeRemovers: { [string]: (player: Player) -> boolean } = {}
 
 -- 방 하나당 지금 라운드에서 그 userId가 "출발한 라운드에서 스폰에 배치된 채 아직 달리는 중"인지.
 local activeRacing: { [string]: (userId: number) -> boolean } = {}
+-- 소개 중 포함, 스폰에 배치돼 아직 통과·탈락하지 않은 레이서인가 (m4-10 이동 감시).
+local placedRacing: { [string]: (userId: number) -> boolean } = {}
 
 local function waitForCharacter(player: Player, timeout: number): Model?
 	local deadline = os.clock() + timeout
@@ -144,6 +161,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		end
 		if activeRacing[roomId] then
 			activeRacing[roomId] = nil
+		end
+		if placedRacing[roomId] then
+			placedRacing[roomId] = nil
 		end
 		local cleanupOk, cleanupErr = pcall(cleanup.run, cleanup)
 		if not cleanupOk then
@@ -384,11 +404,20 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			MoveExempt.mark(character) -- 서버가 옮겼어요: 이동 감시(m4-10) 오탐 방지
 			character:PivotTo(spawn.CFrame + SPAWN_LIFT)
+			notifyPlaced(player, character, (spawn.CFrame + SPAWN_LIFT).Position)
 			lastGroundOf[player.UserId] = nil
 			watch(player, character)
 			placed[player.UserId] = true
 		end
 
+		-- 이동 감시(m4-10)가 배치 알림 직후부터 물어요: 배치 전에 등록해 둬요.
+		placedRacing[roomId] = function(userId: number): boolean
+			return not round.ended
+				and not closed
+				and placed[userId] == true
+				and not pendingIds[userId]
+				and RoundLogic.isRacing(round, userId)
+		end
 		for i, player in args.players do
 			local spawn = spawns[((i - 1) % #spawns) + 1] :: BasePart
 			cleanup:add(task.spawn(placeAt, player, spawn))
@@ -596,6 +625,26 @@ function RoundService.activeRoomOf(player: Player): string?
 	end
 	local isRacing = activeRacing[roomId]
 	if isRacing and isRacing(player.UserId) then
+		return roomId
+	end
+	return nil
+end
+
+-- 레이서를 스폰에 배치할 때(소개 전·늦은 배치 모두) 부를 함수를 등록해요 (하나만, m4-10 이동 감시).
+function RoundService.setPlacementListener(fn: PlacementListener)
+	assert(placementListener == nil, "RoundService.setPlacementListener: a listener is already registered")
+	placementListener = fn
+end
+
+-- 그 플레이어가 지금 라운드(소개 중 포함)에서 스폰에 배치된 채 아직 통과·탈락하지 않았으면 방 id, 아니면 nil.
+-- activeRoomOf와 달리 출발 전(소개 중)에도 돌려줘요 (m4-10 이동 감시).
+function RoundService.placedRoomOf(player: Player): string?
+	local roomId = RoomService.getRoomIdOf(player)
+	if roomId == nil then
+		return nil
+	end
+	local isPlaced = placedRacing[roomId]
+	if isPlaced and isPlaced(player.UserId) then
 		return roomId
 	end
 	return nil

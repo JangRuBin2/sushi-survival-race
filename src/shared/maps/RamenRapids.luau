@@ -457,15 +457,7 @@ local function start(ctx: MapTypes.RoundContext)
 	local forward = origin.LookVector
 	local right = origin.RightVector
 	local inBroth: { [Player]: boolean } = {}
-	local lastExempt: { [Player]: number } = {}
 	local lastHitAt: { [Player]: number } = {}
-
-	local function exempt(player: Player, now: number)
-		if now - (lastExempt[player] or -math.huge) >= Layout.EXEMPT_REFRESH then
-			lastExempt[player] = now
-			MoveExempt.mark(player.Character)
-		end
-	end
 
 	local function isRacer(player: Player): boolean
 		return table.find(ctx.getRacers(), player) ~= nil
@@ -568,7 +560,6 @@ local function start(ctx: MapTypes.RoundContext)
 				local addSide = Logic.pushDelta(velocity:Dot(right), push.side, Layout.WHIRLPOOL_PUSH_ACCEL, dt)
 				if addForward ~= 0 or addSide ~= 0 then
 					root.AssemblyLinearVelocity = velocity + forward * addForward + right * addSide
-					exempt(player, now)
 				end
 			elseif inBroth[player] then
 				inBroth[player] = nil
@@ -592,11 +583,6 @@ local function start(ctx: MapTypes.RoundContext)
 		for player in inBroth do
 			if not current[player] then
 				inBroth[player] = nil
-			end
-		end
-		for player in lastExempt do
-			if not current[player] then
-				lastExempt[player] = nil
 			end
 		end
 	end))

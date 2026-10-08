@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-10 — 서버 이동 감시 (순간이동·속도 조작 막기)
@@ -51,6 +51,30 @@ status: ready
 ## 결정 기록
 - 2026-10-08 · 위반 처리 · 되돌리기 + 통과 2초 막기 + 로그만, 킥·탈락 없음 (어린 유저 대상, 오탐 시 억울함 최소). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 서버가 움직인 직후 면제는 `MoveExemptUntil` 속성 방식 · 맵 스펙(m4-02~05)이 각자 표시 · planner
-
+- 2026-10-08 · 복제 멈춤 오탐 방지 · 거의 안 움직인(0.05 studs) 샘플은 기준 시각을 최대 `StallGrace` 1초까지 유지하고, check의 dt는 `MaxGap` 1초로 자른다 (`MovementGuardLogic` 상수, Config 공용 파일은 손대지 않음). 멈췄던 위치 복제가 한꺼번에 따라잡아도 짧은 dt로 재지 않게. 대신 오래 서 있다가 순간이동하면 허용 거리가 최대 80×1+6 = 86 studs · developer
+- 2026-10-08 · 통과 순간 재검사 · 결승선으로 순간이동한 그 프레임에 맵이 `ctx.pass`를 부르면 0.2초 샘플보다 먼저일 수 있어서, pass validator 안에서 그 자리에서 한 번 더 `check`하고 위반이면 되돌리고 거부한다 · developer
+- 2026-10-08 · strikeLog 시그니처 · `strikeLog(strikes, alreadyLogged, cfg?)` — cfg 생략 시 `Config.MovementGuard` (스펙 시그니처에 cfg만 선택 인자로 추가) · developer
+- 2026-10-08 · 위반 기록 초기화 · 레이서가 아니게 되면(통과·탈락·라운드 끝) 기록을 지운다 → "라운드당" 횟수·로그. 같은 라운드에서 캐릭터가 바뀌면 위치 기준만 새로 잡는다 · developer
+- 2026-10-08 · QA B1 수정: 면제 중에도 상한 · `MoveExemptUntil` 중에는 검사를 건너뛰지 않고 넉넉한 상한(수평 `ExemptMaxHorizontalSpeed` 130, 위 `ExemptMaxRiseSpeed` 200 studs/s → 0.2초에 32 / 46 studs)만 본다. 서버가 주는 가장 큰 충격은 칼 넉백 45(+걷기 16), 와사비 위 80 — 0.35초 몰림에도 안. 통과 순간 재검사도 같은 check라 면제 중 결승선 순간이동은 위반. 스폰 배치는 면제가 아니라 배치 알림으로 기준점을 다시 잡는다 · developer
+- 2026-10-08 · QA B1 후속 (메인 세션 결정): 연속 밀기(회전 벨트 Conveyor, 라멘 급류·소용돌이, 셰프의 도마 기울기 밀기)의 반복 `MoveExempt.mark`를 **뺀다**. 이 밀기들은 표시 없이도 기본 기준(0.2초 수평 22) 안이다(최악 합: 벨트+다이브 50, 급류+다이브 60, 소용돌이+다이브 ~62, 기울기+다이브 46 studs/s). 순간 충격(와사비, 젓가락 집기·놓기, 날치알, 꼬치·막대·칼 넉백, 간장 감속 켜기/끄기)의 표시는 그대로. 이 표시를 고정하던 다른 스펙 테스트(m4-02-qa, m4-05-qa, map-art-race, map-ramen-rapids-qa, m4-10-qa)는 "반복 표시 없음 + 밀기(+다이브) 속도가 기본 기준 안"으로 바꾸고 각 파일에 사유 주석을 남겼다. 결과: 벨트·급류 위 WalkSpeed 120도 위반(벨트 반대로 달리면 순 110 studs/s — 샘플 간격이 0.2초를 조금이라도 넘으면 위반이라 Heartbeat 샘플에선 항상 잡힘) · developer
+- 2026-10-08 · QA B2 수정: 배치 때부터 감시 · `RoundService`에 `setPlacementListener`(스폰 배치 순간 알림)와 `placedRoomOf`(소개 중 포함 배치된 레이서)를 추가(m4-01 서버 파일 최소 수정). 감시 대상은 `activeRoomOf` → `placedRoomOf`, 기준점은 스폰 위치. 소개 중 순간이동은 바로 되돌려진다. 감시 기록(Track)이 없을 때 들어온 통과는 거부(`passDecision`) · developer
+- 2026-10-08 · QA B3: `StallGrace` 1 → 0.5초. **기본값으로 진행, 사용자 수정 가능.** 서 있다 순간이동 허용은 최대 80×0.7+6 = 62 studs(기준 나이 0.5 미만 + 샘플 0.2). QA의 0.6초 멈춤 + 다이브 테스트는 그대로 통과. 개발 테스트의 멈춤 시뮬은 0.45초로 바꿈(0.5초를 넘는 멈춤 뒤 전속력 따라잡기는 되돌려질 수 있음 — 되돌리기만) · developer
+- 2026-10-08 · QA B5: 되돌린(배치한) 뒤 `RevertSettle` 0.5초 안의 위반은 되돌리기만 하고 횟수·통과 막기에 세지 않는다. 세는 위반만 이 창을 연다 → 속도 조작은 약 0.6초마다 한 번씩 세어 3번째(약 1.2초)에 경고. 통과 순간 재검사가 위반이면 창과 관계없이 그 통과는 거부 · developer
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · developer · QA 반려(B1·B2·B3·B5) 수정 · 브랜치 `m4-10-guard`(origin/m4-10-qa 병합) → `m4-10-qa`에 push
+- **바뀐 파일**: `src/shared/MovementGuardLogic.luau`(면제 상한, StallGrace 0.5, `passDecision`, `countsStrike`), `src/server/MovementGuardService.luau`(배치 알림 기준점, `placedRoomOf` 감시, 통과 거부, settle), `src/server/RoundService.luau`(`setPlacementListener`·`placedRoomOf`·`notifyPlaced`), `tests/movement-guard.spec.luau`(B1·B2·B3·B5 재현·계약, 벨트·급류 위 속도 120 테스트). 후속: 맵 `RotatingBelt`·`RamenRapids`(+Layout `EXEMPT_REFRESH` 삭제)·`ChefBoard`에서 연속 밀기 반복 표시 제거, 테스트 `m4-02-qa`·`m4-05-qa`·`map-art-race`·`map-ramen-rapids-qa`·`m4-10-qa` 기대 갱신.
+- **Studio 확인 추가**: AC7 (a) 출발 구역 (b) 벨트 위 (c) 소개 중 — 셋 다 `PivotTo(FinishLine…)` 뒤 통과 없이 원래 자리(소개 중이면 스폰)로. AC8은 출발 구역과 벨트 위·급류 위 모두에서 확인. AC6에서 벨트·급류·도마 기울기 위 다이브 연타 시 되돌려짐이 없는지 특히 볼 것(반복 면제를 뺐음).- 2026-10-08 · developer · 브랜치 `m4-10-guard`
+- **바뀐 파일**: `src/server/MovementGuardService.luau`(구현), 새 `src/shared/MovementGuardLogic.luau`(순수 판정), 새 `tests/movement-guard.spec.luau`(26개: AC1~4 + 정상 이동 시뮬레이션 — 걷기, 바닥 다이브 연타, 점프+공중 다이브, 와사비 무표시/표시, 꼬치 넉백, 손이 판 들어 올림, 벨트 밀기, 철판 낙하, 서버 프레임 지연 0.5초, 복제 멈춤 뒤 따라잡기, 스폰/로비 이동 면제 / 위반: 속도 120, 서 있다 결승선 순간이동).
+- **동작**: Heartbeat마다 샘플 차례인 플레이어만(0.2초, 첫 샘플 시각을 흩음) 검사. 달리지 않는 사람은 `activeRoomOf`도 0.2초마다만 물음. 위반이면 마지막 정상 위치로 `PivotTo`(회전 유지) + 속도 0, 위반 시각·횟수 기록, 3번째에 `warn("[MovementGuard] userId … strikes …")` 한 번. 결승선 통과는 validator에서 즉석 재검사 + 위반 2초 안이면 거부.
+- **튜닝 근거(코드 상수 기준)**: 걷기 16, 다이브 수평 40(공중 위 16 상한), 와사비 위 80·앞 30, 꼬치 넉백 바깥 32·위 22, 벨트 밀기 10, 서든데스 손이 판을 0.5초에 30 들어 올림(ease-out 최고 120/s, 0.2초 19 studs). 모두 0.2초 기준 수평 22 / 위 34 안 — 맵이 `MoveExempt.mark`를 안 불러도 걸리지 않음. 실측 최고 수평 속도는 Studio에서 재서 40(80의 절반)을 넘으면 결정 기록에 적을 것.
+- **Studio 확인 방법**:
+  - AC6: `Config.DEBUG.forceMapPlan`에 맵 3~4개씩 두 판(6개 맵 전부) → 다이브 연타·와사비·벨트·급류·꼬치/칼 맞기. 서버 Output에 `[MovementGuard]`가 없어야 함. (m4-02~05 병합된 `main`을 merge한 뒤)
+  - AC7: Race 라운드 출발 뒤 클라이언트 명령창(Studio Test 탭의 클라이언트 쪽 Command Bar)에서
+    `local f; for _, d in workspace:GetDescendants() do if d.Name == "FinishLine" and d:IsA("BasePart") then f = d end end; game.Players.LocalPlayer.Character:PivotTo(f.CFrame + Vector3.new(0, 3, 0))`
+    → 통과 처리(통과 토스트·대기석 이동) 없이 원래 자리로 돌아와야 함.
+  - AC8: `game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 120` 후 달리기 → 계속 뒤로 당겨지고 서버 Output에 `[MovementGuard] userId … strikes 3 in this round` 한 줄. 킥 없음.
+  - AC9: Test → Clients and Servers 2명 이상, 잡기·넉백으로 부딪히기 → 경고 없음.
+- **남은 이슈**: 캐릭터끼리 물리 충돌로 튕겨 날아가는(fling) 경우는 표시가 없어 위반될 수 있음(되돌리기만, AC9에서 확인). 서 있다가 순간이동하면 86 studs까지는 못 잡음(복제 멈춤 오탐 방지와 맞바꿈).
+- 2026-10-08 · qa · **반려 (in-dev)** — `docs/qa/m4-10-movement-guard.md`. P1 B1: 면제(MoveExemptUntil) 중에는 거리 무관 "exempt"라 벨트·급류 위(계속 면제)·와사비·젓가락·넉백 직후 결승선 순간이동이 통과됨. P1 B2: 소개 중·출발 0.2초 안 순간이동은 Track이 없거나 기준점이 순간이동한 자리라 통과됨. P2 B3: StallGrace로 86 studs 순간이동 허용(짧은 코스). 정상 플레이 오탐 시뮬레이션은 전부 기준 안(리포트 표). QA 테스트 `tests/m4-10-qa.spec.luau` 15개.
+- 2026-10-08 · qa · **재검증 통과 (qa-passed)** — be5a7f1·d5e5732. B1·B2·B5 해결, B3 완화. 면제를 뺀 연속 밀기+다이브는 복제 멈춤 0.45~0.6초에서 오탐 없음. 남은 것: P2 R1(복제 0.6초 넘게 멈추면 다이브 중 되돌림, StallGrace 0.5와 맞바꿈), P3 R2(지속 속도 감지 한계 약 110 studs/s), R3·R4·B4. 리포트 "재검증" 절.

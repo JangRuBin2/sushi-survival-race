@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-04 — 라운드 소개 플라이스루 · "출발!"
@@ -55,5 +55,18 @@ status: ready
 - 2026-10-08 · 순수 함수 자료형 · Lune 테스트 환경에는 `Vector3`/`CFrame`이 없다(`tests/lib/RobloxRequire.luau`는 `script`·`require`만 흉내). 그래서 `IntroCameraLogic`은 위치·방향을 숫자 표(`{ x, y, z }`)로 받고 돌려주며, `autoPath(bounds, origin, kind)`의 `bounds`는 `{ center, size }`(숫자 표), `origin`은 `{ position, forward }`(forward = origin LookVector)로 받는다. 경유점은 `{ position, lookAt }`. 컨트롤러가 `CFrame.lookAt`으로 바꾼다. 위 AC의 "CFrame"·"origin 로컬 Z"는 이 숫자 표 기준으로 읽는다 · planner
 - 2026-10-08 · 경로 · 맵 파일을 고치지 않게 자동 경로(경계 상자 기준). 맵별 수동 경로는 `IntroCamera` 폴더로 M4에서 · planner
 
+- 2026-10-08 · 구현 세부(스펙 기본값 안에서) · developer
+  - 맵 경계 상자는 보이는 파츠(Transparency < 1)만으로 월드 축 기준으로 잰다(투명한 스폰·판정 구역 제외). 출발 지점 = `Spawns` 파츠 평균 위치, 코스 방향 = 첫 스폰의 LookVector(스폰은 맵 origin과 같은 방향으로 놓임).
+  - Survival·Final은 내 캐릭터가 이미 맵 위(경계 상자 안)에 있으면 내 위치 쪽에서 반 바퀴가 끝나게 한다(복귀 0.6초가 짧아짐). 아니면 스폰 평균 쪽, 스폰이 가운데에 모여 있으면 코스 방향 반대쪽.
+  - 비행 2.4 / 복귀 0.6은 `IntroDuration`의 80%/20%로 계산하고, `endsAt`이 있으면 남은 시간 기준. 맵을 늦게 찾으면 비행을 줄인다(최소 0.6초).
+  - 복귀가 끝나고 2초 안에 `RoundActive`가 안 오면 카메라를 돌려준다(안전장치).
+  - `sample`은 경유점 사이 직선 + 전체 가감속(smoothstep). 경유점 모서리는 꺾인다 — 거슬리면 m3-09 튜닝에서 곡선으로.
+
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- **바뀐 파일**: `src/shared/IntroCameraLogic.luau`(새, 순수), `src/client/fx/IntroController.luau`(껍데기 → 구현), `src/client/fx/IntroScreen.luau`(새, "출발!"), `tests/intro-camera.spec.luau`(새, 10개). 공용 파일 변경 없음.
+- **Studio 확인**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "soy-swamp", "skewer-showdown" }`로 혼자 F5 → 방 만들기·시작.
+  - 라운드마다 3초 동안 카메라가 맵 위를 훑고(Race는 결승선 쪽 → 출발 지점 뒤, 철판·꼬치는 맵 가운데를 보며 반 바퀴), 마지막 0.6초에 내 초밥 뒤로 붙는다 (AC6·AC7).
+  - 출발 순간 화면 가운데 "출발!"이 커졌다 사라지고 바로 움직일 수 있다 (AC8).
+  - Clients and Servers 3명: 탈락한 관전자는 다음 소개 때 관전 화면 유지, "출발!" 없음 (AC9). 방 2개 동시(AC10), 소개 도중 방 나가기(AC11).
+  - 확인 후 `forceMapPlan`은 다시 `nil`.
+- **남은 이슈**: Sfx는 m3-08 전까지 소리 없음(`IntroWhoosh`·`Go` 호출만 함). 기본 카메라로 넘길 때 줌 거리(기본 12.5)와 복귀 위치(뒤 12, 위 4)가 조금 다르면 출발 순간 살짝 튈 수 있음 — Studio에서 보고 `FOLLOW_OFFSET` 조정.

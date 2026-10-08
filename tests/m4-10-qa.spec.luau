@@ -268,4 +268,146 @@ return function(t: Test.Test)
 		local source = fs.readFile("src/server/init.server.luau")
 		t.ok(string.find(source, "MovementGuardService", 1, true) ~= nil)
 	end)
+
+	-- 6. 재검증 (be5a7f1·d5e5732): 연속 밀기 면제를 뺀 뒤 오탐, StallGrace 0.5 경계, 새 RoundService API
+	-- 서버 샘플: 간격 SAMPLE 또는 SAMPLE + 한 프레임(60fps). 복제: 기본 지연 0.05초, onset부터 stall초 동안 멈춤.
+	local function firstViolationWithStall(speed: number, stall: number): boolean
+		for _, step in { SAMPLE, SAMPLE + 1 / 60 } do
+			for k = 0, 40 do
+				local onset = 2 + k * 0.01
+				local seen = 0
+				local baseline = at(0, 0, 0, 0)
+				local time = 0
+				while time < 6 do
+					time += step
+					local real = if time >= onset and time < onset + stall then onset - 0.05 else time - 0.05
+					seen = math.max(seen, real)
+					local cur = at(0, 0, -speed * seen, time)
+					local verdict = Logic.check(baseline, cur, nil, cfg)
+					if verdict == "violation" then
+						return true
+					end
+					baseline = Logic.advance(baseline, cur, verdict)
+				end
+			end
+		end
+		return false
+	end
+
+	t.test("recheck: unmarked pushes + dive survive replication stalls of 0.45~0.6s (StallGrace 0.5)", function()
+		local beltPush = localNumber("src/shared/maps/RotatingBelt.luau", "PUSH_SPEED")
+		local dive = Config.Dive.ForwardSpeed
+		local walk = Config.Character.WalkSpeed
+		local speeds = {
+			walk = walk,
+			["belt backwards walk"] = beltPush + walk,
+			["ramen broth + walk"] = RamenLayout.BROTH_PUSH_SPEED + walk,
+			dive = dive,
+			["ramen whirlpool side + dive"] = math.sqrt(dive * dive + RamenLayout.WHIRLPOOL_PUSH_SPEED ^ 2),
+			["chef tilt + dive"] = ChefLogic.TILT_PUSH_SPEED + dive,
+			["belt + dive (worst add)"] = beltPush + dive,
+		}
+		for name, speed in speeds do
+			for _, stall in { 0.45, 0.5, 0.55, 0.6 } do
+				t.ok(not firstViolationWithStall(speed, stall), `{name} ({speed}/s) stall {stall}s`)
+			end
+		end
+	end)
+
+	t.test("recheck: walking survives replication stalls up to 1.2s", function()
+		for _, stall in { 0.7, 0.8, 1.0, 1.2 } do
+			t.ok(not firstViolationWithStall(Config.Character.WalkSpeed, stall), `walk stall {stall}s`)
+		end
+	end)
+
+	t.test("recheck: dive chain on the belt / in broth under latency jitter has no violations", function()
+		local beltPush = localNumber("src/shared/maps/RotatingBelt.luau", "PUSH_SPEED")
+		local dive = Config.Dive.ForwardSpeed
+		-- 1.5초 주기: 0.9초 다이브 비행(40), 나머지는 밀기 섞인 달리기 (벨트 앞으로 16-10, 급류 20+16)
+		local function chain(groundSpeed: number): (r: number) -> (number, number, number)
+			return function(r: number)
+				local cycles = math.floor(r / 1.5)
+				local within = r - cycles * 1.5
+				local per = dive * 0.9 + groundSpeed * 0.6
+				local z = cycles * per
+					+ (if within < 0.9 then dive * within else dive * 0.9 + groundSpeed * (within - 0.9))
+				return 0, 0, -z
+			end
+		end
+		local function jitter(time: number): number
+			return 0.05 + 0.15 * ((math.floor(time / SAMPLE) % 3) / 2)
+		end
+		t.eq(simulateLatency(chain(Config.Character.WalkSpeed - beltPush), 12, jitter), 0, "belt dive chain")
+		t.eq(simulateLatency(chain(RamenLayout.BROTH_PUSH_SPEED + 16), 12, jitter), 0, "broth dive chain")
+		t.eq(simulateLatency(chain(ChefLogic.TILT_PUSH_SPEED + 16), 12, jitter), 0, "tilt dive chain")
+	end)
+
+	t.test("recheck: StallGrace boundary caps a stand-still teleport at 80*(0.5+one sample)+6", function()
+		t.eq(Logic.StallGrace, 0.5)
+		for _, step in { SAMPLE, SAMPLE + 1 / 60, SAMPLE + 2 / 60 } do
+			local cap = cfg.MaxHorizontalSpeed * (Logic.StallGrace + step) + cfg.Slack
+			for n = 1, 12 do
+				local baseline = at(0, 0, 0, 0)
+				local time = 0
+				for _ = 1, n do
+					time += step
+					local cur = at(0, 0, 0, time)
+					baseline = Logic.advance(baseline, cur, Logic.check(baseline, cur, nil, cfg))
+				end
+				t.ok(time - baseline.t < Logic.StallGrace, `baseline age {time - baseline.t}`)
+				local verdict = Logic.check(baseline, at(0, 0, -(cap + 0.5), time + step), nil, cfg)
+				t.eq(verdict, "violation", `step {step} still {n} samples`)
+			end
+		end
+	end)
+
+	t.test("recheck: impulse marks stay (chopstick, wasabi, soy, tobiko, skewer, ramen sweeper, chef knife)", function()
+		local function has(file: string, text: string)
+			t.ok(string.find(fs.readFile(file), text, 1, true) ~= nil, `{file}: {text}`)
+		end
+		has("src/shared/maps/RotatingBeltChopstick.luau", "MoveExempt.mark(character, GRAB_DURATION + 1)")
+		has("src/shared/maps/SoySwampHazards.luau", "MoveExempt.mark(character, WASABI_EXEMPT)")
+		has("src/shared/maps/SoySwampHazards.luau", "MoveExempt.mark(player.Character, Layout.KNOCKDOWN_DURATION + 1)")
+		has("src/shared/maps/SkewerShowdown.luau", "MoveExempt.mark(player.Character)")
+		has("src/shared/maps/RamenRapids.luau", "MoveExempt.mark(player.Character, Layout.KNOCKDOWN_TIME + 0.5)")
+		has("src/shared/maps/ChefBoard.luau", "MoveExempt.mark(player.Character, Logic.KNOCKDOWN_TIME + 1)")
+		has("src/server/RoundService.luau", "MoveExempt.mark(character)")
+		has("src/server/CharacterUtil.luau", "MoveExempt.mark(character)")
+	end)
+
+	t.test("recheck: exempt cap still covers the largest marked impulses in one sample", function()
+		local cases = {
+			{ h = ChefLogic.KNOCK_HORIZONTAL + Config.Character.WalkSpeed, v = ChefLogic.KNOCK_UP },
+			{ h = RamenLayout.KNOCK_OUTWARD + Config.Character.WalkSpeed, v = RamenLayout.KNOCK_UP },
+			{ h = SoyLayout.WASABI_FORWARD + Config.Character.WalkSpeed, v = SoyLayout.WASABI_UP },
+		}
+		for _, case in cases do
+			-- 한 샘플이 한 프레임 늦어도 (0.2 + 1/60)
+			local dt = SAMPLE + 1 / 60
+			t.ok(case.h * dt <= Logic.ExemptMaxHorizontalSpeed * SAMPLE + cfg.Slack, `h {case.h}`)
+			t.ok(case.v * dt <= Logic.ExemptMaxRiseSpeed * SAMPLE + cfg.Slack, `v {case.v}`)
+		end
+	end)
+
+	t.test("recheck: RoundService placement API registers before placing, is pcall'd and cleared on close", function()
+		local round = fs.readFile("src/server/RoundService.luau")
+		local registerAt = string.find(round, "placedRacing[roomId] = function", 1, true)
+		local spawnAt = string.find(round, "cleanup:add(task.spawn(placeAt", 1, true)
+		t.ok(registerAt ~= nil and spawnAt ~= nil and registerAt < spawnAt, "placedRacing registered before placeAt")
+		t.ok(string.find(round, "pcall(listener, player, character, position)", 1, true) ~= nil, "listener pcall")
+		t.ok(string.find(round, "placedRacing[roomId] = nil", 1, true) ~= nil, "cleared on close")
+		-- 배치 알림은 PivotTo 바로 뒤, placed = true 앞 (그 사이 yield 없음)
+		local pivot = string.find(round, "character:PivotTo(spawn.CFrame + SPAWN_LIFT)\n\t\t\tnotifyPlaced(", 1, true)
+		t.ok(pivot ~= nil, "notifyPlaced right after PivotTo")
+		-- activeRoomOf(잡기 등 M3)는 그대로 round.active를 요구
+		t.ok(
+			string.find(round, "return round.active\n\t\t\t\tand not round.ended", 1, true) ~= nil,
+			"activeRacing unchanged"
+		)
+		local guard = fs.readFile("src/server/MovementGuardService.luau")
+		t.ok(
+			string.find(guard, "return false -- 감시하던 캐릭터가 아니에요", 1, true) ~= nil,
+			"other character denied"
+		)
+	end)
 end

@@ -5,6 +5,6 @@
 return {
 	UserIds = { 11402290839 } :: { number }, -- 사용자 본인 (2026-10-08 알려 줌)
 	IncludeOwner = true, -- 게임을 개인 계정으로 퍼블리시했으면 소유자도 관리자
-	StudioAllAdmins = true, -- Studio에서는 모두 관리자. false면 Studio에서도 위 목록만 (비관리자 화면 확인용)
+	StudioAllAdmins = true, -- Studio에서는 모두 관리자. false면 Studio에서도 위 목록(+ IncludeOwner면 퍼블리시 소유자)만 (비관리자 화면 확인용 — 소유자 계정으로 보려면 IncludeOwner도 false로)
 	LiveEnabled = true, -- false면 실서버에서는 아무도 관리자가 아님 (공개 출시 때 끄고 싶으면)
 }

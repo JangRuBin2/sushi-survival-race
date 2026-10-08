@@ -18,7 +18,7 @@
   - 맵: 철판·결승 큰 장식의 카메라 가림(m4-03 B2, Studio 확인), 꼬치 음식 장식 서버 복제(B5), 도마 계단 모양 가장자리(m4-05 C1).
   - 저장·서버 이동: 퇴장 저장이 10초를 넘으면 마지막 진행 유실 가능(m4-07 D6·m4-11 R4), 정원 복귀 방 10초 뒤 자동 출발(m4-11 R6, 기획 확인).
   - 단상·연출: 우승자가 일찍 나가면 단상 칭호·승수 없음·우승 연출 인형 기본 외형(m4-13 N4), 매치 서버 늦은 프로필로 라운드 중 외형 바뀜(N2), 잡기 재전송 네트워크 흔들림(m4-12 N2).
-  - M5: 관리자 미리보기 서버 이동 직후 복원이 방금 입은 스킨을 덮을 수 있음(m5-02 B1), `AdminConfig.StudioAllAdmins = false`여도 Studio의 퍼블리시 소유자는 관리자 — 설정 주석과 다름(B2), `Overtime` 효과음 무음.
+  - M5: 관리자 미리보기 서버 이동 직후 복원이 방금 입은 스킨을 덮을 수 있음(m5-02 B1), `AdminConfig.StudioAllAdmins = false`여도 Studio의 퍼블리시 소유자는 관리자(B2 — 주석에 명시함, 소유자 계정으로 비관리자 화면을 보려면 `IncludeOwner`도 false), `Overtime` 효과음 무음.
 - 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). 참고 자료: `docs/REFERENCE-map-production.md`(맵 제작), `docs/REFERENCE-party-royale.md`(파티 로얄 장르), `docs/REFERENCE-roblox-monetization.md`(가격·수익화, A안 근거), `docs/REFERENCE-final-overtime.md`(결승 시간 초과 처리·관리자 권한 관행, m5-01·m5-02 근거).
 
 ## 스킨 · 상점 규칙

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-11 — 로비/매치 플레이스 분리 (텔레포트 · 같은 방으로 복귀 · 서버 간 방 목록)

@@ -1,4 +1,4 @@
-status: in-qa
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-09 — 모바일 UI (화면 크기 대응 · 터치 버튼 배치 · 안전 영역)
@@ -73,3 +73,6 @@ status: in-qa
 - 측정값(계산): iPhone SE 667×375 → scale 0.6, 로비·방 버튼 높이 74(가상) × 0.6 = 44.4px, 글씨 최소 24 × 0.6 = 14.4px, 스크롤바 14 × 0.6 = 8.4px. 1920×1080 → scale 1.25(버튼 55px).
 - Studio 확인: Test 탭 → Device에서 iPhone SE / iPhone 14 Pro Max / iPad / 1366×768 고르고 Play. `Config.DEBUG.forceMapPlan`으로 한 판을 빨리 돌려 로비 → 방 만들기 → 대기실 → HUD → 탈락 도장 → 관전 → 우승 순위표를 기기마다 확인(AC4). 휴대폰 에뮬레이터에서 점프 왼쪽 다이브·위쪽 잡기(AC6), 관전 중 ←/→ 무반응·Q/E 전환(AC7), PC 1920×1080 회귀(AC8).
 - 남은 이슈: UIScale을 ScreenGui 바로 아래에 둬서 전체를 키우는 방식이 실제 기기에서 예상대로(스케일 기반 크기 유지)인지 Studio 확인 필요. 관전 E 키는 다이브 키(E)와 같음(기존과 같음, 관전 중엔 캐릭터가 대기석). 1920×1080에서는 배율 1.25라 M3보다 UI가 25% 커요(스펙 상한대로).
+
+## QA
+- 2026-10-08 · 반려(in-dev) · `docs/qa/m4-09-mobile-ui.md`. P1 B1: main(m4-08) 병합 뒤 `UiScaleController.attach`가 CoinGui의 `TopbarSafeInsets`를 `CoreUISafeInsets`로 덮어써 코인 배지가 화면 왼쪽 가운데로, 토스트가 화면 밖으로 감. P3 B2~B4. · qa

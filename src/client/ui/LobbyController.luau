@@ -11,6 +11,7 @@ local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
 local LobbyScreen = require(script.Parent.LobbyScreen)
 local RoomScreen = require(script.Parent.RoomScreen)
+local UiScaleController = require(script.Parent.UiScaleController)
 
 local LobbyController = {}
 
@@ -20,6 +21,8 @@ function LobbyController.start(): ScreenGui
 	gui.Name = "LobbyGui"
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	-- 화면 크기 배율·안전 영역 (m4-09): 로비·방·HUD·관전·출발 글씨·탈락 도장이 모두 이 gui 위에 있어요
+	UiScaleController.attach(gui)
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local currentRoom: Types.RoomSnapshot? = nil

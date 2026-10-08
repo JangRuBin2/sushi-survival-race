@@ -6,6 +6,8 @@
 
 local TweenService = game:GetService("TweenService")
 
+local UiScaleController = require(script.Parent.Parent.ui.UiScaleController)
+
 export type VictoryCutsceneScreen = {
 	show: (self: VictoryCutsceneScreen, text: string) -> (),
 	hide: (self: VictoryCutsceneScreen) -> (),
@@ -20,9 +22,10 @@ function VictoryCutsceneScreen.new(playerGui: Instance): VictoryCutsceneScreen
 	local screenGui = Instance.new("ScreenGui")
 	screenGui.Name = "VictoryCutscene"
 	screenGui.ResetOnSpawn = false
-	screenGui.IgnoreGuiInset = true
 	screenGui.DisplayOrder = DISPLAY_ORDER
 	screenGui.Enabled = false
+	-- 화면 배율 + 안전 영역(노치·위쪽 바 피함, m4-09)
+	UiScaleController.attach(screenGui)
 	screenGui.Parent = playerGui
 
 	local label = Instance.new("TextLabel")

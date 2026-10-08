@@ -6,8 +6,13 @@
 -- Chopstick.run은 Roblox API(game, Instance, CollectionService 등)를 함수 안에서만 불러요 — 이 모듈을
 -- require만 하는 것(Lune 테스트 포함)은 Roblox 런타임이 없어도 안전해요.
 
+local MoveExempt = require(script.Parent.Parent.MoveExempt)
+local Art = require(script.Parent.RotatingBeltArt)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
+
+local TAG = "Chopstick" -- 포획 영역 Zone에 다는 태그
+local TIP_LENGTH = 1.6 -- 젓가락 끝 나무색 부분
 
 local WARN_DURATION = 1 -- 빨간 경고가 뜨는 시간
 local GRAB_DURATION = 3 -- 젓가락이 붙잡고 있는 시간 (시간 손해)
@@ -22,6 +27,36 @@ local REST_HEIGHT = 10 -- 평소 젓가락이 숨어있는 높이 (바닥 기준
 local DEPLOY_HEIGHT = 1.5 -- 내려왔을 때 높이
 
 local Chopstick = {}
+
+Chopstick.TAG = TAG
+
+-- GetTagged만 쓰는 최소 모양 (테스트가 가짜를 넘길 수 있게)
+type TagSource = { GetTagged: (self: any, tag: string) -> { Instance } }
+
+-- container 하위에 있는 tag 파츠만 (여러 방이 같은 맵을 돌려도 자기 맵 것만, M1 B10).
+-- 폴더 구조와 상관없이 태그로 찾아요. tags를 안 넘기면 CollectionService를 써요.
+function Chopstick.taggedIn(container: Instance, tag: string, tags: TagSource?): { BasePart }
+	local source: TagSource = tags or (game:GetService("CollectionService") :: any)
+	local parts: { BasePart } = {}
+	for _, instance in source:GetTagged(tag) do
+		if instance:IsA("BasePart") and instance:IsDescendantOf(container) then
+			table.insert(parts, instance)
+		end
+	end
+	return parts
+end
+
+-- container 하위의 젓가락 station Model (태그 달린 Zone의 부모). 같은 station은 한 번만.
+function Chopstick.stationsIn(container: Instance, tags: TagSource?): { Model }
+	local stations: { Model } = {}
+	for _, zone in Chopstick.taggedIn(container, TAG, tags) do
+		local station = zone.Parent
+		if station and station:IsA("Model") and not table.find(stations, station) then
+			table.insert(stations, station)
+		end
+	end
+	return stations
+end
 
 -- station 하나를 짓는다. stationCFrame은 바닥 위(y=0)를 기준으로 하는 월드 CFrame.
 -- 포획 판정용 Zone에 CollectionService 태그 "Chopstick"을 붙인다.
@@ -40,7 +75,7 @@ function Chopstick.build(stationCFrame: CFrame): Model
 	zone.Size = Vector3.new(ZONE_WIDTH, ZONE_HEIGHT, ZONE_DEPTH)
 	zone.CFrame = stationCFrame * CFrame.new(0, ZONE_HEIGHT / 2, 0)
 	zone.Parent = station
-	CollectionService:AddTag(zone, "Chopstick")
+	CollectionService:AddTag(zone, TAG)
 
 	local warning = Instance.new("Part")
 	warning.Name = "Warning"
@@ -62,11 +97,33 @@ function Chopstick.build(stationCFrame: CFrame): Model
 		stick.Name = if offsetX < 0 then "StickLeft" else "StickRight"
 		stick.Anchored = true
 		stick.CanCollide = false
-		stick.Material = Enum.Material.Wood
-		stick.Color = Color3.fromRGB(200, 170, 120)
+		-- 아트 (m4-02): 옻칠 빨강/검정 몸통 + 나무색 끝. 크기·위치·충돌은 M3 그대로.
+		local body = if offsetX < 0 then Art.COLORS.stickRed else Art.COLORS.stickBlack
+		stick.Material = Enum.Material.SmoothPlastic
+		stick.Reflectance = 0.1
+		stick.Color = Color3.fromRGB(body.r, body.g, body.b)
 		stick.Size = Vector3.new(0.6, 0.6, ZONE_DEPTH * 0.8)
 		stick.CFrame = stationCFrame * CFrame.new(offsetX * (ZONE_WIDTH / 4), REST_HEIGHT, 0)
 		stick.Parent = sticks
+
+		-- 끝(코스 앞쪽 -Z)은 장식: 젓가락에 용접해서 트윈으로 같이 움직여요. 충돌·쿼리·터치 없음.
+		local tipColor = Art.COLORS.stickTip
+		local tip = Instance.new("Part")
+		tip.Name = "Tip"
+		tip.Anchored = false
+		tip.CanCollide = false
+		tip.CanQuery = false
+		tip.CanTouch = false
+		tip.Massless = true
+		tip.Material = Enum.Material.Wood
+		tip.Color = Color3.fromRGB(tipColor.r, tipColor.g, tipColor.b)
+		tip.Size = Vector3.new(0.62, 0.62, TIP_LENGTH)
+		tip.CFrame = stick.CFrame * CFrame.new(0, 0, -(stick.Size.Z - TIP_LENGTH) / 2)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = stick
+		weld.Part1 = tip
+		weld.Parent = tip
+		tip.Parent = stick
 	end
 
 	return station
@@ -104,6 +161,8 @@ local function grab(players: { Player }): { Grabbed }
 			)
 			humanoid.WalkSpeed = 0
 			humanoid.JumpPower = 0
+			-- 서버가 붙잡아요: 잡힌 동안 + 1초는 이동 감시(m4-10)에서 빼요
+			MoveExempt.mark(character, GRAB_DURATION + 1)
 		end
 	end
 	return grabbed
@@ -115,6 +174,11 @@ local function release(grabbed: { Grabbed })
 		if entry.humanoid.Parent then
 			entry.humanoid.WalkSpeed = entry.walkSpeed
 			entry.humanoid.JumpPower = entry.jumpPower
+			-- 놓아준 직후(벨트에 밀려 떨어지는 순간)도 면제
+			local character = entry.humanoid.Parent
+			if character:IsA("Model") then
+				MoveExempt.mark(character)
+			end
 		end
 	end
 end

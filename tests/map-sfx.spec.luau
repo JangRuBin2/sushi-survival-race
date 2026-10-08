@@ -20,6 +20,8 @@ local MAP_CUES: { [string]: { string } } = {
 	["src/shared/maps/SoySwampHazards.luau"] = { "SoySlow", "WasabiBoing" },
 	["src/shared/maps/HotPlate.luau"] = { "HotTileSizzle", "TileVanish" },
 	["src/shared/maps/SkewerShowdown.luau"] = { "SkewerWhoosh", "ChefHandWarn" },
+	["src/shared/maps/RamenRapids.luau"] = { "SoySlow", "SkewerWhoosh" }, -- m4-04
+	["src/shared/maps/ChefBoard.luau"] = { "ChefHandWarn", "SkewerWhoosh", "TileVanish" }, -- m4-05
 }
 
 local function soundsNamed(env: any, name: string): { any }

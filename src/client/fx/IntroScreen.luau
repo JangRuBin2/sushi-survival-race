@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 local IntroLayout = require(ReplicatedStorage.Shared.IntroLayout)
 local HudScreen = require(script.Parent.Parent.ui.HudScreen)
+local UiScaleController = require(script.Parent.Parent.ui.UiScaleController)
 
 export type IntroScreen = {
 	showGo: (self: IntroScreen, duration: number) -> (),
@@ -82,10 +83,12 @@ function IntroScreen.new(parent: Instance): IntroScreen
 		if size.Y <= 0 then
 			return
 		end
+		-- 계산은 실제 픽셀(Absolute*)로 하고, LobbyGui의 UIScale(m4-09) 안 좌표로 나눠서 넣어요
 		local layout = IntroLayout.compute(size.X, size.Y, bannerBottom(parent))
-		label.Position = UDim2.new(0.5, 0, 0, layout.centerY)
-		label.Size = UDim2.fromOffset(layout.boxWidth, layout.boxHeight)
-		label.TextSize = layout.textSize
+		local s = UiScaleController.metrics().scale
+		label.Position = UDim2.new(0.5, 0, 0, layout.centerY / s)
+		label.Size = UDim2.fromOffset(layout.boxWidth / s, layout.boxHeight / s)
+		label.TextSize = math.floor(layout.textSize / s)
 	end
 
 	local screen = {}

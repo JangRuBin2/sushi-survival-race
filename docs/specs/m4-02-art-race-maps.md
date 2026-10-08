@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-02 — 맵 아트 패스: 회전 벨트 · 간장 늪 & 와사비 산 (+ 회전 벨트 태그 전환)
@@ -75,6 +75,34 @@ status: ready
 - 2026-10-08 · 아트 범위 · 코드로 만드는 색·재질·장식 + IntroCamera까지가 이 스펙, 메시·텍스처·Studio 수작업은 사용자 선택 작업. 판정 지오메트리는 안 바꿈. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 회전 벨트 태그 전환(M1 B10)을 아트 패스에 같이 넣음 — 같은 파일이라 충돌 없음 · planner
 - 2026-10-08 · 장식 예산 · 맵당 파츠 600, 파티클 8, 조명 12. 모바일 고려(REFERENCE §3 "반복 오브젝트는 가볍게"). **기본값으로 진행, 사용자 수정 가능** · planner
+- 2026-10-08 · `courseVolume()` 모양 · 스펙은 `{ min, max }` 하나지만 두 맵 모두 구간마다 폭·바닥 높이가 달라서(벨트 폭 20/16/6, 간장 늪 바닥 0/12/12→20/20) 상자 하나로는 "벽 안쪽, 바닥 위 2~12"를 표현할 수 없음 → **구간별 상자 목록 `{ Bounds }`**로 돌려줌. 테스트(AC2)는 모든 상자와 겹치지 않는지 확인. 기본값으로 진행 · developer
+- 2026-10-08 · 재질 변경과 물리 · 바닥·산·경사로·종지·날치알 공의 `Material`을 바꾸면 마찰·밀도가 달라져 판정 느낌(날치알 구르기, 벨트 밀기)이 바뀔 수 있음 → 바꾼 파츠마다 `CustomPhysicalProperties = PhysicalProperties.new(M3 재질)`로 물리는 M3 그대로. 벽은 유리·반투명 그대로 두고 은색 레일·나무 손잡이를 장식으로 벽 위에 얹음(벽 너머 손님 소품이 보이게) · developer
+- 2026-10-08 · 젓가락 끝 나무색 · 젓가락은 트윈으로 움직이는 파츠라 장식 폴더에 둘 수 없음 → `Tip` 파츠를 젓가락에 `WeldConstraint`로 붙여 같이 움직이게 함 (충돌·쿼리·터치 없음, Massless). 왼쪽 옻칠 빨강, 오른쪽 검정 · developer
+- 2026-10-08 · **회전 벨트 스폰 버그 수정 (실제 버그 확인)** · 옛 식 `z = startCenter + 2 + row * 4`(startCenter = -7)로 줄 z가 -5, -1, +3, +7 → 3·4번째 줄(Spawn13~24)이 출발 바닥(z 0 ~ -14) 뒤 허공. 또 x = (col - 2.5) × 4 = ±10 열은 스폰 판 절반이 바닥(폭 20, x ±10) 밖. 13명 이상 방에서 시작하자마자 떨어질 수 있었음. 코디네이터 지시로 이 스펙에서 고침: `RotatingBeltArt.spawnPositions()` 6열 × 4줄, 간격 3 → x ±7.5, z -2.5 ~ -11.5 (스폰 판 3×3 가장자리가 바닥 끝에서 1 stud 이상). 출발 바닥·결승선·낙하선·벨트 구역은 그대로. 간장 늪 스폰은 원래 출발 구간 안(x ±9, z -2.5 ~ -13.3, StartWall·늪 시작에서 1 stud 이상)이라 그대로 두고 테스트만 추가 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 · developer (브랜치 `m4-02-art-race`)
+**바뀐 파일**
+- 새 `src/shared/maps/RotatingBeltArt.luau` — 순수: `COLORS`, `SECTIONS`, `decor()`(약 330 파츠: 벨트 슬랫, 벽 위 은색 레일+나무 손잡이, 손님 카운터·의자·초밥 접시·간장병·찻잔, 종지 남색 테두리·색 접시 더미, 체크무늬 결승선, 노렌 문틀, 종이 등, 거대 손님 얼굴 3개), `introCamera()`(4점), `courseVolume()`(구간 5개)
+- 새 `src/shared/maps/SoySwampArt.luau` — 순수: `COLORS`, `decor()`(약 140 파츠: 웅덩이 도자기 테두리, 와사비 패드 울퉁불퉁 공, 와사비 층층 언덕, 날치알 그릇, 거대 간장병, 고추냉이 강판, 생강 더미, 체크무늬 결승선, 종이 등), `introCamera()`(4점), `courseVolume()`(구간 5개)
+- `RotatingBelt.luau` — 색·재질만 교체(물리는 M3 재질), 벨트 구역에 `Conveyor` 태그, `start`가 `Chopstick.stationsIn`/`Chopstick.taggedIn`으로 태그 조회(M1 B10), 벨트 미는 동안 0.5초 간격 `MoveExempt.mark`, build 끝에 `MapKit.buildDecor`·`introCamera`·`attachStudioArt`
+- `RotatingBeltChopstick.luau` — `Chopstick.TAG`, `taggedIn(container, tag, tags?)`, `stationsIn(container, tags?)`, 젓가락 옻칠 색 + 나무색 `Tip`(용접), 잡을 때 `MoveExempt.mark(character, GRAB_DURATION + 1)`, 놓을 때 `MoveExempt.mark`
+- `SoySwamp.luau` — 색은 `SoySwampArt.COLORS`, 바닥·경사로 WoodPlanks, 산 Sand(물리는 SmoothPlastic), 간장 Reflectance 0.25, build 끝에 MapKit 3종
+- `SoySwampHazards.luau` — 간장 감속 켜고 끌 때·와사비 튕김(2.5초)·날치알 넘어짐(KNOCKDOWN+1초) `MoveExempt.mark`, 날치알 공 Sand 오렌지(물리는 SmoothPlastic)
+- `SoySwampLayout.luau` — 바꾸지 않음 (판정 수치 그대로)
+- 새 `tests/map-art-race.spec.luau` — 14개: AC1 예산, AC2 코스 공간 침범 없음·공간이 코스를 덮음, 와사비 공 높이·슬랫 두께, AC3 경유점·장식에 안 묻힘, AC4 판정 상수 그대로, AC5 소스(태그), 태그 조회 = 폴더 순회와 같은 결과·다른 방 제외·폴더 밖 station도 찾음·중복 제거, MoveExempt 호출, build의 MapKit 호출·물리 유지, 바닥 채도
+
+**Studio 확인 방법** (`Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "hot-plate", "skewer-showdown" }`, 커밋 전 `nil`로)
+1. AC7: 두 맵이 나무 바닥·어두운 벨트·은색 레일·카운터·손님 얼굴(회전 벨트), 나무 바닥·간장 반짝임·연두 언덕·간장병·강판·생강(간장 늪)으로 보이는지 스크린샷.
+2. AC8: 벽 위 레일, 결승선 체크무늬, 와사비 공, 웅덩이 테두리 위를 지나가도 걸리지 않는지. 카메라를 돌려 코스가 가려지는 곳이 없는지.
+3. AC9: 벨트 밀기·젓가락(빨간 경고 1초 → 3초 묶임)·간장 감속·와사비 튕김·날치알 넘어짐이 M3와 같은지, 완주 시간 비슷한지.
+4. AC10: 라운드 소개에서 출발 위 → 젓가락/와사비 → 결승 → 내 뒤로 날고 벽·장식에 묻히지 않는지.
+5. AC11: Test → Clients and Servers로 방 2개를 만들어 둘 다 회전 벨트(forceMapPlan)로 시작 → 각 방 젓가락이 자기 맵에서만 움직이는지.
+6. AC12: `ServerStorage.MapArt`에 `rotating-belt` Model(파트 1개, 피벗 = 맵 origin)을 넣고 라운드 시작 → `Decor/StudioArt`에 나타나고 밟아도 통과하는지.
+7. AC13: Shift+F1/F2로 프레임 50 이상 유지되는지.
+
+- 추가 수정: 회전 벨트 스폰 위치(`RotatingBeltArt.spawnPositions`, 결정 기록), 테스트 "스폰 24개가 바닥 위" (두 맵) → map-art-race 15개. Studio에서 혼자 시작해도 Spawn01이 출발 바닥 위인지, 다인원이면 뒤 줄이 떨어지지 않는지 확인.
+
+**남은 이슈**
+- 젓가락 `Tip` 용접은 Studio에서 트윈과 같이 움직이는지 눈으로 확인 필요 (AC9 때 같이)

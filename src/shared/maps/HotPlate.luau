@@ -7,6 +7,11 @@
 -- (M1 B10 (A)). 달아오름 상태는 start 안의 지역 변수에 둬서 여러 방이 같은 맵을 동시에 돌려도 섞이지 않아요.
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
+-- 아트(m4-03): 장식은 HotPlateArt(순수 데이터) → MapKit.buildDecor로 Decor 폴더에 만들어요 (충돌·쿼리·터치 없음).
+-- 타일 크기·위치·층·탈락 높이·달아오름 시간은 그대로이고, 색·재질만 바뀌어요.
+
+local Art = require(script.Parent.HotPlateArt)
+local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 local Logic = require(script.Parent.HotPlateLogic)
@@ -31,6 +36,42 @@ local COLOR_STEP = 0.1
 
 local function toColor3(rgb: Logic.RGB): Color3
 	return Color3.fromRGB(rgb.r, rgb.g, rgb.b)
+end
+
+-- 장식·김·후드 조명·소개 카메라·Studio 아트 (판정과 무관)
+local function buildArt(model: Model, origin: CFrame)
+	local decor = MapKit.decorFolder(model)
+	for _, part in MapKit.buildDecor(Art.decor(), origin, decor) do
+		part.CastShadow = false -- QA B4: 큰 장식(후드·벽) 그림자가 철판 경고 색을 가리지 않게
+		if part.Name == Art.STEAM_VENT then
+			local steam = Instance.new("ParticleEmitter")
+			steam.Name = "Steam"
+			steam.Color = ColorSequence.new(Color3.fromRGB(235, 235, 235))
+			steam.LightEmission = 0
+			steam.Rate = 3
+			steam.Lifetime = NumberRange.new(2, 3)
+			steam.Speed = NumberRange.new(3, 5)
+			steam.SpreadAngle = Vector2.new(15, 15)
+			steam.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1.5),
+				NumberSequenceKeypoint.new(1, 6),
+			})
+			steam.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.6),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			steam.EmissionDirection = Enum.NormalId.Top
+			steam.Parent = part
+		elseif part.Name == Art.HOOD_LAMP then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 226, 180)
+			light.Brightness = 1
+			light.Range = 40
+			light.Parent = part
+		end
+	end
+	MapKit.introCamera(model, Art.introCamera(), origin)
+	MapKit.attachStudioArt(model, ID, origin)
 end
 
 local function build(origin: CFrame): Model
@@ -58,6 +99,8 @@ local function build(origin: CFrame): Model
 			tile.CFrame = origin * CFrame.new(offset.x, topY - thickness / 2, centerZ + offset.z)
 			tile.Color = coldColor
 			tile.Material = Enum.Material.DiamondPlate
+			-- 달아오를 때 Neon으로 바꿔도 마찰·밀도가 그대로이게 물성을 고정해요
+			tile.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.DiamondPlate)
 			tile.TopSurface = Enum.SurfaceType.Smooth
 			tile.BottomSurface = Enum.SurfaceType.Smooth
 			tile:SetAttribute("Layer", layerIndex)
@@ -86,6 +129,7 @@ local function build(origin: CFrame): Model
 	end
 	spawns.Parent = model
 
+	buildArt(model, origin)
 	return model
 end
 
@@ -170,6 +214,9 @@ local function start(ctx: MapTypes.RoundContext)
 				if colorStep[tile] ~= step then
 					colorStep[tile] = step
 					tile.Color = toColor3(color)
+					if Art.isGlowing(now - startedAt) and tile.Material ~= Enum.Material.Neon then
+						tile.Material = Enum.Material.Neon -- 마지막 단계는 은은하게 빛나요 (물성은 build에서 고정)
+					end
 				end
 			end
 		end

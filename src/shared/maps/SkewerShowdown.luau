@@ -11,8 +11,16 @@
 -- Roblox API는 build/start 안에서만 써서 Lune에서 require해도 안전해요.
 -- 시간 일정·속도·맞음 판정 계산은 SkewerShowdownLogic(순수 로직, tests/map-skewer-showdown.spec.luau)에 있어요.
 
+-- 아트(m4-03): 장식은 SkewerShowdownArt(순수 데이터) → MapKit.buildDecor (충돌·쿼리·터치 없음).
+-- 조각 장식(금 선·남색 테두리)은 조각 Model 안에 넣어 조각과 같이 흔들리고 사라져요.
+-- 꼬치 음식 장식은 꼬치 판정 상자 안에만 있고(테스트), 꼬치를 돌릴 때 같이 옮겨요.
+
 local Config = require(script.Parent.Parent.Config)
+local MoveExempt = require(script.Parent.Parent.MoveExempt)
+local Art = require(script.Parent.SkewerShowdownArt)
 local Logic = require(script.Parent.SkewerShowdownLogic)
+local MapKit = require(script.Parent.MapKit)
+local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapSfx = require(script.Parent.MapSfx)
 local MapSfxLogic = require(script.Parent.MapSfxLogic)
 local MapTypes = require(script.Parent.MapTypes)
@@ -58,7 +66,17 @@ assert(WARN_TIME + HAND_DESCEND_TIME + HAND_LIFT_TIME < Logic.SUDDEN_DEATH_INTER
 
 -- 색은 Color3(Roblox API)라서 require 때가 아니라 쓸 때 만들어요 (Lune에서 require 안전)
 local WARN_RGB = { 230, 40, 40 }
-local WOOD_RGB = { 205, 168, 112 }
+local PALETTE = MapKitLogic.PALETTE
+local SKIN_RGB = { 240, 198, 166 }
+
+local function rgb(c: MapKitLogic.RGB): Color3
+	return Color3.fromRGB(c.r, c.g, c.b)
+end
+
+-- 꼬치 음식 장식이 들어가는 Decor 하위 폴더 이름
+local function foodFolderName(skewerName: string): string
+	return skewerName .. "Food"
+end
 
 local function makePart(props: { [string]: any }): BasePart
 	local parent = props.Parent
@@ -96,18 +114,19 @@ local function buildSlice(model: Model, origin: CFrame, index: number): Model
 	local halfTan = math.tan(sliceAngle / 2)
 	local apothem = STAGE_RADIUS * math.cos(sliceAngle / 2)
 	local depth = apothem / STRIPS_PER_SLICE
-	-- 조각마다 밝기를 조금씩 달리해서 구분돼요
-	local color = Color3.fromHSV(0.09, if index % 2 == 0 then 0.10 else 0.18, 0.96 - (index - 1) * 0.025)
+	-- 흰 도자기. 조각마다 아주 살짝 다른 흰색이라 구분되고, 바깥 줄은 남색 띠예요 (m4-03)
+	local color = if index % 2 == 0 then rgb(PALETTE.Porcelain) else Color3.fromRGB(228, 233, 242)
 	for strip = 1, STRIPS_PER_SLICE do
 		local mid = (strip - 0.5) * depth
 		makePart({
 			Name = "Plate",
 			Size = Vector3.new(depth, STAGE_THICKNESS, 2 * mid * halfTan),
 			CFrame = radialCFrame(origin, bisector, mid, -STAGE_THICKNESS / 2),
-			Color = color,
+			Color = if strip == STRIPS_PER_SLICE then rgb(PALETTE.PorcelainRim) else color,
 			Parent = slice,
 		})
 	end
+	MapKit.buildDecor(Art.sliceDecor(index), origin, slice)
 	slice:SetAttribute("SliceIndex", index)
 	slice:SetAttribute("Bisector", bisector)
 	CollectionService:AddTag(slice, TAG_SLICE)
@@ -122,7 +141,7 @@ local function buildSkewer(model: Model, origin: CFrame, name: string, spec: Log
 		Shape = Enum.PartType.Cylinder, -- 축이 로컬 X(바깥쪽)
 		Size = Vector3.new(spec.outerReach - spec.innerReach, SKEWER_THICKNESS, SKEWER_THICKNESS),
 		CFrame = skewerCFrame(origin, spec, angle),
-		Color = Color3.fromRGB(table.unpack(WOOD_RGB)),
+		Color = rgb(PALETTE.Wood),
 		Material = Enum.Material.Wood,
 		CanCollide = false, -- 올라타서 버티지 못하게. 맞음 판정은 서버가 거리로 해요.
 		CanTouch = false,
@@ -130,13 +149,18 @@ local function buildSkewer(model: Model, origin: CFrame, name: string, spec: Log
 		Parent = model,
 	})
 	CollectionService:AddTag(skewer, TAG_SKEWER)
+	-- 꽂힌 닭·대파 (꼬치 로컬 좌표, 판정 상자 안쪽만). start가 꼬치를 돌릴 때 같이 옮겨요.
+	local food = Instance.new("Folder")
+	food.Name = foodFolderName(name)
+	food.Parent = MapKit.decorFolder(model)
+	MapKit.buildDecor(Art.skewerFood(spec), skewer.CFrame, food)
 end
 
 local function buildHand(model: Model, origin: CFrame)
 	local CollectionService = game:GetService("CollectionService")
 	local hand = Instance.new("Model")
 	hand.Name = "ChefHand"
-	local grey = Color3.fromRGB(200, 200, 205)
+	local skin = Color3.fromRGB(table.unpack(SKIN_RGB))
 	local base = origin * CFrame.new(0, HAND_REST_HEIGHT, 0)
 	local palm = makePart({
 		Name = "Palm",
@@ -160,62 +184,34 @@ local function buildHand(model: Model, origin: CFrame)
 	})
 	for _, part in hand:GetChildren() do
 		if part:IsA("BasePart") then
-			part.Color = grey
+			part.Color = skin
 			part.CanCollide = false
 			part.CanTouch = false
 			part.CanQuery = false
 		end
 	end
+	-- 둥근 손끝·흰 조리복 소매 (손 Model 안이라 PivotTo로 같이 움직여요)
+	MapKit.buildDecor(Art.handDecor(), base, hand)
 	hand.PrimaryPart = palm
 	CollectionService:AddTag(hand, TAG_HAND)
 	hand.Parent = model
 end
 
--- 장식용 가게 문: 무대 앞쪽(로컬 -Z) 너머, 뛰어서 닿지 않는 거리. 밟을 수도 없어요.
-local function buildShopDoor(model: Model, origin: CFrame)
-	local door = Instance.new("Model")
-	door.Name = "ShopDoor"
-	local base = origin * CFrame.new(0, 0, -(STAGE_RADIUS + 18))
-	local frame = Color3.fromRGB(110, 80, 55)
-	for _, side in { -1, 1 } do
-		makePart({
-			Name = "Post",
-			Size = Vector3.new(2, 16, 2),
-			CFrame = base * CFrame.new(side * 6, 8, 0),
-			Color = frame,
-			Parent = door,
-		})
-	end
-	makePart({
-		Name = "Lintel",
-		Size = Vector3.new(16, 2, 2.5),
-		CFrame = base * CFrame.new(0, 17, 0),
-		Color = frame,
-		Parent = door,
-	})
-	makePart({
-		Name = "Panel",
-		Size = Vector3.new(10, 14, 0.5),
-		CFrame = base * CFrame.new(0, 7, 0),
-		Color = Color3.fromRGB(150, 110, 70),
-		Material = Enum.Material.Wood,
-		Parent = door,
-	})
-	makePart({
-		Name = "Noren", -- 가게 천 간판
-		Size = Vector3.new(14, 3, 0.2),
-		CFrame = base * CFrame.new(0, 14.5, 0.6),
-		Color = Color3.fromRGB(40, 60, 120),
-		Material = Enum.Material.Fabric,
-		Parent = door,
-	})
-	for _, part in door:GetChildren() do
-		if part:IsA("BasePart") then
-			part.CanCollide = false
-			part.CanTouch = false
+-- 움직이지 않는 장식(가게 문 — M2 ShopDoor 자리, 기둥 장식, 무대 아래 셰프)·등롱 조명·소개 카메라·Studio 아트.
+-- 판정과 무관해요.
+local function buildArt(model: Model, origin: CFrame)
+	for _, part in MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model)) do
+		part.CastShadow = false -- QA B4: 가게·셰프 장식 그림자가 무대를 덮지 않게
+		if part.Name == Art.LANTERN then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 170, 120)
+			light.Brightness = 1.2
+			light.Range = 16
+			light.Parent = part
 		end
 	end
-	door.Parent = model
+	MapKit.introCamera(model, Art.introCamera(), origin)
+	MapKit.attachStudioArt(model, ID, origin)
 end
 
 local function build(origin: CFrame): Model
@@ -232,15 +228,18 @@ local function build(origin: CFrame): Model
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(PILLAR_TOP - PILLAR_BOTTOM, PILLAR_DIAMETER, PILLAR_DIAMETER),
 		CFrame = origin * CFrame.new(0, (PILLAR_TOP + PILLAR_BOTTOM) / 2, 0) * CFrame.Angles(0, 0, math.pi / 2),
-		Color = Color3.fromRGB(150, 150, 155),
-		Material = Enum.Material.Metal,
+		Color = rgb(PALETTE.Lacquer), -- 옻칠 빨강 (m4-03)
+		Reflectance = 0.1,
+		Material = Enum.Material.SmoothPlastic,
+		-- 재질을 바꿔도 물성(마찰 등)은 M2 Metal 그대로
+		CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Metal),
 		Parent = model,
 	})
 
 	buildSkewer(model, origin, "LowSkewer", LOW_SKEWER, Logic.LOW_START_ANGLE)
 	buildSkewer(model, origin, "HighSkewer", HIGH_SKEWER, Logic.HIGH_START_ANGLE)
 	buildHand(model, origin)
-	buildShopDoor(model, origin)
+	buildArt(model, origin)
 
 	local spawns = Instance.new("Folder")
 	spawns.Name = "Spawns"
@@ -346,6 +345,25 @@ local function grabSlice(ctx: MapTypes.RoundContext, slice: Model, hand: Model?)
 	slice:Destroy()
 end
 
+type FoodSet = { parts: { BasePart }, offsets: { CFrame } }
+
+local function moveFood(food: FoodSet, skewerAt: CFrame)
+	if #food.parts == 0 then
+		return
+	end
+	local targets = table.create(#food.offsets)
+	for i, offset in food.offsets do
+		targets[i] = skewerAt * offset
+	end
+	workspace:BulkMoveTo(food.parts, targets, Enum.BulkMoveMode.FireCFrameChanged)
+end
+
+local function setFoodVisible(food: FoodSet, visible: boolean)
+	for _, part in food.parts do
+		part.Transparency = if visible then 0 else 1
+	end
+end
+
 local function start(ctx: MapTypes.RoundContext)
 	local RunService = game:GetService("RunService")
 
@@ -380,8 +398,27 @@ local function start(ctx: MapTypes.RoundContext)
 		end
 	end
 
+	-- 꼬치 음식 장식: 꼬치 기준 상대 위치를 기억해 두고 꼬치를 돌릴 때마다 같이 옮겨요 (판정과 무관)
+	local decorFolder = ctx.model:FindFirstChild("Decor")
+	local function foodOf(skewer: BasePart?): FoodSet
+		local set: FoodSet = { parts = {}, offsets = {} }
+		local folder = skewer and decorFolder and decorFolder:FindFirstChild(foodFolderName(skewer.Name))
+		if skewer and folder then
+			for _, child in folder:GetChildren() do
+				if child:IsA("BasePart") then
+					table.insert(set.parts, child)
+					table.insert(set.offsets, skewer.CFrame:ToObjectSpace(child.CFrame))
+				end
+			end
+		end
+		return set
+	end
+	local lowFood = foodOf(lowSkewer)
+	local highFood = foodOf(highSkewer)
+
 	if highSkewer then
 		highSkewer.Transparency = 1 -- 10초에 등장
+		setFoodVisible(highFood, false)
 	end
 
 	local lowAngle = Logic.LOW_START_ANGLE
@@ -402,6 +439,7 @@ local function start(ctx: MapTypes.RoundContext)
 		outward = if outward.Magnitude > 0.01 then outward.Unit else Vector3.xAxis
 		local worldOut = origin:VectorToWorldSpace(outward)
 		humanoid.PlatformStand = true
+		MoveExempt.mark(player.Character) -- 서버가 튕긴 속도라 이동 감시(m4-10)에서 빼요
 		root.AssemblyLinearVelocity = worldOut * KNOCK_OUTWARD + Vector3.yAxis * KNOCK_UP
 		ctx.cleanup:add(task.delay(KNOCKDOWN_TIME, function()
 			-- 그 사이 탈락했으면(EliminationService가 고정함) 손대지 않아요
@@ -429,14 +467,17 @@ local function start(ctx: MapTypes.RoundContext)
 		lowAngle = lowTo % (2 * math.pi)
 		if lowSkewer then
 			lowSkewer.CFrame = skewerCFrame(origin, LOW_SKEWER, lowAngle)
+			moveFood(lowFood, lowSkewer.CFrame)
 		end
 		local highFrom = highAngle
 		local highTo = highFrom + math.rad(speeds.high) * dt
 		highAngle = highTo % (2 * math.pi)
 		if highSkewer then
 			highSkewer.CFrame = skewerCFrame(origin, HIGH_SKEWER, highAngle)
+			moveFood(highFood, highSkewer.CFrame)
 			if highActive and highSkewer.Transparency > 0 then
 				highSkewer.Transparency = 0
+				setFoodVisible(highFood, true)
 			end
 		end
 

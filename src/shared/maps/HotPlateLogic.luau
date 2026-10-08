@@ -20,9 +20,11 @@ HotPlateLogic.SPAWN_COLUMNS = 6
 
 -- 달아오름: 처음 밟힌 순간부터 HEAT_DURATION초 뒤 사라져요. 내려와도 멈추지 않고 다시 생기지 않아요.
 HotPlateLogic.HEAT_DURATION = 1.5
-HotPlateLogic.COLOR_COLD = { r = 163, g = 162, b = 165 } :: RGB -- 회색 철판
-HotPlateLogic.COLOR_WARM = { r = 255, g = 140, b = 0 } :: RGB -- 주황
-HotPlateLogic.COLOR_HOT = { r = 220, g = 30, b = 0 } :: RGB -- 빨강
+-- 색만 m4-03 아트 패스로 다듬었어요 (진회색 철판 → 진한 주황 → 빨강, 마지막엔 HotPlateArt.isGlowing으로 Neon).
+-- 달아오르는 동안 초록·파랑이 늘지 않게 COLD의 g·b가 WARM보다 커요 (map-hot-plate 테스트).
+HotPlateLogic.COLOR_COLD = { r = 104, g = 106, b = 112 } :: RGB -- 진회색 철판
+HotPlateLogic.COLOR_WARM = { r = 232, g = 100, b = 24 } :: RGB -- 주황
+HotPlateLogic.COLOR_HOT = { r = 196, g = 36, b = 16 } :: RGB -- 빨강 (Neon이라 조금 어둡게)
 
 local function lerp(a: RGB, b: RGB, alpha: number): RGB
 	return {

@@ -13,7 +13,11 @@ export type Places = {
 
 local PlaceRole = {}
 
-function PlaceRole.resolve(placeId: number, places: Places, isStudio: boolean): Role
+-- simulateMatch: Studio에서 Config.DEBUG.simulateMatchServer가 켜져 있으면 "Match" (텔레포트 없이 흉내, m4-11)
+function PlaceRole.resolve(placeId: number, places: Places, isStudio: boolean, simulateMatch: boolean?): Role
+	if isStudio and simulateMatch == true then
+		return "Match"
+	end
 	if isStudio or places.LobbyPlaceId == nil or places.MatchPlaceId == nil then
 		return "Single"
 	end

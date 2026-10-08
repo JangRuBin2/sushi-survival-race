@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -30,8 +31,44 @@ function LobbyController.start(): ScreenGui
 	local lobby: LobbyScreen.LobbyScreen
 	local roomScreen: RoomScreen.RoomScreen
 
+	-- 매치 서버(m4-11)에는 로비가 없어요: 방 목록·대기실 대신 안내 한 줄만 보여요
+	local isMatchServer = workspace:GetAttribute(Attributes.PlaceRole) == "Match"
+	local matchSeen = false
+	local statusLabel: TextLabel? = nil
+	if isMatchServer then
+		local label = Instance.new("TextLabel")
+		label.Name = "MatchServerStatus"
+		label.AnchorPoint = Vector2.new(0.5, 0.5)
+		label.Position = UDim2.fromScale(0.5, 0.5)
+		label.Size = UDim2.fromOffset(420, 60)
+		label.BackgroundColor3 = Color3.fromRGB(30, 24, 20)
+		label.BackgroundTransparency = 0.25
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.Font = Enum.Font.GothamBold
+		label.TextSize = 24
+		label.Text = "매치 서버 연결 중…"
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 12)
+		corner.Parent = label
+		label.Parent = gui
+		statusLabel = label
+	end
+
 	local function refreshVisibility()
 		local room = currentRoom
+		if isMatchServer then
+			local inMatch = room ~= nil and room.state == "InMatch"
+			matchSeen = matchSeen or inMatch
+			lobby:setVisible(false)
+			roomScreen:setVisible(false)
+			if statusLabel then
+				statusLabel.Visible = not inMatch
+				if matchSeen and not inMatch then
+					statusLabel.Text = "로비로 돌아가는 중…"
+				end
+			end
+			return
+		end
 		lobby:setVisible(room == nil)
 		roomScreen:setVisible(room ~= nil and room.state == "Waiting")
 	end
@@ -88,7 +125,36 @@ function LobbyController.start(): ScreenGui
 	})
 
 	Remotes.event("RoomList").OnClientEvent:Connect(function(rooms: { Types.RoomListing })
-		lobby:setRooms(rooms)
+		-- 다른 로비 서버의 방은 이름 앞에 표시 (m4-11)
+		local shown = table.create(#rooms)
+		for i, listing in rooms do
+			if listing.remote then
+				local copy = table.clone(listing)
+				copy.name = `🌐 {listing.name}`
+				shown[i] = copy
+			else
+				shown[i] = listing
+			end
+		end
+		lobby:setRooms(shown)
+	end)
+
+	-- 서버의 짧은 안내 (m4-11: 텔레포트 실패, 다른 서버로 이동 중 등)
+	Remotes.event("Notice").OnClientEvent:Connect(function(message: string)
+		if type(message) ~= "string" then
+			return
+		end
+		if statusLabel then
+			statusLabel.Text = message
+			statusLabel.Visible = true
+		else
+			local isError = string.find(message, "…", 1, true) == nil -- "이동하고 있어요…" 같은 진행 안내는 오류가 아니에요
+			if currentRoom then
+				roomScreen:showMessage(message, isError)
+			else
+				lobby:showMessage(message, isError)
+			end
+		end
 	end)
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)

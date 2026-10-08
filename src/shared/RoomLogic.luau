@@ -19,6 +19,8 @@ export type Room = {
 	state: Types.RoomState,
 	autoStartAt: number?, -- 정원이 다 찼을 때 자동 시작 시각
 	slot: number, -- 아레나 슬롯 (Config.Arena.SlotSpacing 간격으로 맵을 띄우는 번호, 1부터)
+	-- 서버를 넘어 같은 방을 알아보는 키 (m4-11). 로비↔매치 텔레포트 동안 그대로 따라가요.
+	key: string?,
 }
 
 export type NewRoomParams = {
@@ -28,6 +30,7 @@ export type NewRoomParams = {
 	isPrivate: boolean,
 	code: string?,
 	slot: number,
+	key: string?,
 }
 
 -- Random과 같은 모양 (Rules.Rng)
@@ -131,6 +134,7 @@ function RoomLogic.newRoom(params: NewRoomParams, host: Types.MemberInfo): Room
 		state = "Waiting",
 		autoStartAt = nil,
 		slot = params.slot,
+		key = params.key,
 	}
 end
 
@@ -168,6 +172,15 @@ function RoomLogic.addMember(room: Room, member: Types.MemberInfo): (boolean, st
 	end
 	table.insert(room.members, { userId = member.userId, name = member.name })
 	return true, nil
+end
+
+-- 매치가 이미 시작된 방에 늦게 온 멤버를 넣어요 (m4-11 매치 서버: 관전자). 이미 멤버거나 꽉 찼으면 false.
+function RoomLogic.addLateMember(room: Room, member: Types.MemberInfo): boolean
+	if RoomLogic.isMember(room, member.userId) or RoomLogic.isFull(room) then
+		return false
+	end
+	table.insert(room.members, { userId = member.userId, name = member.name })
+	return true
 end
 
 -- 멤버를 빼고, 방장이 나갔으면 가장 먼저 들어온 사람에게 넘겨요. 뺐으면 true.

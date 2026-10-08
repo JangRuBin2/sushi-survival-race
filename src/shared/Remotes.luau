@@ -20,6 +20,7 @@
 --   MapSfx(cue: string, part: BasePart?, position: Vector3)  장애물 소리 (m3-09, 그 방 사람에게만 — 방을 모르면 모든 클라이언트. 소리는 클라이언트 Sfx가 내요)
 --   ProfileUpdated(view: ProfileView)        내 프로필이 로드되거나 바뀔 때, 본인에게만 (m4-01, DataService)
 --   RewardGranted(grant: RewardGrant)        코인을 받을 때, 본인에게만 (m4-08, RewardService)
+--   Notice(message: string)                  짧은 안내 한 줄, 본인에게만 (m4-11: 텔레포트 실패·서버 이동 중 등)
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
@@ -40,6 +41,7 @@ local EVENTS = {
 	"ProfileUpdated",
 	"RewardGranted",
 	"SaveSettings",
+	"Notice",
 }
 
 local FOLDER_NAME = "Remotes"

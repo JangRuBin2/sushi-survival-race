@@ -111,7 +111,12 @@ Config.Teleport = {
 	RestoreWindow = 30, -- 로비로 돌아온 멤버가 같은 방으로 다시 묶이는 시간(초)
 	DirectoryRefresh = 5, -- 방 목록을 MemoryStore에 다시 올리는 간격(초)
 	DirectoryTtl = 30, -- MemoryStore 방 항목 만료(초)
-	MaxRetries = 3,
+	MaxRetries = 3, -- 텔레포트 실패(TeleportInitFailed) 때 그 사람만 다시 보내는 횟수
+	ManifestTtl = 600, -- MemoryStore 매치 매니페스트 만료(초)
+	ResultTtl = 120, -- MemoryStore 매치 결과(로비 단상·복귀 방 정보) 만료(초)
+	LaunchTimeout = 60, -- 로비에서 텔레포트를 시작한 뒤 이 시간이 지나도 남아 있는 멤버는 방에서 빼요(초)
+	SaveBeforeTeleport = 5, -- 텔레포트 전에 프로필 저장을 기다리는 최대 시간(초)
+	SimulateSettle = 5, -- Studio 흉내 모드: 이 시간 동안 새로 들어오는 사람이 없으면 매니페스트를 만들어요(초)
 }
 
 -- 저장 (GDD 9.5, m4-07)
@@ -169,6 +174,9 @@ Config.DEBUG = {
 	-- true면 Studio에서도 진짜 DataStore에 저장해요 (게임 설정에서 API 접근 허용 필요, m4-07).
 	-- false면 Studio에서는 메모리 프로필만 써요 (나가면 사라짐).
 	persistDataInStudio = false,
+	-- true면 Studio를 매치 서버처럼 돌려요 (m4-11): 접속한 사람 전원을 매니페스트 멤버로 보고 대기실 없이 바로
+	-- 매치를 시작하고, 끝나면 텔레포트 대신 로그 + 로비 스폰. 커밋할 때는 false로.
+	simulateMatchServer = false,
 }
 
 return Config

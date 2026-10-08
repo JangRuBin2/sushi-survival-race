@@ -17,6 +17,9 @@ local Attributes = {
 	-- GuiButton 또는 그 조상 GuiObject·ScreenGui (m3-09)
 	NoClickSfx = "NoClickSfx", -- boolean: true면 누를 때 Sfx "ButtonClick"을 내지 않아요 (조작 버튼)
 
+	-- Workspace (서버가 PlaceService.init에서 달아요, m4-11)
+	PlaceRole = "PlaceRole", -- string: "Single" | "Lobby" | "Match" — 클라이언트가 매치 서버에서 로비 UI를 숨겨요
+
 	-- 라운드 맵 Model (RoundService.prepareRound가 Workspace에 넣기 전에 달아요)
 	RoomId = "RoomId", -- string: 이 맵을 쓰는 방
 	RoundIndex = "RoundIndex", -- number: 몇 번째 라운드인지 (1부터)

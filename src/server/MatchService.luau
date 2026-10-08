@@ -99,11 +99,8 @@ local function fireMatchEnd(ctx: MatchContext, winnerUserId: number?, standings:
 end
 
 -- 로비 단상에 세울 우승자 (MatchEvents.onWinnerShowcase, m4-06). 한 플레이스 모드에서만 여기서 보내요 —
--- 플레이스 분리 모드는 로비 서버가 보내요 (m4-11).
-local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number)
-	if PlaceService.role() ~= "Single" then
-		return
-	end
+-- 플레이스 분리 모드는 매치 서버가 MatchResult에 쓰고 로비 서버가 보내요 (m4-11). 돌려주는 값 = 우승자 정보.
+local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number): MatchEvents.WinnerShowcaseInfo
 	local name = tostring(winnerUserId)
 	for _, entry in ctx.standings.entries do
 		if entry.userId == winnerUserId then
@@ -117,7 +114,25 @@ local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number)
 	if type(worn) == "string" and worn ~= "" then
 		appearanceId = worn
 	end
-	MatchEvents.fireWinnerShowcase({ userId = winnerUserId, name = name, appearanceId = appearanceId })
+	local info = { userId = winnerUserId, name = name, appearanceId = appearanceId }
+	if PlaceService.role() == "Single" then
+		MatchEvents.fireWinnerShowcase(info)
+	end
+	return info
+end
+
+-- 매치가 끝났어요: 로비 스폰으로 보내고, 매치 서버면 PlaceService가 결과를 쓰고 로비로 텔레포트해요 (m4-11).
+-- 그 밖에는 방을 대기실로 돌려요.
+local function finish(roomId: string, winner: MatchEvents.WinnerShowcaseInfo?)
+	sendHome(roomId)
+	matches[roomId] = nil
+	local ok, handled = pcall(PlaceService.finishMatch, roomId, winner)
+	if not ok then
+		warn(`[MatchService] room {roomId}: finishing on the match server failed: {handled}`)
+	end
+	if not (ok and handled) then
+		RoomService.endMatch(roomId)
+	end
 end
 
 -- Studio 전용 디버그 강제 플랜 (Config.DEBUG.forceMapPlan). 없거나 잘못됐으면 nil (잘못됐으면 경고).
@@ -286,6 +301,7 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	end
 	print(`[MatchService] room {roomId} standings: {table.concat(lines, ", ")}`)
 
+	local winner: MatchEvents.WinnerShowcaseInfo? = nil
 	if winnerUserId then
 		broadcast(ctx, {
 			phase = "Victory",
@@ -296,14 +312,12 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		-- Victory 방송 직후: 우승 연출·순위표 10초 동안 보상 정산을 보여 줄 수 있게 (m4-08)
 		fireMatchEnd(ctx, winnerUserId, standings)
 		task.wait(Config.Match.VictoryDuration)
-		fireWinnerShowcase(ctx, winnerUserId)
+		winner = fireWinnerShowcase(ctx, winnerUserId)
 	else
 		fireMatchEnd(ctx, nil, standings)
 	end
 
-	sendHome(roomId)
-	matches[roomId] = nil
-	RoomService.endMatch(roomId)
+	finish(roomId, winner)
 end
 
 function MatchService.init()
@@ -320,12 +334,13 @@ function MatchService.start()
 				pcall(ctx.round.cancel) -- 소개 중이던 맵이 남지 않게 치워요
 			end
 			if ctx then
-				-- 아직 안 보냈으면 우승자 없이 끝난 것으로 알려요 (매치당 한 번)
-				pcall(fireMatchEnd, ctx, nil, RoundLogic.standingsList(ctx.standings))
+				-- 아직 안 보냈으면 끝난 것으로 알려요 (매치당 한 번). 이미 Won을 받은 사람이 있으면 그 사람이
+				-- 우승자예요 (m4-01 QA B2)
+				local winnerUserId = RoundLogic.winnerOf(ctx.standings)
+				pcall(fireMatchEnd, ctx, winnerUserId, RoundLogic.standingsList(ctx.standings))
 			end
-			sendHome(room.id) -- 아레나에 남은 캐릭터를 로비로 돌려보내요
-			matches[room.id] = nil
-			RoomService.endMatch(room.id)
+			-- 아레나에 남은 캐릭터를 로비로 돌려보내고, 매치 서버면 로비 서버로 텔레포트해요
+			finish(room.id, nil)
 		end
 	end)
 

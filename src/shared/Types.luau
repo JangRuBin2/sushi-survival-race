@@ -39,6 +39,8 @@ export type RoomListing = {
 	maxPlayers: number,
 	memberCount: number,
 	state: RoomState,
+	-- true면 다른 로비 서버의 방 (m4-11). id = "<JobId>:<roomId>", 누르면 그 서버로 텔레포트해서 들어가요.
+	remote: boolean?,
 }
 
 -- 매치 상태 머신 단계 (GDD 11.4)

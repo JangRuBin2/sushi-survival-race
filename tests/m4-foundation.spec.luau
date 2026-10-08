@@ -399,7 +399,7 @@ return function(t: Test.Test)
 	end)
 
 	-- 공용 파일·훅 계약 (다른 m4 스펙이 기대하는 것) -------------------------------------------
-	t.test("Remotes: ProfileUpdated·RewardGranted·SaveSettings가 RemoteEvent, 리모트 16개", function()
+	t.test("Remotes: ProfileUpdated·RewardGranted·SaveSettings가 RemoteEvent, 리모트 17개", function()
 		local src = source("src/shared/Remotes.luau")
 		local events = string.match(src, "local EVENTS = (%b{})") :: string
 		local functions = string.match(src, "local FUNCTIONS = (%b{})") :: string
@@ -408,7 +408,8 @@ return function(t: Test.Test)
 		end
 		local _, eventCount = string.gsub(events, '"%w+"', "")
 		local _, functionCount = string.gsub(functions, '"%w+"', "")
-		t.eq(eventCount + functionCount, 16)
+		-- m4-11이 Notice(텔레포트 실패·서버 이동 안내)를 더해 17개
+		t.eq(eventCount + functionCount, 17)
 	end)
 
 	t.test("Types: Settings·ProfileView·RewardReason·RewardGrant", function()
@@ -501,8 +502,9 @@ return function(t: Test.Test)
 		for _, fn in { "get", "changed", "start" } do
 			t.ok(string.find(store, `function ProfileStore.{fn}(`, 1, true) ~= nil, fn)
 		end
+		-- m4-11: 4번째 인자로 Studio 흉내 모드(Config.DEBUG.simulateMatchServer)를 넘겨요
 		t.ok(
-			has("src/server/PlaceService.luau", "PlaceRole.resolve(game.PlaceId, Config.Places, RunService:IsStudio())")
+			has("src/server/PlaceService.luau", "PlaceRole.resolve(game.PlaceId, Config.Places, RunService:IsStudio()")
 		)
 	end)
 

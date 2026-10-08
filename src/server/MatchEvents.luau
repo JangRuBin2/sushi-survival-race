@@ -10,8 +10,11 @@
 --   onMatchEnd(fn(roomId, info))                               승부가 정해진 순간, 매치당 한 번
 --        우승자가 있으면 Victory 방송 직후, 없으면 로비로 보내기 직전.
 --        info = { winnerUserId: number?, standings: { Standing }, participants: { number } }
+--        우승은 standings의 place 1이 아니라 winnerUserId로 판단해요 (결승 전원 리셋이면 winnerUserId = nil인데
+--        place 1 칸이 있어요, m4-01 QA B3).
 --   onWinnerShowcase(fn(info))                                 로비 단상에 세울 우승자
 --        info = { userId, name, appearanceId }. 한 플레이스 모드는 Victory가 끝난 뒤 로비로 보내기 직전.
+--        로비 플레이스는 매치에서 돌아온 첫 사람을 받을 때 PlaceService가 MatchResult를 읽어 보내요 (m4-11).
 -- 각 onXxx는 해제 함수를 돌려줘요. fireXxx는 MatchService·EliminationService(·m4-11 PlaceService)만 불러요.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

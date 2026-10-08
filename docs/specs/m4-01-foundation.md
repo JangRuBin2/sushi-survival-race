@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-01 — M4 기반 작업 (공용 파일 · 이벤트 훅 · 프로필 껍데기 · 맵 키트 · 새 맵 2개 stub · P3 2건)
@@ -191,6 +191,41 @@ M4 병렬 개발(맵 아트 2 · 새 맵 2 · 로비 · 저장 · 보상 · 모�
 - 2026-10-08 · Studio 아트 끼우는 방법 · 사용자가 Studio에서 만든 장식은 `assets/map-art/<id>.rbxm` → `ServerStorage.MapArt`, 장식 전용(충돌 없음). 충돌·판정 지오메트리는 계속 코드가 만든다 — 에이전트가 검증할 수 있는 상태를 유지 (REFERENCE-map-production §7(B) "회색 박스 치수 유지 + 표면만 교체" 쪽). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 휴대폰 화면 방향 · 가로 고정(`LandscapeSensor`). 세로 화면 배치는 M5 이후. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 새 맵 2개 · GDD 5.2 ③ 라멘 국물 급류(Race), ④ 셰프의 도마(Survival)로 MVP 6개를 채움 · planner
+- 2026-10-08 · `.gitkeep` 대신 `assets/map-art/README.md`로 빈 폴더를 Git에 남김 — Rojo 7.7.1은 .md를 무시해서 `ServerStorage.MapArt`가 빈 폴더로 빌드됨(확인함) · developer
+- 2026-10-08 · 결승 같은 묶음이 전부 리셋·퇴장이라 0명이 되면 우승자 없이 라운드를 바로 끝냄(`round.ended`). 예전엔 이 경우가 없었음(묶음 최고점이 우승) · developer
+- 2026-10-08 · `MatchEvents.onMatchEnd`는 매치가 에러로 끝나도(크래시 경로) 아직 안 보냈으면 우승자 없이 한 번 보냄 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · 구현 완료 → `in-qa` (커밋 c880407, 2f6cb83, 0daea60)
+
+### 바뀐 파일
+- 공용: `shared/Config.luau`(Places·Teleport·Data·Rewards·Titles·Ui·MovementGuard·DEBUG.persistDataInStudio), `shared/Remotes.luau`(이벤트 3개, 리모트 총 16개), `shared/Types.luau`(Settings·ProfileView·RewardReason·RewardGrant), `shared/Attributes.luau`(Title·MoveExemptUntil), `shared/maps/init.luau`(RamenRapids·ChefBoard), `default.project.json`(ServerStorage.MapArt ← `assets/map-art`, StarterGui.ScreenOrientation = LandscapeSensor), `server/init.server.luau`, `client/init.client.luau`
+- 새 순수 모듈: `shared/ProfileSchema.luau`(+ `sanitizeSettings`), `shared/PlaceRole.luau`, `shared/MoveExempt.luau`(+ 순수 `untilTime`), `shared/maps/MapKitLogic.luau`
+- 새 Roblox 모듈: `shared/maps/MapKit.luau`, `server/MatchEvents.luau`, `server/DataService.luau`(메모리), `client/ProfileStore.luau`, `server/PlaceService.luau`(`role()`만)
+- 맵 stub: `shared/maps/RamenRapids.luau`(길이 160 바닥 + 결승선), `shared/maps/ChefBoard.luau`(60×60 도마). 둘 다 origin 아래 40 studs 낙하 = 탈락
+- 껍데기: `server/LobbyService`, `server/RewardService`, `server/MovementGuardService`, `client/fx/LobbyFxController`, `client/ui/CoinController`, `client/ui/UiScaleController`(`attach` 빈 함수)
+- 기존: `server/MatchService.luau`(훅 4개), `server/EliminationService.luau`(`fireResult`), `server/RoundService.luau`(`setPassValidator`, 배치 때 `MoveExempt.mark`, 0.1초마다 마지막 땅 위치 기록 → Fall 탈락 position), `server/CharacterUtil.luau`(`toLobby`가 `MoveExempt.mark`), `shared/RoundLogic.luau`(`finalBatchOrder`, 결승 묶음 리셋 규칙)
+- 테스트: `tests/m4-foundation.spec.luau`(26개), `tests/camera-priority.spec.luau`(Attributes 개수 8 → 10)
+- 문서: `assets/map-art/README.md`(장식 rbxm 넣는 법)
+
+### 다른 m4 스펙이 쓰는 인터페이스
+- `MatchEvents.onMatchStart(fn(roomId, userIds))`, `onRoundStart(fn(roomId, roundIndex, roundCount, userIds))`, `onResult(fn(roomId, PlayerResult))`, `onMatchEnd(fn(roomId, { winnerUserId?, standings, participants }))`, `onWinnerShowcase(fn({ userId, name, appearanceId }))` — 모두 해제 함수를 돌려줌. `fireXxx`는 MatchService·EliminationService(·m4-11)만.
+- `DataService.get / waitForProfile(player, timeout=10) / update(player, mutate) -> boolean / onLoaded(fn) -> 해제 함수 / canPersist`(지금 항상 false). `update`는 그 프레임 끝에 `ProfileUpdated` 한 번.
+- `ProfileStore.get() / changed(fn) -> { Disconnect }`
+- `RoundService.setPassValidator(fn(player) -> boolean)` — 한 번만(assert). 에러가 나면 통과 허용 + 경고.
+- `MoveExempt.mark(character, seconds?)` — shared, 맵 모듈에서 바로 require 가능.
+- `MapKit.decorFolder / buildDecor(specs, origin, parent) / introCamera(model, points, origin) / attachStudioArt(model, mapId, origin) / applyDecorRules(part)`, `MapKitLogic.validate / count / bounds / PALETTE / MATERIALS / *_BUDGET`
+- `PlaceService.role()` → 지금 항상 `"Single"`. `UiScaleController.attach(screenGui)`.
+
+### Studio 확인 방법 (사용자)
+1. **AC9**: `Config.DEBUG.forceMapPlan = { "ramen-rapids", "chef-board", "soy-swamp", "skewer-showdown" }`로 바꾸고 혼자 F5 → 방 만들기 → 시작. 1·2라운드가 회색 바닥(라멘 = 긴 길 끝 노란 결승선, 도마 = 정사각 판)으로 나오고, 4라운드까지 돈 뒤 우승 화면 → 로비. 서버·클라이언트 Output에 빨간 에러가 없어야 함. **확인 후 forceMapPlan을 nil로 되돌릴 것.**
+2. **AC10**: F5 후 클라이언트 콘솔(Command Bar, 클라이언트 쪽)에서 `print(require(game.Players.LocalPlayer.PlayerScripts.Client.ProfileStore).get())` → coins 0, persistent false 표. (Command Bar가 별도 모듈 캐시를 쓰면 nil이 나올 수 있음 — 그때는 `ProfileStore.changed`가 도는지 `ProfileStore.luau`에 임시 print로 확인)
+3. **AC11**: 서버 Explorer에 `ServerStorage.MapArt` 폴더가 있는지만 확인. 장식이 맵에 붙는 건 m4-02 QA 때.
+4. **AC12**: Test → Clients and Servers 2명, 결승(`forceMapPlan`을 `{ "rotating-belt", "hot-plate", "skewer-showdown" }`)에서 한 명이 무대 밖으로 떨어지면 다른 클라이언트에서 탈락 연출이 무대 가장자리 높이에서 재생되는지.
+5. **AC13**: Test → Device 에뮬레이터에서 휴대폰 기기를 고르고 F5 → 가로 화면으로 고정.
+6. **AC14**: `docs/DEV-SETUP.md` 3-7·3-8 핵심(한 판 완주, 탈락·우승 연출, 다이브·잡기) 회귀.
+
+### 남은 이슈
+- Luau 타입 검사가 검증에 없어서 `--!strict` 타입 오류는 Studio Script Analysis에서만 보임 (m4-12에서 도입 예정).
+- `ProfileUpdated`는 접속 직후(클라이언트 연결 전) 한 번 보냄 — Roblox 리모트 대기열에 의존. Studio에서 AC10이 nil이면 알려 줄 것.

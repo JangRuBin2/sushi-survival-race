@@ -77,6 +77,9 @@ M3 기능 일곱 개가 한 판 안에서 서로 부딪히지 않고 함께 돈�
 - 2026-10-08 · 좁은 화면 음소거 버튼 (m3-08 QA B2) · 화면 폭 < `Config.Fx.NarrowScreenWidth`(900px)이면 아이콘만(34×28) 오른쪽 끝에서 4px, y 60. 위 가운데 HUD 패널(420px)·로비 패널 내용(0.92배 폭 + 안쪽 여백 16px)에 닿지 않음 (폭 ≥ 약 530px). **기본값으로 진행, 사용자 수정 가능** · developer
 - 2026-10-08 · 관전 비추기 시간 (m3-01 QA B1) · `EliminationCutscene - Config.Fx.SpectateHoldMargin`(3 - 0.3초). 리셋 탈락 위치(B2): 옛 캐릭터 감시에서 온 리셋은 지금 `player.Character`(리스폰된 새 캐릭터)로 위치를 채우지 않음(서버 두 곳) → 위치 없으면 본인 스탬프만 · developer
 - 2026-10-08 · 손대지 않은 QA 항목 · m3-03 B2(낙하 연출이 코스 20~40 studs 아래에서 재생 — M4 아트 때 보정), m3-04 B2(Survival·Final 플라이스루 끝점), m3-06 B2·B3(공중 다이브 지름길·와사비+다이브 — Studio 체감 후), m3-07 G1(0.1초 안 재누름)·G4(입력 공유), m3-02 B5(문서 문구). 장애물 cue 중 `ChopstickWarn`·`HotTileSizzle`·`ChefHandWarn`은 `SfxLibrary` id가 nil이라 지금은 소리가 안 남(사용자가 id를 넣으면 바로 남) · developer
+- 2026-10-08 · QA 뒤 수정 (m3-09 QA B1, P2) · 우승 글씨: m3-09의 "Won 글씨 생략"은 결승 뒤 지연 3초 + RoundResults 5초 동안 우승자에게 아무 표시가 없게 만들었음(QA가 m3-05 B3 진단 오류도 확인). 이제 `HudController`가 Won 글씨 "🏆 우승했어요!"를 띄우고 4초 타이머 없이 Victory 단계까지 유지, `MatchPhase Victory`를 받으면 `HudScreen:clearPersonalResult()`로 지움. 이미 Victory 중이면 띄우지 않음(부전승처럼 Won 직후 Victory가 와도 연출과 겹치지 않음). `HudScreen.showPersonalResult(text, keep?)`·`clearPersonalResult` 추가 · developer
+- 2026-10-08 · QA 뒤 수정 (m3-09 QA B2, P3) · 장애물 소리 신호를 그 방 사람에게만: `MapSfx.setAudience(fn)`로 서버 `RoundService.init`이 받을 사람 함수를 넣음(맵 파트는 조상 맵 Model의 `RoomId`, 캐릭터 파트는 그 플레이어의 방 → `RoomService.getPlayers`). 방을 모르면 기존처럼 `FireAllClients`. shared 모듈이 서버 모듈을 require하지 않아 순환 없음. 순수 `MapSfxLogic.roomIdOf` 추가 · developer
+- 2026-10-08 · 보류 (m3-09 QA B3~B5, P3) · B3 리미터가 지워진 파트를 다음 호출까지 잡고 있음(1초마다 정리, 메모리 영향 매우 작음), B4 결승 소개 중 상대 리셋 시 리셋 연출이 Victory에 잘림(소개 중은 지연하지 않는 기존 결정), B5 900~980px 창에서 글자 음소거 버튼이 로비 패널 제목 줄 빈 곳 위에 놓임(글자는 안 가림). 친구 테스트 뒤 필요하면 처리 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
@@ -116,3 +119,9 @@ M3 기능 일곱 개가 한 판 안에서 서로 부딪히지 않고 함께 돈�
 11. **AC10·AC11·AC13·AC14** — 스펙 AC 그대로 (연출 중 방 나가기, 외형 한 벌, 8명 성능, 두 판 연속).
 
 **남은 이슈**: 결정 기록 "손대지 않은 QA 항목". 서버 결승 대기 3초 동안 우승자도 맵 위에 그대로 있음(판정 없음).
+
+### 2026-10-08 — QA 뒤 수정 (developer, 브랜치 main)
+- QA B1(P2): `client/ui/HudController.luau`, `client/ui/HudScreen.luau` — 우승 글씨를 띄우고 Victory 시작 때 지움. Studio: 2명 결승에서 이긴 사람 화면 아래에 "🏆 우승했어요!"가 마지막 탈락 3초 뒤부터 우승 연출 시작 직전까지 보이고, 우승 연출 중에는 안 보임.
+- QA B2(P3): `shared/maps/MapSfx.luau`(`setAudience`), `shared/maps/MapSfxLogic.luau`(`roomIdOf`), `server/RoundService.luau`(init에서 등록) — 장애물 소리 신호는 그 방 사람에게만. Studio: 방 2개를 동시에 돌려도 소리·판정 그대로(다른 방 신호는 오지 않음, 들리는 건 전과 같음).
+- 테스트: `map-sfx.spec`(roomIdOf, 받을 사람 소스 확인 2개 추가), `m3-09-integration.spec`(HUD 확인을 새 동작으로 바꿈). 검증: rojo build OK, stylua OK, selene 0/0, lune 486 passed / 0 failed.
+- B3~B5는 결정 기록에 보류.

@@ -16,7 +16,9 @@ export type HudScreen = {
 	setVisible: (self: HudScreen, visible: boolean) -> (),
 	setPhase: (self: HudScreen, phase: Types.MatchPhaseInfo) -> (),
 	setProgress: (self: HudScreen, progress: Types.RoundProgress) -> (),
-	showPersonalResult: (self: HudScreen, text: string) -> (),
+	-- keep = true면 4초 뒤 지우지 않고 clearPersonalResult·setVisible(false)까지 둬요 (우승 글씨, m3-09)
+	showPersonalResult: (self: HudScreen, text: string, keep: boolean?) -> (),
+	clearPersonalResult: (self: HudScreen) -> (),
 }
 
 local HudScreen = {}
@@ -322,15 +324,23 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		progressLabel.Text = progressText(mapKind, progress)
 	end
 
-	function screen.showPersonalResult(_self: HudScreen, text: string)
+	function screen.showPersonalResult(_self: HudScreen, text: string, keep: boolean?)
 		personalToken += 1
 		local mine = personalToken
 		personalLabel.Text = text
+		if keep then
+			return
+		end
 		task.delay(4, function()
 			if personalToken == mine then
 				personalLabel.Text = ""
 			end
 		end)
+	end
+
+	function screen.clearPersonalResult(_self: HudScreen)
+		personalToken += 1
+		personalLabel.Text = ""
 	end
 
 	return (screen :: any) :: HudScreen

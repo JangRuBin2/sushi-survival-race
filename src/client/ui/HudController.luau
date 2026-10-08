@@ -31,12 +31,24 @@ function HudController.start(gui: Instance)
 
 	local hud = HudScreen.new(gui, nameOf, player.UserId)
 
+	-- 지금 매치 단계 (우승 글씨를 Victory 동안 띄우지 않으려고)
+	local currentPhase: Types.MatchPhase? = nil
+
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
-		hud:setVisible(room ~= nil and room.state == "InMatch")
+		local inMatch = room ~= nil and room.state == "InMatch"
+		if not inMatch then
+			currentPhase = nil
+		end
+		hud:setVisible(inMatch)
 	end)
 
 	Remotes.event("MatchPhase").OnClientEvent:Connect(function(info: Types.MatchPhaseInfo)
+		currentPhase = info.phase
 		hud:setPhase(info)
+		-- 우승 연출이 시작되면 "🏆 우승했어요!"를 지워요 — 연출 위에 겹치지 않게 (m3-05 QA B3, m3-09 QA B1)
+		if info.phase == "Victory" then
+			hud:clearPersonalResult()
+		end
 	end)
 
 	Remotes.event("RoundProgress").OnClientEvent:Connect(function(progress: Types.RoundProgress)
@@ -49,8 +61,11 @@ function HudController.start(gui: Instance)
 			if result.result == "Eliminated" and EliminationCutsceneLogic.shouldPlay(result.cause) then
 				return
 			end
-			-- 우승은 곧바로 이어지는 우승 연출·화면이 보여 줘요. 연출 위에 글씨가 겹치지 않게 띄우지 않아요 (m3-05 QA B3)
+			-- 우승 글씨는 Victory가 올 때까지 남겨 둬요 (결승 뒤 RoundResults 동안 우승을 바로 알게, m3-09 QA B1)
 			if result.result == "Won" then
+				if currentPhase ~= "Victory" then
+					hud:showPersonalResult(personalResultText(result), true)
+				end
 				return
 			end
 			hud:showPersonalResult(personalResultText(result))

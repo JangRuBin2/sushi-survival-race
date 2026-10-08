@@ -46,7 +46,22 @@ return function(t: Test.Test)
 	t.test(
 		"클라이언트: 우승자 개인 결과 글씨를 연출 위에 띄우지 않아요 (m3-05 QA B3)",
 		function()
-			t.ok(has("src/client/ui/HudController.luau", 'if result.result == "Won" then'), "Won skipped")
+			-- m3-09 QA B1: Won 글씨는 띄우고(Victory가 올 때까지 유지) Victory 단계가 시작되면 지워요
+			local source = fs.readFile("src/client/ui/HudController.luau")
+			t.ok(
+				string.find(source, "hud:showPersonalResult(personalResultText(result), true)", 1, true) ~= nil,
+				"Won shown and kept"
+			)
+			t.ok(string.find(source, 'if currentPhase ~= "Victory" then', 1, true) ~= nil, "not during Victory")
+			local victoryAt = string.find(source, 'if info.phase == "Victory" then', 1, true)
+			local clearAt = string.find(source, "hud:clearPersonalResult()", 1, true)
+			t.ok(victoryAt ~= nil and clearAt ~= nil and victoryAt < clearAt, "cleared on Victory")
+			local screen = fs.readFile("src/client/ui/HudScreen.luau")
+			t.ok(
+				string.find(screen, "function screen.clearPersonalResult", 1, true) ~= nil,
+				"HudScreen.clearPersonalResult"
+			)
+			t.ok(string.find(screen, "if keep then", 1, true) ~= nil, "keep skips 4s timer")
 		end
 	)
 

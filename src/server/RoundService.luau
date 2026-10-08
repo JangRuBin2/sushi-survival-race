@@ -30,6 +30,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Cleanup = require(ReplicatedStorage.Shared.Cleanup)
 local Maps = require(ReplicatedStorage.Shared.maps)
+local MapSfx = require(ReplicatedStorage.Shared.maps.MapSfx)
+local MapSfxLogic = require(ReplicatedStorage.Shared.maps.MapSfxLogic)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
 local RoundLogic = require(ReplicatedStorage.Shared.RoundLogic)
 
@@ -545,6 +547,20 @@ end
 
 function RoundService.init()
 	roundProgressEvent = Remotes.event("RoundProgress")
+	-- 장애물 소리는 그 방 사람에게만 (m3-09 QA B2). 맵 파트는 맵 Model의 RoomId로,
+	-- 캐릭터 파트(간장 감속)는 그 플레이어의 방으로 찾아요. 모르면 nil → MapSfx가 모두에게 보내요.
+	MapSfx.setAudience(function(part: BasePart): { Player }?
+		local roomId = MapSfxLogic.roomIdOf(part, Attributes.RoomId)
+		if roomId == nil then
+			local character = part:FindFirstAncestorOfClass("Model")
+			local owner = character and Players:GetPlayerFromCharacter(character)
+			roomId = owner and RoomService.getRoomIdOf(owner)
+		end
+		if roomId == nil then
+			return nil
+		end
+		return RoomService.getPlayers(roomId)
+	end)
 end
 
 function RoundService.start() end

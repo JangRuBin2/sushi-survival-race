@@ -72,6 +72,20 @@ function MapSfxLogic.size(limiter: Limiter): number
 	return n
 end
 
+-- node부터 조상으로 올라가며 처음 만나는 문자열 속성 attribute 값 (맵 Model의 RoomId). 없으면 nil.
+-- node는 Parent·GetAttribute만 있으면 돼요 (Instance 또는 테스트용 표).
+function MapSfxLogic.roomIdOf(node: any, attribute: string): string?
+	local current = node
+	while current ~= nil do
+		local value = current:GetAttribute(attribute)
+		if type(value) == "string" then
+			return value
+		end
+		current = current.Parent
+	end
+	return nil
+end
+
 function MapSfxLogic.marks(from: number, to: number, step: number): { number }
 	local list = {}
 	if step <= 0 then

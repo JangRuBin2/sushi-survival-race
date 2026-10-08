@@ -1,6 +1,14 @@
 # m3-09 integration-polish — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA 뒤 수정 2건 (최신)
+- **브랜치**: `main` (커밋만, push는 메인 세션)
+- **끝난 것**: QA B1(P2) 우승 글씨를 Victory까지 유지하고 Victory 시작 때 지움. QA B2(P3) 장애물 소리 신호를 그 방 사람에게만 보냄(`MapSfx.setAudience`, 방 모르면 전부). B3~B5는 결정 기록에 보류.
+- **검증**: rojo build OK, stylua --check OK, selene 0/0, lune 486 passed / 0 failed.
+- **남은 것**: docs-writer 문서 반영, 사용자 Studio 확인(스펙 개발 메모 + QA 리포트 체크리스트). 스펙 상태는 qa-passed 유지.
+- **다음에 할 첫 단계**: docs-writer가 m3-09를 CHANGELOG·CLAUDE.md·DEV-SETUP에 반영.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `main` (커밋만, push는 메인 세션이 함)
 - **끝난 것**: 스펙 범위 1~4 + 메인 세션이 넘긴 QA 항목 1~9. 장애물 소리(`MapSfx`/`MapSfxLogic`, 서버 신호 → 클라이언트 `Sfx` 재생), 맵 4개 소리 호출, `Config.Fx` 튜닝 묶음, Timeout cause + 연출, 결승 우승 발표 3초 지연, 공중 다이브 vy 상한, 다이브 상태 복원, 잡기 규칙(잡는 사람 대상 아님·다이브 해제), 넘어짐 Anchored 제외, 자체 이름표, KeepVisible/NoClickSfx 규칙, 좁은 화면 음소거 아이콘, 긴 효과음 수명, 소개 중 탈락, 우승 개인 글씨 생략, 관전 비추기 시간, 리셋 위치. 자세한 건 스펙 결정 기록·개발 메모.
 - **검증**: rojo build OK, stylua --check OK, selene 0/0, lune 463 passed / 0 failed.

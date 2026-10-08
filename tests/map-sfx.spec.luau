@@ -105,6 +105,41 @@ return function(t: Test.Test)
 		MapSfx.play(nil, "WasabiBoing") -- 파트 없음
 	end)
 
+	t.test("QA B2: roomIdOf — 조상 맵 Model의 RoomId, 없으면 nil", function()
+		local function node(parent: any, attrs: { [string]: any }?): any
+			return {
+				Parent = parent,
+				GetAttribute = function(_self, name: string)
+					return (attrs or {})[name]
+				end,
+			}
+		end
+		local game = node(nil)
+		local map = node(game, { RoomId = "room-7" })
+		local folder = node(map)
+		local tile = node(folder)
+		t.eq(MapSfxLogic.roomIdOf(tile, "RoomId"), "room-7")
+		t.eq(MapSfxLogic.roomIdOf(node(node(game)), "RoomId"), nil)
+		t.eq(MapSfxLogic.roomIdOf(node(node(game, { RoomId = 5 })), "RoomId"), nil, "non-string ignored")
+	end)
+
+	t.test(
+		"QA B2: MapSfx는 받을 사람 함수가 있으면 그 사람에게만, 없으면 전부 (소스)",
+		function()
+			local source = fs.readFile("src/shared/maps/MapSfx.luau")
+			t.ok(string.find(source, "function MapSfx.setAudience", 1, true) ~= nil, "setAudience")
+			t.ok(
+				string.find(source, "target:FireClient(player, cue, part, part.Position)", 1, true) ~= nil,
+				"room only"
+			)
+			t.ok(string.find(source, "target:FireAllClients(cue, part, part.Position)", 1, true) ~= nil, "fallback")
+			t.eq(string.find(source, "require%([^)]*RoomService"), nil, "no server require (no cycle)")
+			local server = fs.readFile("src/server/RoundService.luau")
+			t.ok(string.find(server, "MapSfx.setAudience(", 1, true) ~= nil, "RoundService registers audience")
+			t.ok(string.find(server, "RoomService.getPlayers(roomId)", 1, true) ~= nil, "room players")
+		end
+	)
+
 	t.test("Remotes: MapSfx가 RemoteEvent 목록에 있어요", function()
 		local source = fs.readFile("src/shared/Remotes.luau")
 		local events = string.match(source, "local EVENTS = (%b{})") :: string

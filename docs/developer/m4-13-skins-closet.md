@@ -1,6 +1,19 @@
 # m4-13 skins closet — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — 가격 다시 정함 반영 (최신)
+- **브랜치**: `main` (커밋 d39cf95 코드·테스트·USER-TODO C3, 뒤이은 문서 커밋). push 안 함 (메인 세션 몫).
+- **끝난 것**: 기획 추천안 A (REFERENCE-roblox-monetization 7절, 스펙 결정 기록) 반영.
+  - `Skins.luau`: robux 일반 29 / 레어 59 / 에픽 99 / 전설 199, `COMMON_COINS` 300, 새 `RARE_COINS` 900 (레어 4종 `coins`), 주석 "코인 해금은 일반·레어".
+  - `Skins.validate`: 코인 가격은 Common·Rare만 ("coin price only for Common and Rare skins").
+  - `ShopLogic`·`ShopService`·`ShopScreen`·`Remotes`: 로직 변경 없음 (등급 하드코딩 없음, `skin.coins`만 봄). 주석의 "일반"·"R$ 49"만 고침. 레어 카드도 코인 해금 + R$ 두 번째 버튼 (탈의실 정보 칸 배치는 일반과 같아서 compact 새 경우 없음).
+  - 테스트: `skins`·`shop-logic`·`receipt-logic`·`m4-13-qa` 숫자 갱신, 레어 코인 해금 테스트 추가 (shop-logic 4개, m4-13-qa 1개).
+  - `docs/USER-TODO.md` C3 가격표 새 값.
+- **검증**: rojo build OK, stylua OK, selene 0/0/0, lune 1021 passed / 0 failed, luau-lsp analyze 에러 0.
+- **남은 것**: QA가 AC1·AC3·AC7 숫자 재확인. GDD 9.2·9.4는 사용자 확정 뒤 기획이 고침. Studio에서 레어 카드 두 버튼 화면 확인.
+- **다음에 할 첫 단계**: 없음 (QA 몫). 가격을 또 바꾸면 `Skins.luau` 상수와 `tests/skins.spec.luau` EXPECTED 표부터.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `main` (커밋 71e5f0c 공용 로직·테스트, 014e595 서버, b9f5a6f 클라이언트 + 문서 커밋). push는 메인 세션이 함.
 - **끝난 것**: 스펙 범위 1~7 전부.
   - 순수: `Skins`(16종, GDD 9.2 가격, 코인은 일반만 500, `productId` nil), `ShopLogic`(canEquip·canBuyWithCoins·buyWithCoins·grantSkin·message·cardState), `SushiBody` 15종 레이아웃(+`shape`/`rotation`/`effect`), `EliminationCutsceneLogic.SKIN_LINES` ← `Skins.speech`.

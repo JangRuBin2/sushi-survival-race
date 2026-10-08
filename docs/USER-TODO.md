@@ -97,7 +97,27 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
   4. **로비 PlaceId, 매치 PlaceId** 알려 주기 → 에이전트가 `Config.Places`에 넣어요
 - [ ] **C3. 개발자 상품 15개** (m4-14, 맨 마지막)
   - Creator Dashboard → 이 게임 → Monetization → Developer Products
-  - 스킨 목록·가격은 m4-13/14가 끝나면 이 문서에 표로 추가할게요 → **상품 id 15개** 알려 주기
+  - 이름·가격은 아래 표 (계란초밥은 무료라 제외). 아이콘은 탈의실 미리보기 스크린샷이면 충분
+  - 만든 뒤 **상품 id 15개** 알려 주기 → `src/shared/Skins.luau`의 각 스킨 `productId = <id>,` (직접 넣어도 됨)
+
+    | 스킨 id | 상품 이름 | 가격(R$) |
+    |---|---|---|
+    | salmon | 연어 | 49 |
+    | tuna | 참치 | 49 |
+    | shrimp | 새우 | 49 |
+    | inari | 유부 | 49 |
+    | kappa-maki | 오이마키 | 49 |
+    | eel | 장어 | 99 |
+    | uni | 성게 | 99 |
+    | ikura | 연어알 군함 | 99 |
+    | octopus | 문어 | 99 |
+    | rainbow-roll | 무지개 롤 | 199 |
+    | aburi-salmon | 불꽃 연어 | 199 |
+    | california-roll | 아보카도 캘리포니아롤 | 199 |
+    | golden-otoro | 황금 참치 뱃살 | 399 |
+    | diamond-uni | 다이아 성게 | 399 |
+    | dragon-roll | 용 롤 | 399 |
+  - 그다음 Studio 테스트 구매 확인: [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md) 개발 메모 AC7
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 M5)

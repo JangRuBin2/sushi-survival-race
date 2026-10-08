@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-14 — 로벅스 스킨 구매 (개발자 상품 · ProcessReceipt · 구매 기록)
@@ -61,6 +61,46 @@ status: ready
 - 2026-10-08 · 일반 스킨도 로벅스 49로 살 수 있게(GDD 9.2 "49 R$ 또는 500 코인") · planner
 - 2026-10-08 · 산 스킨은 바로 입힘 · **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · VIP 패스·연출 팩·번들은 M5 · M4 완료 기준 "스킨 상점(로벅스+코인)"만 채움 · **기본값으로 진행, 사용자 수정 가능** · planner
+- 2026-10-08 · ProcessReceipt·RequestRobuxPurchase는 `ShopService`가 아니라 새 `RobuxShopService`가 등록 · m4-13 QA 가짜 환경 테스트(`tests/m4-13-qa.spec.luau`)가 ShopService 소스를 그대로 돌려서, 결제 의존성(MarketplaceService·PurchaseLog·BindToClose)을 넣으면 깨짐. 지급은 그대로 `ShopService.grantSkin` · developer
+- 2026-10-08 · 프로필에 처리한 PurchaseId 목록 `receipts`(최근 `Config.Shop.ReceiptHistoryMax` = 50개) 추가, VERSION은 1 유지(없는 칸은 빈 목록, 옛 서버는 모르는 칸으로 보존) · 구매 기록과 함께 중복 지급을 두 번 막고, "다시 시도"와 "이미 가진 스킨을 또 삼"을 로그에서 구분 · developer
+- 2026-10-08 · `AlreadyRecorded`·`RecordOnly`도 프로필 저장이 성공해야 Granted · 앞선 시도에서 저장이 실패해 메모리에만 스킨이 들어가 있을 수 있음 (그 상태로 Granted면 서버가 꺼질 때 스킨이 사라짐) · developer
+- 2026-10-08 · 일반 스킨은 코인 해금 버튼 아래 "R$ 49로 사기" 버튼이 하나 더 · 결정 기록 2번째 줄 · developer
+- 2026-10-08 · 결제로 받은 스킨이 라운드·연출 잠금 중이면 보유만 하고 장착은 안 함 (`grantSkin` 규칙 그대로) · developer
 
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 바뀐 파일
+- 새: `src/shared/ReceiptLogic.luau` (decide·process·canRequest·message·영수증 목록), `src/server/RobuxShopService.luau` (RequestRobuxPurchase, ProcessReceipt, Studio 가짜 결제·디버그 훅), `src/server/PurchaseLog.luau` (DataStore `Purchases_v1`, Studio 메모리), `tests/receipt-logic.spec.luau` (16개)
+- 공용: `Config.luau` (`Shop.PurchaseRequestCooldown = 1`, `Shop.ReceiptHistoryMax = 50`, `Shop.PurchaseLogStore`, `DEBUG.fakeRobuxInStudio = false`), `Remotes.luau` (`RequestRobuxPurchase`, 리모트 20개)
+- `ProfileSchema`/`ProfileLogic` (`receipts` 칸 + 정리), `ShopLogic` (`ROBUX_ENABLED` 삭제 → `robuxOpen`·`robuxPrice`·`robuxButtonText`, `cardState(skin, view, robux?)`), `Skins` (productId 주석), `init.server.luau` (RobuxShopService 등록, ShopService 다음)
+- `ShopController`/`ShopScreen`: 로벅스 버튼(레어 이상은 행동 버튼, 일반은 두 번째 버튼), 실제 가격(`GetProductInfoAsync`), 결제 후 "🎉 {스킨} 획득!", m4-13 QA N1(탈락 연출 3초 동안 "🍣 스킨" 버튼 숨김)
+- `MatchService`: `DEBUG.logArenaStats`에 Studio 가드 (m4-12 QA N3)
+- 테스트 조정: `m4-foundation`(리모트 20개), `shop-logic`·`skins`(상품 id를 채워도 깨지지 않게), `m4-12-hardening`(누수 점검 예외에 Studio 메모리 구매 기록)
+
+### 결제 흐름 (`ReceiptLogic.process`)
+| 경우 | 결과 |
+|---|---|
+| 플레이어가 이 서버에 없음 / 모르는 상품(경고) / 프로필 로드 전 / `canPersist = false`(임시 프로필·잠금 상실) / 서버 종료 중 / 구매 기록 읽기 실패 | NotProcessedYet |
+| 이 서버에서 같은 PurchaseId를 처리 중 | NotProcessedYet |
+| 기록 없음 + 미보유 → 지급·장착·receipts 추가 → `saveNow` true → 기록 true | PurchaseGranted (하나라도 실패하면 NotProcessedYet, 저장 전엔 기록 안 씀) |
+| 기록 없음 + 이미 보유 (다시 시도 / 다른 서버에서 또 삼 → 경고) → 저장 → 기록 | PurchaseGranted |
+| 기록 있음 → (없으면 다시 넣고) 저장 | PurchaseGranted |
+- Studio + `fakeRobuxInStudio`: 결제 창 없이 같은 흐름, 메모리 프로필이면 메모리 저장을 성공으로 봐요. 실제 서버는 무시.
+
+### 사용자 작업 (USER-TODO C3에 표)
+1. Creator Dashboard → 이 게임 → Monetization → Developer Products → Create a Developer Product를 15번: 이름 = 스킨 이름, 가격 = 일반 49 / 레어 99 / 에픽 199 / 전설 399 (표는 `docs/USER-TODO.md` C3).
+2. 각 상품의 Product ID를 `src/shared/Skins.luau`의 그 스킨 항목에 `productId = 1234567890,`으로 넣거나 메인 세션에 알려 주기. 겹치면 서버 시작 때 경고, 테스트(AC4)도 실패.
+3. 게임 설정 → Security → Enable Studio Access to API Services 켜기 (AC7에서 저장이 필요).
+
+### Studio 확인 방법
+1. **AC6** `Config.DEBUG.fakeRobuxInStudio = true` → Play → "🍣 스킨" → 레어 탭 "성게" → "R$ 99" → 결제 창 없이 바로 성게를 입고 카드가 "입는 중", 결과 줄 "🎉 성게 획득!". 서버 Output에 `[Shop] receipt studio-... skin uni -> PurchaseGranted (GrantAndRecord: granted)`. 일반 스킨은 "R$ 49로 사기" 버튼으로 같음. false로 돌리면 "R$ 99 — 곧 열려요"(회색).
+2. **AC9** (fake = true, Play 중) Server 쪽 Command Bar: `print(game.ServerStorage.ShopDebug.ReplayReceipt:Invoke("<내 이름>", "eel", "studio-test-1"))` 두 번 → 첫 번째 `PurchaseGranted`(GrantAndRecord), 두 번째도 `PurchaseGranted`(AlreadyRecorded: already recorded), 탈의실의 장어는 하나. Output에 결제마다 `[Shop] receipt` 한 줄.
+3. **AC8** 가진 스킨은 로벅스 버튼 없이 "입기"/"입는 중". 상품 id를 넣은 뒤 `fakeRobuxInStudio = false` + `persistDataInStudio = false`(메모리)로 로벅스 버튼 → "저장이 안 되는 상태라 지금은 살 수 없어요". 상품 id가 없는 스킨은 버튼이 회색이라 요청이 안 감 (Command Bar `game.ReplicatedStorage.Remotes.RequestRobuxPurchase:InvokeServer("eel")` → `false 준비 중이에요`).
+4. **AC7** (상품 id를 넣고 퍼블리시한 게임, `persistDataInStudio = true`, `fakeRobuxInStudio = false`) 로벅스 버튼 → Roblox 결제 창(Studio 테스트 구매, 청구 없음) → 확인 → 스킨이 들어오고 입혀짐, 가격은 상품 가격. 나갔다 다시 Play해도 남음. Output에 `[Shop] receipt <PurchaseId> ... PurchaseGranted`.
+5. **N1** 매치에서 탈락 → 탈락 연출 3초 동안 "🍣 스킨" 버튼이 안 보이고, 그 뒤 관전 화면에서 보임.
+6. 휴대폰 크기(에뮬레이터)에서 일반 스킨 선택 시 정보 칸에 버튼 두 개 + 결과 줄이 넘치지 않는지 (compact 배치는 미확인).
+
+### 남은 이슈
+- Studio가 없어 화면(두 번째 버튼 배치, 특히 compact)·실제 결제 창은 확인 못 함.
+- 결제 때 잠금 중(라운드 레이서)이면 보유만 되고 장착은 안 돼요 — 매치 서버에서 관전 중 구매는 잠금이 아니라 바로 입혀짐.
+- 이미 가진 스킨을 다른 서버에서 동시에 또 사면 기록만 남기고 Granted(로벅스는 빠짐). 환불은 운영 판단(경고 로그로 찾기).
+- 구매 기록 DataStore(`Purchases_v1`)도 개인정보 삭제 요청 대상: 키는 PurchaseId라 UserId로 찾으려면 키 메타데이터(userIds)로 검색해야 해요 — USER-TODO C4 문구 보강은 docs-writer 몫.

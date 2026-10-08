@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-02 — 계란초밥 캐릭터 (`applyAppearance`) · 걷기/넘어짐 연출

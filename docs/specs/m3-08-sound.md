@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-08 — 사운드 (효과음 재생기 · 배경음 · 음소거)
@@ -82,6 +82,54 @@ status: ready
 - 2026-10-08 · 볼륨 · 효과음 0.7, 배경음 0.3(배경음을 작게, 참고 문서 §5). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 음소거 · 3단계 버튼 하나, 저장 안 함(M4). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 버튼 클릭음 · 다른 UI 파일을 고치지 않게 `PlayerGui`의 모든 `GuiButton`에 자동으로 붙임 · planner
+- 2026-10-08 · 기본 소리 확인 방법 · 이 개발 PC에는 Roblox가 설치돼 있지 않아 `content\sounds` 폴더를 직접 볼 수 없었음. 대신 공개 Roblox 클라이언트 추적 저장소(MaximumADHD/Roblox-Client-Tracker)의 `rbxManifest.txt`에 실제로 들어 있는 소리 11개만 썼음. 지금 클라이언트에 기본 소리가 11개뿐이라 한 소리를 여러 cue에 나눠 씀. **Studio에서 들어보고 어색하면 id를 바꾸면 됨** · developer
+- 2026-10-08 · `Entry`에 `pitch: number?` 추가 · 같은 기본 소리를 cue마다 다른 느낌으로 쓰려고 기본 재생 속도 필드를 더함 (스펙 타입의 상위 호환, 없으면 1) · developer
 
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+브랜치 `m3-08-sound`.
+
+### 바뀐 파일
+- `src/shared/SfxLibrary.luau` (새 파일) — cue → `Entry`(id, group, volume, pitch, pitchJitter, looped), `get(name)`, `musicFor(...)`
+- `src/client/Sfx.luau` — 껍데기를 실제 구현으로 (play/setMusic/start, SoundGroup, 배경음 전환, 버튼 클릭음, 통과음, 음소거 버튼)
+- `tests/sfx-library.spec.luau` (새 파일) — AC1~AC4 + 모르는 이름
+
+### cue → 기본 소리 표 (`rbxasset://sounds/...`)
+| cue | 파일 | pitch |
+|---|---|---|
+| ButtonClick | volume_slider.ogg | 1.2 |
+| IntroWhoosh | action_falling.ogg | 1.4 |
+| Go | action_jump.mp3 | 1.3 |
+| Qualified | action_get_up.mp3 | 1.4 |
+| Eliminated | oof.ogg | 1 |
+| ChopstickClack | action_jump_land.mp3 | 1.6 |
+| Struggle | ouch.ogg | 1.1 |
+| SoyDip | impact_water.mp3 | 1.1 |
+| Chomp | action_jump_land.mp3 | 0.7 |
+| MouthFall | action_falling.ogg | 0.9 |
+| DoorBurst | impact_explosion_03.mp3 | 1.2 |
+| Splash | impact_water.mp3 | 0.9 |
+| Dive | action_jump.mp3 | 0.85 |
+| DiveLand | action_jump_land.mp3 | 1 |
+| Grabbed | ouch.ogg | 1.3 |
+| Knockdown | action_jump_land.mp3 | 0.6 |
+| WasabiBoing | action_jump.mp3 | 1.7 |
+| SoySlow | action_swim.mp3 | 0.8 |
+| TileVanish | action_footsteps_plastic.mp3 | 0.7 |
+| SkewerWhoosh | action_falling.ogg | 1.6 |
+
+### 사용자가 Creator Store에서 고를 목록 (지금 `id = nil`, 소리 없음)
+- 효과음: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선 뿅), `ChefHand`(셰프 손), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고)
+- 배경음: `Lobby`, `Round`, `Final`, `Victory` — `SfxLibrary.Entries`의 `music(nil, ...)`에서 nil을 `"rbxassetid://<id>"`로 바꾸면 바로 나옴
+- 넣는 곳: `src/shared/SfxLibrary.luau`의 `SfxLibrary.Entries`
+
+### Studio에서 확인하는 방법
+1. F5 혼자: 로비의 "방 만들기" 등 버튼을 누르면 딸깍 소리 (AC6). 오른쪽 위 HUD 타이머 아래에 "🔊 소리 켬" 버튼.
+2. 음소거 버튼을 누를 때마다 "🎵 음악 끔" → "🔇 모두 끔" → "🔊 소리 켬". 리셋해도 단계 유지 (AC8).
+3. `Config.DEBUG.forceMapPlan`으로 한 판: Race 통과 때 Qualified 소리 (AC7). 다른 스펙(m3-03~06)이 머지된 뒤면 냠·퐁당·다이브·휙·출발 소리.
+4. 배경음 id를 하나 넣어 보면 로비 → 매치(Round) → 결승(Final) → 우승(Victory)으로 0.5초 페이드 전환 (AC6).
+5. 한 판 뒤 클라이언트 Explorer `SoundService`에 `Sfx`·`Music` SoundGroup과 지금 곡 하나만 있고, 다 울린 Sound나 `Workspace.Terrain`의 `SfxAt` Attachment가 쌓이지 않음 (AC10).
+6. AC9: 휴대폰 에뮬레이터에서 음소거 버튼(오른쪽 위, y 60)이 HUD 타이머·관전 버튼과 겹치지 않는지.
+
+### 남은 이슈
+- 기본 소리는 들어보지 않고 이름으로만 골랐음 — Studio에서 어색한 것은 `SfxLibrary`에서 바꾸면 됨.
+- 음소거 단계는 저장 안 함 (M4 DataStore).

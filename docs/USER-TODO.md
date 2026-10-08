@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-08 (M4 진행 중 — m4-01~10 병합, m4-11 QA 중, m4-12~14 남음)
+> 마지막 갱신: 2026-10-08 (M4 진행 중 — m4-01~12 병합(m4-12 QA 중), m4-13~14 남음)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -52,6 +52,7 @@ git pull origin main
 rojo serve                              # Studio의 Rojo 플러그인 → Connect
 ```
 처음이라면 [`docs/DEV-SETUP.md`](DEV-SETUP.md) 1절(설치), 3-1(연결), 3-3(여러 명 테스트).
+M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 한 번 `rokit install`을 다시 실행하세요.
 
 ### B2. M3 확인 (캐릭터·연출·다이브/잡기·소리)
 - [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-8** 체크리스트 A~N
@@ -73,7 +74,8 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 | 코인·칭호 | [`docs/qa/m4-08-rewards-titles.md`](qa/m4-08-rewards-titles.md) | 재접속 유지(AC11)만 C1 먼저 |
 | 모바일 UI | [`docs/qa/m4-09-mobile-ui.md`](qa/m4-09-mobile-ui.md) | 실제 휴대폰(AC9)은 C1 먼저 |
 | 이동 감시 | [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) | 아니요 |
-| 플레이스 분리 | `docs/qa/m4-11-place-split.md` (QA 중) · 지금은 [`docs/specs/m4-11-place-split.md`](specs/m4-11-place-split.md) 개발 메모 | Studio 흉내(`DEBUG.simulateMatchServer`)는 아니요, 실제 서버는 **C2 먼저** |
+| 플레이스 분리 | [`docs/qa/m4-11-place-split.md`](qa/m4-11-place-split.md) | Studio 흉내(`DEBUG.simulateMatchServer`)는 아니요, 실제 서버는 **C2 먼저** |
+| 출시 점검 (연속 5판·잡기 입력·다이브 지름길·8명 부하·P3 눈 확인) | [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모 "Studio 확인" 1~6 (QA 리포트가 나오면 `docs/qa/m4-12-release-hardening.md`) | 아니요 (`DEBUG.forceMapPlans`·`logArenaStats` 사용 후 되돌리기) |
 
 공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `persistDataInStudio`, `simulateMatchServer`)은 확인 후 원래 값(`nil`/`false`)으로 되돌리고 커밋하지 마세요.
 
@@ -95,9 +97,11 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 - [ ] **C3. 개발자 상품 15개** (m4-14, 맨 마지막)
   - Creator Dashboard → 이 게임 → Monetization → Developer Products
   - 스킨 목록·가격은 m4-13/14가 끝나면 이 문서에 표로 추가할게요 → **상품 id 15개** 알려 주기
-- [ ] **C4. 출시 설정** (m4-12)
-  - 경험 설문(연령 등급), 지원 기기, 서버 최대 인원, 공개 범위(비공개 테스트 → 공개)
-  - 개인정보 삭제 요청 처리 절차(Right to Erasure) — m4-12 체크리스트에 방법이 들어가요
+- [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
+  - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
+  - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 M5)
+  - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
+  - 개인정보 삭제 요청(Right to Erasure)이 오면: Creator Dashboard → Data Stores → `PlayerData_v1`에서 키 `u_<UserId>` 삭제. MemoryStore는 곧 만료되니 따로 지울 것 없음
 
 ---
 
@@ -106,6 +110,7 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 - [ ] **친구 테스트 (4명 이상, 3판 이상)** — 양식: [`docs/DEV-SETUP.md`](DEV-SETUP.md) 3-8 "N. 친구 테스트", 결과는 [`docs/playtest/m3.md`](playtest/m3.md)에 판마다 한 줄
 - [ ] **실제 휴대폰 테스트** — [`docs/qa/m4-09-mobile-ui.md`](qa/m4-09-mobile-ui.md) AC9
 - [ ] **실서버 다인원** — 플레이스 분리(m4-11) AC9~AC13, 저장 두 서버(m4-07 AC10)
+- [ ] **비공개 테스트 (C1·C2 뒤, 친구만 접근 허용)** — 4명 이상 × 5판 이상, 결과는 `docs/playtest/m4.md`에 M3 양식 + "저장·텔레포트 문제" 칸
 
 ---
 

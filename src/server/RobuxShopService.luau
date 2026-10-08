@@ -25,6 +25,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local ReceiptLogic = require(ReplicatedStorage.Shared.ReceiptLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 
 local DataService = require(script.Parent.DataService)
@@ -38,9 +39,41 @@ local inFlight: { [string]: boolean } = {} -- 이 서버에서 처리 중인 Pur
 local fakeReceipts: { [string]: { userId: number, skinId: string } } = {} -- Studio 가짜 영수증
 local fakeCount = 0
 local closing = false
+-- 결제 창을 띄운 스킨 → 만료 시각(os.clock). 그동안 같은 스킨 코인 해금을 막아요 (m4-14 QA R2).
+-- PromptProductPurchaseFinished(취소)·영수증 Granted·Config.Shop.PurchasePromptHold 초가 지나면 풀려요.
+local prompted: { [Player]: { [string]: number } } = {}
 
+-- persistDataInStudio와 같이 켜면 가짜 결제는 꺼져요 (ShopLogic.fakeRobuxActive, m4-14 QA R4)
 local function fakeMode(): boolean
-	return RunService:IsStudio() and Config.DEBUG.fakeRobuxInStudio == true
+	return ShopLogic.fakeRobuxActive(
+		RunService:IsStudio(),
+		Config.DEBUG.fakeRobuxInStudio,
+		Config.DEBUG.persistDataInStudio
+	)
+end
+
+local function clearPrompt(player: Player, skinId: string)
+	local open = prompted[player]
+	if open == nil then
+		return
+	end
+	open[skinId] = nil
+	if next(open) == nil then
+		prompted[player] = nil
+	end
+end
+
+local function isPromptOpen(player: Player, skinId: string): boolean
+	local open = prompted[player]
+	local untilAt = open and open[skinId]
+	if untilAt == nil then
+		return false
+	end
+	if os.clock() >= untilAt then
+		clearPrompt(player, skinId)
+		return false
+	end
+	return true
 end
 
 local function makePort(player: Player?, receipt: ReceiptLogic.Receipt): ReceiptLogic.Port
@@ -141,6 +174,9 @@ local function handleReceipt(info: unknown): ReceiptLogic.Result
 	else
 		print(line)
 	end
+	if outcome.result == "PurchaseGranted" and player ~= nil and outcome.skinId ~= nil then
+		clearPrompt(player, outcome.skinId)
+	end
 	return outcome.result
 end
 
@@ -193,6 +229,9 @@ local function onRequestRobux(player: Player, skinId: unknown): (boolean, string
 		task.spawn(runFakeReceipt, player, skin.id, nil)
 		return true, nil
 	end
+	local open = prompted[player] or {}
+	open[skin.id] = os.clock() + Config.Shop.PurchasePromptHold
+	prompted[player] = open
 	MarketplaceService:PromptProductPurchase(player, skin.productId :: number)
 	return true, nil
 end
@@ -229,6 +268,12 @@ function RobuxShopService.init()
 		end
 		return success, err
 	end
+	if RunService:IsStudio() and Config.DEBUG.fakeRobuxInStudio and Config.DEBUG.persistDataInStudio then
+		warn(
+			"[Shop] fakeRobuxInStudio is ignored while persistDataInStudio is on (would write fake purchases to the real stores)"
+		)
+	end
+	ShopService.setCoinBlocker(isPromptOpen)
 	PurchaseLog.init()
 	game:BindToClose(function()
 		closing = true -- 종료 중에 온 영수증은 다음 접속에서 처리 (NotProcessedYet)
@@ -238,8 +283,18 @@ function RobuxShopService.init()
 end
 
 function RobuxShopService.start()
+	MarketplaceService.PromptProductPurchaseFinished:Connect(
+		function(userId: number, productId: number, isPurchased: boolean)
+			local player = Players:GetPlayerByUserId(userId)
+			local skin = Skins.forProduct(productId)
+			if player and skin and not isPurchased then
+				clearPrompt(player, skin.id) -- 취소: 바로 코인 해금 가능 (산 경우는 영수증 Granted까지 유지)
+			end
+		end
+	)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastPurchaseAt[player] = nil
+		prompted[player] = nil
 		for id, fake in fakeReceipts do
 			if fake.userId == player.UserId then
 				fakeReceipts[id] = nil

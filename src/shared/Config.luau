@@ -157,6 +157,7 @@ Config.Ui = {
 Config.Shop = {
 	RequestCooldown = 0.3, -- EquipSkin·BuyWithCoins 요청 간격 제한(초, 두 요청이 같이 써요)
 	PurchaseRequestCooldown = 1, -- RequestRobuxPurchase 요청 간격 제한(초, m4-14)
+	PurchasePromptHold = 120, -- 결제 창을 띄운 스킨의 코인 해금을 막는 최대 시간(초). 취소·지급되면 바로 풀려요 (m4-14 QA R2)
 	ReceiptHistoryMax = 50, -- 프로필에 기억하는 처리한 결제 id 수 (오래된 것부터 지워요, m4-14)
 	PurchaseLogStore = "Purchases_v1", -- 구매 기록 DataStore (키 = PurchaseId, m4-14)
 }
@@ -193,6 +194,7 @@ Config.DEBUG = {
 	logArenaStats = false,
 	-- true면 Studio에서 로벅스 버튼이 상품 id 없이도 켜지고, 누르면 결제 창 없이 가짜 영수증으로 결제 처리 흐름을
 	-- 그대로 타요 (m4-14). 저장이 메모리 모드면 메모리에. 실제 서버에서는 무시. 커밋할 때는 false로.
+	-- persistDataInStudio와 같이 켜면 운영 저장소에 가짜 기록이 써지니 가짜 결제는 꺼지고 경고만 남겨요 (m4-14 QA R4).
 	fakeRobuxInStudio = false,
 }
 

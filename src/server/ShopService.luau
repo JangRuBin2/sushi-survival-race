@@ -36,6 +36,8 @@ local ShopService = {}
 
 local lastRequestAt: { [Player]: number } = {}
 local lockedUntil: { [number]: number } = {} -- userId → os.clock() (탈락·우승 연출이 끝나는 시각)
+-- 로벅스 결제 창이 열린 스킨이면 true (RobuxShopService가 등록, m4-14 QA R2). 그동안 같은 스킨 코인 해금을 거절해요
+local coinBlocker: ((player: Player, skinId: string) -> boolean)? = nil
 
 -- 우승 연출(VictoryDuration) 뒤 로비 단상이 외형을 읽을 때까지 조금 더 잠가요
 local VICTORY_MARGIN = 1
@@ -118,6 +120,10 @@ local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, string
 	if ShopService.isLocked(player) then
 		return fail("Locked")
 	end
+	local blocker = coinBlocker
+	if blocker and blocker(player, skinId) then
+		return fail("PurchasePending") -- 결제가 끝나면 로벅스만 빠지고 영수증은 RecordOnly가 돼요
+	end
 	-- 판단과 차감·지급·장착을 한 번의 update 안에서 (그 사이 다른 요청이 끼지 않아요)
 	local decision: ShopLogic.Decision = { ok = false, reason = "NoProfile" }
 	local updated = DataService.update(player, function(p)
@@ -132,6 +138,11 @@ local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, string
 		task.spawn(DataService.saveNow, player) -- 코인을 쓴 건 바로 저장해요
 	end
 	return true, nil
+end
+
+-- 로벅스 결제 대기 중인 스킨을 알려 주는 함수 (RobuxShopService.init). 코인 해금이 그 스킨이면 거절해요.
+function ShopService.setCoinBlocker(fn: ((player: Player, skinId: string) -> boolean)?)
+	coinBlocker = fn
 end
 
 function ShopService.grantSkin(player: Player, skinId: string, equip: boolean?): boolean

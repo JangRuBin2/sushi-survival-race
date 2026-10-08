@@ -263,6 +263,7 @@ local function loadServer(opts: Options?): any
 		end,
 	}
 	local Marketplace: any = {
+		PromptProductPurchaseFinished = newSignal(T.spawn),
 		PromptProductPurchase = function(_, player: any, productId: number)
 			table.insert(env.prompts, { player = player, productId = productId })
 		end,
@@ -930,5 +931,94 @@ return function(t: Test.Test)
 				t.eq(value, before[key], `field {key} unchanged`)
 			end
 		end
+	end)
+
+	---------------------------------------------------------------- QA 후 수정 (developer, R2·R4)
+	local function coinUnlock(env: any, player: any, skinId: string): (boolean, string?)
+		local box: any = {}
+		local get = env.call(function()
+			box.ok, box.err = env.functions.BuyWithCoins.OnServerInvoke(player, skinId)
+			return true
+		end)
+		env.run(2)
+		get()
+		return box.ok, box.err
+	end
+
+	t.test("R2 fix: while the robux prompt for a skin is open, coin unlock of that skin is refused", function()
+		local env = loadServer()
+		local p = env.join(1)
+		env.run(5)
+		env.DataService.update(p, function(profile)
+			profile.coins = 1000
+		end)
+		local ok = env.request(p, "salmon")
+		t.eq(ok, true)
+		t.eq(#env.prompts, 1)
+		env.run(5) -- 요청 간격 지나기
+		local bought, err = coinUnlock(env, p, "salmon")
+		t.eq(bought, false, "coin unlock refused while prompt open")
+		t.eq(err, ShopLogic.message("PurchasePending"))
+		t.eq(env.DataService.get(p).coins, 1000, "coins untouched")
+		-- 다른 일반 스킨은 그대로 해금돼요
+		env.run(5)
+		t.eq((coinUnlock(env, p, "tuna")), true)
+		-- 결제 완료 → 영수증 Granted(GrantAndRecord, 경고 없음) → 막힘 해제
+		t.eq(env.receipt(1, env.productOf("salmon"), "pid-salmon"), GRANTED)
+		t.ok(string.find(env.lastReceiptLine() or "", "GrantAndRecord", 1, true) ~= nil, "not RecordOnly")
+	end)
+
+	t.test("R2 fix: cancelled prompt or timeout unblocks coin unlock; RecordOnly path still warns", function()
+		local env = loadServer()
+		local p = env.join(1)
+		env.run(5)
+		env.DataService.update(p, function(profile)
+			profile.coins = 1000
+		end)
+		env.request(p, "salmon")
+		env.market.PromptProductPurchaseFinished:Fire(1, env.productOf("salmon"), false) -- 취소
+		env.run(15)
+		t.eq((coinUnlock(env, p, "salmon")), true, "cancel unblocks")
+		-- 타임아웃
+		env.run(15)
+		env.request(p, "shrimp")
+		env.run(math.ceil(Config.Shop.PurchasePromptHold * 10) + 5)
+		t.eq((coinUnlock(env, p, "shrimp")), true, "timeout unblocks")
+		-- 그래도 이미 가진 스킨의 영수증이 오면(다른 서버 등) RecordOnly + 경고
+		local warnings = #env.warnings
+		t.eq(env.receipt(1, env.productOf("salmon"), "pid-late"), GRANTED)
+		t.ok(#env.warnings > warnings, "RecordOnly warning kept")
+		env.leave(p)
+	end)
+
+	t.test("R4 fix: fake robux + persistDataInStudio together → fake purchase refused, nothing written", function()
+		local env = loadServer({ studio = true, fake = true, persistInStudio = true })
+		local p = env.join(1)
+		env.run(5)
+		local found = false
+		for _, line in env.warnings do
+			if string.find(line, "fakeRobuxInStudio is ignored", 1, true) then
+				found = true
+			end
+		end
+		t.ok(found, "warning at startup")
+		t.eq(#env.instances, 0, "no ReplayReceipt debug hook")
+		-- 상품 id가 있으면 진짜 결제 창 (가짜 영수증 없음)
+		t.eq((env.request(p, "uni")), true)
+		env.run(20)
+		t.eq(#env.prompts, 1, "real prompt instead of fake receipt")
+		t.eq(next(env.purchases.data), nil, "no fake record in Purchases_v1")
+		t.eq(env.DataService.get(p).ownedSkins.uni, nil, "no free skin")
+		t.eq(ShopLogic.fakeRobuxActive(true, true, true), false, "client uses the same rule")
+		t.eq(ShopLogic.fakeRobuxActive(true, true, false), true)
+		t.eq(ShopLogic.fakeRobuxActive(false, true, false), false, "never on a live server")
+	end)
+
+	t.test("R3·R5 fix (source): client clears pending on cancel, Remotes comment names RobuxShopService", function()
+		local client = fs.readFile("src/client/ui/ShopController.luau")
+		t.ok(string.find(client, "PromptProductPurchaseFinished:Connect", 1, true) ~= nil, "listens for prompt finish")
+		t.ok(string.find(client, "pending[skin.id] = nil", 1, true) ~= nil, "clears pending")
+		local remotes = fs.readFile("src/shared/Remotes.luau")
+		t.ok(string.find(remotes, "(m4-14, RobuxShopService:", 1, true) ~= nil)
 	end)
 end

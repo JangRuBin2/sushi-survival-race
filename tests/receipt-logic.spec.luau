@@ -427,7 +427,7 @@ return function(t: Test.Test)
 			t.eq(assigns, 1, "one ProcessReceipt")
 			t.ok(string.find(src, "DataService.saveNow(me())", 1, true) ~= nil, "uses saveNow result")
 			t.ok(
-				string.find(src, "RunService:IsStudio() and Config.DEBUG.fakeRobuxInStudio == true", 1, true) ~= nil,
+				string.find(src, "return ShopLogic.fakeRobuxActive(\n\t\tRunService:IsStudio(),", 1, true) ~= nil,
 				"fake mode is studio-only"
 			)
 			t.ok(string.find(src, "PromptProductPurchase", 1, true) ~= nil)

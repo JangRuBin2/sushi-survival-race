@@ -36,7 +36,11 @@ function ShopController.start(_gui: Instance)
 	local view: Types.ProfileView? = ProfileStore.get()
 	local screen: ShopScreen.ShopScreen
 	local robux: ShopLogic.RobuxOptions = {
-		fake = RunService:IsStudio() and Config.DEBUG.fakeRobuxInStudio == true,
+		fake = ShopLogic.fakeRobuxActive(
+			RunService:IsStudio(),
+			Config.DEBUG.fakeRobuxInStudio,
+			Config.DEBUG.persistDataInStudio
+		),
 		prices = {},
 	}
 	local pending: { [string]: boolean } = {} -- 로벅스 결제를 요청한 스킨 (보유에 들어오면 획득 안내)
@@ -170,6 +174,19 @@ function ShopController.start(_gui: Instance)
 	UiScaleController.onChanged(function(m)
 		screen:setLayout(m)
 	end)
+
+	-- 결제 창을 취소하면 기다리던 스킨을 지워요 (나중에 코인으로 해금해도 "획득!"이 안 나오게, m4-14 QA R3)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(
+		function(userId: number, productId: number, isPurchased: boolean)
+			if userId ~= me.UserId or isPurchased then
+				return
+			end
+			local skin = Skins.forProduct(productId)
+			if skin then
+				pending[skin.id] = nil
+			end
+		end
+	)
 
 	ProfileStore.changed(function(newView: Types.ProfileView)
 		view = newView

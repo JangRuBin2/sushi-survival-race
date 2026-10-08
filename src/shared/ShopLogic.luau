@@ -27,6 +27,7 @@ export type Reason =
 	| "CannotSave"
 	| "TooFast"
 	| "NoProfile"
+	| "PurchasePending"
 
 export type Decision = {
 	ok: boolean,
@@ -67,6 +68,12 @@ export type ViewLike = {
 }
 
 local ShopLogic = {}
+
+-- Studio 가짜 로벅스 결제가 켜졌는가 (m4-14). persistDataInStudio와 같이 켜면 운영 저장소(PlayerData_v1·Purchases_v1)에
+-- 가짜 기록·무료 스킨이 써지니 가짜 결제를 끄고 진짜 결제처럼 굴어요 (m4-14 QA R4). 서버·클라이언트가 같이 써요.
+function ShopLogic.fakeRobuxActive(isStudio: boolean, fakeRobux: boolean?, persistInStudio: boolean?): boolean
+	return isStudio and fakeRobux == true and persistInStudio ~= true
+end
 
 -- 로벅스로 살 수 있게 열렸는가 (m4-14): 기본 스킨이 아니고 가격이 있고, 상품 id가 있거나 Studio 가짜 결제
 function ShopLogic.robuxOpen(skin: Skins.Skin, fake: boolean?): boolean
@@ -166,6 +173,7 @@ local MESSAGES: { [Reason]: string } = {
 	CannotSave = "저장이 안 되는 상태예요",
 	TooFast = "잠시 뒤에 다시 해 주세요",
 	NoProfile = "프로필을 불러오는 중이에요",
+	PurchasePending = "로벅스 결제가 끝날 때까지 기다려 주세요",
 }
 
 function ShopLogic.message(reason: Reason?, missing: number?): string

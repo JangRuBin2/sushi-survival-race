@@ -310,7 +310,7 @@ LobbyLayout.PODIUM = {
 	topY = 5, -- 가운데 단 윗면 높이
 	scale = 1.5, -- 인형 크기
 	facingYawDeg = 90, -- 인형 앞(-Z)이 스폰 쪽(-X)을 보게
-	labelHeight = 13, -- 이름표(BillboardGui) 높이
+	labelHeight = 15, -- 이름표(BillboardGui) 높이. 아래 끝(12.75)이 인형 머리(12.05) 위라 줄이 가리지 않아요 (m4-06 QA L1)
 	emptyText = "다음 우승자는 누구?",
 }
 

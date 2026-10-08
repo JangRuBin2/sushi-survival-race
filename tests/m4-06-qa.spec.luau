@@ -103,11 +103,9 @@ return function(t: Test.Test)
 			local dollBottom = bodyCenterY + b.min[2] * podium.scale
 			t.ok(math.abs(dollBottom - podium.topY) < 0.6, `doll floats/sinks: bottom {dollBottom}`)
 			-- 이름표: BillboardGui 4.5 studs, 가운데 = labelHeight, 아래 정렬 Name 0.45 / Title 0.3 / Wins 0.25
+			-- QA 리포트 L1(P2) 수정 뒤: 인형 머리가 이름표 맨 아래 줄(Wins)보다 아래에 있어야 해요.
 			local labelBottom = podium.labelHeight - 4.5 / 2
-			local nameBottom = labelBottom + 4.5 * (0.25 + 0.3)
-			t.ok(dollTop <= nameBottom + EPS, `doll top {dollTop} > name row bottom {nameBottom}`)
-			-- 알려진 문제 (QA 리포트 L1, P2): 인형 머리(12.05)가 Wins 줄(10.75~11.875)과 Title 줄 아래쪽을 가려요.
-			-- 고친 뒤에는 `dollTop <= labelBottom`을 확인하는 테스트로 바꾸길 권해요.
+			t.ok(dollTop <= labelBottom + EPS, `doll top {dollTop} > label bottom {labelBottom}`)
 		end
 	)
 

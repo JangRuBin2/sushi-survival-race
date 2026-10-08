@@ -149,3 +149,121 @@
 | 코인 R$ 판매 | **하지 않는 것을 추천** — 무료 재화의 의미가 흐려짐. 필요하면 사용자 결정 | 사례 E·G·DOORS는 하지만 모두 오래된 대형작 |
 | 지역 가격 | 개발자 상품에 `GetUsersPriceLevelsAsync` 연결 | 4절 공식 문서 |
 | GDD 9.3 다른 상품 | 탈락·우승 연출 팩(79~199), VIP 249도 새 사다리에 맞춰 다시 볼 것 (예: 연출 팩 49~99, VIP 199) | 사례 A(VIP 499지만 여러 혜택)·C·4절 |
+
+---
+
+## 8. M5 추가 조사 — 번들·VIP·연출·시즌 한정·코드 (2026-10-08, planner)
+
+M5 스펙 `m5-07`(시즌·이벤트), `m5-08`(상품), `m5-09`(연출 팩), `m5-10`(코드)의 근거. 표기는 1~7절과 같다.
+
+### 8.1 VIP·스타터·번들·연출 — 실제 판매 내용 (공식 게임 패스 API로 원문 확인)
+
+| 게임 | 상품 | 가격 | 들어 있는 것 (설명 원문 요약) | 근거 |
+|---|---|---|---|---|
+| A Epic Minigames | **VIP** | 499 | 코인 1,000 + 기어 + 펫 + **효과** + VIP 칭호 + 이름표 칭호 + 우승마다 코인 +5 + **채팅 태그** + 일일 미션 1개 더 | [원문] API universe 110181652 (생성 2018-09-12) |
+| A Epic Minigames | **Starter Pack** | 99 | 기어 + 칭호 + 코인 500 + 미니게임 선택권 5 | [원문] 같음 (생성 2024-01-17) |
+| A Epic Minigames | **Halloween Bundle [2024]** | 지금 판매 안 함 | "기간 한정 아이템": 기어 + 펫 + 효과 + 칭호 + **"Halrog of Prey death"(탈락 연출)** + 선택권 | [원문] 같음 (생성 **2024-10-17**) |
+| A Epic Minigames | **Christmas Bundle [2024]** | 지금 판매 안 함 | 기어 + 펫 + 효과 + 칭호 + **"Baublify death"(탈락 연출)** + 선택권 | [원문] 같음 (생성 **2024-11-29**) |
+| A Epic Minigames | 계절 번들 전체 | — | 이스터·발렌타인·독립기념일·할로윈·크리스마스 번들이 **연도 이름을 달고** 나왔다가 판매 종료(2023~2025 목록 그대로 남음) | [원문] 같음 |
+| H Arsenal | **VIP** | 395 | 전용 캐릭터 2 + **전용 VIP 처치 연출(kill effect)** + 무지개 채팅 글씨 + **VIP 채팅 태그** + 처음 한 번 2,400 재화 | [원문] API universe 111958650 |
+| H Arsenal | **VIP (1.5x)** (옛 상품) | 판매 안 함 | "이 패스는 **교체됐어요** … 새 패스에는 없는 **1.5배 보너스**도 산 사람은 그대로 가져요" → **재화 배수를 빼고 겉모습 VIP로 바꾼 사례** | [원문] 같음 |
+| H Arsenal | 번들 | 245~725 | 캐릭터 + 근접 스킨 등 | [원문] 같음 (3절) |
+| B Speed Run 4 | VIP | 599 | — | [원문] 3절 |
+| F Super Bomb Survival | VIP | 400 | — | [원문] 3절 |
+| I Rivals | Starter Bundle | 59 | — | [원문] 3절 |
+
+**읽은 것**
+1. **탈락(처치) 연출은 로블록스에서 파는 코스메틱 종류**다: Epic Minigames 계절 번들의 "death", Arsenal VIP "kill effect", Arsenal 프라임 번들 "Elimination Effect"([검색] Sportskeeda/Dexerto). 우리 "탈락 연출 팩"(GDD 7·9.3)이 장르 관행과 맞다.
+2. **VIP의 재화 배수는 빼는 추세가 있다**: Arsenal이 1.5배 VIP를 겉모습 VIP(전용 캐릭터·처치 연출·채팅 태그)로 교체. 우리는 사용자가 "코인을 로벅스로 파는 상품 안 함"을 확정(GDD 9.1) → 코인 배수는 **간접 코인 판매**라 VIP에서 빼는 것이 원칙과 맞다.
+3. VIP 가격 395~599는 "여러 혜택 + 재화" 묶음 가격이다. 혜택이 겉모습 3가지뿐인 우리 VIP는 그보다 낮아야 한다 → 4절 가이드의 "편의 49~149" 위쪽 끝.
+4. **스타터 팩은 59~99**(Rivals 59, Epic Minigames 99). 우리 79(일반 3 + 레어 1, 따로 사면 146)는 그 가운데 — 7.4 제안 그대로.
+5. **계절 한정 = 이름에 연도 + 기간 뒤 판매 종료**(Epic Minigames). 할로윈은 **10월 중순**, 크리스마스는 **11월 말~12월**에 시작(생성일).
+
+### 8.2 시즌 이벤트 — 기간·이벤트 재화 관행
+
+| 게임 | 기간 | 이벤트 재화 | 무료로 얻는 것 | 유료 | 근거 |
+|---|---|---|---|---|---|
+| Murder Mystery 2 할로윈 2025 | 2025-10-18 ~ 11-21 (약 5주) | **사탕(candies)**: 이벤트 동안 코인 대신 사탕이 나옴, 사탕 100 → 코인 100 교환 가능 | 배틀 패스 25단(단마다 사탕 800, 첫 단 무료), 이벤트 상자 800사탕 | 한정 번들 3,399 R$ (해마다 나오는 "연례 한정") | [검색] MM2 위키(402)·검색 요약 |
+| Adopt Me 할로윈 2025 | 2025-10-03 ~ 11-01 (약 4주) | **Candy Corn**: 이벤트 장소에서 줍기·미니게임·일일 퀘스트 | 주마다 새 한정 펫(사탕 3,500~70,000) | (알 뽑기 — 우리는 금지) | [검색] Deltia's Gaming 외 |
+| Epic Minigames | 할로윈 번들 10월 중순, 크리스마스 번들 11월 말 생성 | (코인 상점) | 코드로 계절 효과·펫 (`Spooky25`, `MerryEpicmas` 등 지난 코드) | 계절 번들 게임 패스 | [원문] API, [원문] Dexerto 코드 기사 |
+| Roblox 플랫폼 할로윈 Spotlight 2025 | ~2025-11-03 | 키·룬 | 게임별 퀘스트 2개 | — | [검색] |
+
+**읽은 것**
+1. 로블록스 시즌 이벤트는 **3~5주**, 할로윈은 **10월 초~중순 시작 ~ 11월 초**.
+2. **이벤트 전용 재화**를 플레이로 모아 한정 아이템과 바꾸는 구조가 표준(MM2 사탕, Adopt Me Candy Corn). 이벤트가 끝나면 재화의 쓸모가 없어지거나(Adopt Me) 일반 재화로 바꿔 줌(MM2).
+3. 유료 한정은 "연례 한정 번들"(MM2·Epic Minigames). **뽑기 상자·알은 우리는 하지 않음**(GDD 9.1, 5절).
+4. 압박 판매 주의: 2025-10~2026-02 인기 로블록스 게임 15개를 조사한 연구가 **오해를 부르거나 불공정한 수익화 관행 14가지**를 보고했고, 2022년 TINA가 FTC에 로블록스의 기만적 수익화를 알렸다([검색] 시드니대 저장소·IEEE ConPro 2025, 원문 403·PDF 못 읽음). → 우리는 **남은 기간을 날짜로만** 보여 주고 초 단위 카운트다운·"마지막 기회!" 같은 문구를 쓰지 않는다(추정에 따른 보수적 선택, m5-07 결정 기록).
+
+### 8.3 코드 보상 관행
+
+| 게임 | 입력 위치 | 보상 예 | 공지 | 근거 |
+|---|---|---|---|---|
+| Epic Minigames | 상점 창의 텍스트 칸 | 펫·효과(겉모습만), 계절 코드 `Spooky25`·`MerryEpicmas`는 기간 뒤 만료 | Roblox·Discord 공지 | [원문] Dexerto (2026-08) |
+| Arsenal | 메인 메뉴 선물 상자 아이콘 → 붙여 넣기 → Redeem (**대소문자 구분**) | `merrychristmas25` 2,500 BattleBucks, 지난 `POG` 1,200, 스킨·아나운서 | 기념일·시즌·협업 때 | [원문] buffbuff (2026-10) |
+| Tower of Hell | **채팅창에 입력** (메뉴 없음, 대소문자 구분) | 스킨·기어·65 XP | 개발자 Discord | [원문] allthings.how |
+| Piggy | (코드 입력을 **꺼 둠**) | — | — | [검색] |
+
+**읽은 것**
+1. 코드는 **기념일·시즌·업데이트 때** 나오고 대부분 **기간 뒤 만료**된다. 보상은 겉모습이나 재화 "몇 판 분량".
+2. Arsenal 2,500 Bucks ≈ 스킨 1개 안팎(추정). 우리 1판 평균 약 30코인(7.1)이라 **100~300코인 = 3~10판 분량**, 300이면 일반 스킨 1개 — GDD 9.3의 100~300 범위가 같은 비율이다.
+3. 대소문자 구분은 어린 이용층에게 불편 → 우리는 **대소문자·앞뒤 공백 무시**(Epic Minigames 기사는 구분 여부를 안 적음).
+4. 공지 채널(Discord 등)은 13세 이상에게만 링크가 보이는 경우가 많다(추정, 공식 문서 원문 미확인) → 코드는 **게임 설명·업데이트 로그에도** 적는 것을 권장(USER-TODO).
+
+### 8.4 개발자 상품 vs 게임 패스, 지역 가격 (공식 문서 원문)
+
+| 내용 | 근거 |
+|---|---|
+| 개발자 상품 = "**여러 번 살 수 있는** 것(재화·탄약·물약)", 한 번만 사는 것은 **패스**를 쓰라고 안내 | [원문] create.roblox.com/docs/production/monetization/developer-products |
+| 패스 = `UserOwnsGamePassAsync`로 소유 확인, `PromptGamePassPurchase` → `PromptGamePassPurchaseFinished`로 혜택 지급, 접속할 때 `PlayerAdded`에서 확인 | [원문] .../game-passes |
+| **지역 가격**: 패스는 "Managed pricing으로 **기본으로 켜짐**", 개발자 상품은 "**스크립트로 가격을 동적으로** 표시하는지 확인한 뒤 Enable Managed Pricing"을 직접 눌러야 함. 지역 가격은 기본가에서 **최대 70%까지만** 내려감 | [원문] .../regional-pricing.md |
+| "managed pricing이 **하드코딩된 가격**을 찾으면 먼저 고치라고 안내" | [원문] .../managed-pricing.md |
+| 패스 프로모션(로벅스 구매 페이지 노출)은 가격 **50~800 R$** 패스만 | [원문] .../game-passes |
+
+**우리 선택 (m5-08 기본값)**
+- 스킨 15종은 m4-14대로 **개발자 상품**(서버가 프로필로 한 번만 지급) 유지.
+- 스타터 팩·세트·연출 팩도 **개발자 상품**: 문서는 "한 번만 = 패스"를 권하지만, 우리 번들은 **"그 안의 스킨을 하나도 안 가졌을 때만"** 팔아야 해서(가진 걸 또 사게 하지 않기) 게임 안에서만 보이는 개발자 상품이 맞다. 패스는 웹 상점에서도 팔려서 이 조건을 걸 수 없다. 한 번 산 기록은 프로필 + 구매 기록 DataStore(m4-14 방식)로 지킨다.
+- **VIP만 게임 패스**: 영구 혜택이고 조건 없음, 지역 가격이 자동, 웹 상점에도 보임.
+- 지역 가격 준비: 화면의 로벅스 가격을 코드 숫자 대신 `MarketplaceService:GetProductInfo`의 가격으로 보여 주게 고쳐 두고(m5-03 `PriceCache`), 대시보드에서 켜는 것은 **사용자 결정**.
+
+### 8.5 어린 이용층 플랫폼 변화 (2026)
+| 내용 | 근거 |
+|---|---|
+| **Roblox Kids(5~8세)·Roblox Select(9~15세)** 계정 등급. Kids는 콘텐츠 성숙도 Minimal·Mild만, Select는 Moderate까지. 이 이용자에게 게임을 보이려면 제작자 나이 확인·본인 인증·2단계 인증 + 게임당 환불되는 등록비 또는 Plus/Premium 2개월 + 평가 기간(열심히 한 이용자 250회 플레이/60일). Kids는 채팅 기본 꺼짐 | [원문] create.roblox.com/docs/production/publishing/kids-and-select (공식 문서 숫자 250, 기사는 500) |
+| 2026-08-26 정책: Kids·Select 게임에서 "**보상을 걸고 끝없이 보게 하는 피드**"(짧은 영상 + 자동 재생·무한 스크롤 + 보상) 금지 | [원문] PocketGamer.biz |
+| → 우리 타깃(8~16세)은 대부분 Select·Kids. 우리 콘텐츠(먹히는 연출, 피 없음)는 Mild 수준(추정). 이벤트·코드 보상에 "광고·영상 보기" 같은 조건을 걸지 않는다 | |
+
+### 8.6 M5 가격 제안 (기본값, 사용자 수정 가능)
+| 상품 | 종류 | 가격 | 내용 / 조건 | 근거 |
+|---|---|---|---|---|
+| 스타터 팩 | 개발자 상품 | **79** | 연어·참치·새우 + 장어 (따로 146). **계정당 1번**, 4종 중 하나도 없을 때만 보임 | 8.1-4, 7.4 |
+| 에픽 세트 | 개발자 상품 | **249** | 에픽 3종 (따로 297, 약 16% 할인). 셋 다 없을 때만 | 사례 H·I 번들, 7.4 |
+| 전설 세트 | 개발자 상품 | **499** | 전설 3종 (따로 597). 셋 다 없을 때만 | 같음 |
+| 탈락 연출 "고양이 손님" | 개발자 상품 | **59** | 내가 탈락할 때 먹는 손님이 고양이로 (방 전원이 봄) | 레어 스킨 가격(59) = 자주 보이는 작은 코스메틱, 8.1-1, 7.4 "연출 팩 49~99" |
+| 우승 연출 "불꽃놀이" | 개발자 상품 | **99** | 내가 우승할 때 부두 위 불꽃놀이 | 에픽 가격(99), Epic Minigames 효과 99~149 |
+| VIP 패스 | **게임 패스** | **149** | VIP 전용 스킨 "금박 계란초밥" + 이름표 👑 + 채팅 [VIP] 태그. **코인 배수 없음** | 8.1-2·3, 4절 "편의 49~149" |
+| 시즌 유료 스킨 | 개발자 상품 | **99** (에픽) | 할로윈 "호박 초밥", 크리스마스 "산타 새우" — 이벤트 기간에만 | GDD 9.2 "에픽 가격대", 8.1-5 |
+| 시즌 무료 스킨 | 이벤트 재화 | **🍬/⭐ 80개** | "유령 계란초밥", "트리 마키" — 이벤트 기간 플레이로 약 25~30판 | 8.2-2, 레어 코인 해금 30판과 비슷하게 |
+| 코드 | 무료 | 코인 **100~300** | 계정당 1번, 만료 날짜, 대소문자 무시 | 8.3 |
+
+- 15종 스킨 + 시즌 유료 2 + 연출 2 + VIP를 전부 사도 1,275 + 198 + 158 + 149 = **1,780 R$**. 기프트 카드 한 장(400 R$)으로 "스타터 팩 + 고양이 손님 + 에픽 스킨 1 + 일반 스킨 2"(79 + 59 + 99 + 58 = 295)처럼 여러 개를 고를 수 있다.
+
+### 8.7 출처 (8절, 확인일 2026-10-08)
+- Roblox 게임 패스 API: Epic Minigames — https://apis.roblox.com/game-passes/v1/universes/110181652/game-passes?passView=Full&pageSize=100 , Arsenal — https://apis.roblox.com/game-passes/v1/universes/111958650/game-passes?passView=Full&pageSize=100 (원문)
+- MM2 할로윈 2025 — https://murder-mystery-2.fandom.com/wiki/Halloween_Event_2025 (402, 검색 요약)
+- Adopt Me 할로윈 2025 — https://deltiasgaming.com/?p=372460 , https://progameguides.com/roblox/how-to-get-ghostly-cat-dj-snooze-in-adopt-me/ (검색 요약)
+- Roblox Halloween Spotlight / Epic Minigames — https://deltiasgaming.com/?p=384262 (405, 검색 요약)
+- Dexerto, Epic Minigames codes — https://www.dexerto.com/roblox/epic-minigames-codes-3302130/ (원문)
+- buffbuff, Arsenal codes — https://buffbuff.com/blog/arsenal-codes (원문)
+- allthings.how, Tower of Hell codes — https://allthings.how/tower-of-hell-codes/ (원문)
+- Piggy 코드 꺼짐 — https://allthings.how/?p=43232 (검색 요약)
+- Sportskeeda/Dexerto, Arsenal Elimination Effect 번들 — https://www.dexerto.com/roblox/how-to-get-free-operagx-items-in-roblox-arsenal-2199677 (검색 요약)
+- Roblox Creator Docs: Developer products — https://create.roblox.com/docs/production/monetization/developer-products , Passes — https://create.roblox.com/docs/production/monetization/game-passes , Regional pricing — https://create.roblox.com/docs/en-us/production/monetization/regional-pricing.md , Managed pricing — https://create.roblox.com/docs/en-us/production/monetization/managed-pricing.md (원문)
+- Roblox Creator Docs, Kids and Select — https://create.roblox.com/docs/production/publishing/kids-and-select (원문)
+- PocketGamer.biz, reward-driven media feeds (2026-08) — https://www.pocketgamer.biz/roblox-restricts-reward-driven-media-feeds-in-kids-and-select/ (원문)
+- 기만적 수익화 연구 — https://ses.library.usyd.edu.au/handle/2123/35033 (403), https://ieee-security.org/TC/SPW2025/ConPro/papers/eiger-conpro25.pdf (PDF 내용 못 읽음) — 검색 요약만
+
+### 8.8 확인 못 함
+- Epic Minigames 계절 번들의 판매 당시 가격(지금 판매 안 함이라 API에 가격 없음).
+- 개발자 상품 판매 전환율, 번들 할인율이 판매에 주는 효과 — 공개 수치 없음.
+- 13세 미만에게 소셜 링크가 안 보이는 정확한 현재 규칙 — 공식 원문 미확인.
+- 탈락 연출(kill effect) 단품의 흔한 가격 — 단품 판매 사례 가격을 찾지 못해 우리 스킨 사다리에 맞춤(추정).

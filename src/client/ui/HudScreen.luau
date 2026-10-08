@@ -6,6 +6,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Kit = require(script.Parent.RoomUiKit)
 
@@ -226,12 +227,15 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 	end)
 
 	local personalToken = 0
+	-- 우승 배너·순위표를 연출 뒤에 띄울 때, 그 사이 단계가 바뀌거나 HUD가 숨겨졌는지 확인용 (m3-05)
+	local victoryToken = 0
 
 	local screen = {}
 
 	function screen.setVisible(_self: HudScreen, visible: boolean)
 		root.Visible = visible
 		if not visible then
+			victoryToken += 1
 			banner.Visible = false
 			banner.Position = BANNER_POSITION
 			clearStandings()
@@ -242,6 +246,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 	end
 
 	function screen.setPhase(_self: HudScreen, info: Types.MatchPhaseInfo)
+		victoryToken += 1
 		endsAt = info.endsAt
 		refreshTimer()
 		if info.mapKind then
@@ -280,8 +285,6 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			topBar.Visible = false
 			progressLabel.Text = ""
 			timerLabel.Text = ""
-			banner.Visible = true
-			bannerTitle.Text = "🏆 우승!"
 			local winnerName = "?"
 			if info.winnerUserId then
 				winnerName = nameOf(info.winnerUserId)
@@ -292,9 +295,26 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 					end
 				end
 			end
-			bannerSubtitle.Text = `{winnerName}님이 우승했어요!`
-			banner.Position = VICTORY_BANNER_POSITION
-			showStandings(info.standings)
+			local function showVictory()
+				banner.Visible = true
+				bannerTitle.Text = "🏆 우승!"
+				bannerSubtitle.Text = `{winnerName}님이 우승했어요!`
+				banner.Position = VICTORY_BANNER_POSITION
+				showStandings(info.standings)
+			end
+			if info.winnerUserId then
+				-- 우승 연출(VictoryCutsceneController)이 끝난 뒤에 띄워요. 그 사이 단계가 바뀌거나
+				-- HUD가 숨겨지면(대기실로 돌아감) 띄우지 않아요.
+				banner.Visible = false
+				local mine = victoryToken
+				task.delay(Config.Match.VictoryCutscene, function()
+					if victoryToken == mine and root.Visible then
+						showVictory()
+					end
+				end)
+			else
+				showVictory() -- 우승자가 없으면 연출도 없어서 바로
+			end
 		end
 	end
 

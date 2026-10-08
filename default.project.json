@@ -15,7 +15,9 @@
     "StarterPlayer": {
       "$properties": {
         "CharacterUseJumpPower": true,
-        "CharacterJumpPower": 50
+        "CharacterJumpPower": 50,
+        "EnableMouseLockOption": false,
+        "LoadCharacterAppearance": false
       },
       "StarterPlayerScripts": {
         "Client": {

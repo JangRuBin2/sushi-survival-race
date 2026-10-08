@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-01 — M3 기반 작업 (공용 파일 · 카메라 중재 · 연출/입력 껍데기)
@@ -122,6 +122,27 @@ M3 병렬 개발이 서로 같은 파일을 건드리지 않도록 공용 파일
 - 2026-10-08 · `Sfx.start(gui)` 추가 · m3-08이 배경음 전환·버튼 클릭음·음소거 버튼을 자기 파일 안에서 하도록 `init.client.luau` 등록을 이 스펙이 미리 해 둔다 (병렬 중 `init` 수정 방지) · planner
 - 2026-10-08 · m3-07 예외 삭제 · 잡기 감속을 클라이언트 입력 배수로 정해서 서버 이동 값 파일을 열어 둘 필요가 없어짐 · planner
 - 2026-10-08 · 사용자 지시: "일단 개발 다 해 놓으면 나중에 수정 명령을 내리겠다" → M3 스펙은 결정이 필요한 항목도 기본값을 정해 모두 ready로 둔다 · user (메인 세션 경유)
+- 2026-10-08 · 시간 종료 탈락의 cause · 스펙은 Fall/Reset/Left만 정함. 라운드 시간 종료·통과 인원이 다 차서 남은 사람이 탈락하는 경우는 `cause = nil`(position은 그 순간 위치)로 보냄 → m3-03 `shouldPlay(nil) = false`라 이 사람들은 탈락 연출이 없다. Race에서 가장 흔한 탈락이라 연출을 원하면 기획이 cause 값(예: `"Timeout"`)을 정해 m3-09에서 추가 · developer (질문, 막히지는 않음)
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 · developer (main)
+**바뀐 파일**
+- 공용: `src/shared/Config.luau`(Match.VictoryDuration 10·VictoryCutscene 6, Appearance, Dive, Grab), `src/shared/Remotes.luau`(RemoteEvent `GrabInput`, 클라이언트 → 서버 절), `src/shared/Types.luau`(`EliminationCause`, `PlayerResult.cause/position`), `default.project.json`(StarterPlayer `EnableMouseLockOption = false`, `LoadCharacterAppearance = false`)
+- 새 shared: `Attributes.luau`, `SfxCues.luau`(`Effects`/`Music` 목록, `all()`, `isEffect`, `isMusic`), `CameraPriority.luau`(`pick`), `SushiBody.luau`(껍데기)
+- 새 client: `CameraDirector.luau`(실제 구현: `request/release/current/isActive`, `Priority`), `Sfx.luau`(껍데기), `fx/CharacterFxController`·`fx/EliminationCutsceneController`·`fx/IntroController`·`fx/VictoryCutsceneController`·`input/DiveController`·`input/GrabController`(껍데기, `start(gui)`)
+- 새 server: `AppearanceService.luau`(`applyAppearance` = AppearanceId 속성만), `GrabService.luau`(GrabInput 받고 무시)
+- 수정: `init.client.luau`(컨트롤러 목록, Sfx 먼저), `init.server.luau`(Appearance·Grab 서비스 등록), `RoundService.luau`(맵 Model 속성, cause/position 추적, `activeRoomOf`), `EliminationService.luau`(`eliminate(roomId, player, place, cause?, position?)`, `left`는 cause "Left"), `ui/SpectateController.luau`(CameraDirector 사용 + 탈락 대상 3초 비추기)
+- 테스트: `tests/camera-priority.spec.luau` (AC1~AC3, 6개)
+
+**인터페이스 메모**
+- `CameraDirector.request`는 같은 owner가 다시 불러도 순서는 처음 요청 그대로, 1등이면 apply를 다시 부른다. 매 프레임 움직이는 연출은 `isActive(owner)`일 때만 카메라를 움직일 것.
+- `PlayerResult.cause`가 nil인 탈락 = 시간 종료·통과 인원이 다 참 (결정 기록 참고).
+- `SushiBody`는 모듈 맨 위에서 Roblox 자료형을 쓰지 않는다 (lune에서 `layout` 테스트 가능하게) — m3-02도 유지할 것.
+
+**Studio 확인 방법** (AC5~AC9)
+1. `Config.DEBUG.forceMapPlan = { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }`로 바꾸고 F5 → 방 만들고 시작 → 한 판 끝까지. Output에 빨간 에러 없어야 함. (커밋 전 nil로 되돌릴 것)
+2. 라운드 중 서버 뷰 Explorer: `Workspace/Round1_soy-swamp` 속성에 RoomId·RoundIndex·MapId, 내 캐릭터 Model에 `AppearanceId = "tamago"`.
+3. Shift를 눌러 Shift Lock이 안 켜지는지, 캐릭터가 아바타 옷·액세서리 없는 기본 모습인지.
+4. Clients and Servers 2~3명: 클라이언트 콘솔에서 `game.ReplicatedStorage.Remotes.PlayerResult.OnClientEvent:Connect(function(r) print(r.userId, r.result, r.cause, r.position) end)` 실행 후 낙하(Fall)·리셋(Reset, Esc→R)·매치 중 방 나가기(Left) 확인.
+5. 관전 회귀: m2-06 AC5~AC12 (`docs/DEV-SETUP.md` M2 관전 항목). 추가: 관전 중인 사람이 떨어지면 약 3초 그 사람을 계속 비춘 뒤 다음 사람으로.

@@ -44,22 +44,36 @@ function EliminationService.won(roomId: string, userId: number)
 	broadcast(roomId, { userId = userId, result = "Won", place = 1 })
 end
 
--- 매치 중 방/게임을 나간 사람의 탈락 발표. 캐릭터는 건드리지 않아요.
+-- 매치 중 방/게임을 나간 사람의 탈락 발표 (cause "Left", 위치 없음). 캐릭터는 건드리지 않아요.
 function EliminationService.left(roomId: string, userId: number, place: number)
-	broadcast(roomId, { userId = userId, result = "Eliminated", place = place })
+	broadcast(roomId, { userId = userId, result = "Eliminated", place = place, cause = "Left" })
 end
 
 -- 탈락. place는 이 매치에서의 최종 등수예요 (RoundLogic.Standings가 계산해요).
+-- cause: "Fall"(맵 낙하) / "Reset"(리셋·사망·캐릭터 없음) / nil(시간 종료·통과 인원이 다 참).
+-- position: 탈락 순간 위치. nil이면 지금 HumanoidRootPart 위치를 보내요 (캐릭터가 없으면 nil).
 -- 캐릭터를 그 자리에 고정했다가 연출 시간 뒤 로비 스폰으로 돌려보내요.
-function EliminationService.eliminate(roomId: string, player: Player, place: number)
-	broadcast(roomId, { userId = player.UserId, result = "Eliminated", place = place })
-
+function EliminationService.eliminate(
+	roomId: string,
+	player: Player,
+	place: number,
+	cause: Types.EliminationCause?,
+	position: Vector3?
+)
 	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
+	broadcast(roomId, {
+		userId = player.UserId,
+		result = "Eliminated",
+		place = place,
+		cause = cause,
+		position = position or (root and root.Position),
+	})
+
 	if character == nil then
 		return
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if humanoid then
 		humanoid.WalkSpeed = 0
 		humanoid.JumpPower = 0

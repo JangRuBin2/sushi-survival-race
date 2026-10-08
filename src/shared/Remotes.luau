@@ -17,12 +17,15 @@
 --   MatchPhase(phase: MatchPhaseInfo)        매치 상태 머신 단계가 바뀔 때
 --   RoundProgress(progress: RoundProgress)   통과 인원 / 목표 인원 바
 --   PlayerResult(result: PlayerResult)       누군가 통과/탈락/우승했을 때
+--
+-- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
+--   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FUNCTIONS = { "CreateRoom", "JoinRoom", "JoinByCode", "QuickJoin", "LeaveRoom", "StartRoom" }
-local EVENTS = { "RoomList", "RoomUpdated", "MatchPhase", "RoundProgress", "PlayerResult" }
+local EVENTS = { "RoomList", "RoomUpdated", "MatchPhase", "RoundProgress", "PlayerResult", "GrabInput" }
 
 local FOLDER_NAME = "Remotes"
 

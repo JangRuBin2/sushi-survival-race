@@ -8,6 +8,8 @@ local SERVICES = {
 	require(script.MatchService),
 	require(script.RoundService),
 	require(script.EliminationService),
+	require(script.AppearanceService),
+	require(script.GrabService),
 }
 
 for _, service in SERVICES do

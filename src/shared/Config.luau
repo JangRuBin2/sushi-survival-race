@@ -31,7 +31,8 @@ Config.Match = {
 	StartCountdown = 3,
 	IntroDuration = 3, -- 맵 플라이스루 + 이름/규칙
 	ResultsDuration = 5,
-	VictoryDuration = 6,
+	VictoryDuration = 10, -- 우승 연출(VictoryCutscene) + 순위표
+	VictoryCutscene = 6, -- 우승 연출 길이 (VictoryDuration 안에서)
 	EliminationCutscene = 3,
 }
 
@@ -53,6 +54,33 @@ Config.Arena = {
 Config.Character = {
 	WalkSpeed = 16,
 	JumpPower = 50,
+}
+
+-- 캐릭터 외형 (스킨은 가장 마지막에 개발). 외형은 AppearanceService.applyAppearance 한 곳에서만 입혀요.
+Config.Appearance = {
+	Default = "tamago", -- 기본 스킨 id (계란초밥)
+}
+
+-- 다이브 (GDD 6). 클라이언트 물리로 처리해요 (m3-06).
+Config.Dive = {
+	Cooldown = 1.5, -- 다이브 사이 최소 간격(초)
+	LandingStun = 0.5, -- 착지 뒤 경직(초)
+	ForwardSpeed = 40, -- 다이브 순간 수평 속도 (studs/s)
+	UpSpeed = 16, -- 바닥에서 다이브할 때 위로 튀는 속도
+	MaxFlightTime = 1.0, -- 이 시간 안에 착지하지 않아도 엎드린 자세를 끝내요
+}
+
+-- 잡기 (GDD 6). 서버가 판정하고, 감속은 클라이언트 입력 배수로 처리해요 (m3-07).
+Config.Grab = {
+	Range = 5, -- 잡을 수 있는 거리 (HumanoidRootPart 사이)
+	FrontDot = 0.5, -- 앞쪽 판정 (바라보는 방향과 대상 방향의 내적, 약 60도 안)
+	BreakRange = 9, -- 잡은 뒤 이보다 멀어지면 놓쳐요
+	MaxHold = 2, -- 최대 잡는 시간(초)
+	TargetSpeedMultiplier = 0.5, -- 잡힌 사람 이동 속도 배수
+	GrabberSpeedMultiplier = 0.7, -- 잡는 사람도 느려져요
+	Cooldown = 1.5, -- 잡기가 끝난 뒤 다시 잡을 수 있을 때까지(초)
+	Immunity = 1.0, -- 풀려난 사람을 다시 잡을 수 없는 시간(초)
+	InputMinInterval = 0.1, -- GrabInput 요청 간격 제한(초)
 }
 
 -- 혼자 테스트용 설정. 서버 코드는 RunService:IsStudio()일 때만 이 값을 적용해요.

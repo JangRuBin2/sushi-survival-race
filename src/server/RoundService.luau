@@ -12,13 +12,19 @@
 --
 -- 라운드 상태는 이 모듈 전역이 아니라 prepareRound 호출마다 생기는 지역 상태에 둬요
 -- (한 서버에서 여러 방이 동시에 라운드를 돌릴 수 있어요). 방마다 지금 라운드의
--- "플레이어 이탈" 콜백만 activeRemovers에 담아 둬요.
+-- "플레이어 이탈" 콜백(activeRemovers)과 "지금 달리는 중인가" 질의(activeRacing)만 담아 둬요.
+--
+-- 탈락 발표(PlayerResult)에는 연출용 cause·position을 채워요 (m3-01):
+--   ctx.eliminate(맵 낙하) = "Fall", 사망·캐릭터 교체·캐릭터 없음 = "Reset",
+--   방/게임을 나감 = "Left"(EliminationService.left). 시간 종료·통과 인원이 다 차서 남은 사람의 탈락은 cause nil.
+-- 맵 Model에는 Workspace에 넣기 전에 Attributes.RoomId/RoundIndex/MapId를 달아요 (클라이언트가 자기 방 맵을 찾음).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Cleanup = require(ReplicatedStorage.Shared.Cleanup)
 local Maps = require(ReplicatedStorage.Shared.maps)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
@@ -59,6 +65,9 @@ local roundProgressEvent: RemoteEvent
 -- 방 하나당 지금 준비/진행 중인 라운드에서 플레이어 한 명이 나갔을 때 부르는 함수.
 -- 그 사람이 이 라운드의 레이서였으면 탈락 처리하고 true를 돌려줘요.
 local activeRemovers: { [string]: (player: Player) -> boolean } = {}
+
+-- 방 하나당 지금 라운드에서 그 userId가 "출발한 라운드에서 스폰에 배치된 채 아직 달리는 중"인지.
+local activeRacing: { [string]: (userId: number) -> boolean } = {}
 
 local function waitForCharacter(player: Player, timeout: number): Model?
 	local deadline = os.clock() + timeout
@@ -109,6 +118,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		if activeRemovers[roomId] then
 			activeRemovers[roomId] = nil
 		end
+		if activeRacing[roomId] then
+			activeRacing[roomId] = nil
+		end
 		local cleanupOk, cleanupErr = pcall(cleanup.run, cleanup)
 		if not cleanupOk then
 			warn(`[RoundService] round cleanup failed: {cleanupErr}`)
@@ -128,6 +140,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		table.sort(spawns, function(a, b)
 			return a.Name < b.Name
 		end)
+		model:SetAttribute(Attributes.RoomId, roomId)
+		model:SetAttribute(Attributes.RoundIndex, args.roundIndex)
+		model:SetAttribute(Attributes.MapId, map.id)
 		model.Parent = workspace
 
 		-- 결승은 맵 종류가 아니라 매치의 마지막 라운드예요 (B8).
@@ -146,6 +161,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		-- 스폰에 배치가 끝난 레이서. 맵(getRacers)에는 배치된 사람만 보여요 — 라운드 시작 순간
 		-- 리스폰 중이라 아직 로비에 있는 캐릭터를 맵이 "떨어졌다"고 판정하지 않게 해요 (QA N1/H1/B2/W1).
 		local placed: { [number]: boolean } = {}
+		-- 낙하·리셋으로 탈락 대기열에 들어간 사람의 사유와 위치 (PlayerResult.cause/position)
+		local causeOf: { [number]: RoundLogic.FallCause } = {}
+		local positionOf: { [number]: Vector3 } = {}
 
 		-- 점수가 클수록 잘한 거예요. Race 맵은 코스 진행도(origin의 로컬 -Z, MapTypes 문서),
 		-- 그 밖(Survival·결승)은 높이. 캐릭터가 없으면 가장 낮은 점수.
@@ -191,7 +209,13 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				if outcome.result == "Eliminated" then
 					table.insert(eliminated, userId)
 					if inGame and RoomService.getRoomIdOf(player :: Player) == roomId then
-						EliminationService.eliminate(roomId, player :: Player, place)
+						EliminationService.eliminate(
+							roomId,
+							player :: Player,
+							place,
+							causeOf[userId],
+							positionOf[userId]
+						)
 					else
 						EliminationService.left(roomId, userId, place)
 					end
@@ -233,11 +257,19 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		end
 
 		-- cause: "Fall"(맵의 낙하 판정, 결승 진출 2명 보장의 구제 대상) / "Reset"(리셋·사망·퇴장·캐릭터 없음)
-		local function queueFall(userId: number, score: number?, cause: RoundLogic.FallCause)
+		-- position: 탈락 순간 HumanoidRootPart 위치 (연출용). nil이면 지금 캐릭터 위치를 써요.
+		local function queueFall(userId: number, score: number?, cause: RoundLogic.FallCause, position: Vector3?)
 			if closed or round.ended or pendingIds[userId] or not RoundLogic.isRacing(round, userId) then
 				return
 			end
 			pendingIds[userId] = true
+			causeOf[userId] = cause
+			if position == nil then
+				local player = playersById[userId]
+				local root = player and rootOf(player)
+				position = root and root.Position
+			end
+			positionOf[userId] = position
 			table.insert(pending, { userId = userId, score = score or scoreOf(userId), cause = cause })
 			if not flushScheduled then
 				flushScheduled = true
@@ -250,18 +282,23 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		local function watch(player: Player, character: Model)
 			local userId = player.UserId
 			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			-- 이 캐릭터(새 캐릭터 말고)의 마지막 위치
+			local function lastPosition(): Vector3?
+				local root = character:FindFirstChild("HumanoidRootPart")
+				return if root and root:IsA("BasePart") then root.Position else nil
+			end
 			if humanoid then
 				cleanup:add(humanoid.Died:Connect(function()
-					queueFall(userId, nil, "Reset")
+					queueFall(userId, nil, "Reset", lastPosition())
 				end))
 			end
 			cleanup:add(character.AncestryChanged:Connect(function()
 				if not character:IsDescendantOf(game) then
-					queueFall(userId, -math.huge, "Reset")
+					queueFall(userId, -math.huge, "Reset", lastPosition())
 				end
 			end))
 			cleanup:add(player.CharacterAdded:Connect(function()
-				queueFall(userId, -math.huge, "Reset")
+				queueFall(userId, -math.huge, "Reset", lastPosition())
 			end))
 		end
 
@@ -345,6 +382,15 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				return true
 			end
 			return pendingIds[player.UserId] == true
+		end
+
+		activeRacing[roomId] = function(userId: number): boolean
+			return round.active
+				and not round.ended
+				and not closed
+				and placed[userId] == true
+				and not pendingIds[userId]
+				and RoundLogic.isRacing(round, userId)
 		end
 
 		local function playRound(targetCount: number): RoundResult
@@ -441,6 +487,20 @@ function RoundService.handlePlayerLeft(roomId: string, player: Player): boolean
 		return remover(player)
 	end
 	return false
+end
+
+-- 그 플레이어가 지금 출발한(RoundActive) 라운드에서 스폰에 배치된 채 아직 달리는 레이서면 방 id, 아니면 nil.
+-- 소개 중·통과·탈락 대기·탈락 뒤·라운드 사이에는 nil이에요 (잡기 m3-07이 씀).
+function RoundService.activeRoomOf(player: Player): string?
+	local roomId = RoomService.getRoomIdOf(player)
+	if roomId == nil then
+		return nil
+	end
+	local isRacing = activeRacing[roomId]
+	if isRacing and isRacing(player.UserId) then
+		return roomId
+	end
+	return nil
 end
 
 function RoundService.init()

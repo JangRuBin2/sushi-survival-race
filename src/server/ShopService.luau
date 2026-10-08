@@ -13,7 +13,9 @@
 --   ShopService.isLocked(player) -> boolean      지금 장착을 바꿀 수 없는가 (라운드·연출 중)
 --   ShopService.grantSkin(player, skinId, equip?) -> boolean
 --       보유 목록에 넣어요 (m4-14 로벅스 결제가 저장 전에 불러요). 프로필이 없거나 모르는 스킨이면 false.
---       equip이면 장착하고(잠금 중이 아니면) 바로 입혀요.
+--       equip이면 장착하고(잠금 중이 아니면) 바로 입혀요. 임시 프로필에도 true라서 결제(RobuxShopService)는
+--       이 결과가 아니라 canPersist + saveNow로 완료를 판단해요.
+-- 로벅스 결제(RequestRobuxPurchase·ProcessReceipt, m4-14)는 RobuxShopService.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

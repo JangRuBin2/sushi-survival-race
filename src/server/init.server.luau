@@ -18,6 +18,7 @@ local SERVICES = {
 	require(script.RewardService), -- m4-08
 	require(script.MovementGuardService), -- m4-10
 	require(script.ShopService), -- m4-13
+	require(script.RobuxShopService), -- m4-14 (ProcessReceipt)
 }
 
 for _, service in SERVICES do

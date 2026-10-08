@@ -377,6 +377,7 @@ return function(t: Test.Test)
 			["src/server/RoomDirectory.luau:lastWarnAt"] = true, -- 경고 종류별
 			["src/server/RoomService.luau:handlers"] = true, -- 리모트 이름별 고정
 			["src/server/DataService.luau:userBusy"] = true, -- finishUser가 0이면 nil로
+			["src/server/PurchaseLog.luau:memory"] = true, -- Studio 메모리 구매 기록 (결제당 한 줄, m4-14)
 		}
 		local files = {}
 		for _, dir in { "src/server", "src/client", "src/client/fx", "src/client/input", "src/client/ui" } do

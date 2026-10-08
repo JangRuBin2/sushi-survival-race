@@ -145,6 +145,9 @@ local function logArenaStats(roomId: string)
 	if not Config.DEBUG.logArenaStats then
 		return
 	end
+	if not RunService:IsStudio() then
+		return -- 디버그 설정은 Studio에서만 (m4-12 QA N3)
+	end
 	task.delay(2, function()
 		local children = workspace:GetChildren()
 		local arenas = 0

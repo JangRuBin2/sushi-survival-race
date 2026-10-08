@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-11 — 로비/매치 플레이스 분리 (텔레포트 · 같은 방으로 복귀 · 서버 간 방 목록)
@@ -82,6 +82,41 @@ status: ready
 - 2026-10-08 · 매치 서버는 대기실 없이 도착하면 바로 시작(최대 20초 대기), 2명 미만이면 취소 · **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 서버 간 방 목록을 M4에 포함(GDD 11.2). 실패하면 이 서버 방만 보이게 해서 게임은 막지 않음 · **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · Studio·플레이스 id 없음 = 한 플레이스 모드 유지 · 사용자 작업 없이도 개발·테스트 가능 · planner
+- 2026-10-08 · `StreamingEnabled`는 false 유지 (재검토): 매치 서버도 관전 카메라·우승 연출 무대(높이 1500)·아레나 슬롯이 스폰에서 멀어 스트리밍이면 빈 화면 위험. 맵이 코드 생성이라 크기 부담도 작음 · developer
+- 2026-10-08 · 알림용 RemoteEvent `Notice(message)`를 추가(리모트 17개). 텔레포트 실패·"서버로 이동 중"을 기존 화면 메시지 줄로 보여 줌 · 스펙 "꼭 필요하면 추가" 범위 · developer
+- 2026-10-08 · `MatchResult`에 우승자 외에 `settings`·`hostUserId`·`memberUserIds`도 씀. 로비는 복귀 때 이 값(매치 서버가 쓴 것)을 티켓보다 믿고, 없으면 검증한 티켓으로 복원 → 위조 티켓으로 남의 방에 끼어들기 어렵게 · developer
+- 2026-10-08 · 텔레포트·MemoryStore는 새 파일 `src/server/PlaceBackend.luau`로 감싸 Studio에서는 메모리 가짜를 씀(의존성 주입, `PlaceService.setBackend`) · developer
+- 2026-10-08 · 원래 로비 서버로 못 가면(꽉 참·종료) 실패한 사람을 1초 모아 **같이** 아무 로비 서버로 다시 보냄. 그래도 갈라지면 각 서버에서 같은 키로 방이 따로 복원됨(제외 범위의 한계) · developer
+- 2026-10-08 · `Config.Data.LoadRetries`(5 × 2초)는 그대로: 텔레포트 직전에 `saveNow`로 저장해 두어 잠금을 가져가도 잃는 변경이 거의 없음. 실제 서버에서 잠금 경고가 잦으면 늘릴 것 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 구현 (커밋 178758f)
+**바뀐 파일**
+- 새 파일: `src/shared/PlacePayload.luau`(매니페스트·복귀/참가 티켓·매치 결과 만들기/검증, `arrivalReady`, `pickRestoreHost`), `src/shared/RoomDirectoryLogic.luau`(목록 합치기·빠른 참가), `src/server/PlaceBackend.luau`(TeleportService·MemoryStore 래퍼 + Studio용 가짜), `src/server/RoomDirectory.luau`(서버 간 방 목록·코드), `tests/place-split.spec.luau`(29개)
+- `PlaceService`: 역할별 시작. Lobby = 출발 텔레포트·복귀 같은 방·단상(m4-06 L3)·디렉터리 훅. Match = 매니페스트 읽기·도착 대기·복원 후 바로 매치·끝나면 결과 쓰고 로비로. Single = 아무것도 안 함.
+- `RoomService`: `setPlaceHooks`(launchMatch·decorateList·joinRemote·joinRemoteByCode·quickJoinRemote·claimCode·releaseCode·onRoomGone·matchServer·onLeaveRoom), `restoreRoom`/`joinRestored`/`startRestored`/`addLateMember`/`removeFromRoom`/`joinLocalById`/`joinLocalByCode`/`findByKey`/`listRooms`/`refreshList`. 방마다 `key`(GUID). 비공개 코드는 다른 서버와 겹치지 않게 예약.
+- `MatchService`: 끝은 `finish()` → sendHome → `PlaceService.finishMatch`(매치 역할만 처리) → 아니면 endMatch. 단상은 Single에서만 직접. 크래시 경로 우승자 = `RoundLogic.winnerOf`(m4-01 QA B2). `MatchEvents` 주석에 B3 계약 한 줄.
+- 공용: `Types.RoomListing.remote`, `Config.DEBUG.simulateMatchServer = false`, `Config.Teleport`(ManifestTtl·ResultTtl·LaunchTimeout·SaveBeforeTeleport·SimulateSettle), `Remotes` `Notice`, `Attributes.PlaceRole`(workspace), `PlaceRole.resolve` 4번째 인자(흉내), `RoomLogic` `key`·`addLateMember`.
+- 클라이언트 `LobbyController`: 매치 서버면 로비·대기실 대신 "매치 서버 연결 중…" / "로비로 돌아가는 중…", 다른 서버 방은 이름 앞 🌐, `Notice` 표시.
+- 기존 테스트 수정(사유 주석): 리모트 개수 16→17, Attributes 10→11, PlaceService resolve 문자열.
+
+**검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 863 passed / 0 failed (기존 834 + 새 29).
+
+**Studio 확인 방법**
+- AC7 (Single 회귀): 아무 설정도 바꾸지 않고 `docs/DEV-SETUP.md` 3-7·3-8 핵심 항목(방 만들기·참가·코드·빠른 참가·시작·매치 끝까지·단상)을 그대로 해 본다. 출력에 `[PlaceService]` 줄이 하나도 없어야 정상.
+- AC8 (흉내): `Config.DEBUG.simulateMatchServer = true` → Test → Clients and Servers 2~4명. 로비 건물·방 목록 없이 화면 가운데 "매치 서버 연결 중…" → 마지막 사람이 들어온 뒤 약 5초(`SimulateSettle`)에 대기실 없이 바로 Starting → 끝까지 → 우승 화면 뒤 서버 출력 `[PlaceService] (Studio) would teleport N players back to the lobby (match finished)`, 캐릭터가 로비 스폰으로, 화면 "로비로 돌아가는 중…". 에러 없음. 끝나면 **false로 되돌릴 것**.
+- 흉내 모드에서는 로비 서버 쪽(복귀 같은 방·서버 간 목록)은 확인할 수 없다 → AC9~AC13은 실제 서버.
+
+**사용자 작업 (AC9~AC13 전에)**
+1. 게임을 퍼블리시 (지금 플레이스 = Lobby, 시작 플레이스).
+2. Creator Dashboard → 그 게임 → Places → 새 플레이스 "Match" 추가. `rojo build -o build.rbxl`로 만든 파일을 Studio로 열어 그 Match 플레이스에도 퍼블리시 (File → Publish to Roblox As → 같은 게임의 Match). 코드가 바뀔 때마다 두 플레이스 모두 다시 퍼블리시.
+3. 두 PlaceId를 메인 세션에 알려 주면 `Config.Places`(`LobbyPlaceId`, `MatchPlaceId`)에 넣는다.
+4. 게임 설정 → Security: "Allow Third Party Teleports"는 필요 없음(같은 게임). Match 플레이스 최대 인원 24, Lobby 40.
+5. 친구 3명 이상과 AC9~AC13. 서버 콘솔(F9 → Server)에서 `[PlaceService]`·`[RoomDirectory]` 줄을 보면 흐름을 따라갈 수 있다.
+
+**남은 이슈 / 메모**
+- 원래 로비 서버로 못 돌아가 그룹이 갈라지면 서버마다 같은 키의 방이 따로 생김 (드묾).
+- 단상 칭호·승수는 우승자의 프로필이 로드된 뒤에야 보임 (로비에 도착 직후 쇼케이스 시점엔 비어 있을 수 있음, 이름·인형은 정상).
+- 매치 서버 재접속·친구 따라가기는 제외 범위.
+- Luau 타입 검사는 아직 검증에 없음 (m4-12).

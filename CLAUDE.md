@@ -151,8 +151,7 @@ export type RoundContext = {
 - 점수: Race는 진행도(로컬 -Z), Survival·Final은 높이(HumanoidRootPart Y). 같은 묶음·시간 종료 때 순위를 이걸로 정한다. 낙하 탈락 위치는 마지막으로 땅을 밟은 자리.
 - `ctx.getRacers()`에는 스폰에 배치된 레이서만 나온다 (리스폰 중인 사람은 판정하지 않음).
 - 맵 상태는 모듈이 아니라 `ctx`(또는 `start` 지역 변수)에 둔다 (한 서버에서 여러 방이 같은 맵을 동시에 돌릴 수 있다).
-- 장애물은 `CollectionService` 태그를 달고, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그: `Conveyor`·`Chopstick`(회전 벨트), `SoySauce`·`Wasabi`(간장 늪), `Broth`·`Chashu`·`NoodleSweeper`(라멘), `HotTile`(철판), `ChefBoardCell`·`ChefKnife`(도마), `SkewerShowdownSkewer`·`SkewerShowdownSlice`·`SkewerShowdownHand`(꼬치). (`MapTypes.luau` 머리 주석의 태그 목록은 M2 것이라 일부만 있다.)
-- **장식**은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 재질을 바꾸면 `CustomPhysicalProperties`로 원래 물성을 유지한다. 예산 맵당 파츠 600·파티클 8·조명 12. `build` 끝에서 `MapKit.introCamera`(소개 경로)와 `MapKit.attachStudioArt(model, id, origin)`를 부른다.
+- 장애물은 `CollectionService` 태그를 달고, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그: `Conveyor`·`Chopstick`(회전 벨트), `SoySauce`·`Wasabi`(간장 늪), `Broth`·`Chashu`·`NoodleSweeper`(라멘), `HotTile`(철판), `ChefBoardCell`·`ChefKnife`(도마), `SkewerShowdownSkewer`·`SkewerShowdownSlice`·`SkewerShowdownHand`(꼬치).- **장식**은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 재질을 바꾸면 `CustomPhysicalProperties`로 원래 물성을 유지한다. 예산 맵당 파츠 600·파티클 8·조명 12. `build` 끝에서 `MapKit.introCamera`(소개 경로)와 `MapKit.attachStudioArt(model, id, origin)`를 부른다.
 - **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비, 젓가락 집기·놓기, 날치알, 간장 경계) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기 같은 **연속 밀기에는 달지 않는다**(기본 기준 안이고, 달면 속도 조작 구멍이 된다).
 - GDD 11절의 인터페이스 표기는 개요이고, 실제 계약은 위 `MapTypes.luau`다.
 

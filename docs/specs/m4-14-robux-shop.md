@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-14 — 로벅스 스킨 구매 (개발자 상품 · ProcessReceipt · 구매 기록)

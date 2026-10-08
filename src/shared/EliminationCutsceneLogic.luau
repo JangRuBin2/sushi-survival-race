@@ -9,6 +9,7 @@
 --   alpha(t, from, to)                    구간 진행도 0~1 (from 전 0, to 뒤 1)
 
 local Config = require(script.Parent.Config)
+local Skins = require(script.Parent.Skins)
 
 local EliminationCutsceneLogic = {}
 
@@ -37,13 +38,12 @@ EliminationCutsceneLogic.COMMON_LINES = {
 	"냠냠, 꿀맛!",
 }
 
--- 스킨 전용 대사 (appearanceId → 대사 목록)
-EliminationCutsceneLogic.SKIN_LINES = {
-	tamago = {
-		"계란초밥은 역시 달달해",
-		"폭신폭신 계란 최고!",
-	},
-} :: { [string]: { string } }
+-- 스킨 전용 대사 (appearanceId → 대사 목록). 스킨 카탈로그(Shared.Skins)의 speech에서 만들어요 (m4-13).
+local skinLineTable: { [string]: { string } } = {}
+for _, skin in Skins.LIST do
+	skinLineTable[skin.id] = table.clone(skin.speech)
+end
+EliminationCutsceneLogic.SKIN_LINES = skinLineTable
 
 -- 결승(ChefHand) 전용 대사
 EliminationCutsceneLogic.FINAL_LINES = {

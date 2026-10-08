@@ -3,16 +3,15 @@
 --   DiveButton.create(onPress) -> DiveButton?   터치 기기가 아니면 nil
 --   button:setCooldown(fraction)                 0~1, 남은 쿨다운 비율 (위에서부터 줄어드는 덮개)
 --   button:destroy()
--- 점프 버튼(PlayerGui.TouchGui.TouchControlFrame.JumpButton) 왼쪽에 같은 크기로 붙고,
--- 점프 버튼 위치·크기가 바뀌면(화면 회전 등) 다시 맞춰요.
+-- 점프 버튼(PlayerGui.TouchGui.TouchControlFrame.JumpButton) 왼쪽에 85% 크기로 붙고(Shared.UiLayout.touchButtons, m4-09),
+-- 점프 버튼 위치·크기나 화면 크기가 바뀌면 다시 맞춰요. 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
 local Cleanup = require(game:GetService("ReplicatedStorage").Shared.Cleanup)
-
-local GAP_RATIO = 0.15 -- 점프 버튼과의 간격 (버튼 폭 대비)
+local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
 local DiveButton = {}
 DiveButton.__index = DiveButton
@@ -58,7 +57,7 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	button.BackgroundTransparency = 0.45
 	button.BorderSizePixel = 0
-	button.Text = "다이브"
+	button.Text = "🤸 다이브"
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.GothamBold
 	button.TextScaled = true
@@ -127,9 +126,14 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 		end
 		-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 바꿔요 (GUI 인셋 차이 흡수)
 		local origin = jump.AbsolutePosition - gui.AbsolutePosition
-		local x = origin.X - size.X * GAP_RATIO - size.X
-		local position = UDim2.fromOffset(x, origin.Y)
-		local buttonSize = UDim2.fromOffset(size.X, size.Y)
+		local screenSize = gui.AbsoluteSize
+		local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
+			x = origin.X,
+			y = origin.Y,
+			size = math.min(size.X, size.Y),
+		}).dive
+		local position = UDim2.fromOffset(rect.x, rect.y)
+		local buttonSize = UDim2.fromOffset(rect.size, rect.size)
 		button.Position = position
 		button.Size = buttonSize
 		coverHolder.Position = position

@@ -144,6 +144,8 @@ return function(t: Test.Test)
 		local screen = env.playerGui:FindFirstChild("SoundGui")
 		t.ok(screen ~= nil, "SoundGui")
 		t.eq(screen.ResetOnSpawn, false)
+		-- 사용자 수정 지시(m3-09): Roblox 위쪽 바 줄에 둬요
+		t.eq(screen.ScreenInsets, "Enum.ScreenInsets.TopbarSafeInsets")
 		local button = screen:FindFirstChild("MuteButton")
 		t.ok(button ~= nil and button:IsA("GuiButton"), "MuteButton")
 		t.eq(button.Text, "🔊 소리 켬")

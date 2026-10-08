@@ -1,6 +1,6 @@
 --!strict
 -- m3-09 QA: 장애물 소리 간격 제한 경계값, 꼬치 가속 소리 횟수, Timeout 연출 종류, 결승 우승 발표 지연과
--- 우승자 판정(Won 받은 사람만), 잡기 규칙 경계, 공중 다이브 vy 상한 경계, 좁은 화면 음소거 버튼 배치 계산,
+-- 우승자 판정(Won 받은 사람만), 잡기 규칙 경계, 공중 다이브 vy 상한 경계, 음소거 버튼 자리(위쪽 바),
 -- MapSfx 리모트가 서버→클라이언트 전용인지 정적 확인.
 
 local fs = require("@lune/fs")
@@ -263,39 +263,44 @@ return function(t: Test.Test)
 		t.ok(cap <= Config.Character.JumpPower, "cap below jump speed")
 	end)
 
-	---------------------------------------------------------------- 좁은 화면 음소거 버튼 (m3-08 B2)
-	-- Sfx.luau buildMuteButton(AnchorPoint 1,0), HudScreen 위 가운데 패널(420), LobbyScreen 패널(0.92배, 최대 760, 안쪽 16)
-	local function muteSpan(width: number): (number, number)
-		if width < Config.Fx.NarrowScreenWidth then
-			return width - 4 - 34, width - 4
-		end
-		return width - 16 - 110, width - 16
-	end
-	local function hudPanelRight(width: number): number
-		return width / 2 + 210
-	end
-	local function lobbyContentRight(width: number): number
-		local panel = math.min(width * 0.92, 760)
-		return width / 2 + panel / 2 - 16
-	end
-
+	---------------------------------------------------------------- 음소거 버튼 자리 (m3-08 B2, m3-09 B5)
+	-- 사용자 수정 지시로 버튼을 Roblox 위쪽 바(TopbarSafeInsets) 줄로 옮겼어요. 예전 테스트는 y 60 자리에서
+	-- HUD 위 패널·로비 패널과 가로로 안 겹치는지 계산했는데, 이제는 세로로 다른 줄이라 그 계산이 의미가 없어요.
+	-- 대신 "게임 UI는 위쪽 바 아래, 버튼은 위쪽 바 안"이라는 전제를 소스에서 확인해요.
 	t.test(
-		"좁은 화면(560~899px): 아이콘 버튼이 HUD 위 패널·로비 패널 내용과 가로로 안 겹쳐요",
+		"음소거 버튼: 자기 ScreenGui가 TopbarSafeInsets, 위쪽 바 높이 안에 세로 가운데",
 		function()
-			for width = 560, Config.Fx.NarrowScreenWidth - 1 do
-				local left = muteSpan(width)
-				t.ok(left > hudPanelRight(width), `hud overlap at {width}`)
-				t.ok(left > lobbyContentRight(width), `lobby overlap at {width}`)
-			end
+			local source = stripComments(fs.readFile("src/client/Sfx.luau"))
+			t.ok(string.find(source, "ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets", 1, true) ~= nil, "insets")
+			t.eq(
+				string.find(source, "IgnoreGuiInset", 1, true),
+				nil,
+				"IgnoreGuiInset이 ScreenInsets를 덮어쓰지 않음"
+			)
+			t.ok(string.find(source, "AnchorPoint = Vector2.new(1, 0.5)", 1, true) ~= nil, "세로 가운데 앵커")
+			t.ok(string.find(source, "UDim2.new(0, width, 1, -MUTE_MARGIN * 2)", 1, true) ~= nil, "바 높이 기준")
+			t.ok(Config.Fx.NarrowScreenWidth > 0, "좁은 화면 아이콘 모드 유지")
 		end
 	)
 
-	t.test("넓은 화면(900~2560px): 글자 버튼이 HUD 위 패널과 안 겹쳐요", function()
-		for width = Config.Fx.NarrowScreenWidth, 2560 do
-			local left = muteSpan(width)
-			t.ok(left > hudPanelRight(width), `hud overlap at {width}`)
+	t.test(
+		"게임 UI(LobbyGui·우리 ScreenGui)는 위쪽 바를 비워 둬요 (IgnoreGuiInset을 켜는 곳은 우승 연출뿐)",
+		function()
+			local files = {}
+			listLuau("src/client", files)
+			local allowed = {
+				["src/client/fx/VictoryCutsceneScreen.luau"] = true, -- 전체 화면 연출 (그동안 HUD·버튼은 가려도 됨)
+			}
+			for _, path in files do
+				local source = stripComments(fs.readFile(path))
+				if string.find(source, "IgnoreGuiInset = true", 1, true) then
+					t.ok(allowed[path] == true, `{path} ignores the topbar inset`)
+				end
+			end
+			local lobby = stripComments(fs.readFile("src/client/ui/LobbyController.luau"))
+			t.eq(string.find(lobby, "IgnoreGuiInset", 1, true), nil, "LobbyGui 기본값(위쪽 바 아래)")
 		end
-	end)
+	)
 
 	---------------------------------------------------------------- MapSfx 리모트 방향
 	t.test("MapSfx: 서버는 OnServerEvent를 듣지 않고, 클라이언트는 FireServer하지 않아요", function()

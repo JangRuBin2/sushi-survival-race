@@ -6,7 +6,7 @@
 -- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고하고, id가 없는 cue는 조용히 넘어가요.
 -- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3, Config.Fx), 방/매치 단계에 맞춘 배경음, GuiButton 클릭음(조작 버튼 제외),
 -- 장애물 소리(서버 MapSfx 방송 → 3D 재생),
--- 내가 통과하면 Qualified, 오른쪽 위 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔, 이번 접속 동안만).
+-- 내가 통과하면 Qualified, Roblox 위쪽 바 오른쪽 끝 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔, 이번 접속 동안만).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -243,18 +243,30 @@ local function hookButton(instance: Instance)
 	end
 end
 
+-- 음소거 버튼 자리 (사용자 수정 지시, m3-09): Roblox 위쪽 바(topbar) 줄의 오른쪽 끝.
+--   자기 ScreenGui에 ScreenInsets = TopbarSafeInsets를 주면 그 영역은 위쪽 바에서 Roblox 메뉴·채팅 같은
+--   기본 버튼과 기기 노치를 뺀 칸이에요. 게임 화면(LobbyGui — 로비·방·HUD·관전·소개가 모두 그 안)은
+--   IgnoreGuiInset이 꺼져 있어 위쪽 바 "아래"에만 그려지므로 우리 UI와도 겹치지 않아요.
+--   (예전 자리 y 60은 폭 900~980px에서 로비 패널 제목 줄과 닿았어요, m3-09 QA B5)
+--   IgnoreGuiInset은 ScreenInsets를 덮어쓰는 옛 단축 속성이라 설정하지 않아요.
+local MUTE_MARGIN = 4 -- 위쪽 바 안 위아래·오른쪽 여백
+local MUTE_MAX_HEIGHT = 36 -- 바가 높아도(새 상단 바 58px) 버튼은 이 높이까지만
+local MUTE_WIDE_WIDTH = 110
+local MUTE_COMPACT_WIDTH = 36
+
 local function buildMuteButton(playerGui: Instance)
 	local screen = Instance.new("ScreenGui")
 	screen.Name = "SoundGui"
 	screen.ResetOnSpawn = false
 	screen.DisplayOrder = 5
+	screen.ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets
 
 	local button = Instance.new("TextButton")
 	button.Name = "MuteButton"
-	-- HUD 타이머(오른쪽 위 y 16~52) 아래. 기본 메뉴 줄은 IgnoreGuiInset = false라 피해져요
-	button.AnchorPoint = Vector2.new(1, 0)
-	button.Position = UDim2.new(1, -16, 0, 60)
-	button.Size = UDim2.fromOffset(110, 28)
+	-- 위쪽 바 높이에 맞춰 세로 가운데, 오른쪽 끝
+	button.AnchorPoint = Vector2.new(1, 0.5)
+	button.Position = UDim2.new(1, -MUTE_MARGIN, 0.5, 0)
+	button.Size = UDim2.new(0, MUTE_WIDE_WIDTH, 1, -MUTE_MARGIN * 2)
 	button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	button.BackgroundTransparency = 0.35
 	button.TextColor3 = Color3.new(1, 1, 1)
@@ -266,18 +278,16 @@ local function buildMuteButton(playerGui: Instance)
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = button
 
-	-- 좁은 화면(휴대폰 가로)에서는 아이콘만, 오른쪽 끝에 바짝 붙여요 (m3-08 QA B2).
-	-- 위 가운데 HUD 패널(420px)과 로비 패널 내용(화면 0.92배 + 안쪽 여백 16px)에 닿지 않는 자리예요.
+	local heightCap = Instance.new("UISizeConstraint")
+	heightCap.MaxSize = Vector2.new(MUTE_WIDE_WIDTH, MUTE_MAX_HEIGHT)
+	heightCap.Parent = button
+
+	-- 좁은 화면(휴대폰 가로)에서는 아이콘만 (m3-08 QA B2): 위쪽 바 왼쪽의 Roblox 버튼과 멀리 떨어지게 폭을 줄여요
 	local compact = false
 	local function refresh()
 		button.Text = if compact then MUTE_ICONS[muteLevel] else MUTE_LABELS[muteLevel]
-		if compact then
-			button.Position = UDim2.new(1, -4, 0, 60)
-			button.Size = UDim2.fromOffset(34, 28)
-		else
-			button.Position = UDim2.new(1, -16, 0, 60)
-			button.Size = UDim2.fromOffset(110, 28)
-		end
+		local width = if compact then MUTE_COMPACT_WIDTH else MUTE_WIDE_WIDTH
+		button.Size = UDim2.new(0, width, 1, -MUTE_MARGIN * 2)
 	end
 	local function watchViewport()
 		local camera = workspace.CurrentCamera

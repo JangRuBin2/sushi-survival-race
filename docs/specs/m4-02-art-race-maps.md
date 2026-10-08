@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-02 — 맵 아트 패스: 회전 벨트 · 간장 늪 & 와사비 산 (+ 회전 벨트 태그 전환)

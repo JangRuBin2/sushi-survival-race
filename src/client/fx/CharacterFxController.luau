@@ -5,6 +5,7 @@
 --   넘어짐: Humanoid.PlatformStand인 동안 옆으로 누워 떨고 머리 위에 "@_@". 시작할 때 Sfx "Knockdown" 한 번.
 --   탈락 고정(서버가 HumanoidRootPart를 Anchored + PlatformStand)은 넘어짐이 아니에요 — 연출·소리 없음 (m3-02 QA B1).
 --   이름표: 다른 사람의 초밥 Body 위에 이름(DisplayName)을 직접 띄워요. Head가 투명해도 보이게 기본 이름표 대신 (m3-02 QA B2).
+--   칭호: 캐릭터 Model의 Attributes.Title(서버 RewardService가 달아요, m4-08)이 있으면 이름 위에 작은 금색 글씨로.
 --   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않고 이름표도 숨겨요.
 
 local Players = game:GetService("Players")
@@ -12,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Sfx = require(script.Parent.Parent.Sfx)
 
@@ -41,6 +43,8 @@ local DIZZY_SPIN = 360 -- 도/초
 local HIDDEN_THRESHOLD = 0.99
 local NAME_TAG_HEIGHT = 3.6 -- Body 중심에서 이름표까지 (초밥 꼭대기 2.4 + 여유)
 local NAME_TAG_DISTANCE = 100 -- Roblox 기본 이름표 거리와 같아요
+local NAME_HEIGHT = 24 -- 이름 줄 높이(px)
+local TITLE_HEIGHT = 16 -- 칭호 줄 높이(px, 이름 위)
 
 type State = {
 	lastPos: Vector3?,
@@ -89,22 +93,50 @@ local function makeNameTag(body: BasePart, displayName: string): BillboardGui
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "SushiNameTag"
 	gui.Adornee = body
-	gui.Size = UDim2.fromOffset(200, 24)
+	-- 칭호 줄만큼 키우고 그만큼 위로 밀어 이름 줄은 예전 자리 그대로예요
+	gui.Size = UDim2.fromOffset(200, NAME_HEIGHT + TITLE_HEIGHT)
+	gui.SizeOffset = Vector2.new(0, TITLE_HEIGHT / 2 / (NAME_HEIGHT + TITLE_HEIGHT))
 	gui.StudsOffsetWorldSpace = Vector3.new(0, NAME_TAG_HEIGHT, 0)
 	gui.LightInfluence = 0
 	gui.MaxDistance = NAME_TAG_DISTANCE
 	local label = Instance.new("TextLabel")
 	label.Name = "Name"
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
+	label.Position = UDim2.fromOffset(0, TITLE_HEIGHT)
+	label.Size = UDim2.new(1, 0, 0, NAME_HEIGHT)
 	label.Font = Enum.Font.GothamBold
 	label.Text = displayName
 	label.TextSize = 18
 	label.TextColor3 = Color3.fromRGB(255, 255, 255)
 	label.TextStrokeTransparency = 0.4
 	label.Parent = gui
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.new(1, 0, 0, TITLE_HEIGHT)
+	title.Font = Enum.Font.GothamBold
+	title.Text = ""
+	title.Visible = false
+	title.TextSize = 13
+	title.TextColor3 = Color3.fromRGB(255, 210, 80)
+	title.TextStrokeTransparency = 0.4
+	title.Parent = gui
 	gui.Parent = body
 	return gui
+end
+
+-- 칭호 줄을 캐릭터 Model의 Title 속성에 맞춰요 (없거나 빈 값이면 숨김)
+local function updateTitle(tag: BillboardGui, character: Model)
+	local label = tag:FindFirstChild("Title")
+	if label == nil or not label:IsA("TextLabel") then
+		return
+	end
+	local value = character:GetAttribute(Attributes.Title)
+	local text = if type(value) == "string" then value else ""
+	if label.Text ~= text then
+		label.Text = text
+	end
+	label.Visible = text ~= ""
 end
 
 -- 다른 사람 캐릭터의 이름표: 기본 휴머노이드 이름표는 끄고(로컬) 우리 이름표를 Body에 붙여요.
@@ -119,6 +151,7 @@ local function updateNameTag(character: Model, state: State, body: BasePart, hum
 	end
 	local tag = state.nameTag :: BillboardGui
 	tag.Enabled = not hidden and character.Parent ~= nil
+	updateTitle(tag, character)
 end
 
 local function makeDizzy(body: BasePart): BillboardGui

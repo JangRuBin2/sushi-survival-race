@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-07 — 잡기
@@ -77,3 +77,15 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · 브랜치 `m3-07-grab`
+- **바뀐 파일**
+  - `src/shared/GrabLogic.luau` (새, 순수): `pickTarget`, `shouldEnd`, `newBook` + `canStart/isGrabbed/isImmune/begin/finish/grabOf/grabberOf/removePlayer`. 후보 표에 `alive`, `down`(넘어짐·WalkSpeed 0·Anchored를 한 값으로), `grabbed`, `immune`을 받는다.
+  - `src/server/GrabService.luau`: GrabInput 검증(boolean, true만 0.1초 간격 제한, false 항상 처리), Heartbeat 0.1초 틱으로 잡기 끝내기 → 시작 순서 처리, 속성 달기/지우기, PlayerRemoving 정리. 버튼을 새로 누를 때만 `armed`가 켜지고 잡기가 한 번 성립하면 꺼진다(누른 채 연속 잡기 없음). 이미 누른 상태의 중복 `true`는 다시 무장시키지 않는다.
+  - `src/client/input/GrabController.luau`: 입력(MouseButton1/ButtonR2/GrabButton), 관전 중·gameProcessed 차단, 포커스 잃음·캐릭터 바뀜에 false, `BindToRenderStep(Input+1)`에서 `Humanoid:Move(MoveDirection × 배수)`, Beam("밥알 팔")·"잡혔다!" Billboard(매 Heartbeat에 속성과 동기화), `GrabStart`/`Grabbed` 소리, 잡는 동안 버튼 색.
+  - `src/client/input/GrabButton.luau` (새): 터치 기기에서 `GrabGui`(ResetOnSpawn=false)에 점프 버튼 위(간격 = 높이×0.15) 같은 크기 "잡기" 버튼. 점프 버튼을 1초마다 찾아 붙고, 크기·위치 변화에 다시 맞춘다. `IgnoreGuiInset`/`ScreenInsets`는 TouchGui 값을 따른다.
+  - `tests/grab.spec.luau` (새): 13개 (AC1~AC5 + 경계·나간 플레이어).
+- **Studio 확인**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "skewer-showdown" }` 등 Race 먼저로 바꾸고(커밋 금지), Test → Clients and Servers 2~3명. AC7~AC15 순서대로. AC13은 간장 늪(soy-swamp)에서 잡힌 채로 웅덩이를 지나간 뒤 Explorer에서 B의 Humanoid.WalkSpeed가 16인지 본다. AC14는 Device 에뮬레이터(휴대폰)로 점프 버튼 위 "잡기" 확인.
+- **남은 이슈/메모**
+  - 감속은 `Humanoid:Move` 크기를 줄이는 방식이라 기본 ControlModule이 매 프레임 Move를 다시 부르는 것에 기대고 있다. 키보드는 MoveDirection 크기가 1이라 ×0.5가 그대로 먹지만, 다른 스크립트가 같은 프레임 뒤에 Move를 부르면 무시될 수 있다 (Studio로 확인).
+  - 같은 틱에서 두 사람이 서로를 앞에 두고 동시에 누르면, `holding` 표를 도는 순서상 먼저 처리된 사람만 잡는다(다른 사람은 잡혀 있어서 시작 불가) — 스펙 AC5대로.
+  - 공용 파일 변경 없음.

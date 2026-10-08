@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-03 — 탈락 연출 ("먹혔다!")
@@ -64,5 +64,32 @@ status: ready
 - 2026-10-08 · 대사 목록 · 위 9줄(어린 유저 대상이라 순한 표현). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 동시 재생 한도 6 · 24명 1라운드에 한꺼번에 떨어질 때 성능 보호. **기본값으로 진행, 사용자 수정 가능** · planner
 
+- 2026-10-08 · `cause = nil`(시간 종료·통과 인원이 다 차서 남은 사람 탈락)일 때 · 스펙 AC2대로 **연출 없음**. 본인 화면은 기존 HUD 문구 "🥢 탈락했어요… (n등)"가 그대로 뜨고, 캐릭터는 숨기지 않으며, 3초 뒤 자동 관전. 이 경우에도 연출을 넣으려면 m3-09에서 서버가 cause(예: `"Timeout"`)를 채우고 `EliminationCutsceneLogic.shouldPlay`에 추가하면 된다 (공용 `Types` 수정은 m3-09 몫). · developer
+- 2026-10-08 · 본인인데 `position`이 nil(캐릭터 없음)일 때 · 스탬프와 등수만 띄우고 월드 연출·카메라는 생략. 다른 사람 화면에는 아무것도 안 나옴. · developer
+- 2026-10-08 · 캐릭터 숨김 범위 · 진짜 캐릭터의 HumanoidRootPart가 탈락 위치에서 40스터드 안일 때만 숨김 (리셋 뒤 다른 곳에 새로 생긴 캐릭터를 숨기지 않으려고). · developer
+- 2026-10-08 · Victory 단계에 도착한 탈락 결과 · 연출을 시작하지 않음 (범위 7의 "Victory가 시작되면 모두 지움"과 맞춤). HUD 문구도 낙하·리셋이면 생략하므로 이때는 본인 문구가 없다 — Victory 화면이 대신함. · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 바뀐 파일 (브랜치 `m3-03-elimination`)
+- `src/shared/EliminationCutsceneLogic.luau` (새, 순수): `shouldPlay`, `isFinalRound`, `variantFor`, `linesFor`/`pickLine`, `canStartWorld`(`MAX_CONCURRENT = 6`), `timeline`(효과음 박자, 3초 기준을 `Config.Match.EliminationCutscene`에 맞춰 늘림), `scaled`, `alpha`, `smooth`
+- `src/client/fx/EliminationCutsceneController.luau`: 껍데기 → 실제 구현. PlayerResult(Eliminated + Fall/Reset) → 캐릭터 로컬 숨김 + `SushiBody.build` 인형 + 소품 애니메이션(RenderStepped), 박자마다 `Sfx.play`, `SpeechPop`에 말풍선. 본인은 `CameraDirector.request("Elimination", Priority.Elimination)` + 스탬프. 동시 월드 연출 6개 한도. RoomUpdated(InMatch 아님)·MatchPhase Victory에 전부 정리. 소품은 `Workspace.EliminationCutscenes/EliminationCutscene_<userId>`에 생김.
+- `src/client/fx/CutsceneProps.luau` (새): 젓가락·간장 종지(+방울)·손님 입·셰프 손·말풍선 앵커 회색 박스와 pose 함수
+- `src/client/fx/EliminationCutsceneScreen.luau` (새): "먹혔다!" 도장 스탬프(UIScale 쾅 애니메이션, TextScaled + 크기 제한) + "n등", BillboardGui 말풍선
+- `src/client/ui/HudController.luau`: 본인 탈락이 낙하·리셋이면 "탈락했어요" 문구를 띄우지 않음
+- `tests/elimination-cutscene.spec.luau` (새, 11개): AC1~AC4 + 박자·보간 헬퍼
+
+### Studio 확인 방법
+1. `Config.DEBUG.forceMapPlan`을 로컬에서만 `{ "rotating-belt", "hot-plate", "skewer-showdown" }`로 (커밋 금지). Test → Clients and Servers 3명.
+2. AC6·AC7: 1라운드 회전 벨트에서 A를 코스 밖으로 떨어뜨림. A 화면 = 카메라가 인형을 비스듬히 위에서 잡고 젓가락 → 버둥 → 간장 퐁당(방울) → 손님 입 "냠!" → 말풍선, "먹혔다!" + "n등" 스탬프, HUD "탈락했어요" 없음, 3초 뒤 자동 관전. B·C 화면 = 같은 자리에서 같은 연출, A의 진짜 캐릭터 안 보임, 카메라 그대로.
+3. AC8: 라운드 중 리셋(Esc → Reset) → 리셋한 자리에서 젓가락 연출.
+4. AC9: 2라운드 뜨거운 철판에서 맨 아래로 떨어짐 → 아래에서 입이 벌리고 받아먹는 `Mouth` 연출.
+5. AC10: 결승 회전 꼬치 쇼다운에서 떨어짐 → 셰프 손이 내려와 움켜쥐고 위로 사라짐 + 결승 대사 가능.
+6. AC11: 매치 중 한 명이 방을 나감 → 다른 화면에 연출 없음.
+7. AC12: 연출 뒤·우승 직후 각 클라이언트 Explorer에서 `Workspace.EliminationCutscenes`가 비어 있음.
+8. AC13: Device 에뮬레이터(휴대폰)에서 스탬프·말풍선 글씨가 잘리지 않음.
+
+### 남은 이슈
+- 인형은 m3-02(`SushiBody`) 머지 전까지 회색 박스. 소리는 m3-08 머지 전까지 무음.
+- 시간 종료·정원 마감 탈락(`cause = nil`)은 연출 없음 — 결정 기록 참고, 원하면 m3-09.
+- 젓가락·입·셰프 손 위치는 월드 축(X, Y) 기준이라 벽 옆에서 떨어지면 소품이 벽에 묻힐 수 있음 (회색 박스 단계라 그대로 둠, M4 아트 때 재검토).

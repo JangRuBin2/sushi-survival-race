@@ -168,6 +168,20 @@ Config.Shop = {
 	PurchaseLogStore = "Purchases_v1", -- 구매 기록 DataStore (키 = PurchaseId, m4-14)
 }
 
+-- 이벤트 재화 (m5-07, GDD 9.2 시즌 한정). 이벤트 기간(Shared.Seasons)에만 지급
+Config.Events = {
+	Tokens = { MatchPlayed = 1, RoundPass = 1, FinalQualify = 2, Win = 5, DailyFirstMatch = 3 },
+}
+
+-- 코드 보상 (m5-10). 코드 목록은 서버 전용 CodeConfig가 읽는 로컬 파일 CodeList.luau
+-- (저장소가 공개라서 커밋하지 않아요 — src/server/CodeList.example.luau 참고)
+Config.Codes = {
+	RequestCooldown = 2, -- RedeemCode 요청 간격(초)
+	MaxFailures = 8, -- FailureWindow 동안 틀린 코드를 이만큼 넣으면
+	FailureWindow = 600, -- (초) 잠시 막아요
+	MaxLength = 20,
+}
+
 -- 서버 이동 감시 (m4-10)
 Config.MovementGuard = {
 	SampleInterval = 0.2,
@@ -204,6 +218,10 @@ Config.DEBUG = {
 	fakeRobuxInStudio = false,
 	-- 결승 연장전 시작을 이 초로 당겨요 (Studio 전용, 혼자·2명 테스트용, m5-01). 커밋할 때는 nil로.
 	overtimeAt = nil :: number?,
+	-- 이벤트 기간 확인용 "지금 시각"(UTC unix 초, Studio 전용, m5-03). 예: 1792108800 = 할로윈 시작. 커밋할 때는 nil로.
+	eventNow = nil :: number?,
+	-- true면 Studio에서 게임 패스 없이 VIP로 봐요 (m5-08). 실제 서버에서는 무시. 커밋할 때는 false로.
+	fakeVipInStudio = false,
 }
 
 return Config

@@ -51,6 +51,12 @@ SfxLibrary.Entries = {
 	Eliminated = sfx(SOUNDS.oof, 0.9),
 	VictoryFanfare = sfx(nil, 0.9),
 	Overtime = sfx(nil, 0.9), -- 결승 연장전 경적·징 (m5-01, id는 사용자가 고를 때까지 무음)
+	-- m5-03: id는 사용자가 고를 때까지 무음 (USER-TODO A2)
+	TokenGet = sfx(nil, 0.8), -- 이벤트 재화 받음 (m5-07)
+	CodeRedeemed = sfx(nil, 0.8), -- 코드 보상 성공 (m5-10)
+	-- 연출 팩 (m5-09)
+	CatMeow = sfx(nil, 0.8),
+	Fireworks = sfx(nil, 0.8),
 	-- 탈락 연출
 	ChopstickClack = sfx(SOUNDS.jumpLand, 0.8, 1.6, 0.05),
 	Struggle = sfx(SOUNDS.ouch, 0.7, 1.1, 0.08),
@@ -77,6 +83,10 @@ SfxLibrary.Entries = {
 	TileVanish = sfx(SOUNDS.footsteps, 0.7, 0.7, 0.05),
 	SkewerWhoosh = sfx(SOUNDS.falling, 0.6, 1.6, 0.05),
 	ChefHandWarn = sfx(nil, 0.7),
+	IkuraPop = sfx(nil, 0.8), -- 연어알 폭탄 (m5-04)
+	OilSplash = sfx(nil, 0.7), -- 튀는 기름 (m5-05)
+	FanGust = sfx(nil, 0.6), -- 송풍구 (m5-06)
+	JellyBoing = sfx(nil, 0.8), -- 젤리 (m5-06)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

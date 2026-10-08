@@ -84,11 +84,14 @@ return function(t: Test.Test)
 				"Title",
 				"MoveExemptUntil",
 				"PlaceRole",
+				"Vip",
+				"EliminationFx",
+				"VictoryFx",
 			}
 		do
 			t.ok((Attributes :: any)[key] ~= nil, `Attributes.{key}`)
 		end
-		t.eq(count, 13) -- m3-09: KeepVisible·NoClickSfx, m4-01: Title·MoveExemptUntil, m4-11: PlaceRole, m5-02: IsAdmin·AdminPreview
+		t.eq(count, 16) -- m3-09: KeepVisible·NoClickSfx, m4-01: Title·MoveExemptUntil, m4-11: PlaceRole, m5-02: IsAdmin·AdminPreview, m5-03: Vip·EliminationFx·VictoryFx
 	end)
 
 	t.test("AC3: SfxCues에 확정 목록이 모두 있고 중복이 없어요", function()
@@ -122,6 +125,15 @@ return function(t: Test.Test)
 			"TileVanish",
 			"SkewerWhoosh",
 			"ChefHandWarn",
+			-- m5-03
+			"TokenGet",
+			"CodeRedeemed",
+			"CatMeow",
+			"Fireworks",
+			"IkuraPop",
+			"OilSplash",
+			"FanGust",
+			"JellyBoing",
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

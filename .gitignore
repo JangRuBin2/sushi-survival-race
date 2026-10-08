@@ -4,3 +4,6 @@
 *.rbxlx.lock
 sourcemap.json
 .claude/worktrees/
+
+# 코드 보상 실제 목록 (m5-10). 저장소가 공개라서 커밋하지 않아요 — src/server/CodeList.example.luau 참고
+src/server/CodeList.luau

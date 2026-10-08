@@ -378,6 +378,8 @@ return function(t: Test.Test)
 			["src/server/RoomService.luau:handlers"] = true, -- 리모트 이름별 고정
 			["src/server/DataService.luau:userBusy"] = true, -- finishUser가 0이면 nil로
 			["src/server/PurchaseLog.luau:memory"] = true, -- Studio 메모리 구매 기록 (결제당 한 줄, m4-14)
+			["src/client/PriceCache.luau:prices"] = true, -- 상품·패스 id별 가격 (카탈로그 크기, m5-03)
+			["src/client/PriceCache.luau:requested"] = true, -- 상품·패스 id별 한 번 (m5-03)
 		}
 		local files = {}
 		for _, dir in { "src/server", "src/client", "src/client/fx", "src/client/input", "src/client/ui" } do

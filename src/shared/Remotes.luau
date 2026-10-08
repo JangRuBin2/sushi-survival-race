@@ -16,6 +16,11 @@
 --                                 Config.Shop.PurchaseRequestCooldown). 지급은 ProcessReceipt가 해요
 --   AdminPreviewSkin(skinId: string?)  테스트용 관리자 스킨 미리보기 (m5-02, AdminService: 서버 관리자 표·간격·카탈로그·잠금 검증,
 --                                 nil·""면 끄기). 프로필·코인·결제 기록에 쓰지 않아요
+--   BuyWithTokens(skinId: string)          이벤트 재화로 시즌 무료 스킨 교환 (m5-07, ShopService)
+--   RequestOfferPurchase(offerId: string)  상품(묶음·연출) 결제 창 열기 (m5-08, OfferService)
+--   EquipFx(slot: string, fxId: string?)   연출 입기 — slot "Elimination"|"Victory", nil·""면 벗기 (m5-08, OfferService)
+--   RedeemCode(code: string)               코드 보상 받기 (m5-10, CodeService. 목록은 서버 전용)
+--   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증)
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
@@ -46,6 +51,11 @@ local FUNCTIONS = {
 	"BuyWithCoins",
 	"RequestRobuxPurchase",
 	"AdminPreviewSkin",
+	"BuyWithTokens",
+	"RequestOfferPurchase",
+	"EquipFx",
+	"RedeemCode",
+	"AdminCommand",
 }
 local EVENTS = {
 	"RoomList",

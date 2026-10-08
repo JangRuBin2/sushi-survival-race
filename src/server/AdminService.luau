@@ -8,6 +8,10 @@
 --   AdminPreviewSkin(skinId?)  관리자 표 → 요청 간격(Config.Shop.RequestCooldown) → AdminLogic.checkPreview
 --                              (카탈로그·타입·ShopService.isLocked). 성공하면 ShopService.setPreview로 바로 다시 입혀요.
 --                              nil·""는 미리보기 끄기. 프로필·코인·결제 기록·보상·DataStore에는 쓰지 않아요.
+--   AdminCommand(command, args?)  (m5-03 틀, 명령 실행은 m5-11) 관리자 표 → 요청 간격 → 명령 등급(AdminLogic.commandTier)
+--                              → AdminLogic.canRun. 실서버는 Info 명령만 — Test·StudioOnly는 RunService:IsStudio()가
+--                              아니면 무조건 거절해요 (사용자 결정 2026-10-08: 실서버 테스트 명령 없음, 설정으로도 못 켬).
+--                              지금은 통과해도 "준비 중이에요" — m5-11이 runCommand를 채워요.
 --
 -- 서버 간 유지 (로비 ↔ 매치, m4-11): 실서버에서 미리보기가 바뀌면 MemoryStore HashMap AdminPreview_v1,
 -- 키 u_<UserId>에 { skinId, at }(끄면 skinId = false)를 1시간 TTL로 써요. 관리자가 어느 서버에 접속하든
@@ -176,11 +180,61 @@ local function onPreview(player: Player, skinId: unknown): (boolean, string?)
 	return true, nil
 end
 
+-- 명령 실행 (m5-11이 채워요). 여기 오기 전에 관리자·간격·등급(Studio 전용 포함) 검사를 마쳤어요.
+local function runCommand(
+	_player: Player,
+	_command: string,
+	_tier: AdminLogic.CommandTier,
+	_args: unknown
+): (boolean, string?)
+	return false, AdminLogic.message("NotReady")
+end
+
+local function onCommand(player: Player, command: unknown, args: unknown): (boolean, string?)
+	local userId = player.UserId
+	if not admins[userId] then
+		if not warned[userId] then
+			warned[userId] = true
+			warn(`[Admin] {player.Name}({userId}) tried AdminCommand without permission`)
+		end
+		return false, AdminLogic.message("NotAdmin")
+	end
+	if not allowRequest(player) then
+		return false, AdminLogic.message("TooFast")
+	end
+	local tier = AdminLogic.commandTier(command)
+	if tier == nil then
+		return false, AdminLogic.message("UnknownCommand")
+	end
+	-- 실서버에서는 Test·StudioOnly 명령을 처리하지 않아요 (켜는 설정 없음)
+	local allowed, reason = AdminLogic.canRun(tier, isStudio(), Config.DEBUG.persistDataInStudio)
+	local name = command :: string
+	if not allowed then
+		print(`[Admin] {player.Name}({userId}) {name} -> {reason}`)
+		return false, AdminLogic.message(reason :: AdminLogic.Reason)
+	end
+	local ok, result = runCommand(player, name, tier, args)
+	print(`[Admin] {player.Name}({userId}) {name} -> {if ok then "ok" else tostring(result)}`)
+	return ok, result
+end
+
 function AdminService.init()
 	Remotes.fn("AdminPreviewSkin").OnServerInvoke = function(player: Player, skinId: unknown): (boolean, string?)
 		local ok, success, err = pcall(onPreview, player, skinId)
 		if not ok then
 			warn(`[Admin] AdminPreviewSkin failed for {player.Name}: {success}`)
+			return false, "다시 해 주세요"
+		end
+		return success, err
+	end
+	Remotes.fn("AdminCommand").OnServerInvoke = function(
+		player: Player,
+		command: unknown,
+		args: unknown
+	): (boolean, string?)
+		local ok, success, err = pcall(onCommand, player, command, args)
+		if not ok then
+			warn(`[Admin] AdminCommand failed for {player.Name}: {success}`)
 			return false, "다시 해 주세요"
 		end
 		return success, err

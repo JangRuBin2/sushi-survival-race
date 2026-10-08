@@ -83,8 +83,9 @@ return function(t: Test.Test)
 	-- AC2 ---------------------------------------------------------------------------------
 	t.test("AC2: ProfileSchema.new 기본값, 부를 때마다 다른 표", function()
 		local a = ProfileSchema.new()
-		t.eq(a.version, 1)
-		t.eq(ProfileSchema.VERSION, 1)
+		-- m5-03이 v2로 올렸어요 (redeemedCodes·eventTokens·ownedFx·equippedFx·boughtOffers)
+		t.eq(a.version, 2)
+		t.eq(ProfileSchema.VERSION, 2)
 		t.eq(a.coins, 0)
 		t.eq(a.wins, 0)
 		t.eq(a.matchesPlayed, 0)
@@ -412,7 +413,8 @@ return function(t: Test.Test)
 		-- m4-13이 EquipSkin·BuyWithCoins를 더해 19개
 		-- m4-14가 RequestRobuxPurchase를 더해 20개
 		-- m5-02가 AdminPreviewSkin을 더해 21개
-		t.eq(eventCount + functionCount, 21)
+		-- m5-03이 BuyWithTokens·RequestOfferPurchase·EquipFx·RedeemCode·AdminCommand를 더해 26개
+		t.eq(eventCount + functionCount, 26)
 	end)
 
 	t.test("Types: Settings·ProfileView·RewardReason·RewardGrant", function()

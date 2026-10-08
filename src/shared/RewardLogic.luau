@@ -87,6 +87,8 @@ RewardLogic.REASON_TEXT = {
 	FinalQualify = "결승 진출",
 	Win = "우승!",
 	DailyFirstMatch = "오늘 첫 판",
+	Code = "코드 보상", -- m5-10
+	MatchPlayed = "판 참가", -- m5-07 (이벤트 재화)
 } :: { [Types.RewardReason]: string }
 
 -- 지급 토스트 글씨: "+10 🍚 라운드 통과"

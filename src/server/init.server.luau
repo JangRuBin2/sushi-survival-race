@@ -4,6 +4,7 @@
 --   start(): 다른 서비스를 써도 되는 시작 단계
 -- DataService가 맨 앞(접속한 사람의 프로필을 가장 먼저 로드), PlaceService 다음, 그 뒤 기존 서비스,
 -- 마지막에 M4 서비스 (m4-01). 껍데기 서비스는 각 스펙이 채워요.
+-- m5-03: OfferService·CodeService 껍데기를 AdminService 앞에.
 
 local SERVICES = {
 	require(script.DataService),
@@ -19,6 +20,8 @@ local SERVICES = {
 	require(script.MovementGuardService), -- m4-10
 	require(script.ShopService), -- m4-13
 	require(script.RobuxShopService), -- m4-14 (ProcessReceipt)
+	require(script.OfferService), -- m5-03 껍데기 → m5-08 (RequestOfferPurchase·EquipFx)
+	require(script.CodeService), -- m5-03 껍데기 → m5-10 (RedeemCode)
 	require(script.AdminService), -- m5-02 (ShopService 다음: 미리보기 슬롯)
 }
 

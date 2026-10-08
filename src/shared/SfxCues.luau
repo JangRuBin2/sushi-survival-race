@@ -14,6 +14,11 @@ SfxCues.Effects = {
 	"Eliminated", -- "먹혔다!" 스탬프
 	"VictoryFanfare",
 	"Overtime", -- 결승 연장전 경적 (m5-01)
+	"TokenGet", -- 이벤트 재화 받음 (m5-07)
+	"CodeRedeemed", -- 코드 보상 성공 (m5-10)
+	-- 연출 팩 (m5-09)
+	"CatMeow", -- 고양이 손님 탈락 연출
+	"Fireworks", -- 불꽃놀이 우승 연출
 	-- 탈락 연출
 	"ChopstickClack",
 	"Struggle",
@@ -40,6 +45,10 @@ SfxCues.Effects = {
 	"TileVanish",
 	"SkewerWhoosh",
 	"ChefHandWarn",
+	"IkuraPop", -- 연어알 폭탄 터짐 (m5-04)
+	"OilSplash", -- 기름 튐 (m5-05)
+	"FanGust", -- 냉장고 송풍구 (m5-06)
+	"JellyBoing", -- 젤리 튕김 (m5-06)
 }
 
 -- 배경음 (Sfx.setMusic)

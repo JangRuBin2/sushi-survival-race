@@ -25,6 +25,11 @@ local CONTROLLERS = {
 	require(script.fx.LobbyFxController), -- m4-06
 	require(script.ui.ShopController), -- m4-13
 	require(script.ui.AdminController), -- m5-02 (관리자에게만 패널을 만들어요)
+	-- m5-03 껍데기 (각 스펙이 채워요)
+	require(script.ui.OfferController), -- m5-08 "🎁 상점"
+	require(script.ui.CodeController), -- m5-10 "🎟 코드"
+	require(script.ui.ChatTagController), -- m5-08 [VIP] 채팅 태그
+	require(script.input.IceController), -- m5-06 얼음 관성
 }
 
 for _, controller in CONTROLLERS do

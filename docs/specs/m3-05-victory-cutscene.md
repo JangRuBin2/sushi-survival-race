@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-05 — 우승 연출 ("탈출 성공!")
@@ -64,6 +64,29 @@ status: ready
 - 2026-10-08 · 글씨 · 다른 사람 "{이름} 탈출 성공!", 본인 "탈출 성공! 🏆". **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 단상 전시·칭호 · DataStore가 필요해 M4로 미룸 · planner
 - 2026-10-08 · `HudScreen.luau` 수정 · m3-03은 `HudController.luau`만, 이 스펙은 `HudScreen.luau`의 Victory 분기만 고쳐서 병렬 중 같은 파일을 건드리지 않음 · planner
+- 2026-10-08 · `HudScreen.luau` 범위 · Victory 분기 말고도 두 줄을 더 고침: 맨 위 `Config` require, `setPhase`·`setVisible(false)` 첫 줄의 `victoryToken += 1`(연출 중 단계가 바뀌거나 대기실로 돌아가면 늦게 뜨는 배너를 막는 용도). 그 밖의 분기는 그대로 · developer
+- 2026-10-08 · 시작 시각 · 연출 시계는 각 클라이언트가 `Victory`를 받은 순간부터 잼(서버 시각 동기 안 함). HUD 배너도 같은 순간부터 `VictoryCutscene`초 뒤라서 서로 맞음. 네트워크 지연만큼 사람마다 조금 어긋날 수 있음 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 · developer · 브랜치 `m3-05-victory`
+**바뀐 파일**
+- 새 `src/shared/VictoryCutsceneLogic.luau` — 순수: `SCENE_ORIGIN`, `Layout`, `timeline`, `beatAt`, `cues`, `splashTime`, `titleText`, `winnerName`, `doorOpen`, `dollPose`, `fishRing`, `fishState`, `cameraPose` (6초 기준 시각을 duration에 비례, 좌표는 숫자 표)
+- 새 `src/client/fx/VictoryProps.luau` — 회색 박스 장면: 벽·문 2짝(경첩 바깥 모서리, 앞으로 100도 열림)·처마·간판 "스시집"(SurfaceGui)·판자 부두 30·기둥·바다 판·땅·물고기 5마리(주황/파랑 몸, 꼬리, 지느러미 손, 눈). `setDoorsOpen`, `poseFish`
+- 새 `src/client/fx/VictoryCutsceneScreen.luau` — 자기 ScreenGui(DisplayOrder 50), 화면 폭 90% + TextScaled(최대 84) + 외곽선, 쾅 커지는 등장
+- `src/client/fx/VictoryCutsceneController.luau` — 껍데기를 채움. Victory+우승자 → 로컬 장면·인형(`SushiBody.build(우승자 AppearanceId 또는 Config.Appearance.Default)`, 모든 파츠 Anchored, 높이 `SushiBody.GROUND_OFFSET or 2.3`) → RenderStepped로 문/인형/물고기/카메라/먼지·물보라 조각 갱신, 효과음 `VictoryFanfare`·`DoorBurst`(0초), `Splash`(입수 3.45초), `FishClap`(3.8초), Clap 시작에 큰 글씨. 카메라 `CameraDirector` "VictoryCutscene"(50), 매 프레임 `isActive`일 때만 움직임. 끝/Starting/RoomUpdated(≠InMatch)/우승자 없는 Victory에 정리(카메라 release, 글씨 숨김, 장면 Destroy)
+- `src/client/ui/HudScreen.luau` — Victory 분기: 우승자가 있으면 배너·순위표를 `Config.Match.VictoryCutscene`초 뒤에(그 사이 단계 변경·HUD 숨김이면 안 띄움), 없으면 바로
+- 새 `tests/victory-cutscene.spec.luau` — 13개 (AC1~AC5 + 효과음 순서, 인형·카메라·물고기·장면 위치)
+
+**Studio 확인 방법** (AC7~AC12, 사용자 확인 필요)
+1. `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "soy-swamp", "skewer-showdown" }`로 바꾸고(커밋 금지) 혼자 F5 → 결승까지 가서 우승. 문이 열리고 인형이 튀어나와 부두를 달려 바다로 다이빙 → 물고기 박수 + "탈출 성공! 🏆". 약 6초 뒤 카메라가 로비의 내 캐릭터로, "🏆 우승!" 배너·순위표 약 4초 → 대기실.
+2. Test → Clients and Servers 3명: 우승자가 아닌 두 화면에 "{우승자 이름} 탈출 성공!".
+3. 연출 동안 배너·순위표가 안 보이는지.
+4. 대기실로 돌아온 뒤 클라이언트 Explorer Workspace에 `VictoryCutscene` Model이 없는지, PlayerGui `VictoryCutscene` ScreenGui가 꺼져 있는지(Enabled=false, 재사용용으로 남음), 카메라가 내 캐릭터를 따라가는지.
+5. 연출 중 우승자 클라이언트를 닫아도 다른 화면이 끝까지 재생되는지(인형은 시작 때 이미 만들어짐).
+6. Device 에뮬레이터(휴대폰 가로)에서 글씨가 잘리지 않는지.
+
+**남은 이슈**
+- m3-02 머지 전에는 인형이 회색 박스 1개. 머지 뒤 계란초밥으로 바뀌는데, 인형의 앞이 -Z(LookVector)라고 가정함 — 반대면 박수 때 등을 보임(m3-09에서 yaw만 뒤집으면 됨).
+- 소리는 m3-08 전에는 안 남(Sfx 껍데기).
+- 연출 시계는 클라이언트 수신 시각 기준 (결정 기록).

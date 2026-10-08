@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local EliminationCutsceneLogic = require(ReplicatedStorage.Shared.EliminationCutsceneLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local HudScreen = require(script.Parent.HudScreen)
@@ -44,6 +45,10 @@ function HudController.start(gui: Instance)
 
 	Remotes.event("PlayerResult").OnClientEvent:Connect(function(result: Types.PlayerResult)
 		if result.userId == player.UserId then
+			-- 낙하·리셋 탈락은 탈락 연출의 "먹혔다!" 스탬프가 등수를 대신 보여 줘요 (m3-03)
+			if result.result == "Eliminated" and EliminationCutsceneLogic.shouldPlay(result.cause) then
+				return
+			end
 			hud:showPersonalResult(personalResultText(result))
 		end
 	end)

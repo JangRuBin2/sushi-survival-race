@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-08 — 밥알 코인 보상 · 승수 · 우승 칭호
@@ -61,6 +61,17 @@ status: ready
 - 2026-10-08 · "결승 진출"은 결승 출발 순간의 레이서 전원 · 결승으로 건너뛴 경우 포함 · planner
 - 2026-10-08 · "하루"는 UTC 기준 · 서버 시간대 차이 없이 단순하게 (한국 오전 9시에 바뀜). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 코인 배지 위치 · 위쪽 바 줄 왼쪽(음소거 버튼 반대편) · planner
+- 2026-10-08 · 매치 정산 한 줄은 위쪽 바 칸(TopbarSafeInsets) 밖이라 두 번째 ScreenGui `CoinSummaryGui`(DisplayOrder 60, 우승 연출 위)에 둠. 배지·토스트는 스펙대로 `CoinGui`. 둘 다 `UiScaleController.attach` · developer
+- 2026-10-08 · **QA 후 수정** (docs/qa/m4-08-rewards-titles.md) · B1: 하루 첫 판 +50·matchesPlayed 대상을 `participants` ∩ 매치 끝 시점 방 멤버(`RoomService.getPlayers`, 관전 중인 탈락자 포함)로 제한 (`RewardLogic.matchEndRecipients`, 결정 기록 "끝까지 남은 사람만" 기준). B3: 클라이언트 합계 섞임은 B1의 결과였고, 방을 나간 사람에게 매치 끝 지급이 더 이상 가지 않아 해소. 라운드 중 지급은 그 방 레이서에게만 가므로 다른 매치와 섞일 길 없음. B2: 매치 끝 뒤(tracker 없음) 늦게 온 결과는 Won만 지급하도록 코드·주석 일치. B4: `CoinGui` DisplayOrder 5 → 55 (우승 연출 50 위, 정산 60 아래) · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 · developer (브랜치 `m4-08-rewards`)
+- **바뀐 파일**
+  - 새 `src/shared/RewardLogic.luau` — forPass/forRoundStart/forWin/dailyBonus/dayNumber/matchTotal, 방 하나의 라운드 추적(`newTracker`/`onRoundStart`/`onResult` → Grant 목록), `toastText`/`summaryText`, 테스트용 `simulate(events)`.
+  - `src/server/RewardService.luau` — MatchEvents 4훅 구독. 결승 출발 +30, 결승 아닌 Passed +10, Won +100(+wins, 칭호 갱신), 매치 끝 남은 참가자 matchesPlayed +1과 하루 첫 판 +50(`os.time() // 86400`, update 안에서 검사·기록). `DataService.get` → 없으면 `waitForProfile(10초)` → 없으면 경고 후 버림. 지급 후 `RewardGranted({reason, amount, total})`. 칭호는 CharacterAdded·onLoaded·우승 때 캐릭터에 `Attributes.Title`(0승이면 제거). 클라이언트에서 받는 리모트 없음.
+  - 새 `src/client/ui/CoinScreen.luau`, `src/client/ui/CoinController.luau` — 왼쪽 위 "🍚 N" 배지(+ "(저장 안 됨)"), 배지 아래 토스트 1.5초, Victory 6초 뒤 4초 동안 화면 아래 가운데 "이번 판 +N 🍚 (총 M)". 합계는 Starting부터 받은 RewardGranted 합.
+  - `src/client/fx/CharacterFxController.luau` — 이름표에 칭호 줄(이름 위, 금색 13px). BillboardGui를 40px로 키우고 SizeOffset으로 올려 이름 자리는 그대로.
+  - 새 `tests/reward-logic.spec.luau` (14개).
+- **Studio 확인**: `Config.DEBUG.forceMapPlan`에 4개 맵(예: `{"rotating-belt","hot-plate","soy-swamp","skewer-showdown"}`)을 넣고 혼자 Play → 라운드 통과 토스트 3번, 결승 출발 "+30 🍚 결승 진출", 우승 "+100 🍚 우승!", 끝 "+50 🍚 오늘 첫 판", 순위표 아래 "이번 판 +210 🍚 (총 210)" (AC6). 한 판 더 하면 오늘 첫 판 없음(AC7). 배지 위치는 창 폭 800~1920·휴대폰 에뮬레이터(AC8). 2명 Clients and Servers로 1승 뒤 다른 창에서 "탈출 초밥"(AC9). 매치 중 방 나가기(AC10). **커밋 전 forceMapPlan은 nil로**.
+- **남은 이슈**: AC11은 m4-07 머지 뒤. 이름표 칭호 줄의 SizeOffset 방향(이름 자리 유지)은 Studio에서 눈으로 확인 필요. 매치 정산 줄은 순위표 패널 아래 여백(약 88px)에 들어가게 아래에서 20px·높이 36px로 둠.

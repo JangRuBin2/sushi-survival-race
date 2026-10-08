@@ -63,15 +63,24 @@ function Logic.whirlpoolAt(x: number, z: number): number?
 	return nil
 end
 
--- 급류(Broth) 위 (x, z)에서 미는 목표 속도. 앞으로 14, 소용돌이 안이면 그 소용돌이 쪽 벽으로 10.
+-- 급류(Broth) 위 (x, z)에서 미는 목표 속도. 앞으로 BROTH_PUSH_SPEED(20),
+-- 소용돌이 안이면 앞은 WHIRLPOOL_FORWARD_SPEED(14)로 줄고 그 소용돌이 쪽 벽으로 10.
 function Logic.pushVector(x: number, z: number): Push
-	local side = 0
 	local pool = Logic.whirlpoolAt(x, z)
 	if pool then
 		local poolX = Layout.WHIRLPOOLS[pool].x
-		side = (if poolX >= 0 then 1 else -1) * Layout.WHIRLPOOL_PUSH_SPEED
+		return {
+			side = (if poolX >= 0 then 1 else -1) * Layout.WHIRLPOOL_PUSH_SPEED,
+			forward = math.min(Layout.BROTH_PUSH_SPEED, Layout.WHIRLPOOL_FORWARD_SPEED),
+		}
 	end
-	return { side = side, forward = Layout.BROTH_PUSH_SPEED }
+	return { side = 0, forward = Layout.BROTH_PUSH_SPEED }
+end
+
+-- 수평 속도 speed, 위 속도 upSpeed로 출발해서 drop만큼 아래 바닥에 닿을 때까지 가는 수평 거리
+function Logic.landingDistance(speed: number, upSpeed: number, drop: number, gravity: number): number
+	local airtime = (upSpeed + math.sqrt(upSpeed * upSpeed + 2 * gravity * drop)) / gravity
+	return speed * airtime
 end
 
 -- 한 축 밀기: 지금 그 축 속도(current)를 목표(target) 쪽으로 이번 프레임에 더할 양.
@@ -135,11 +144,11 @@ function Logic.discGap(ax: number, az: number, ar: number, bx: number, bz: numbe
 	return math.max(0, math.sqrt(dx * dx + dz * dz) - ar - br)
 end
 
--- 급류 끝(z = RAPIDS.back, |x| <= 폭/2)에서 원판까지 빈틈
+-- 급류 끝에서 건너기 시작하는 곳 = 착지판 끝(z = LANDING.back, |x| <= 폭/2)에서 원판까지 빈틈
 function Logic.gapFromRapids(x: number, z: number, radius: number): number
-	local half = Layout.RAPIDS_WIDTH / 2
+	local half = Layout.LANDING.width / 2
 	local nearX = math.clamp(x, -half, half)
-	local dx, dz = x - nearX, Layout.RAPIDS.back - z
+	local dx, dz = x - nearX, Layout.LANDING.back - z
 	if dz < 0 then
 		dz = 0
 	end

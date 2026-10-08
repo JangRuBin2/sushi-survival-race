@@ -1,6 +1,14 @@
 # m4-04 map-ramen-rapids — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA P2 R1·R2 수정 (최신)
+- **브랜치**: `m4-04-ramen` (origin/m4-04-qa 06ae17c 병합), push 대상 `origin/m4-04-qa`
+- **끝난 것**: R1 급류 끝 넓은 착지판 `LandingRaft` + 토핑 재배치, R2 급류 앞 밀기 20(소용돌이 안 14). 테스트 `QA R1`·`QA R2` 추가.
+- **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 626 passed / 0 failed.
+- **남은 것**: Studio 확인 AC8~AC13 (사용자). 스펙 status는 qa-passed 유지.
+- **다음에 할 첫 단계**: main 병합.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `m4-04-ramen` (origin/main f33086b 기반, push 완료)
 - **끝난 것**: 스펙 범위 1~6 전부.
   - `RamenRapids.luau` stub 덮어씀 (구간 A~E, 태그 Broth·Chashu·NoodleSweeper, 장식·김·IntroCamera·attachStudioArt).

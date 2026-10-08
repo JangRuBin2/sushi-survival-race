@@ -41,8 +41,12 @@ Layout.FINISH_LINE_INSET = 4 -- 결승선을 끝 벽보다 이만큼 앞에 둬�
 
 -- B 급류 미끄럼틀
 Layout.RAPIDS_SLOPE_DEG = 12
-Layout.BROTH_PUSH_SPEED = 14 -- 앞으로 미는 목표 속도 (studs/s)
-Layout.BROTH_PUSH_ACCEL = 30 -- 그 속도까지 올리는 가속도 (studs/s^2)
+-- 앞으로 미는 목표 속도 (studs/s). 걷기(16)보다 빨라서 앞으로 달려도 더 밀려요 (QA R2).
+-- 소용돌이 옆 밀기(10)를 합쳐도 약 22 studs/s라 이동 감시 상한(MovementGuard.MaxHorizontalSpeed)보다 한참 낮고,
+-- 밀 때마다 MoveExempt.mark도 해요.
+Layout.BROTH_PUSH_SPEED = 20
+Layout.BROTH_PUSH_ACCEL = 40 -- 그 속도까지 올리는 가속도 (studs/s^2)
+Layout.WHIRLPOOL_FORWARD_SPEED = 14 -- 소용돌이 안에서는 앞 밀기를 이만큼으로 줄여요 (옆으로 쏠리게, AC4)
 Layout.BROTH_ZONE_HEIGHT = 5 -- 바닥 윗면 위 이 높이 안에 HumanoidRootPart가 있으면 국물 위예요
 Layout.WHIRLPOOL_DIAMETER = 8
 Layout.WHIRLPOOL_PUSH_SPEED = 10 -- 소용돌이가 벽 쪽으로 미는 목표 속도
@@ -68,19 +72,24 @@ Layout.NARUTO_THICKNESS = 1.5
 Layout.NARUTO_TOP = 1 -- 나루토 윗면 = 수면 + 이 값 (고정)
 Layout.NARUTO_SPIN_SPEED = 20 -- 장식 소용돌이 회전 (도/초, 밟는 원판은 고정)
 Layout.MAX_JUMP_GAP = 7 -- 건너는 길에서 발판 사이 가로 거리 상한 (AC2)
--- 3줄(왼쪽·가운데·오른쪽) 지그재그. 나란한 차슈는 위상이 어긋나서 둘(셋)이 동시에 잠기지 않아요.
+-- 급류 끝 바로 아래 넓은 착지판 (나루토와 같은 높이, 급류보다 넓어요). 급류 끝선에서 걸어 나가도,
+-- 점프해도 여기 떨어져요 (QA R1). 깊이는 밀기 최고 속도로 점프했을 때 비행 거리 + 여유.
+Layout.LANDING = { front = -126, back = -142, width = 24 }
+-- 3줄(왼쪽·가운데·오른쪽) 지그재그, 줄 간격 9. 나란한 차슈는 위상이 어긋나서 둘(셋)이 동시에 잠기지 않아요.
+-- 착지판 → 차슈 2 → 나루토 → 차슈 3 → 나루토 → 차슈 2 → 나루토 → 차슈 2 → 회전 발판.
+-- 첫 나루토(왼쪽)는 착지판 옆 갈림길이에요. 나루토끼리는 7보다 멀어서 차슈를 꼭 밟아야 해요.
 Layout.NARUTOS = {
-	{ x = 0, z = -131 },
-	{ x = 0, z = -151 },
-	{ x = 0, z = -173 },
-	{ x = 0, z = -193 },
+	{ x = -17, z = -147 },
+	{ x = 0, z = -156 },
+	{ x = 0, z = -174 },
+	{ x = 0, z = -192 },
 } :: { Disc }
 Layout.CHASHUS = {
-	{ x = -6, z = -141, phase = 0 },
-	{ x = 6, z = -141, phase = 0.5 },
-	{ x = -10, z = -162, phase = 0.15 },
-	{ x = 0, z = -162, phase = 0.48 },
-	{ x = 10, z = -162, phase = 0.81 },
+	{ x = -6, z = -147, phase = 0 },
+	{ x = 6, z = -147, phase = 0.5 },
+	{ x = -10, z = -165, phase = 0.15 },
+	{ x = 0, z = -165, phase = 0.48 },
+	{ x = 10, z = -165, phase = 0.81 },
 	{ x = -6, z = -183, phase = 0.3 },
 	{ x = 6, z = -183, phase = 0.8 },
 	{ x = -6, z = -201, phase = 0.6 },

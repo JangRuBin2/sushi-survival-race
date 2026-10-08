@@ -195,6 +195,18 @@ local function build(origin: CFrame): Model
 		})
 	end
 
+	-- 급류 끝 착지판: 국물에 떠 있는 넓은 김 한 장 (고정, 나루토 높이). 급류 끝에서 어디로 내려와도 받아 줘요.
+	local landing = Layout.LANDING
+	local landingDepth = landing.front - landing.back
+	makePart({
+		Name = "LandingRaft",
+		Size = Vector3.new(landing.width, Layout.FLOOR_THICKNESS, landingDepth),
+		CFrame = at(0, Layout.narutoTop() - Layout.FLOOR_THICKNESS / 2, landing.front - landingDepth / 2),
+		Color = Color3.fromRGB(48, 64, 46),
+		Material = Enum.Material.Fabric,
+		Parent = model,
+	})
+
 	-- C. 토핑: 차슈(Chashu 태그, 서버가 오르내림) + 나루토(고정 원판, 위의 분홍 소용돌이만 돌아요)
 	local toppings = Instance.new("Folder")
 	toppings.Name = "Toppings"

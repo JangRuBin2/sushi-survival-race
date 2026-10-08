@@ -123,6 +123,55 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test(
+		"QA R1: 급류 끝에서 어디로(가장자리 포함) 걸어 나가거나 점프해도 착지판 위에 1 stud 이상 여유로 떨어져요",
+		function()
+			local GRAVITY = 196.2
+			local landing = Layout.LANDING
+			-- 착지판은 급류 끝에 붙어 있고 급류보다 넓고, 발판과 겹치지 않아요
+			t.eq(landing.front, Layout.RAPIDS.back)
+			t.ok(landing.width >= Layout.RAPIDS_WIDTH + 2, "landing wider than the slide")
+			for _, p in Logic.platforms() do
+				t.ok(p.z + p.radius <= landing.back - 0.5 + 1e-9, `{p.kind}{p.index} overlaps the landing raft`)
+			end
+			local drop = -Layout.rapidsDrop() - Layout.narutoTop()
+			t.ok(drop > 0, "landing is below the rapids end")
+			local fastest = math.max(Config.Character.WalkSpeed, Layout.BROTH_PUSH_SPEED)
+			local depth = landing.front - landing.back
+			for speed = 0, fastest, 1 do
+				for _, up in { 0, Config.Character.JumpPower } do
+					local reach = Logic.landingDistance(speed, up, drop, GRAVITY)
+					t.ok(reach + 1 <= depth, `speed {speed} up {up}: lands {reach} past edge (raft {depth})`)
+				end
+			end
+			-- 옆으로: 소용돌이에 밀려 벽에 붙어 내려와도 (몸 반폭 1) 착지판 안
+			t.ok(Layout.RAPIDS_WIDTH / 2 + 1 <= landing.width / 2, "slide edge inside the raft")
+			-- 착지판 → 첫 줄 발판은 건널 수 있는 거리
+			local nearest = math.huge
+			for _, p in Logic.platforms() do
+				nearest = math.min(nearest, Logic.gapFromRapids(p.x, p.z, p.radius))
+			end
+			t.ok(nearest <= Layout.MAX_JUMP_GAP, `first platforms {nearest} from the raft`)
+		end
+	)
+
+	t.test(
+		"QA R2: 급류는 걷기보다 빠르게 밀고, 소용돌이와 합쳐도 이동 감시 기준 안이에요",
+		function()
+			t.ok(Layout.BROTH_PUSH_SPEED > Config.Character.WalkSpeed, "push faster than walking")
+			local plain = Logic.pushVector(0, -30)
+			t.ok(Logic.pushDelta(Config.Character.WalkSpeed, plain.forward, Layout.BROTH_PUSH_ACCEL, 1 / 60) > 0)
+			local guard = Config.MovementGuard
+			local worst = 0
+			for _, pool in Layout.WHIRLPOOLS do
+				local push = Logic.pushVector(pool.x, pool.z)
+				worst = math.max(worst, math.sqrt(push.forward ^ 2 + push.side ^ 2))
+			end
+			worst = math.max(worst, plain.forward)
+			t.ok(worst <= guard.MaxHorizontalSpeed / 2, `push speed {worst} too close to guard limit`)
+		end
+	)
+
 	t.test("AC2: 모든 차슈가 잠기는 때가 있고, 잠긴 차슈는 길에서 빠져요", function()
 		for i = 1, #Layout.CHASHUS do
 			local sawSubmerged, sawUp = false, false
@@ -215,7 +264,7 @@ return function(t: Test.Test)
 		end
 		local plain = Logic.pushVector(0, -30)
 		t.eq(plain.side, 0)
-		t.eq(plain.forward, 14)
+		t.eq(plain.forward, Layout.BROTH_PUSH_SPEED)
 		t.eq(Logic.whirlpoolAt(0, -30), nil)
 	end)
 

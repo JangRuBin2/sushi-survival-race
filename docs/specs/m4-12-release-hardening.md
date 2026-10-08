@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-12 — 출시 점검 (타입 검사 · 남은 P3 · 연속 매치 안정성 · 비공개 테스트 체크리스트)

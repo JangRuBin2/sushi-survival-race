@@ -2,7 +2,8 @@
 
 - 스펙: `docs/specs/m3-05-victory-cutscene.md`
 - 검증 커밋: `6bab2fe` (`m3-05-victory`) + `origin/main` 병합 `1e1868a` (m3-02 캐릭터·m3-03 탈락 연출 포함, 충돌 없음)
-- 결과: **반려 (P1 1건)** → 스펙 상태 `in-dev`. P2 1건, P3 2건. Studio 확인(AC7~AC12)은 사용자 확인 필요.
+- 결과: **재검증 통과** (수정 `690435e` + main 병합 `aee2647`) → 스펙 상태 `qa-passed`. 남은 것은 P3 2건(B3은 m3-09로 넘김, B4는 관찰). Studio 확인(AC7~AC12)은 사용자 확인 필요.
+- 1차 결과(`6bab2fe`): 반려 (P1 B1, P2 B2) → 아래 "재검증" 절 참고. 아래 수용 기준·버그 절은 1차 기록.
 
 ## 자동 검증
 | 명령 | 결과 |
@@ -118,9 +119,18 @@
 - `DoorBurst·Run·Dive 카메라 시선은 부두에 가리지 않아요`
 - 정적: 카메라 우선순위, 정리 경로, 서버 호출 없음, 서버 Victory 타이밍, HUD 지연·토큰
 
-## 인계 메모 (2026-10-08 · qa)
-- 브랜치: `m3-05-qa` (`origin/m3-05-victory` + `origin/main` 병합, push함). main은 건드리지 않음.
-- 끝난 것: 자동 검증 4개, AC1~AC6 확인, 코드 리뷰, QA 테스트 15개, 리포트. 스펙 상태 `in-dev`로 반려.
-- 남은 것: 개발이 B1(P1) 수정 — 박수 카메라 위치 조정 후 `tests/m3-05-qa.spec.luau` B1 테스트 통과. B2(P2) FOV 복원 권장. 그 뒤 QA 재검증, Studio 체크리스트 1~6(사용자).
-- 다음 첫 단계: developer가 `m3-05-qa`(또는 `m3-05-victory`에 이 브랜치 병합)에서 `VictoryCutsceneLogic.cameraPose`의 Clap `toEye`를 고치고 `lune run tests` 전부 통과 확인.
-- 막힌 점: 없음. B1은 Studio 미확인 계산 결과(박스 교차 계산)라 사용자 체크리스트 1에서 눈으로도 확인 필요.
+## 재검증 (2026-10-08 · qa)
+- 대상: `origin/m3-05-victory` `690435e`(B1·B2 수정, B3은 m3-09로 넘김) 병합 + `origin/main`(m3-04 소개, m3-06 다이브, m3-07 잡기, m3-08 사운드) 병합 `aee2647`. 충돌 없음.
+- 자동 검증: rojo build 통과, stylua 통과, selene 0 errors/0 warnings, **lune 438 passed, 0 failed** (`m3-05-qa.spec.luau` 18개, 재검증 3개 추가). AC6 통과.
+- **B1 [P1] 해결**: 박수 카메라 눈 = `(0, WaterY + 6, min(DiveLandZ + 9, DOCK_END_Z - 1))` = `(0, 1, -31)` (`src/shared/VictoryCutsceneLogic.luau:237-238`). 옆 카메라 `(18, 2, -38)`에서 옮겨 가는 내내 z < -30. 기존 B1 테스트 통과, 재검증 테스트 추가: 물고기 머리 시선도 부두에 가리지 않음, 카메라가 부두 끝 너머·수면 위·인형과 5 studs 이상.
+- **B2 [P2] 해결**: 처음 카메라를 잡을 때 `savedFov` 저장, release와 같은 cleanup 함수에서 복원 (`src/client/fx/VictoryCutsceneController.luau:167-176, 215-222`). 저장소에 다른 FOV 변경 코드 없음(m3-04 소개 카메라 포함). 정적 테스트 추가.
+- B3 [P3]: 고칠 곳이 `HudController.luau`(범위 밖)라 스펙 결정 기록에 m3-09로 넘김 — 동의.
+- 회귀: 수정 커밋은 `VictoryCutsceneLogic`·`VictoryCutsceneController`만 고쳤다. main에서 들어온 m3-04 `IntroController`(Intro 30)는 Victory에 카메라를 요청하지 않고, VictoryCutscene(50)이 가장 높은 것은 그대로. m3-08 `SfxLibrary`에 `VictoryFanfare`·`DoorBurst`·`Splash`·`FishClap`이 있다(`VictoryFanfare`·`FishClap`은 소리 id가 없어 무음 — m3-08 범위, 이 스펙 문제 아님).
+- 판정: P0/P1 없음 → `qa-passed`. 사용자 Studio 체크리스트 1(박수 장면에 인형·물고기가 보이는지)과 4(연출 뒤 FOV가 원래 값인지)를 특히 봐 주세요.
+
+## 인계 메모 (2026-10-08 · qa, 재검증)
+- 브랜치: `m3-05-qa` (`origin/m3-05-victory` 690435e + `origin/main` 병합, push함). main은 건드리지 않음.
+- 끝난 것: 1차 QA(반려) → 개발 수정 → 재검증 통과. 스펙 상태 `qa-passed`. QA 테스트 `tests/m3-05-qa.spec.luau` 18개.
+- 남은 것: 사용자 Studio 체크리스트 1~6. B3(P3)은 m3-09.
+- 다음 첫 단계: 코디네이터가 `m3-05-qa`(또는 `m3-05-victory`)를 main에 병합.
+- 막힌 점: 없음.

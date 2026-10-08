@@ -246,4 +246,51 @@ return function(t: Test.Test)
 			t.eq(bumps, 2, "setPhase·setVisible(false)에서 토큰 증가")
 		end
 	)
+
+	-- 재검증 (B1 수정 690435e): 물고기도 박수 장면에서 부두에 가리지 않아야 해요
+	t.test(
+		"재검증 B1: 박수 장면에서 카메라 → 물고기 머리 시선이 부두에 가리지 않아요",
+		function()
+			local lo, hi = dockBox()
+			local layout = Logic.Layout
+			local ring = Logic.fishRing(layout.FishCount, layout.FishRadius)
+			for step = 0, 22 do
+				local tt = 3.8 + step * 0.1
+				local cam = Logic.cameraPose(tt, 6)
+				for index, offset in ring do
+					local rise = Logic.fishState(tt, 6, index)
+					if rise > 0.5 then
+						-- VictoryCutsceneController: 몸 가운데 y = WaterY - 3 + rise * 3.6, 몸 높이 2.4 → 머리 = +1
+						local head = { offset[1], layout.WaterY - 3 + rise * 3.6 + 1, layout.DiveLandZ + offset[2] }
+						t.ok(not segmentHitsBox(cam.eye, head, lo, hi), `t = {tt}, fish {index}`)
+					end
+				end
+			end
+		end
+	)
+
+	t.test(
+		"재검증 B1: 박수 카메라는 부두 끝 너머 물 위, 인형과 5 studs 이상 떨어져요",
+		function()
+			local layout = Logic.Layout
+			for step = 0, 22 do
+				local tt = 3.8 + step * 0.1
+				local cam = Logic.cameraPose(tt, 6)
+				t.ok(cam.eye[3] < -layout.DockLength, `t = {tt}: z {cam.eye[3]}`)
+				t.ok(cam.eye[2] > layout.WaterY, `t = {tt}: 수면 위`)
+				t.ok(dist(cam.eye, Logic.dollPose(tt, 6).position) > 5, `t = {tt}: 거리`)
+			end
+		end
+	)
+
+	t.test("재검증 B2: 연출이 FOV를 저장했다가 정리 때 되돌려요", function()
+		local source = read("src/client/fx/VictoryCutsceneController.luau")
+		t.ok(string.find(source, "savedFov = camera.FieldOfView", 1, true) ~= nil, "처음 잡을 때 저장")
+		t.ok(string.find(source, "camera.FieldOfView = savedFov", 1, true) ~= nil, "정리 때 복원")
+		-- 복원은 release와 같은 cleanup 함수 안에 있어요
+		local cleanupBody = string.match(source, "cleanup:add%(function%(%)(.-)end%)")
+		t.ok(cleanupBody ~= nil, "cleanup 함수")
+		t.ok(string.find(cleanupBody :: string, "CameraDirector.release(OWNER)", 1, true) ~= nil, "release")
+		t.ok(string.find(cleanupBody :: string, "savedFov", 1, true) ~= nil, "FOV 복원")
+	end)
 end

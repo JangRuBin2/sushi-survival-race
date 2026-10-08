@@ -63,6 +63,11 @@ local function release()
 	grabInputEvent:FireServer(false)
 end
 
+-- 잡는 중에 다이브하면 잡기를 놓아요 (m3-09 기본값). 버튼을 계속 누르고 있어도 다시 눌러야 잡아요.
+function GrabController.cancelHold()
+	release()
+end
+
 local function isGrabInput(input: InputObject): boolean
 	return input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2
 end

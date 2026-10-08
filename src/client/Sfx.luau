@@ -4,7 +4,8 @@
 --   Sfx.setMusic(name?)   배경음 바꾸기 (nil이면 끄기). 0.5초 동안 이전 곡을 줄이며 새 곡을 키워요.
 --   Sfx.start(gui)        init.client.luau가 다른 컨트롤러와 함께 불러요.
 -- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고하고, id가 없는 cue는 조용히 넘어가요.
--- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3), 방/매치 단계에 맞춘 배경음, 모든 GuiButton 클릭음,
+-- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3, Config.Fx), 방/매치 단계에 맞춘 배경음, GuiButton 클릭음(조작 버튼 제외),
+-- 장애물 소리(서버 MapSfx 방송 → 3D 재생),
 -- 내가 통과하면 Qualified, 오른쪽 위 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔, 이번 접속 동안만).
 
 local Players = game:GetService("Players")
@@ -12,6 +13,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SfxCues = require(ReplicatedStorage.Shared.SfxCues)
 local SfxLibrary = require(ReplicatedStorage.Shared.SfxLibrary)
@@ -19,16 +22,17 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local Sfx = {}
 
-local SFX_GROUP_VOLUME = 0.7
-local MUSIC_GROUP_VOLUME = 0.3
-local ROLLOFF_MAX_DISTANCE = 120
+local SFX_GROUP_VOLUME = Config.Fx.SfxVolume
+local MUSIC_GROUP_VOLUME = Config.Fx.MusicVolume
+local ROLLOFF_MAX_DISTANCE = Config.Fx.SfxMaxDistance
 local SAME_CUE_GAP = 0.05 -- 같은 cue는 이 시간 안에 다시 울리지 않아요
-local MAX_ACTIVE_SFX = 16
-local SFX_MAX_LIFETIME = 10 -- Ended가 오지 않아도(로드 실패 등) 이 시간 뒤 지워요
+local MAX_ACTIVE_SFX = Config.Fx.SfxMaxActive
+local SFX_MAX_LIFETIME = 10 -- Ended가 오지 않아도(로드 실패 등) 이 시간 뒤 지워요. 아직 울리는 긴 소리는 길이만큼 더 기다려요
 local MUSIC_FADE = 0.5
 
 -- 음소거 단계: 1 소리 켬, 2 음악 끔, 3 모두 끔
 local MUTE_LABELS = { "🔊 소리 켬", "🎵 음악 끔", "🔇 모두 끔" }
+local MUTE_ICONS = { "🔊", "🎵", "🔇" } -- 좁은 화면에서는 아이콘만
 
 local started = false
 local sfxGroup: SoundGroup? = nil
@@ -135,7 +139,23 @@ function Sfx.play(cue: string, at: (BasePart | Vector3)?)
 	end
 	sound.Ended:Once(finish)
 	sound.Destroying:Once(finish) -- 붙은 파트가 먼저 사라져도 개수를 맞춰요
-	task.delay(SFX_MAX_LIFETIME, finish)
+	-- 수명: 기본 SFX_MAX_LIFETIME. 그때 아직 울리는 긴 소리면 남은 길이만큼 더 기다려요 (m3-08 QA B5)
+	local function expire()
+		if done then
+			return
+		end
+		local length = sound.TimeLength
+		if sound.IsPlaying and type(length) == "number" and length > 0 then
+			local speed = math.max(sound.PlaybackSpeed, 0.01)
+			local left = (length - sound.TimePosition) / speed
+			if left > 0 then
+				task.delay(left + 0.5, finish)
+				return
+			end
+		end
+		finish()
+	end
+	task.delay(SFX_MAX_LIFETIME, expire)
 	sound:Play()
 end
 
@@ -194,10 +214,31 @@ local function refreshMusic()
 	)
 end
 
+-- 클릭음을 내지 않는 버튼 (m3-08 QA B1): Roblox 기본 터치 조작(TouchGui)·ContextActionService 버튼,
+-- 그리고 자신이나 조상에 NoClickSfx = true가 달린 조작 버튼(다이브·잡기). 누를 때마다 확인해요(나중에 단 속성도 반영).
+local SILENT_GUIS = { TouchGui = true, ContextActionGui = true }
+
+local function isSilentButton(button: Instance): boolean
+	local current: Instance? = button
+	while current ~= nil do
+		if SILENT_GUIS[current.Name] or current:GetAttribute(Attributes.NoClickSfx) == true then
+			return true
+		end
+		current = current.Parent
+	end
+	return false
+end
+
+-- 이미 연결한 버튼 (다시 붙여도 연결이 늘지 않게, m3-08 QA B3). 버튼이 사라지면 키도 사라져요.
+local hookedButtons: { [Instance]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
 local function hookButton(instance: Instance)
-	if instance:IsA("GuiButton") then
+	if instance:IsA("GuiButton") and not hookedButtons[instance] then
+		hookedButtons[instance] = true
 		instance.Activated:Connect(function()
-			Sfx.play("ButtonClick")
+			if not isSilentButton(instance) then
+				Sfx.play("ButtonClick")
+			end
 		end)
 	end
 end
@@ -219,21 +260,69 @@ local function buildMuteButton(playerGui: Instance)
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.GothamBold
 	button.TextSize = 14
-	button.Text = MUTE_LABELS[muteLevel]
 	button.AutoButtonColor = true
 
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = button
 
+	-- 좁은 화면(휴대폰 가로)에서는 아이콘만, 오른쪽 끝에 바짝 붙여요 (m3-08 QA B2).
+	-- 위 가운데 HUD 패널(420px)과 로비 패널 내용(화면 0.92배 + 안쪽 여백 16px)에 닿지 않는 자리예요.
+	local compact = false
+	local function refresh()
+		button.Text = if compact then MUTE_ICONS[muteLevel] else MUTE_LABELS[muteLevel]
+		if compact then
+			button.Position = UDim2.new(1, -4, 0, 60)
+			button.Size = UDim2.fromOffset(34, 28)
+		else
+			button.Position = UDim2.new(1, -16, 0, 60)
+			button.Size = UDim2.fromOffset(110, 28)
+		end
+	end
+	local function watchViewport()
+		local camera = workspace.CurrentCamera
+		if camera == nil then
+			return
+		end
+		local function update()
+			local narrow = camera.ViewportSize.X < Config.Fx.NarrowScreenWidth
+			if narrow ~= compact then
+				compact = narrow
+				refresh()
+			end
+		end
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
+		update()
+	end
+	refresh()
+	watchViewport()
+
 	button.Activated:Connect(function()
 		muteLevel = muteLevel % #MUTE_LABELS + 1
-		button.Text = MUTE_LABELS[muteLevel]
+		refresh()
 		applyMute()
 	end)
 
 	button.Parent = screen
 	screen.Parent = playerGui
+end
+
+-- 장애물 소리 (m3-09): 서버 MapSfx가 cue와 파트(·위치)를 보내면 여기서 3D로 내요.
+-- 클라이언트가 내야 pitch·음소거("모두 끔")·동시 재생 한도가 다른 효과음과 같아요. 멀리 있는(다른 방) 소리는 무시해요.
+local function playMapSfx(cue: unknown, part: unknown, position: unknown)
+	if type(cue) ~= "string" or typeof(position) ~= "Vector3" then
+		return
+	end
+	local at = position :: Vector3
+	local camera = workspace.CurrentCamera
+	if camera and (camera.CFrame.Position - at).Magnitude > ROLLOFF_MAX_DISTANCE then
+		return
+	end
+	if typeof(part) == "Instance" and (part :: Instance):IsA("BasePart") and (part :: Instance).Parent ~= nil then
+		Sfx.play(cue, part :: BasePart)
+	else
+		Sfx.play(cue, at)
+	end
 end
 
 function Sfx.start(_gui: Instance)
@@ -275,6 +364,8 @@ function Sfx.start(_gui: Instance)
 			Sfx.play("Qualified")
 		end
 	end)
+
+	Remotes.event("MapSfx").OnClientEvent:Connect(playMapSfx)
 
 	refreshMusic()
 end

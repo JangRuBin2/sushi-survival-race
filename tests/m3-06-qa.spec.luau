@@ -137,8 +137,12 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("launch: 공중에서 위로 가는 중이면 그 수직 속도를 그대로 둬요", function()
-		t.eq(DiveLogic.launch(launchInput({ grounded = false, vy = 45 })).vy, 45)
+	-- m3-09: QA B1 수정으로 공중 다이브의 위쪽 속도는 Config.Dive.AirMaxUpSpeed까지만 남아요.
+	-- (원래 기대값 45 = "그대로"는 B1의 원인이라 바꿨어요. 꼭대기·내려가는 중은 그대로.)
+	t.test("launch: 공중에서 빨리 올라가는 중이면 수직 속도를 AirMaxUpSpeed로 잘라요", function()
+		t.eq(DiveLogic.launch(launchInput({ grounded = false, vy = 45 })).vy, Config.Dive.AirMaxUpSpeed)
+		t.eq(DiveLogic.launch(launchInput({ grounded = false, vy = 5 })).vy, 5)
+		t.eq(DiveLogic.launch(launchInput({ grounded = false, vy = -20 })).vy, -20)
 	end)
 
 	t.test("launch: WalkSpeed 0이면 수평 0 (canDive가 먼저 막지만 음수 배수는 안 나와요)", function()
@@ -213,8 +217,25 @@ return function(t: Test.Test)
 		end)
 		t.ok(speed < walk, `apex jump-dive spam {speed} < walk {walk}`)
 	end)
-	-- 참고: 점프 직후(올라가는 중) 다이브를 반복하는 경우는 걷기보다 빠르다 — QA 리포트 B1.
-	-- 스펙 결정 후 고쳐지면 여기에 "점프 직후 다이브 반복도 걷기보다 느리다" 테스트를 추가한다.
+	-- QA 리포트 B1 (m3-09에서 수정: 공중 다이브 vy 상한): 점프 직후(올라가는 중) 다이브를 반복해도 걷기보다 느려요.
+	for _, delay in { 0.02, 0.05, 0.1, 0.2 } do
+		t.test(`B1 시뮬레이션: 점프 {delay}초 뒤 다이브를 반복해도 걷기보다 느려요`, function()
+			local walk = Config.Character.WalkSpeed
+			local jumpedAt: number? = nil
+			local speed = simulate(15, function(grounded, _vy, state, now)
+				if grounded and state.phase == "Ready" then
+					jumpedAt = now
+					return "jump"
+				end
+				if jumpedAt ~= nil and now - (jumpedAt :: number) >= delay then
+					jumpedAt = nil
+					return "dive"
+				end
+				return nil
+			end)
+			t.ok(speed < walk, `jump+{delay}s dive spam {speed} < walk {walk}`)
+		end)
+	end
 
 	t.test("AC9 시뮬레이션: 점프 꼭대기 다이브는 그냥 점프보다 멀리 가요", function()
 		-- 한 번 점프해서 착지할 때까지의 수평 거리
@@ -257,6 +278,8 @@ return function(t: Test.Test)
 			{ "src/client/input/DiveController.luau", "src/client/input/DiveButton.luau", "src/shared/DiveLogic.luau" }
 		do
 			local source = fs.readFile(file)
+			-- m3-09: 모바일 버튼 ScreenGui의 UI 전용 속성 NoClickSfx(클릭음 끄기, 로컬 UI)는 판정과 무관해서 빼고 봐요
+			source = string.gsub(source, "[%w_]+:SetAttribute%(Attributes%.NoClickSfx, true%)", "")
 			t.eq(string.find(source, "Remotes"), nil, `{file} uses Remotes`)
 			t.eq(string.find(source, "SetAttribute"), nil, `{file} sets attribute`)
 			t.eq(string.find(source, "FireServer"), nil, `{file} fires server`)

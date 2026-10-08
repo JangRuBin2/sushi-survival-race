@@ -9,6 +9,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
 local Cleanup = require(game:GetService("ReplicatedStorage").Shared.Cleanup)
 
 local GAP_RATIO = 0.15 -- 점프 버튼과의 간격 (버튼 폭 대비)
@@ -49,6 +50,7 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 	gui.ResetOnSpawn = false
 	gui.Enabled = false -- 점프 버튼을 찾을 때까지 숨겨요
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui:SetAttribute(Attributes.NoClickSfx, true) -- 조작 버튼이라 클릭음 없음 (Sfx, m3-09)
 
 	local button = Instance.new("TextButton")
 	button.Name = "DiveButton"

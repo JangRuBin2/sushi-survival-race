@@ -6,6 +6,13 @@
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 
+local RobloxRequire = require("./RobloxRequire")
+
+-- Sfx.luau가 쓰는 순수 공용 모듈은 진짜를 넣어요 (m3-09: Config.Fx, Attributes.NoClickSfx)
+local Shared = RobloxRequire.root("src/shared")
+local RealConfig = RobloxRequire.require(Shared.Config)
+local RealAttributes = RobloxRequire.require(Shared.Attributes)
+
 local FakeSfxEnv = {}
 
 export type Signal = {
@@ -94,6 +101,13 @@ local function newInstance(className: string): any
 			end
 		end
 		return false
+	end
+	local attributes: { [string]: any } = {}
+	function methods.GetAttribute(_s, name: string)
+		return attributes[name]
+	end
+	function methods.SetAttribute(_s, name: string, value: any)
+		attributes[name] = value
 	end
 	function methods.GetChildren(_s)
 		return table.clone(children)
@@ -248,7 +262,14 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 			return { OnClientEvent = signal }
 		end,
 	}
-	local sharedModules = { SfxCues = sfxCues, SfxLibrary = sfxLibrary, Remotes = remotes, Types = {} }
+	local sharedModules = {
+		SfxCues = sfxCues,
+		SfxLibrary = sfxLibrary,
+		Remotes = remotes,
+		Types = {},
+		Config = RealConfig,
+		Attributes = RealAttributes,
+	}
 	local sharedFolder = setmetatable({}, {
 		__index = function(_, name: string)
 			return { __shared = name }

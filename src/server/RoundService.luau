@@ -16,12 +16,15 @@
 --
 -- 탈락 발표(PlayerResult)에는 연출용 cause·position을 채워요 (m3-01):
 --   ctx.eliminate(맵 낙하) = "Fall", 사망·캐릭터 교체·캐릭터 없음 = "Reset",
---   방/게임을 나감 = "Left"(EliminationService.left). 시간 종료·통과 인원이 다 차서 남은 사람의 탈락은 cause nil.
+--   방/게임을 나감 = "Left"(EliminationService.left), 시간 종료·통과 인원이 다 차서 남은 사람의 탈락 = "Timeout"(m3-09).
+-- 결승에서 탈락과 우승이 같은 묶음으로 나오면(마지막 낙하 등) 탈락 연출(Config.Match.EliminationCutscene)이
+-- 끝날 때까지 기다렸다가 Won을 보내요. 그 뒤 MatchService가 바로 Victory로 가요 (m3-03 QA B1, m3-09).
 -- 맵 Model에는 Workspace에 넣기 전에 Attributes.RoomId/RoundIndex/MapId를 달아요 (클라이언트가 자기 방 맵을 찾음).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
@@ -196,10 +199,27 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 		end
 
+		-- 결승 마지막 탈락 연출이 끝난 뒤 보낼 우승자 (playRound가 기다렸다가 보내요)
+		local deferredWonUserId: number? = nil
+
 		-- RoundLogic 결과를 매치 등수로 바꿔서 발표하고 캐릭터를 옮겨요.
 		local function apply(outcomes: { RoundLogic.Outcome })
 			if #outcomes == 0 then
 				return
+			end
+			-- 같은 묶음에 연출이 나오는 탈락(방에 남아 있는 사람)이 있으면 우승 발표를 연출 뒤로 미뤄요.
+			-- 출발 전(소개 중 취소 등)에는 playRound가 돌지 않으니 미루지 않아요.
+			local delayWon = false
+			for _, outcome in outcomes do
+				local player = playersById[outcome.userId]
+				if
+					outcome.result == "Eliminated"
+					and player ~= nil
+					and player.Parent ~= nil
+					and RoomService.getRoomIdOf(player) == roomId
+				then
+					delayWon = released
+				end
 			end
 			for _, outcome in RoundLogic.applyOutcomes(args.standings, outcomes) do
 				local userId = outcome.userId
@@ -213,7 +233,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 							roomId,
 							player :: Player,
 							place,
-							causeOf[userId],
+							causeOf[userId] or "Timeout", -- 낙하·리셋이 아니면 시간 종료·정원 마감
 							positionOf[userId]
 						)
 					else
@@ -222,7 +242,11 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 					args.onEliminated(userId)
 				elseif outcome.result == "Won" then
 					table.insert(qualified, userId)
-					EliminationService.won(roomId, userId)
+					if delayWon then
+						deferredWonUserId = userId
+					else
+						EliminationService.won(roomId, userId)
+					end
 				else
 					table.insert(qualified, userId)
 					-- 통과자는 바로 코스 밖 대기석(로비 스폰, B1과 같은 곳)으로. 아직 달리는 사람을 막지 못해요.
@@ -258,13 +282,21 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 
 		-- cause: "Fall"(맵의 낙하 판정, 결승 진출 2명 보장의 구제 대상) / "Reset"(리셋·사망·퇴장·캐릭터 없음)
 		-- position: 탈락 순간 HumanoidRootPart 위치 (연출용). nil이면 지금 캐릭터 위치를 써요.
-		local function queueFall(userId: number, score: number?, cause: RoundLogic.FallCause, position: Vector3?)
+		-- knownCharacter: 이 캐릭터의 감시에서 온 탈락이면 true — 그때는 지금 player.Character(리스폰된 새 캐릭터일 수
+		-- 있음)의 위치로 채우지 않아요 (m3-01 QA B2). 모르면 position nil → 연출은 스탬프만.
+		local function queueFall(
+			userId: number,
+			score: number?,
+			cause: RoundLogic.FallCause,
+			position: Vector3?,
+			knownCharacter: boolean?
+		)
 			if closed or round.ended or pendingIds[userId] or not RoundLogic.isRacing(round, userId) then
 				return
 			end
 			pendingIds[userId] = true
 			causeOf[userId] = cause
-			if position == nil then
+			if position == nil and not knownCharacter then
 				local player = playersById[userId]
 				local root = player and rootOf(player)
 				position = root and root.Position
@@ -289,16 +321,16 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			if humanoid then
 				cleanup:add(humanoid.Died:Connect(function()
-					queueFall(userId, nil, "Reset", lastPosition())
+					queueFall(userId, nil, "Reset", lastPosition(), true)
 				end))
 			end
 			cleanup:add(character.AncestryChanged:Connect(function()
 				if not character:IsDescendantOf(game) then
-					queueFall(userId, -math.huge, "Reset", lastPosition())
+					queueFall(userId, -math.huge, "Reset", lastPosition(), true)
 				end
 			end))
 			cleanup:add(player.CharacterAdded:Connect(function()
-				queueFall(userId, -math.huge, "Reset", lastPosition())
+				queueFall(userId, -math.huge, "Reset", lastPosition(), true)
 			end))
 		end
 
@@ -421,6 +453,14 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			flush()
 			apply(RoundLogic.timeout(round, scoreOf)) -- 이미 끝났으면 빈 목록이에요
+
+			-- 결승 마지막 탈락 연출을 다 보여 준 뒤 우승 발표 (그동안 맵·우승자는 그대로 둬요)
+			local wonUserId = deferredWonUserId
+			if wonUserId ~= nil then
+				deferredWonUserId = nil
+				task.wait(Config.Match.EliminationCutscene)
+				EliminationService.won(roomId, wonUserId)
+			end
 
 			-- 맵이 곧 사라지니까 통과자·우승자를 로비 스폰으로 옮겨요. 결과 단계(·우승 연출) 동안 거기서
 			-- 기다리다가 다음 라운드 소개 때 새 맵 스폰으로 옮겨져요. 탈락자는 EliminationService가 돌려보내요.

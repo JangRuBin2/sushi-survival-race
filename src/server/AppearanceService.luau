@@ -15,18 +15,30 @@ local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 
 local AppearanceService = {}
 
--- 캐릭터 아래 초밥 Model 이름과 HumanoidRootPart에 붙이는 관절 이름 (CharacterFxController가 같은 이름을 써요)
-AppearanceService.MODEL_NAME = "SushiBody"
-AppearanceService.JOINT_NAME = "SushiJoint"
+-- 캐릭터 아래 초밥 Model 이름과 HumanoidRootPart에 붙이는 관절 이름 (공용 상수 Shared.SushiBody, m3-09)
+AppearanceService.MODEL_NAME = SushiBody.MODEL_NAME
+AppearanceService.JOINT_NAME = SushiBody.JOINT_NAME
 
 local ROOT_WAIT = 5
 
 -- 캐릭터마다 "새로 붙는 아바타 파츠 숨기기" 연결 (다시 입히면 바꿔 끼워요)
 local hideConnections: { [Model]: RBXScriptConnection } = {}
 
+-- 숨기지 않을 것: 초밥 Model 안, 또는 자신이나 캐릭터 아래 조상에 KeepVisible = true가 달린 것 (m3-02 QA B3).
+-- 다른 기능이 캐릭터에 보이는 파츠를 붙일 때는 KeepVisible을 달거나 SushiBody 아래·캐릭터 밖에 둬요.
 local function isSushiPart(character: Model, inst: Instance): boolean
 	local sushi = character:FindFirstChild(AppearanceService.MODEL_NAME)
-	return sushi ~= nil and (inst == sushi or inst:IsDescendantOf(sushi))
+	if sushi ~= nil and (inst == sushi or inst:IsDescendantOf(sushi)) then
+		return true
+	end
+	local current: Instance? = inst
+	while current ~= nil and current ~= character do
+		if current:GetAttribute(Attributes.KeepVisible) == true then
+			return true
+		end
+		current = current.Parent
+	end
+	return false
 end
 
 local function hide(inst: Instance)

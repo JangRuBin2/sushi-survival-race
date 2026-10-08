@@ -109,7 +109,8 @@ function DiveLogic.launch(input: LaunchInput): Velocity
 	if input.grounded then
 		vy = if input.jumpPower > 0 then Config.Dive.UpSpeed else 0
 	else
-		vy = input.vy
+		-- 꼭대기·내려가는 중이면 그대로, 올라가는 중이면 AirMaxUpSpeed까지만 (m3-06 QA B1)
+		vy = math.min(input.vy, Config.Dive.AirMaxUpSpeed)
 	end
 
 	return { vx = dx * speed, vy = vy, vz = dz * speed }

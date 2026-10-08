@@ -3,19 +3,22 @@
 -- 보이는 모든 초밥 캐릭터(AppearanceService가 붙인 `SushiBody` Model)의 `SushiJoint`(Motor6D).Transform만 바꿔요.
 --   걷기: 땅 위에서 움직이면 위아래로 튀고 좌우로 기우뚱 (속도에 비례, 서 있으면 멈춤)
 --   넘어짐: Humanoid.PlatformStand인 동안 옆으로 누워 떨고 머리 위에 "@_@". 시작할 때 Sfx "Knockdown" 한 번.
---   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않아요.
+--   탈락 고정(서버가 HumanoidRootPart를 Anchored + PlatformStand)은 넘어짐이 아니에요 — 연출·소리 없음 (m3-02 QA B1).
+--   이름표: 다른 사람의 초밥 Body 위에 이름(DisplayName)을 직접 띄워요. Head가 투명해도 보이게 기본 이름표 대신 (m3-02 QA B2).
+--   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않고 이름표도 숨겨요.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Sfx = require(script.Parent.Parent.Sfx)
 
 local CharacterFxController = {}
 
--- AppearanceService.MODEL_NAME / JOINT_NAME과 같아야 해요
-local MODEL_NAME = "SushiBody"
-local JOINT_NAME = "SushiJoint"
+local MODEL_NAME = SushiBody.MODEL_NAME
+local JOINT_NAME = SushiBody.JOINT_NAME
 
 local WALK_SPEED_REF = 16 -- 이 속도에서 흔들림 1배
 local MAX_WALK_FACTOR = 1.3
@@ -36,6 +39,8 @@ local DEFAULT_GROUND_BELOW_ROOT = 3
 local DIZZY_TEXT = "@_@"
 local DIZZY_SPIN = 360 -- 도/초
 local HIDDEN_THRESHOLD = 0.99
+local NAME_TAG_HEIGHT = 3.6 -- Body 중심에서 이름표까지 (초밥 꼭대기 2.4 + 여유)
+local NAME_TAG_DISTANCE = 100 -- Roblox 기본 이름표 거리와 같아요
 
 type State = {
 	lastPos: Vector3?,
@@ -45,6 +50,7 @@ type State = {
 	knocked: boolean,
 	knockTime: number,
 	dizzy: BillboardGui?,
+	nameTag: BillboardGui?,
 }
 
 local states: { [Model]: State } = {}
@@ -53,7 +59,16 @@ rayParams.FilterType = Enum.RaycastFilterType.Exclude
 rayParams.IgnoreWater = true
 
 local function newState(): State
-	return { lastPos = nil, walk = 0, phase = 0, lie = 0, knocked = false, knockTime = 0, dizzy = nil }
+	return {
+		lastPos = nil,
+		walk = 0,
+		phase = 0,
+		lie = 0,
+		knocked = false,
+		knockTime = 0,
+		dizzy = nil,
+		nameTag = nil,
+	}
 end
 
 local function removeDizzy(state: State)
@@ -61,6 +76,49 @@ local function removeDizzy(state: State)
 		state.dizzy:Destroy()
 		state.dizzy = nil
 	end
+end
+
+local function removeNameTag(state: State)
+	if state.nameTag then
+		state.nameTag:Destroy()
+		state.nameTag = nil
+	end
+end
+
+local function makeNameTag(body: BasePart, displayName: string): BillboardGui
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "SushiNameTag"
+	gui.Adornee = body
+	gui.Size = UDim2.fromOffset(200, 24)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, NAME_TAG_HEIGHT, 0)
+	gui.LightInfluence = 0
+	gui.MaxDistance = NAME_TAG_DISTANCE
+	local label = Instance.new("TextLabel")
+	label.Name = "Name"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.Text = displayName
+	label.TextSize = 18
+	label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	label.TextStrokeTransparency = 0.4
+	label.Parent = gui
+	gui.Parent = body
+	return gui
+end
+
+-- 다른 사람 캐릭터의 이름표: 기본 휴머노이드 이름표는 끄고(로컬) 우리 이름표를 Body에 붙여요.
+local function updateNameTag(character: Model, state: State, body: BasePart, humanoid: Humanoid, player: Player)
+	if humanoid.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None then
+		humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+	local hidden = body.LocalTransparencyModifier >= HIDDEN_THRESHOLD
+	if state.nameTag == nil or state.nameTag.Parent ~= body then
+		removeNameTag(state)
+		state.nameTag = makeNameTag(body, player.DisplayName)
+	end
+	local tag = state.nameTag :: BillboardGui
+	tag.Enabled = not hidden and character.Parent ~= nil
 end
 
 local function makeDizzy(body: BasePart): BillboardGui
@@ -113,7 +171,7 @@ local function yawOnly(cf: CFrame): CFrame
 	return CFrame.lookAt(Vector3.zero, flat)
 end
 
-local function update(character: Model, state: State, dt: number, localCharacter: Model?)
+local function update(character: Model, state: State, dt: number, localCharacter: Model?, player: Player)
 	local sushi = character:FindFirstChild(MODEL_NAME)
 	local body = sushi and (sushi :: Model).PrimaryPart
 	local joint = body and body:FindFirstChild(JOINT_NAME)
@@ -125,13 +183,16 @@ local function update(character: Model, state: State, dt: number, localCharacter
 	if humanoid == nil then
 		return
 	end
+	if character ~= localCharacter then
+		updateNameTag(character, state, body, humanoid, player)
+	end
 
 	-- 탈락 연출이 숨긴 캐릭터는 건드리지 않아요 (내 캐릭터의 1인칭 숨김은 소리만 계속)
 	local hidden = body.LocalTransparencyModifier >= HIDDEN_THRESHOLD
 	if hidden and character ~= localCharacter then
 		joint.Transform = CFrame.identity
 		removeDizzy(state)
-		state.knocked = humanoid.PlatformStand
+		state.knocked = humanoid.PlatformStand and not root.Anchored
 		state.lastPos = nil
 		state.walk = 0
 		state.lie = 0
@@ -150,8 +211,8 @@ local function update(character: Model, state: State, dt: number, localCharacter
 	end
 	state.lastPos = pos
 
-	-- 넘어짐
-	local knocked = humanoid.PlatformStand and humanoid.Health > 0
+	-- 넘어짐 (탈락 고정 = Anchored는 넘어짐이 아니에요)
+	local knocked = humanoid.PlatformStand and humanoid.Health > 0 and not root.Anchored
 	if knocked and not state.knocked then
 		state.knockTime = 0
 		Sfx.play("Knockdown", root)
@@ -227,12 +288,13 @@ local function step(dt: number)
 				state = newState()
 				states[character] = state
 			end
-			update(character, state, dt, localCharacter)
+			update(character, state, dt, localCharacter, player)
 		end
 	end
 	for character, state in states do
 		if not seen[character] then
 			removeDizzy(state)
+			removeNameTag(state)
 			states[character] = nil
 		end
 	end

@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local EliminationCutsceneLogic = require(ReplicatedStorage.Shared.EliminationCutsceneLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SpectateLogic = require(ReplicatedStorage.Shared.SpectateLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -182,23 +183,25 @@ function SpectateController.start(gui: Instance)
 		end
 	end
 
-	-- 보고 있던 대상이 낙하·리셋으로 탈락하면 연출 시간 동안 그 사람을 계속 비춰요.
+	-- 보고 있던 대상이 낙하·리셋·시간 종료로 탈락하면 연출 시간 동안 그 사람을 계속 비춰요.
 	local function maybeHold(result: Types.PlayerResult)
-		if result.result ~= "Eliminated" or (result.cause ~= "Fall" and result.cause ~= "Reset") then
+		if result.result ~= "Eliminated" or not EliminationCutsceneLogic.shouldPlay(result.cause) then
 			return
 		end
 		if not inMatch or inVictory or role == "None" or inCutscene or not watching or target ~= result.userId then
 			return
 		end
-		-- 낙하는 서버가 캐릭터를 그 자리에 고정해 둬요. 리셋은 캐릭터가 곧 바뀌니 위치를 비춰요.
-		local humanoid = if result.cause == "Fall" then humanoidOf(result.userId) else nil
+		-- 낙하·시간 종료는 서버가 캐릭터를 그 자리에 고정해 둬요. 리셋은 캐릭터가 곧 바뀌니 위치를 비춰요.
+		local humanoid = if result.cause ~= "Reset" then humanoidOf(result.userId) else nil
 		if humanoid == nil and result.position == nil then
 			return
 		end
 		clearHold()
 		hold = { userId = result.userId, humanoid = humanoid, position = result.position }
 		local mine = holdToken
-		task.delay(Config.Match.EliminationCutscene, function()
+		-- 서버는 방송 순간부터 EliminationCutscene 뒤 로비로 옮겨요. 핑만큼 늦게 받으니 조금 일찍 놓아요 (m3-01 QA B1)
+		local holdTime = math.max(0, Config.Match.EliminationCutscene - Config.Fx.SpectateHoldMargin)
+		task.delay(holdTime, function()
 			if holdToken == mine then
 				hold = nil
 				render()
@@ -302,7 +305,7 @@ function SpectateController.start(gui: Instance)
 
 	Remotes.event("PlayerResult").OnClientEvent:Connect(function(result: Types.PlayerResult)
 		if result.userId ~= me then
-			maybeHold(result) -- 낙하·리셋이면 연출 동안 그 사람을 계속 비춰요
+			maybeHold(result) -- 낙하·리셋·시간 종료면 연출 동안 그 사람을 계속 비춰요
 			render() -- 보고 있던 사람이 통과·탈락했을 수 있어요
 			return
 		end

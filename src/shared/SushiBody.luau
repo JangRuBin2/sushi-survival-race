@@ -4,10 +4,15 @@
 --   bounds(layout)        파츠 목록 전체 외곽 (순수 함수, Body 중심 기준 min/max)
 --   build(appearanceId)   파츠를 만들고 Body에 용접한 Model. PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
+--   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
+--                         (서버 AppearanceService와 클라이언트 CharacterFxController가 같이 써요)
 -- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 크기는 지금 휴머노이드 히트박스(약 5 studs)에 맞춰요.
 -- 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음) — 판정은 휴머노이드 그대로.
 
 local SushiBody = {}
+
+SushiBody.MODEL_NAME = "SushiBody"
+SushiBody.JOINT_NAME = "SushiJoint"
 
 -- 파츠 하나. Roblox 자료형 대신 숫자 배열을 써요 (lune 테스트용).
 export type PartSpec = {

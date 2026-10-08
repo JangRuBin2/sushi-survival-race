@@ -140,6 +140,7 @@ local function tryStart(grabber: Player, now: number)
 			alive = otherBody.humanoid.Health > 0,
 			down = isDown(otherBody),
 			grabbed = GrabLogic.isGrabbed(book, other.UserId),
+			grabbing = GrabLogic.grabOf(book, other.UserId) ~= nil,
 			immune = GrabLogic.isImmune(book, other.UserId, now),
 		})
 	end

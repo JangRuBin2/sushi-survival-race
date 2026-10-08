@@ -57,8 +57,10 @@ return function(t: Test.Test)
 		t.eq(Logic.isFinalRound(nil, nil), false)
 	end)
 
-	t.test("shouldPlay: Fall·Reset 말고는 전부 false", function()
-		for _, cause in { "Left", "Timeout", "fall", "", "Won" } do
+	-- m3-09: 시간 종료·정원 마감 탈락에 cause "Timeout"을 추가하고 연출하기로 해서 Timeout은 true예요.
+	t.test("shouldPlay: Fall·Reset·Timeout 말고는 전부 false", function()
+		t.eq(Logic.shouldPlay("Timeout"), true)
+		for _, cause in { "Left", "fall", "", "Won", "timeout" } do
 			t.eq(Logic.shouldPlay(cause), false, cause)
 		end
 	end)

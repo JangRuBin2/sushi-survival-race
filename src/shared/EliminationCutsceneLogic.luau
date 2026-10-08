@@ -1,12 +1,14 @@
 --!strict
 -- 탈락 연출 ("먹혔다!", m3-03) 순수 로직. Roblox API 없이 lune으로 테스트해요.
---   shouldPlay(cause)                     낙하·리셋이면 연출, 퇴장·nil(시간 종료 등)이면 연출 없음
+--   shouldPlay(cause)                     낙하·리셋·시간 종료(Timeout)면 연출, 퇴장·nil이면 연출 없음
 --   isFinalRound(roundIndex, roundCount)  마지막 라운드(결승)인지 (값이 없으면 false)
 --   variantFor(mapKind, isFinal, cause)   연출 종류: 결승 = ChefHand, Survival 낙하 = Mouth, 그 밖 = Chopsticks
 --   linesFor / pickLine                   말풍선 대사 (공통 + 스킨 전용 + 결승 전용)
 --   canStartWorld(activeCount)            동시 월드 연출 한도(MAX_CONCURRENT) 확인. 본인 연출은 한도와 무관
 --   timeline(variant, duration)           효과음·말풍선 박자 (초). 길이에 맞춰 늘이고 줄여요
 --   alpha(t, from, to)                    구간 진행도 0~1 (from 전 0, to 뒤 1)
+
+local Config = require(script.Parent.Config)
 
 local EliminationCutsceneLogic = {}
 
@@ -22,7 +24,7 @@ export type Beat = {
 }
 
 -- 한 클라이언트에서 동시에 재생하는 월드 연출 최대 개수 (본인 연출은 세지 않아요)
-EliminationCutsceneLogic.MAX_CONCURRENT = 6
+EliminationCutsceneLogic.MAX_CONCURRENT = Config.Fx.EliminationMaxConcurrent
 
 -- 박자는 3초 기준으로 적고, 실제 길이(Config.Match.EliminationCutscene)에 맞춰 늘이고 줄여요
 local BASE_DURATION = 3
@@ -70,7 +72,7 @@ local TIMELINES: { [Variant]: { Beat } } = {
 }
 
 function EliminationCutsceneLogic.shouldPlay(cause: string?): boolean
-	return cause == "Fall" or cause == "Reset"
+	return cause == "Fall" or cause == "Reset" or cause == "Timeout"
 end
 
 function EliminationCutsceneLogic.isFinalRound(roundIndex: number?, roundCount: number?): boolean

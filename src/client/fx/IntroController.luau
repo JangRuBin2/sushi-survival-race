@@ -307,12 +307,21 @@ function IntroController.start(gui: Instance)
 			end
 		elseif info.phase == "RoundActive" then
 			stopIntro()
-			if participant then
+			-- 소개 중에 탈락했으면(리셋 등) "출발!"을 띄우지 않아요 (m3-04 QA B1)
+			if participant and isAlive() then
 				participant = false
 				screen:showGo(GO_DURATION)
 				Sfx.play("Go")
 			end
 		else
+			participant = false
+			stopIntro()
+		end
+	end)
+
+	-- 소개 도중 내가 탈락하면 그 순간부터 관전자예요: 플라이스루를 멈추고 "출발!"도 띄우지 않아요 (m3-04 QA B1)
+	Remotes.event("PlayerResult").OnClientEvent:Connect(function(result: Types.PlayerResult)
+		if result.userId == me and result.result == "Eliminated" and participant then
 			participant = false
 			stopIntro()
 		end

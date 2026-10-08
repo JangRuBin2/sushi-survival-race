@@ -3,7 +3,7 @@
 -- 탈락은 캐릭터를 고정했다가 Config.Match.EliminationCutscene 뒤 로비 스폰으로 돌려보내요.
 -- RoundService·MatchService가 "무슨 일이 있었는지"(순서, 등수)를 계산해서 여기 함수를 불러요.
 -- 결과는 그 매치의 방(roomId) 멤버 전원과 본인에게 보내요. 방을 막 나간 사람의 결과도 남은 사람에게 가요.
--- TODO(M3): 젓가락 픽업 → 간장 → 냠! 연출 (지금은 그 자리에 고정만 해요)
+-- 탈락 연출(젓가락·입·셰프 손)은 클라이언트 EliminationCutsceneController가 이 방송을 받아 그려요 (m3-03).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -50,7 +50,7 @@ function EliminationService.left(roomId: string, userId: number, place: number)
 end
 
 -- 탈락. place는 이 매치에서의 최종 등수예요 (RoundLogic.Standings가 계산해요).
--- cause: "Fall"(맵 낙하) / "Reset"(리셋·사망·캐릭터 없음) / nil(시간 종료·통과 인원이 다 참).
+-- cause: "Fall"(맵 낙하) / "Reset"(리셋·사망·캐릭터 없음) / "Timeout"(시간 종료·통과 인원이 다 참).
 -- position: 탈락 순간 위치. nil이면 지금 HumanoidRootPart 위치를 보내요 (캐릭터가 없으면 nil).
 -- 캐릭터를 그 자리에 고정했다가 연출 시간 뒤 로비 스폰으로 돌려보내요.
 function EliminationService.eliminate(
@@ -62,12 +62,15 @@ function EliminationService.eliminate(
 )
 	local character = player.Character
 	local root = if character then character:FindFirstChild("HumanoidRootPart") :: BasePart? else nil
+	-- 리셋 탈락은 지금 캐릭터가 이미 리스폰된 새 캐릭터(로비)일 수 있어서 위치를 채우지 않아요 (m3-01 QA B2).
+	-- RoundService가 옛 캐릭터 위치를 알면 position으로 넘겨줘요.
+	local fallback = if cause ~= "Reset" and root then root.Position else nil
 	broadcast(roomId, {
 		userId = player.UserId,
 		result = "Eliminated",
 		place = place,
 		cause = cause,
-		position = position or (root and root.Position),
+		position = position or fallback,
 	})
 
 	if character == nil then

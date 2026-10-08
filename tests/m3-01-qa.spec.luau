@@ -278,7 +278,16 @@ return function(t: Test.Test)
 	end)
 
 	t.test("Config.Dive·Grab 값이 스펙 기본값이고 범위가 말이 돼요", function()
-		t.eq(Config.Dive, { Cooldown = 1.5, LandingStun = 0.5, ForwardSpeed = 40, UpSpeed = 16, MaxFlightTime = 1.0 })
+		-- m3-09: 튜닝 값 ProneAngle(다이브 기울기, 원래 DiveController 상수)·AirMaxUpSpeed(QA B1 수정) 추가
+		t.eq(Config.Dive, {
+			Cooldown = 1.5,
+			LandingStun = 0.5,
+			ForwardSpeed = 40,
+			UpSpeed = 16,
+			MaxFlightTime = 1.0,
+			ProneAngle = 80,
+			AirMaxUpSpeed = 16,
+		})
 		t.eq(Config.Grab, {
 			Range = 5,
 			FrontDot = 0.5,

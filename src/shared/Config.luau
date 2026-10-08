@@ -68,6 +68,10 @@ Config.Dive = {
 	ForwardSpeed = 40, -- 다이브 순간 수평 속도 (studs/s)
 	UpSpeed = 16, -- 바닥에서 다이브할 때 위로 튀는 속도
 	MaxFlightTime = 1.0, -- 이 시간 안에 착지하지 않아도 엎드린 자세를 끝내요
+	ProneAngle = 80, -- 엎드린 자세 기울기 (도, 앞으로)
+	-- 공중 다이브의 위쪽 속도는 이 값까지만 남겨요 (점프 직후 다이브 연타가 걷기보다 빠르지 않게, m3-06 QA B1).
+	-- 꼭대기·내려가는 중 다이브(체공 늘리기)는 그대로예요.
+	AirMaxUpSpeed = 16,
 }
 
 -- 잡기 (GDD 6). 서버가 판정하고, 감속은 클라이언트 입력 배수로 처리해요 (m3-07).
@@ -81,6 +85,19 @@ Config.Grab = {
 	Cooldown = 1.5, -- 잡기가 끝난 뒤 다시 잡을 수 있을 때까지(초)
 	Immunity = 1.0, -- 풀려난 사람을 다시 잡을 수 없는 시간(초)
 	InputMinInterval = 0.1, -- GrabInput 요청 간격 제한(초)
+}
+
+-- 연출·소리 튜닝 (m3-09). 친구 테스트 뒤 바꿀 만한 값을 여기 모아요.
+Config.Fx = {
+	EliminationMaxConcurrent = 6, -- 한 화면에서 동시에 재생하는 남의 탈락 연출 수 (본인 연출은 세지 않아요)
+	-- 관전 중 탈락한 사람을 비추는 시간 = Match.EliminationCutscene - 이 값 (서버의 로비 이동보다 먼저 끝나게)
+	SpectateHoldMargin = 0.3,
+	SfxVolume = 0.7, -- 효과음 SoundGroup 볼륨
+	MusicVolume = 0.3, -- 배경음 SoundGroup 볼륨
+	SfxMaxDistance = 120, -- 3D 효과음이 들리는 최대 거리 (studs)
+	SfxMaxActive = 16, -- 한 클라이언트에서 동시에 울리는 효과음 수 한도
+	MapSfxMinInterval = 0.2, -- 같은 장애물 파트·같은 cue가 다시 울리기까지 최소 간격(초)
+	NarrowScreenWidth = 900, -- 화면 폭(px)이 이보다 좁으면 음소거 버튼을 아이콘만으로 줄여요
 }
 
 -- 혼자 테스트용 설정. 서버 코드는 RunService:IsStudio()일 때만 이 값을 적용해요.

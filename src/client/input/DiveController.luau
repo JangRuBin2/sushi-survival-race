@@ -14,6 +14,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DiveLogic = require(ReplicatedStorage.Shared.DiveLogic)
 local Sfx = require(script.Parent.Parent.Sfx)
 local DiveButton = require(script.Parent.DiveButton)
+local GrabController = require(script.Parent.GrabController)
 
 local DiveController = {}
 
@@ -24,7 +25,7 @@ local DIVE_KEYS: { [Enum.KeyCode]: boolean } = {
 	[Enum.KeyCode.ButtonX] = true,
 }
 
-local PRONE_PITCH = math.rad(-80) -- 앞으로 엎드린 각도
+local PRONE_PITCH = -math.rad(Config.Dive.ProneAngle) -- 앞으로 엎드린 각도
 local STUN_BIND_NAME = "DiveStun"
 -- m3-07 잡기 감속(Input + 1)보다 나중이라 경직이 이겨요
 local STUN_PRIORITY = Enum.RenderPriority.Input.Value + 2
@@ -53,6 +54,10 @@ function DiveController.start(_gui: Instance)
 	local attachment: Attachment? = nil
 	local stunBound = false
 	local jumpDisabled: Humanoid? = nil
+	local jumpWasEnabled = true -- 경직 전 Jumping 상태 (끝나면 이 값으로 되돌려요, m3-06 QA B4)
+	-- 다이브 전 AutoRotate·넘어짐 상태 (끝나면 원래 값으로 되돌려요 — 다른 코드가 꺼 둔 걸 켜 버리지 않게)
+	local savedAutoRotate = true
+	local savedTipStates: { [Enum.HumanoidStateType]: boolean } = {}
 
 	local function currentBody(): Body?
 		local character = player.Character
@@ -95,11 +100,14 @@ function DiveController.start(_gui: Instance)
 		end
 
 		if on and body then
+			if jumpDisabled ~= body.humanoid then
+				jumpWasEnabled = body.humanoid:GetStateEnabled(Enum.HumanoidStateType.Jumping)
+			end
 			jumpDisabled = body.humanoid
 			body.humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
 		elseif not on and jumpDisabled then
 			if jumpDisabled.Parent then
-				jumpDisabled:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+				jumpDisabled:SetStateEnabled(Enum.HumanoidStateType.Jumping, jumpWasEnabled)
 			end
 			jumpDisabled = nil
 		end
@@ -107,8 +115,10 @@ function DiveController.start(_gui: Instance)
 
 	local function prone(body: Body, direction: Vector3)
 		diving = body
+		savedAutoRotate = body.humanoid.AutoRotate
 		body.humanoid.AutoRotate = false
 		for _, stateType in TIP_STATES do
+			savedTipStates[stateType] = body.humanoid:GetStateEnabled(stateType)
 			body.humanoid:SetStateEnabled(stateType, false)
 		end
 
@@ -142,10 +152,12 @@ function DiveController.start(_gui: Instance)
 		if not body or not body.humanoid.Parent then
 			return
 		end
-		body.humanoid.AutoRotate = true
+		body.humanoid.AutoRotate = savedAutoRotate
 		for _, stateType in TIP_STATES do
-			body.humanoid:SetStateEnabled(stateType, true)
+			local enabled = savedTipStates[stateType]
+			body.humanoid:SetStateEnabled(stateType, if enabled == nil then true else enabled)
 		end
+		table.clear(savedTipStates)
 		local root = body.root
 		-- 서버가 고정·넘어뜨린 상태면 자세는 서버·m3-02 연출 몫이라 손대지 않아요
 		if snap and root.Parent and not root.Anchored and not body.humanoid.PlatformStand then
@@ -203,6 +215,7 @@ function DiveController.start(_gui: Instance)
 		flightVelocity = horizontal
 
 		prone(body, facing)
+		GrabController.cancelHold() -- 잡는 중에 다이브하면 놓아요 (m3-09 기본값)
 		root.AssemblyLinearVelocity = Vector3.new(launch.vx, launch.vy, launch.vz)
 		if grounded and launch.vy > 0 then
 			-- 바닥에 붙잡혀 있지 않게 공중 상태로 보내요 (Jumping은 JumpPower를 덮어써서 쓰지 않아요)

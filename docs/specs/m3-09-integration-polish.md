@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-09 — M3 통합 · 장애물 소리 · 튜닝

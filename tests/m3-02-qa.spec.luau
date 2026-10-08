@@ -508,16 +508,16 @@ return function(t: Test.Test)
 	t.test(
 		"초밥 Model·관절 이름이 서버(AppearanceService)와 클라이언트(CharacterFxController)에서 같아요",
 		function()
-			local _, AppearanceService = loadAll()
+			-- m3-09: 이름 상수를 Shared.SushiBody.MODEL_NAME/JOINT_NAME 한 곳으로 옮겼어요 (QA B4).
+			-- 서버 값이 공용 상수와 같고, 클라이언트가 공용 상수를 쓰는지 확인해요.
+			local SushiBody, AppearanceService = loadAll()
+			t.eq(AppearanceService.MODEL_NAME, RealSushiBody.MODEL_NAME)
+			t.eq(AppearanceService.JOINT_NAME, RealSushiBody.JOINT_NAME)
+			t.eq(SushiBody.MODEL_NAME, "SushiBody")
+			t.eq(SushiBody.JOINT_NAME, "SushiJoint")
 			local client = fs.readFile("src/client/fx/CharacterFxController.luau")
-			t.ok(
-				string.find(client, `local MODEL_NAME = "{AppearanceService.MODEL_NAME}"`, 1, true) ~= nil,
-				"MODEL_NAME"
-			)
-			t.ok(
-				string.find(client, `local JOINT_NAME = "{AppearanceService.JOINT_NAME}"`, 1, true) ~= nil,
-				"JOINT_NAME"
-			)
+			t.ok(string.find(client, "local MODEL_NAME = SushiBody.MODEL_NAME", 1, true) ~= nil, "MODEL_NAME")
+			t.ok(string.find(client, "local JOINT_NAME = SushiBody.JOINT_NAME", 1, true) ~= nil, "JOINT_NAME")
 		end
 	)
 

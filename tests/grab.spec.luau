@@ -144,10 +144,23 @@ return function(t: Test.Test)
 		t.eq(GrabLogic.begin(book, 4, 4, 0), false, "self")
 	end)
 
+	t.test("m3-09: 잡고 있는 사람은 잡을 수 없어요 (begin·pickTarget)", function()
+		local book = GrabLogic.newBook()
+		t.eq(GrabLogic.begin(book, 1, 2, 0), true)
+		t.eq(GrabLogic.begin(book, 3, 1, 0), false, "grabber 1 cannot be grabbed")
+		local grabber = { userId = 3, position = { x = 0, y = 0, z = 0 }, look = { x = 0, y = 0, z = -1 } }
+		local busy = { userId = 1, position = { x = 0, y = 0, z = -2 }, alive = true, down = false, grabbing = true }
+		local free = { userId = 4, position = { x = 0, y = 0, z = -4 }, alive = true, down = false }
+		t.eq(GrabLogic.pickTarget(grabber, { busy }, cfg), nil)
+		t.eq(GrabLogic.pickTarget(grabber, { busy, free }, cfg), 4)
+	end)
+
 	t.test("나간 플레이어의 잡기·기록을 지워요", function()
 		local book = GrabLogic.newBook()
 		GrabLogic.begin(book, 1, 2, 0)
-		GrabLogic.begin(book, 3, 1, 0)
+		-- m3-09: 잡고 있는 사람은 begin으로 잡을 수 없어요. 두 역할을 다 가진 경우(옛 기록)도 지우는지 보려고 직접 넣어요.
+		book.grabs[3] = { grabber = 3, target = 1, startedAt = 0 }
+		book.grabbedBy[1] = 3
 		local ended = GrabLogic.removePlayer(book, 1, 1, cfg)
 		t.eq(#ended, 2, "both grabs ended")
 		t.eq(GrabLogic.grabOf(book, 1), nil)

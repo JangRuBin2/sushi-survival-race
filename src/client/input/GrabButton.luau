@@ -7,6 +7,8 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
+local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
+
 local GAP_RATIO = 0.15 -- 점프 버튼과의 간격 (버튼 높이 배수)
 local IDLE_COLOR = Color3.fromRGB(255, 255, 255)
 local ACTIVE_COLOR = Color3.fromRGB(255, 170, 60)
@@ -28,6 +30,7 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 	screen.Name = "GrabGui"
 	screen.ResetOnSpawn = false
 	screen.DisplayOrder = 1
+	screen:SetAttribute(Attributes.NoClickSfx, true) -- 조작 버튼이라 클릭음 없음 (Sfx, m3-09)
 
 	local button = Instance.new("TextButton")
 	button.Name = "GrabButton"

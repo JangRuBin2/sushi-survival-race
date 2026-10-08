@@ -49,6 +49,10 @@ function HudController.start(gui: Instance)
 			if result.result == "Eliminated" and EliminationCutsceneLogic.shouldPlay(result.cause) then
 				return
 			end
+			-- 우승은 곧바로 이어지는 우승 연출·화면이 보여 줘요. 연출 위에 글씨가 겹치지 않게 띄우지 않아요 (m3-05 QA B3)
+			if result.result == "Won" then
+				return
+			end
 			hud:showPersonalResult(personalResultText(result))
 		end
 	end)

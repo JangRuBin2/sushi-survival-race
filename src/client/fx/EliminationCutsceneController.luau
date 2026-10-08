@@ -7,7 +7,7 @@
 --   탈락한 본인만 카메라(CameraDirector "Elimination")와 "먹혔다!" 스탬프를 받아요. 카메라를 놓으면
 --     SpectateController의 자동 관전이 이어져요.
 --   월드 연출은 동시에 MAX_CONCURRENT개까지. 넘으면 캐릭터만 숨겼다가 풀어요 (본인 연출은 한도와 무관).
---   cause가 Left·nil(시간 종료·정원 마감)이면 연출 없음. 위치가 없으면 본인은 스탬프만, 남은 아무것도 안 봐요.
+--   cause가 Left·nil이면 연출 없음 (시간 종료·정원 마감은 Timeout으로 와서 연출해요, m3-09). 위치가 없으면 본인은 스탬프만, 남은 아무것도 안 봐요.
 --   매치가 끝나거나(RoomUpdated) Victory가 시작되면 재생 중인 연출을 모두 지워요.
 
 local Players = game:GetService("Players")

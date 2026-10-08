@@ -72,14 +72,15 @@ export type RoundProgress = {
 	racerUserIds: { number }, -- 이번 라운드에서 아직 통과/탈락하지 않은 플레이어
 }
 
--- 탈락 사유 (탈락 연출용). Fall = 맵 낙하 판정, Reset = 리셋·사망·캐릭터 없음, Left = 방/게임을 나감
-export type EliminationCause = "Fall" | "Reset" | "Left"
+-- 탈락 사유 (탈락 연출용). Fall = 맵 낙하 판정, Reset = 리셋·사망·캐릭터 없음, Left = 방/게임을 나감,
+-- Timeout = 시간 종료·통과 인원이 다 차서 남은 사람이 탈락 (m3-09)
+export type EliminationCause = "Fall" | "Reset" | "Left" | "Timeout"
 
 export type PlayerResult = {
 	userId: number,
 	result: "Passed" | "Eliminated" | "Won",
 	place: number, -- 통과 순서 또는 최종 등수
-	-- Eliminated일 때만. 시간 종료·통과 인원이 다 차서 남은 사람이 탈락하면 nil이에요.
+	-- Eliminated일 때만 (Passed·Won은 nil).
 	cause: EliminationCause?,
 	position: Vector3?, -- Eliminated일 때 탈락 순간 HumanoidRootPart 위치 (없으면 nil)
 }

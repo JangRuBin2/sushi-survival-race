@@ -71,10 +71,21 @@ return function(t: Test.Test)
 			seen[value] = true
 			count += 1
 		end
-		for _, key in { "AppearanceId", "GrabbedBy", "GrabbingUserId", "RoomId", "RoundIndex", "MapId" } do
+		for _, key in
+			{
+				"AppearanceId",
+				"GrabbedBy",
+				"GrabbingUserId",
+				"RoomId",
+				"RoundIndex",
+				"MapId",
+				"KeepVisible",
+				"NoClickSfx",
+			}
+		do
 			t.ok((Attributes :: any)[key] ~= nil, `Attributes.{key}`)
 		end
-		t.eq(count, 6)
+		t.eq(count, 8) -- m3-09: KeepVisible(외형 숨김 제외)·NoClickSfx(클릭음 제외) 추가
 	end)
 
 	t.test("AC3: SfxCues에 확정 목록이 모두 있고 중복이 없어요", function()

@@ -31,6 +31,7 @@ export type Candidate = {
 	alive: boolean,
 	down: boolean, -- 넘어짐(PlatformStand)·젓가락(WalkSpeed 0)·Anchored
 	grabbed: boolean?, -- 이미 다른 사람에게 잡혀 있음
+	grabbing: boolean?, -- 다른 사람을 잡고 있음 (잡고 있는 사람은 잡을 수 없어요 — 감속 중첩 방지, m3-09)
 	immune: boolean?, -- 풀려난 지 Immunity초 안
 }
 
@@ -85,6 +86,7 @@ function GrabLogic.pickTarget(grabber: Grabber, candidates: { Candidate }, confi
 			or not candidate.alive
 			or candidate.down
 			or candidate.grabbed
+			or candidate.grabbing
 			or candidate.immune
 		then
 			continue
@@ -155,7 +157,7 @@ function GrabLogic.begin(book: Book, grabberId: number, targetId: number, now: n
 	if grabberId == targetId or not GrabLogic.canStart(book, grabberId, now) then
 		return false
 	end
-	if book.grabbedBy[targetId] ~= nil or GrabLogic.isImmune(book, targetId, now) then
+	if book.grabbedBy[targetId] ~= nil or book.grabs[targetId] ~= nil or GrabLogic.isImmune(book, targetId, now) then
 		return false
 	end
 	book.grabs[grabberId] = { grabber = grabberId, target = targetId, startedAt = now }

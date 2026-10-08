@@ -10,9 +10,9 @@
 - 맵 풀 4개: `rotating-belt`·`soy-swamp`(Race), `hot-plate`(Survival), `skewer-showdown`(Final). 3~4라운드 한 판이 처음부터 우승까지 돈다. 탈락하면 자동 관전, 우승 화면에 순위표.
 - M3에서 들어온 것: 계란초밥 캐릭터(`AppearanceService.applyAppearance` + `SushiBody`), 탈락 연출("먹혔다!", 3초), 라운드 소개 플라이스루 + "출발!", 우승 연출(6초, 우승 단계 10초), 다이브, 잡기(서버 판정), 효과음·배경음·음소거, 장애물 소리(`MapSfx`). 카메라는 `CameraDirector` 우선순위로만 바꾼다.
 - **M3 수치는 전부 기본값**(사용자 지시 "일단 개발하고 나중에 수정"). 목록: `docs/REFERENCE-party-royale.md` §7, `docs/CHANGELOG.md` M3. GDD에는 아직 안 넣었다 — 사용자가 확정하면 기획 담당이 GDD v0.4로 반영.
-- 사용자 할 일: 배경음 4곡·효과음 8개 id 고르기(`shared/SfxLibrary.luau`에서 `id = nil`인 것), 친구 테스트(4명 이상) 뒤 바꿀 수치·연출 알려 주기.
+- 사용자 할 일: 배경음 4곡·효과음 8개 id 고르기(`shared/SfxLibrary.luau`에서 `id = nil`인 것), 친구 테스트(4명 이상, 3판 이상) 결과를 `docs/playtest/m3.md`에 판마다 한 줄씩 적고 바꿀 수치·연출 알려 주기.
 - 아직 없는 것: 맵 아트·새 맵, 로비/매치 플레이스 분리, DataStore(음소거 저장, 우승 칭호), 서버 속도 감시(다이브·잡기 감속은 클라이언트 물리), 스킨·상점(가장 마지막).
-- 남은 P3: 결승의 같은 틱 묶음에서 리셋·퇴장한 사람이 우승할 수 있음, 검증에 Luau 타입 검사 없음 (`docs/qa/m2-07-full-match-integration.md` I1·I2), 회전 벨트는 아직 태그가 아니라 `Hazards` 폴더로 장애물을 돌림(M1 B10). M3 보류: 낙하 탈락 연출 높이(m3-03 B2), Survival·Final 플라이스루 끝점(m3-04 B2), 공중 다이브 지름길(m3-06 B2·B3), 잡기 입력(m3-07 G1·G4), m3-09 B3~B5 — 목록은 `docs/specs/m3-09-integration-polish.md` 결정 기록.
+- 남은 P3: 결승의 같은 틱 묶음에서 리셋·퇴장한 사람이 우승할 수 있음, 검증에 Luau 타입 검사 없음 (`docs/qa/m2-07-full-match-integration.md` I1·I2), 회전 벨트는 아직 태그가 아니라 `Hazards` 폴더로 장애물을 돌림(M1 B10). M3 보류: 낙하 탈락 연출 높이(m3-03 B2), Survival·Final 플라이스루 끝점(m3-04 B2), 공중 다이브 지름길(m3-06 B2·B3), 잡기 입력(m3-07 G1·G4), m3-09 B3·B4(B5는 음소거 버튼을 위쪽 바로 옮겨 해소) — 목록은 `docs/specs/m3-09-integration-polish.md` 결정 기록.
 - 다음 단계: **사용자 Studio 확인·친구 테스트 결과에 따른 수정 지시 대기**, 그다음 **M4** (기획 담당이 `docs/specs/`에 M4 스펙을 쓰는 것부터). 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). M4 맵 제작 리서치: `docs/REFERENCE-map-production.md`, M3 참고 자료: `docs/REFERENCE-party-royale.md` (참고용, 결정 아님).
 - **스킨·상점·로벅스 결제는 가장 마지막에 개발한다.** 그 전까지는 모든 플레이어가 기본 계란초밥(`Config.Appearance.Default = "tamago"`)으로 플레이한다. 캐릭터 외형은 **`AppearanceService.applyAppearance(character, appearanceId?)` 한 곳에서만** 입힌다 — 스킨은 나중에 여기서 고른다. 캐릭터에 보이는 파츠를 붙이는 기능은 `Attributes.KeepVisible`을 달아야 숨김에서 빠진다.
@@ -57,7 +57,7 @@ src/
     init.client.luau     # LobbyController.start() → 컨트롤러들 start(gui) (Sfx 먼저, Hud, Spectate, fx/*, input/*)
     CameraDirector.luau  # 카메라 중재: request(owner, priority, apply)/release/current/isActive.
                          #   Priority: Spectate 10 < Victory 20 < Intro 30 < Elimination 40 < VictoryCutscene 50. 카메라는 여기로만 바꾼다
-    Sfx.luau             # play(cue, at?), setMusic(name?), start: SoundGroup, 배경음 전환, 버튼 클릭음, 음소거 버튼, MapSfx 이벤트 재생(120 studs 안)
+    Sfx.luau             # play(cue, at?), setMusic(name?), start: SoundGroup, 배경음 전환, 버튼 클릭음, 음소거 버튼(SoundGui, ScreenInsets = TopbarSafeInsets로 Roblox 위쪽 바 오른쪽 끝), MapSfx 이벤트 재생(120 studs 안)
     ui/                  # LobbyScreen/Controller, RoomScreen, RoomUiKit, HudScreen/Controller, SpectateScreen/Controller
     fx/                  # CharacterFxController(걷기·넘어짐·이름표), EliminationCutscene{Controller,Screen} + CutsceneProps,
                          #   Intro{Controller,Screen}, VictoryCutscene{Controller,Screen} + VictoryProps
@@ -76,6 +76,7 @@ src/
     SushiBody.luau       # 계란초밥 파츠 layout/bounds/build, MODEL_NAME "SushiBody"·JOINT_NAME "SushiJoint" (연출 인형도 이걸 씀)
     EliminationCutsceneLogic.luau  # 탈락 연출 순수 로직: shouldPlay(cause), variantFor(젓가락/입/셰프 손), 대사, 타임라인, 동시 한도
     IntroCameraLogic.luau          # 플라이스루 경로 순수 로직 (숫자 표 {x,y,z}, autoPath/sample)
+    IntroLayout.luau     # "출발!" 글씨 배치 순수 계산: HUD 위 배너(TopBanner) 아래로 가운데 높이·글씨 크기
     VictoryCutsceneLogic.luau      # 우승 연출 타임라인·자세·카메라 순수 로직
     DiveLogic.luau       # 다이브 상태(Ready/Flying/Stunned)·발사 속도 순수 로직
     GrabLogic.luau       # 잡기 대상 고르기·끝내기·쿨다운·면역 순수 로직 (Book)
@@ -90,10 +91,10 @@ src/
       SoySwamp.luau      # Race "간장 늪 & 와사비 산" (+ SoySwampLayout, SoySwampHazards)
       HotPlate.luau      # Survival "뜨거운 철판" (+ HotPlateLogic)
       SkewerShowdown.luau  # Final "회전 꼬치 쇼다운" (+ SkewerShowdownLogic)
-tests/               # 순수 로직 테스트 (스튜디오 없이 실행, 37개 파일 486개)
+tests/               # 순수 로직 테스트 (스튜디오 없이 실행, 38개 파일 493개)
   init.luau            # 실행기: tests/*.spec.luau
   *.spec.luau          # rules, room, maps, round-logic, spectate, map-*, camera-priority, sushi-body, elimination-cutscene,
-                       #   intro-camera, victory-cutscene, dive, grab, sfx-library, map-sfx, 그리고 QA가 추가한 *-qa / m1-* / m3-09-* 테스트
+                       #   intro-camera, intro-layout, victory-cutscene, dive, grab, sfx-library, map-sfx, 그리고 QA가 추가한 *-qa / m1-* / m3-09-* 테스트
   lib/Test.luau        # 작은 테스트 도우미 (t.test, t.eq, t.ok)
   lib/RobloxRequire.luau  # src 모듈의 require(script.Parent.X)를 Lune에서 흉내
   lib/FakeSfxEnv.luau  # 클라이언트 Sfx를 Lune에서 돌리는 가짜 Roblox 환경
@@ -101,6 +102,7 @@ docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  REFERENCE-map-production.md  REFERENCE-party-royale.md
   specs/  qa/  proposals/   # specs/qa는 _TEMPLATE.md에서 시작
   planner/  developer/  docs-writer/   # 역할별 작업 기록(인계 메모)
+  playtest/            # 친구 테스트 의견 기록 (m3.md: 판마다 한 줄, 양식은 DEV-SETUP 3-8 N)
 .claude/agents/          # planner, developer, qa, docs-writer
 ```
 

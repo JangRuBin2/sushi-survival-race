@@ -192,7 +192,7 @@ return function(t: Test.Test)
 	t.test("qa: non-numeric version is not treated as future data", function()
 		local _, info = ProfileLogic.migrate({ version = "99" })
 		t.eq(info.persistable, true)
-		local _, info2 = ProfileLogic.migrate({ version = 1.5 })
+		local _, info2 = ProfileLogic.migrate({ version = 2.5 }) -- m5-03: VERSION 2보다 큰 값
 		t.eq(info2.persistable, false)
 	end)
 

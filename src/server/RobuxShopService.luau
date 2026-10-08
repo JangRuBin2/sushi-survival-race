@@ -25,6 +25,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local ReceiptLogic = require(ReplicatedStorage.Shared.ReceiptLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 
@@ -220,6 +221,7 @@ local function onRequestRobux(player: Player, skinId: unknown): (boolean, string
 	local ok, reason = ReceiptLogic.canRequest(skinId, profile and profile.ownedSkins, {
 		canSave = DataService.canPersist(player),
 		fake = fake,
+		now = Seasons.now(RunService:IsStudio(), Config.DEBUG.eventNow, os.time()), -- 시즌 스킨 판매 기간 (m5-03)
 	})
 	if not ok then
 		return false, ReceiptLogic.message(reason)

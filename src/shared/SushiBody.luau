@@ -421,6 +421,13 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 		piece("Tail", { 0.5, 0.4, 0.25 }, DRAGON_DARK, { 0, 1.9, 1.35 }),
 		piece("TailTip", { 0.3, 0.3, 0.2 }, DRAGON, { 0, 2.2, 1.4 }),
 	})),
+
+	-- 시즌·VIP 자리 표시 (m5-03): 계란초밥 모양에 토핑 색만 달라요. 진짜 생김새는 m5-07이 바꿔요
+	["pumpkin-sushi"] = withBase(join(slab({ 245, 140, 40 }), { noriBelt() })),
+	["ghost-tamago"] = withBase(join(slab({ 245, 245, 250 }), { noriBelt() })),
+	["santa-shrimp"] = withBase(join(slab({ 220, 40, 40 }), { noriBelt() })),
+	["tree-maki"] = withBase(join(slab({ 40, 150, 70 }), { noriBelt() })),
+	["vip-gold-tamago"] = withBase(join(slab(GOLD, "Foil"), { noriBelt() })),
 }
 
 -- Body 중심에서 발바닥까지 (TAMAGO 바닥 y = -2.3)

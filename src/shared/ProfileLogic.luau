@@ -3,6 +3,9 @@
 --   ProfileLogic.migrate(raw) -> (Profile, { persistable, notes })
 --       DataStore에서 읽은 값을 지금 모양으로 정리해요. 없는 칸은 기본값, 잘못된 숫자는 0, tamago는 항상 보유,
 --       보유하지 않은 장착 스킨은 tamago, 처리한 결제 id 목록은 정리(m4-14), 모르는 칸은 그대로 보존. version이 더 높으면(미래 데이터) persistable = false.
+--       v2 칸(m5-03): redeemedCodes·eventTokens·boughtOffers는 문자열 키 → 0 이상 정수(내림), ownedFx는 true만,
+--       equippedFx는 가진 연출이면서 FxCatalog에서 그 칸의 연출만. redeemedCodes는 시각이 큰 MAX_REDEEMED_CODES개만.
+--       v1 → v2는 칸 추가뿐이에요 (기존 값 그대로, version = 2).
 --   ProfileLogic.lockDecision(lock?, myJobId, now, expiry, mySession?) -> "take" | "wait" | "steal"
 --   ProfileLogic.canWrite(lock?, myJobId, mySession?) -> boolean  내 잠금(같은 JobId + 같은 세션)일 때만 true
 --   ProfileLogic.dayNumber(unixTime) -> number            UTC 날짜 번호 (1970-01-01 = 0)
@@ -12,6 +15,7 @@
 -- 저장 값 모양: { profile = Profile, lock = { jobId, at, session? }? } (키 u_<UserId>)
 
 local Config = require(script.Parent.Config)
+local FxCatalog = require(script.Parent.FxCatalog)
 local ProfileSchema = require(script.Parent.ProfileSchema)
 local ReceiptLogic = require(script.Parent.ReceiptLogic)
 
@@ -36,12 +40,69 @@ local KNOWN_FIELDS = {
 	equippedSkin = true,
 	settings = true,
 	receipts = true,
+	redeemedCodes = true,
+	eventTokens = true,
+	ownedFx = true,
+	equippedFx = true,
+	boughtOffers = true,
 }
 
 local COUNTERS = { "coins", "wins", "matchesPlayed" }
 
 local function isCount(value: unknown): boolean
 	return type(value) == "number" and value == value and value >= 0 and value < math.huge
+end
+
+-- 문자열 키 → 0 이상 유한 숫자(정수로 내림). 잘못된 항목은 버리고 notes에 한 줄 (m5-03)
+local function countMap(value: unknown, field: string, notes: { string }): { [string]: number }
+	local out: { [string]: number } = {}
+	if value == nil then
+		return out
+	end
+	if type(value) ~= "table" then
+		table.insert(notes, `{field} was invalid, reset`)
+		return out
+	end
+	local dropped = 0
+	for key, amount in value :: { [any]: any } do
+		if type(key) == "string" and isCount(amount) then
+			out[key] = math.floor(amount)
+		else
+			dropped += 1
+		end
+	end
+	if dropped > 0 then
+		table.insert(notes, `{field}: dropped {dropped} invalid entries`)
+	end
+	return out
+end
+
+-- 시각이 큰 max개만 남겨요 (같은 시각이면 이름순으로 앞선 것)
+local function keepNewest(
+	map: { [string]: number },
+	max: number,
+	field: string,
+	notes: { string }
+): { [string]: number }
+	local keys = {}
+	for key in map do
+		table.insert(keys, key)
+	end
+	if #keys <= max then
+		return map
+	end
+	table.sort(keys, function(a, b)
+		if map[a] ~= map[b] then
+			return map[a] > map[b]
+		end
+		return a < b
+	end)
+	local out: { [string]: number } = {}
+	for i = 1, max do
+		out[keys[i]] = map[keys[i]]
+	end
+	table.insert(notes, `{field}: kept newest {max} of {#keys}`)
+	return out
 end
 
 function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
@@ -124,6 +185,49 @@ function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
 	if source.receipts ~= nil then
 		profile.receipts = ReceiptLogic.sanitizeHistory(source.receipts, Config.Shop.ReceiptHistoryMax)
 	end
+
+	-- v2 칸 (m5-03). v1 프로필에는 없어서 빈 표가 돼요
+	profile.redeemedCodes = keepNewest(
+		countMap(source.redeemedCodes, "redeemedCodes", notes),
+		ProfileSchema.MAX_REDEEMED_CODES,
+		"redeemedCodes",
+		notes
+	)
+	profile.eventTokens = countMap(source.eventTokens, "eventTokens", notes)
+	profile.boughtOffers = countMap(source.boughtOffers, "boughtOffers", notes)
+
+	local ownedFx: { [string]: boolean } = {}
+	if type(source.ownedFx) == "table" then
+		for fxId, has in source.ownedFx do
+			if type(fxId) == "string" and has == true then
+				ownedFx[fxId] = true
+			else
+				table.insert(notes, `ownedFx: dropped {tostring(fxId)}`)
+			end
+		end
+	elseif source.ownedFx ~= nil then
+		table.insert(notes, "ownedFx was invalid, reset")
+	end
+	profile.ownedFx = ownedFx
+
+	local equippedFx: ProfileSchema.EquippedFx = {}
+	if type(source.equippedFx) == "table" then
+		for _, slot in FxCatalog.SLOTS do
+			local fxId = source.equippedFx[slot]
+			if fxId == nil then
+				continue
+			end
+			local fx = if type(fxId) == "string" then FxCatalog.get(fxId) else nil
+			if fx and fx.slot == slot and ownedFx[fx.id] then
+				(equippedFx :: any)[slot] = fx.id
+			else
+				table.insert(notes, `equippedFx.{slot} {tostring(fxId)} not owned or wrong slot, cleared`)
+			end
+		end
+	elseif source.equippedFx ~= nil then
+		table.insert(notes, "equippedFx was invalid, reset")
+	end
+	profile.equippedFx = equippedFx
 
 	return profile, { persistable = persistable, notes = notes }
 end

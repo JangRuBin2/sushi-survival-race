@@ -10,6 +10,8 @@
 --   DataService.saveNow(player) -> boolean                 지금 저장하고 성공 여부 (m4-14 결제). 같은 사람 저장은
 --                                                         한 번에 하나씩, 겹치면 앞 저장이 끝난 뒤 한 번 더 (yield).
 --                                                         실제로 쓰지 못하면 false (임시 프로필, 잠금 해제 뒤, 에러)
+--   DataService.setViewExtra(player, { vip = boolean })    저장하지 않는 화면용 값 (m5-03, VIP는 m5-08이 채워요).
+--                                                         바뀌면 ProfileUpdated를 다시 보내요. 프로필 로드 전에 불러도 기억해요
 -- 리모트: SaveSettings({ muteLevel }) — 표·정수 1~3·요청 간격(Config.Data.SettingsMinInterval)을 검증하고
 -- 잘못된 값은 조용히 무시해요.
 --
@@ -74,6 +76,7 @@ local userBusy: { [number]: number } = {} -- UserId별로 아직 안 끝난 세�
 local saving: { [Session]: boolean } = {} -- 나간 사람 포함, 저장 중인 세션 (BindToClose가 기다려요)
 local dirtyView: { [Player]: boolean } = {} -- 이번 프레임 끝에 ProfileUpdated를 보낼 사람
 local lastSettingsAt: { [Player]: number } = {}
+local viewExtra: { [Player]: ProfileSchema.ViewExtra } = {} -- 저장하지 않는 화면용 값 (m5-03 setViewExtra)
 local loadedListeners: { (player: Player, profile: Profile) -> () } = {}
 
 local profileUpdatedEvent: RemoteEvent
@@ -87,7 +90,10 @@ local function sendView(player: Player)
 	if session == nil or player.Parent == nil then
 		return
 	end
-	profileUpdatedEvent:FireClient(player, ProfileSchema.toView(session.profile, DataService.canPersist(player)))
+	profileUpdatedEvent:FireClient(
+		player,
+		ProfileSchema.toView(session.profile, DataService.canPersist(player), viewExtra[player])
+	)
 end
 
 local function scheduleView(player: Player)
@@ -349,6 +355,7 @@ local function unload(player: Player)
 	sessions[player] = nil
 	dirtyView[player] = nil
 	lastSettingsAt[player] = nil
+	viewExtra[player] = nil
 	if session == nil then
 		return -- 로드 중에 나갔으면 load가 정리해요
 	end
@@ -401,6 +408,19 @@ end
 function DataService.canPersist(player: Player): boolean
 	local session = sessions[player]
 	return session ~= nil and session.persist and store ~= nil
+end
+
+-- 저장하지 않는 화면용 값 (m5-03). 지금은 { vip } 하나 — VIP 확인(m5-08)이 불러요. 값이 바뀌면 ProfileUpdated를 다시 보내요.
+function DataService.setViewExtra(player: Player, extra: ProfileSchema.ViewExtra)
+	if player.Parent == nil then
+		return -- 이미 나간 사람 (unload가 지운 뒤 다시 남지 않게)
+	end
+	local old = viewExtra[player]
+	local new: ProfileSchema.ViewExtra = { vip = extra.vip == true }
+	viewExtra[player] = new
+	if (old == nil or old.vip ~= new.vip) and sessions[player] ~= nil then
+		scheduleView(player)
+	end
 end
 
 function DataService.saveNow(player: Player): boolean

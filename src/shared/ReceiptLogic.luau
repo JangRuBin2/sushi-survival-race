@@ -17,6 +17,7 @@
 --       프로필의 처리한 결제 id 목록 (오래된 것부터 max개만 남겨요). 같은 PurchaseId를 두 번 지급하지 않게
 --       구매 기록과 함께 한 번 더 막아요.
 
+local Seasons = require(script.Parent.Seasons)
 local Skins = require(script.Parent.Skins)
 
 export type Verdict = "NotProcessedYet" | "GrantAndRecord" | "AlreadyRecorded" | "RecordOnly"
@@ -69,11 +70,22 @@ export type Outcome = {
 	granted: boolean, -- 이번에 스킨을 새로 넣었는가 (화면 안내용)
 }
 
-export type RequestReason = "UnknownSkin" | "AlreadyOwned" | "NotForSale" | "CannotSave" | "NoProfile" | "TooFast"
+export type RequestReason =
+	"UnknownSkin"
+	| "AlreadyOwned"
+	| "NotForSale"
+	| "CannotSave"
+	| "NoProfile"
+	| "TooFast"
+	| "OffSale"
+	| "NotRobux"
 
 export type RequestOptions = {
 	canSave: boolean, -- DataService.canPersist
 	fake: boolean, -- Studio 가짜 결제 (Config.DEBUG.fakeRobuxInStudio, Studio일 때만 true)
+	-- 지금 시각 (UTC unix 초, m5-03). 있으면 시즌 스킨의 판매 기간을 확인해요 (Seasons.skinOnSale).
+	-- 결제 창을 열 때만 봐요 — 영수증 처리(process)는 기간을 보지 않아요 (기간 끝 직전 결제가 늦게 와도 지급).
+	now: number?,
 }
 
 local ReceiptLogic = {}
@@ -202,10 +214,13 @@ function ReceiptLogic.canRequest(
 		return false, "AlreadyOwned"
 	end
 	if skin.robux == nil then
-		return false, "UnknownSkin"
+		return false, "NotRobux" -- 이벤트 재화·VIP 스킨 (m5-03)
 	end
 	if ownedSkins == nil then
 		return false, "NoProfile"
+	end
+	if opts.now ~= nil and not Seasons.skinOnSale(skin, opts.now) then
+		return false, "OffSale" -- 시즌 스킨 판매 기간 밖 (m5-03)
 	end
 	if opts.fake then
 		return true, nil -- Studio 가짜 결제: 상품 id·저장 가능 여부와 상관없이 (메모리에 저장)
@@ -226,6 +241,8 @@ local MESSAGES: { [RequestReason]: string } = {
 	CannotSave = "저장이 안 되는 상태라 지금은 살 수 없어요",
 	NoProfile = "프로필을 불러오는 중이에요",
 	TooFast = "잠시 뒤에 다시 해 주세요",
+	OffSale = "판매 기간이 아니에요",
+	NotRobux = "로벅스로 살 수 없는 스킨이에요",
 }
 
 function ReceiptLogic.message(reason: RequestReason?): string

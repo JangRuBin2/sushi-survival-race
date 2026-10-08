@@ -1,6 +1,6 @@
 --!strict
 -- 스킨 카탈로그 (GDD 9.1, 9.2, m4-13). 순수 데이터 + 조회 함수라 Roblox API를 쓰지 않아요 (tests/skins.spec.luau).
---   Skins.LIST              전체 스킨 (order 오름차순). 시즌 한정은 M5.
+--   Skins.LIST              전체 스킨 (order 오름차순). 시즌 한정·VIP 스킨은 m5-03 (생김새는 m5-07).
 --   Skins.get(id)           id의 스킨, 없으면 nil (id가 문자열이 아니어도 nil)
 --   Skins.TIERS             등급 순서 (기본 → 전설)
 --   Skins.TIER_INFO[tier]   등급 이름·색 (탈의실 카드 테두리)
@@ -12,6 +12,7 @@
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
 -- productId에 넣으면 그 스킨의 로벅스 버튼이 켜져요 (nil이면 "곧 열려요"). 계란초밥은 무료라 상품 없음.
 -- 코인 해금은 일반·레어 등급만 (GDD 9.4).
+-- 얻는 길 (m5-03): 기본 스킨이 아니면 robux·tokens·vipOnly 중 정확히 하나. 코인은 일반·레어에 추가로 가능(시즌 스킨은 안 됨).
 
 export type Tier = "Basic" | "Common" | "Rare" | "Epic" | "Legendary"
 
@@ -21,6 +22,9 @@ export type Skin = {
 	tier: Tier,
 	robux: number?, -- 로벅스 가격 (기본 스킨은 nil)
 	coins: number?, -- 밥알 코인 해금 가격 (일반·레어 등급만, 나머지는 nil)
+	season: string?, -- 시즌 한정 이벤트 id (Shared.Seasons, m5-03). 있으면 그 이벤트 기간에만 팔아요
+	tokens: number?, -- 이벤트 재화 가격 (season 필수, m5-07 교환)
+	vipOnly: boolean?, -- VIP 게임 패스가 있으면 받는 스킨 (m5-08)
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
@@ -32,6 +36,7 @@ export type TierInfo = {
 }
 
 local Config = require(script.Parent.Config)
+local Seasons = require(script.Parent.Seasons)
 
 local Skins = {}
 
@@ -189,6 +194,52 @@ Skins.LIST = {
 		speech = { "용을 먹다니 대단해!", "불을 뿜을 것 같은 맛!" },
 		order = 16,
 	},
+	-- 시즌 한정 (m5-03 데이터, 생김새·교환은 m5-07). 유료 한정은 기간 중에만 결제 창이 열려요 (ReceiptLogic.canRequest)
+	{
+		id = "pumpkin-sushi",
+		displayName = "호박 초밥",
+		tier = "Epic",
+		robux = 99,
+		season = "halloween-2026",
+		speech = { "호박 맛이 달콤해~", "트릭 오어 트릿!" },
+		order = 17,
+	},
+	{
+		id = "ghost-tamago",
+		displayName = "유령 계란초밥",
+		tier = "Rare",
+		tokens = 80,
+		season = "halloween-2026",
+		speech = { "부우~ 놀랐지?", "계란도 유령이 될 수 있어" },
+		order = 18,
+	},
+	{
+		id = "santa-shrimp",
+		displayName = "산타 새우",
+		tier = "Epic",
+		robux = 99,
+		season = "christmas-2026",
+		speech = { "메리 크리스마스!", "선물 배달 왔어요~" },
+		order = 19,
+	},
+	{
+		id = "tree-maki",
+		displayName = "트리 마키",
+		tier = "Rare",
+		tokens = 80,
+		season = "christmas-2026",
+		speech = { "반짝반짝 트리 마키!", "오이가 트리가 됐어" },
+		order = 20,
+	},
+	-- VIP 전용 (m5-08이 게임 패스 확인 뒤 지급)
+	{
+		id = "vip-gold-tamago",
+		displayName = "금박 계란초밥",
+		tier = "Legendary",
+		vipOnly = true,
+		speech = { "반짝이는 VIP 계란!", "금박이 살살 녹아~" },
+		order = 21,
+	},
 } :: { Skin }
 
 table.sort(Skins.LIST, function(a: Skin, b: Skin): boolean
@@ -267,12 +318,52 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 			if skin.tier == "Basic" then
 				table.insert(problems, `{where}: only the default skin is Basic`)
 			end
-			if not isPrice(skin.robux) then
-				table.insert(problems, `{where}: robux price missing`)
+			-- 얻는 길은 robux·tokens·vipOnly 중 정확히 하나 (m5-03)
+			local ways = 0
+			if skin.robux ~= nil then
+				ways += 1
+				if not isPrice(skin.robux) then
+					table.insert(problems, `{where}: bad robux price`)
+				end
+			end
+			if skin.tokens ~= nil then
+				ways += 1
+				if not isPrice(skin.tokens) then
+					table.insert(problems, `{where}: bad tokens price`)
+				end
+				if skin.season == nil then
+					table.insert(problems, `{where}: tokens need a season`)
+				end
+			end
+			if skin.vipOnly ~= nil then
+				if skin.vipOnly ~= true then
+					table.insert(problems, `{where}: vipOnly must be true or nil`)
+				else
+					ways += 1
+					if skin.season ~= nil or skin.coins ~= nil or skin.robux ~= nil then
+						table.insert(problems, `{where}: vipOnly skins have no season, coins or robux`)
+					end
+				end
+			end
+			if ways == 0 then
+				table.insert(problems, `{where}: needs a way to get it (robux, tokens or vipOnly)`)
+			elseif ways > 1 then
+				table.insert(problems, `{where}: only one of robux, tokens or vipOnly`)
 			end
 		end
 		if skin.coins ~= nil and ((skin.tier ~= "Common" and skin.tier ~= "Rare") or not isPrice(skin.coins)) then
 			table.insert(problems, `{where}: coin price only for Common and Rare skins`)
+		end
+		if skin.season ~= nil then
+			if type(skin.season) ~= "string" or Seasons.get(skin.season) == nil then
+				table.insert(problems, `{where}: unknown season {tostring(skin.season)}`)
+			end
+			if skin.coins ~= nil then
+				table.insert(problems, `{where}: season skins have no coin price`)
+			end
+		end
+		if skin.productId ~= nil and skin.robux == nil then
+			table.insert(problems, `{where}: productId only for robux skins`)
 		end
 		if skin.productId ~= nil then
 			if not isPrice(skin.productId) then

@@ -105,15 +105,23 @@ export type ProfileView = {
 	ownedSkins: { string }, -- 이름순
 	settings: Settings,
 	persistent: boolean, -- false면 저장되지 않는 프로필 (Studio 메모리 모드·로드 실패)
+	eventTokens: { [string]: number }, -- 이벤트 id → 모은 이벤트 재화 (m5-03/m5-07)
+	ownedFx: { string }, -- 가진 연출 id, 이름순 (m5-08)
+	equippedFx: { Elimination: string?, Victory: string? }, -- 입은 연출 (m5-08)
+	boughtOffers: { string }, -- 한 번만 사는 상품 중 산 것 id, 이름순 (m5-08)
+	vip: boolean, -- VIP 게임 패스 확인 결과 (저장 안 함, DataService.setViewExtra로 m5-08이 채움)
 }
 
--- 밥알 코인 지급 이유 (GDD 9.4, m4-08)
-export type RewardReason = "RoundPass" | "FinalQualify" | "Win" | "DailyFirstMatch"
+-- 밥알 코인 지급 이유 (GDD 9.4, m4-08). Code = 코드 보상(m5-10), MatchPlayed = 판 참가(이벤트 재화, m5-07)
+export type RewardReason = "RoundPass" | "FinalQualify" | "Win" | "DailyFirstMatch" | "Code" | "MatchPlayed"
 
 export type RewardGrant = {
 	reason: RewardReason,
-	amount: number,
+	amount: number, -- 이번에 받은 코인 (이벤트 재화만 받으면 0)
 	total: number, -- 지급 뒤 코인 합계
+	tokens: number?, -- 이번에 받은 이벤트 재화 (m5-07/m5-10)
+	tokenTotal: number?, -- 지급 뒤 그 이벤트 재화 합계
+	eventId: string?, -- 재화의 이벤트 id (Shared.Seasons)
 }
 
 return {}

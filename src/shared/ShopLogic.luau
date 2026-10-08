@@ -43,7 +43,8 @@ export type Wallet = {
 	equippedSkin: string,
 }
 
-export type CardKind = "Equipped" | "Equip" | "Unlock" | "NeedCoins" | "Robux"
+-- Soon: 아직 얻을 길이 탈의실에 없는 스킨 (이벤트 재화·VIP 스킨, m5-03 — 진짜 카드는 m5-07·m5-08)
+export type CardKind = "Equipped" | "Equip" | "Unlock" | "NeedCoins" | "Robux" | "Soon"
 
 export type CardState = {
 	kind: CardKind,
@@ -209,6 +210,9 @@ function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptio
 			robuxEnabled = open,
 		}
 	end
+	if robuxPrice == nil then
+		return { kind = "Soon", enabled = false }
+	end
 	return { kind = "Robux", price = robuxPrice, enabled = open }
 end
 
@@ -221,6 +225,8 @@ function ShopLogic.cardButtonText(state: CardState): string
 		return `🍚 {state.price}으로 해금`
 	elseif state.kind == "NeedCoins" then
 		return `🍚 {state.missing}개 더 필요해요`
+	elseif state.kind == "Soon" then
+		return "곧 열려요"
 	end
 	if state.enabled then
 		return `R$ {state.price}`

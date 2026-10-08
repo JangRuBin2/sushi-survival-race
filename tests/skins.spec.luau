@@ -30,6 +30,12 @@ local EXPECTED = {
 	{ "golden-otoro", "황금 참치 뱃살", "Legendary", 199, nil },
 	{ "diamond-uni", "다이아 성게", "Legendary", 199, nil },
 	{ "dragon-roll", "용 롤", "Legendary", 199, nil },
+	-- m5-03: 시즌 한정 4 + VIP 1 (얻는 길은 아래 m5-03 테스트)
+	{ "pumpkin-sushi", "호박 초밥", "Epic", 99, nil },
+	{ "ghost-tamago", "유령 계란초밥", "Rare", nil, nil },
+	{ "santa-shrimp", "산타 새우", "Epic", 99, nil },
+	{ "tree-maki", "트리 마키", "Rare", nil, nil },
+	{ "vip-gold-tamago", "금박 계란초밥", "Legendary", nil, nil },
 }
 
 local TOLERANCE = 0.15
@@ -49,24 +55,27 @@ end
 
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
-	t.test("AC1: 카탈로그 16종이 표와 같아요 (순서·이름·등급·로벅스·코인)", function()
-		t.eq(#Skins.LIST, #EXPECTED)
-		for i, row in EXPECTED do
-			local skin = Skins.LIST[i]
-			t.eq(skin.id, row[1], `#{i} id`)
-			t.eq(skin.displayName, row[2], `{row[1]} name`)
-			t.eq(skin.tier, row[3], `{row[1]} tier`)
-			t.eq(skin.robux, row[4], `{row[1]} robux`)
-			t.eq(skin.coins, row[5], `{row[1]} coins`)
-			-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
-			local pid = skin.productId
-			t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-			if row[1] == "tamago" then
-				t.eq(pid, nil, "default skin has no product")
+	t.test(
+		"AC1: 카탈로그 21종이 표와 같아요 (m5-03이 5종 추가) (순서·이름·등급·로벅스·코인)",
+		function()
+			t.eq(#Skins.LIST, #EXPECTED)
+			for i, row in EXPECTED do
+				local skin = Skins.LIST[i]
+				t.eq(skin.id, row[1], `#{i} id`)
+				t.eq(skin.displayName, row[2], `{row[1]} name`)
+				t.eq(skin.tier, row[3], `{row[1]} tier`)
+				t.eq(skin.robux, row[4], `{row[1]} robux`)
+				t.eq(skin.coins, row[5], `{row[1]} coins`)
+				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
+				local pid = skin.productId
+				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
+				if row[1] == "tamago" then
+					t.eq(pid, nil, "default skin has no product")
+				end
+				t.eq(Skins.get(row[1]), skin)
 			end
-			t.eq(Skins.get(row[1]), skin)
 		end
-	end)
+	)
 
 	t.test("AC1: id·순서가 겹치지 않고 validate가 통과해요", function()
 		local ids, orders = {}, {}
@@ -89,7 +98,8 @@ return function(t: Test.Test)
 			elseif skin.tier == "Common" then
 				t.eq(skin.coins, Skins.COMMON_COINS, skin.id)
 			elseif skin.tier == "Rare" then
-				t.eq(skin.coins, Skins.RARE_COINS, skin.id)
+				-- 시즌 스킨(이벤트 재화)은 코인 해금이 없어요 (m5-03)
+				t.eq(skin.coins, if skin.season then nil else Skins.RARE_COINS, skin.id)
 			end
 		end
 	end)
@@ -109,17 +119,20 @@ return function(t: Test.Test)
 		t.eq(Skins.get({}), nil)
 	end)
 
-	t.test("byTier: 등급별 개수 (기본 1, 일반 5, 레어 4, 에픽 3, 전설 3), nil이면 전체", function()
-		t.eq(#Skins.byTier("Basic"), 1)
-		t.eq(#Skins.byTier("Common"), 5)
-		t.eq(#Skins.byTier("Rare"), 4)
-		t.eq(#Skins.byTier("Epic"), 3)
-		t.eq(#Skins.byTier("Legendary"), 3)
-		t.eq(#Skins.byTier(nil), 16)
-		for _, tier in Skins.TIERS do
-			t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
+	t.test(
+		"byTier: 등급별 개수 (기본 1, 일반 5, 레어 6, 에픽 5, 전설 4 — m5-03 포함), nil이면 전체",
+		function()
+			t.eq(#Skins.byTier("Basic"), 1)
+			t.eq(#Skins.byTier("Common"), 5)
+			t.eq(#Skins.byTier("Rare"), 6)
+			t.eq(#Skins.byTier("Epic"), 5)
+			t.eq(#Skins.byTier("Legendary"), 4)
+			t.eq(#Skins.byTier(nil), 21)
+			for _, tier in Skins.TIERS do
+				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
+			end
 		end
-	end)
+	)
 
 	t.test("validate가 잘못된 카탈로그를 잡아요", function()
 		local bad = {

@@ -42,13 +42,14 @@ local function loadSharedFresh(name: string, deps: { [string]: any }): any
 end
 
 local function patchedCatalog(): (any, any)
-	local Skins = loadSharedFresh("Skins", { Config = Config })
+	local Seasons = loadSharedFresh("Seasons", {}) -- m5-03: Skins·ReceiptLogic이 시즌 카탈로그를 봐요
+	local Skins = loadSharedFresh("Skins", { Config = Config, Seasons = Seasons })
 	for i, skin in Skins.LIST do
 		if skin.robux ~= nil then
 			skin.productId = 5000 + i
 		end
 	end
-	local ReceiptLogic = loadSharedFresh("ReceiptLogic", { Skins = Skins })
+	local ReceiptLogic = loadSharedFresh("ReceiptLogic", { Skins = Skins, Seasons = Seasons })
 	return Skins, ReceiptLogic
 end
 
@@ -319,6 +320,7 @@ local function loadServer(opts: Options?): any
 		ProfileSchema = ProfileSchema,
 		ReceiptLogic = ReceiptLogic,
 		Remotes = Remotes,
+		Seasons = RobloxRequire.require(Shared.Seasons), -- m5-03: RobuxShopService가 판매 기간 now를 정해요
 		ShopLogic = ShopLogic,
 		Skins = Skins,
 		Types = Types,

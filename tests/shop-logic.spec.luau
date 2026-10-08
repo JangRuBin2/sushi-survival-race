@@ -200,6 +200,9 @@ return function(t: Test.Test)
 	---------------------------------------------------------------- 레어 코인 해금 (900)
 	t.test("레어 코인 해금: 900이면 ok, 899면 1개 부족", function()
 		for _, skin in Skins.byTier("Rare") do
+			if skin.season then
+				continue -- 시즌 스킨은 이벤트 재화로만 (m5-03)
+			end
 			local d = ShopLogic.canBuyWithCoins(skin.id, wallet(900))
 			t.eq(d.ok, true, skin.id)
 			t.eq(d.price, 900, skin.id)

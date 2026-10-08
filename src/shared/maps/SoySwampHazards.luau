@@ -8,6 +8,7 @@
 
 local Config = require(script.Parent.Parent.Config)
 local Layout = require(script.Parent.SoySwampLayout)
+local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 
 local Hazards = {}
@@ -70,6 +71,7 @@ function Hazards.soyStepper(ctx: MapTypes.RoundContext): (racers: { Player }) ->
 					soaked[player] = humanoid
 					humanoid.WalkSpeed = slowSpeed
 					humanoid.JumpPower = 0
+					MapSfx.play(root, "SoySlow")
 				end
 			elseif soaked[player] ~= nil then
 				if soaked[player] == humanoid then
@@ -156,6 +158,7 @@ function Hazards.wasabiStepper(ctx: MapTypes.RoundContext): (racers: { Player })
 				if isAbove(pad, root.Position, Layout.WASABI_ZONE_HEIGHT) then
 					if cooldown.tryUse(player, os.clock()) then
 						launch(ctx, root, velocity)
+						MapSfx.play(pad, "WasabiBoing")
 						local character = player.Character
 						if character then
 							showSpicyText(ctx, character)

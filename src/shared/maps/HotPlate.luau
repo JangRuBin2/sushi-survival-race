@@ -7,6 +7,7 @@
 -- (M1 B10 (A)). 달아오름 상태는 start 안의 지역 변수에 둬서 여러 방이 같은 맵을 동시에 돌려도 섞이지 않아요.
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
+local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 local Logic = require(script.Parent.HotPlateLogic)
 
@@ -120,6 +121,7 @@ local function start(ctx: MapTypes.RoundContext)
 	local function startHeating(tile: BasePart, now: number)
 		if heatStart[tile] == nil and not gone[tile] then
 			heatStart[tile] = now -- 두 번 밟아도 리셋되지 않아요 (처음 밟힌 시각 기준)
+			MapSfx.play(tile, "HotTileSizzle")
 		end
 	end
 
@@ -130,6 +132,7 @@ local function start(ctx: MapTypes.RoundContext)
 		tile.Transparency = 1
 		tile.CanCollide = false
 		tile.CanQuery = false -- 발밑 레이캐스트에서도 빠져요
+		MapSfx.play(tile, "TileVanish")
 	end
 
 	ctx.cleanup:add(RunService.Heartbeat:Connect(function()

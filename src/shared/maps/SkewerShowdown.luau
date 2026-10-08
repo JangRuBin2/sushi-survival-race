@@ -13,6 +13,8 @@
 
 local Config = require(script.Parent.Parent.Config)
 local Logic = require(script.Parent.SkewerShowdownLogic)
+local MapSfx = require(script.Parent.MapSfx)
+local MapSfxLogic = require(script.Parent.MapSfxLogic)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "skewer-showdown"
@@ -40,6 +42,7 @@ local SKEWER_THICKNESS = LOW_SKEWER.radius * 2
 local KNOCK_OUTWARD = 32 -- 바깥쪽 속도 (studs/s)
 local KNOCK_UP = 22 -- 위로 띄우는 속도
 local KNOCKDOWN_TIME = 1 -- 넘어져 있는 시간, 같은 플레이어 재피격 쿨다운
+local SKEWER_WHOOSH_STEP = 10 -- 꼬치가 빨라지는 동안 이 간격(초)마다 휙 소리 (m3-09)
 
 -- 셰프의 손
 local WARN_TIME = 2 -- 조각이 빨갛게 깜빡이며 흔들리는 시간
@@ -299,6 +302,7 @@ local function grabSlice(ctx: MapTypes.RoundContext, slice: Model, hand: Model?)
 		end
 	end
 	local home = slice:GetPivot()
+	MapSfx.play(slice:FindFirstChildWhichIsA("BasePart") :: BasePart?, "ChefHandWarn")
 	local warnColor = Color3.fromRGB(table.unpack(WARN_RGB))
 	local blinkOn = true
 	local warned = 0
@@ -383,6 +387,9 @@ local function start(ctx: MapTypes.RoundContext)
 	local lowAngle = Logic.LOW_START_ANGLE
 	local highAngle = Logic.HIGH_START_ANGLE
 	local lastHitAt: { [number]: number } = {}
+	-- 꼬치가 빨라지는 순간마다 휙 소리 (높은 꼬치 등장부터 서든데스까지 10초마다, m3-09)
+	local whooshMarks = MapSfxLogic.marks(Logic.HIGH_SKEWER_AT, Logic.SUDDEN_DEATH_AT, SKEWER_WHOOSH_STEP)
+	local lastElapsed = 0
 
 	local function isRacer(player: Player): boolean
 		return table.find(ctx.getRacers(), player) ~= nil
@@ -411,6 +418,11 @@ local function start(ctx: MapTypes.RoundContext)
 		local elapsed = os.clock() - startedAt
 		local speeds = Logic.speeds(elapsed)
 		local highActive = Logic.highSkewerActive(elapsed)
+		if MapSfxLogic.crossedMark(lastElapsed, elapsed, whooshMarks) then
+			MapSfx.play(lowSkewer, "SkewerWhoosh")
+			MapSfx.play(highSkewer, "SkewerWhoosh")
+		end
+		lastElapsed = elapsed
 
 		local lowFrom = lowAngle
 		local lowTo = lowFrom + math.rad(speeds.low) * dt

@@ -6,6 +6,7 @@
 -- Chopstick.run은 Roblox API(game, Instance, CollectionService 등)를 함수 안에서만 불러요 — 이 모듈을
 -- require만 하는 것(Lune 테스트 포함)은 Roblox 런타임이 없어도 안전해요.
 
+local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 
 local WARN_DURATION = 1 -- 빨간 경고가 뜨는 시간
@@ -151,6 +152,7 @@ function Chopstick.run(station: Model, ctx: MapTypes.RoundContext)
 		end
 
 		setWarningVisible(warning, true)
+		MapSfx.play(warning, "ChopstickWarn")
 		task.wait(WARN_DURATION)
 		setWarningVisible(warning, false)
 		if not ctx.isActive() then

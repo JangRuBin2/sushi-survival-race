@@ -6,6 +6,7 @@ local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local serde = require("@lune/serde")
 
+local FakeSfxEnv = require("./lib/FakeSfxEnv")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -13,6 +14,7 @@ local Shared = RobloxRequire.root("src/shared")
 local CameraPriority = RobloxRequire.require(Shared.CameraPriority)
 local Config = RobloxRequire.require(Shared.Config)
 local SfxCues = RobloxRequire.require(Shared.SfxCues)
+local SfxLibrary = RobloxRequire.require(Shared.SfxLibrary)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 
 -- 가짜 Roblox 환경에서 클라이언트 모듈 하나를 불러요. require는 ReplicatedStorage.Shared.<이름>만 지원해요.
@@ -246,7 +248,9 @@ return function(t: Test.Test)
 	t.test(
 		"Sfx 껍데기: start 전에도 에러 없이 무시, 모르는 이름은 이름당 한 번만 경고",
 		function()
-			local Sfx, env = loadClientModule("src/client/Sfx.luau", { SfxCues = SfxCues })
+			-- m3-08 QA: Sfx가 실제 구현이 되면서 SoundService·TweenService 등이 필요해져 FakeSfxEnv로 불러요 (기대값은 그대로)
+			local env = FakeSfxEnv.load(SfxCues, SfxLibrary)
+			local Sfx = env.module
 			Sfx.play("Chomp")
 			Sfx.play("Chomp", { Position = 0 })
 			Sfx.setMusic("Final")

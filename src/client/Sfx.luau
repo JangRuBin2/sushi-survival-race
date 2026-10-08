@@ -1,17 +1,48 @@
 --!strict
--- 효과음·배경음 (껍데기 — 채우는 스펙: m3-08). 지금은 아무 소리도 내지 않아요.
---   Sfx.play(cue, at?)    효과음. at이 있으면 그 파트/위치에서 3D로. cue는 Shared.SfxCues의 이름만.
---   Sfx.setMusic(name?)   배경음 바꾸기 (nil이면 끄기). name은 SfxCues.Music의 이름만.
+-- 효과음·배경음 (m3-08). 소리 id·볼륨은 Shared.SfxLibrary가 정해요.
+--   Sfx.play(cue, at?)    효과음. at이 BasePart면 그 파트에서, Vector3면 그 위치에서 3D로, 없으면 2D로.
+--   Sfx.setMusic(name?)   배경음 바꾸기 (nil이면 끄기). 0.5초 동안 이전 곡을 줄이며 새 곡을 키워요.
 --   Sfx.start(gui)        init.client.luau가 다른 컨트롤러와 함께 불러요.
--- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고해요.
+-- start 전에 불려도 에러 없이 무시해요. 모르는 이름은 이름당 한 번만 경고하고, id가 없는 cue는 조용히 넘어가요.
+-- start가 하는 일: SoundGroup(Sfx 0.7, Music 0.3), 방/매치 단계에 맞춘 배경음, 모든 GuiButton 클릭음,
+-- 내가 통과하면 Qualified, 오른쪽 위 음소거 버튼(소리 켬 → 음악 끔 → 모두 끔, 이번 접속 동안만).
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SfxCues = require(ReplicatedStorage.Shared.SfxCues)
+local SfxLibrary = require(ReplicatedStorage.Shared.SfxLibrary)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local Sfx = {}
 
+local SFX_GROUP_VOLUME = 0.7
+local MUSIC_GROUP_VOLUME = 0.3
+local ROLLOFF_MAX_DISTANCE = 120
+local SAME_CUE_GAP = 0.05 -- 같은 cue는 이 시간 안에 다시 울리지 않아요
+local MAX_ACTIVE_SFX = 16
+local SFX_MAX_LIFETIME = 10 -- Ended가 오지 않아도(로드 실패 등) 이 시간 뒤 지워요
+local MUSIC_FADE = 0.5
+
+-- 음소거 단계: 1 소리 켬, 2 음악 끔, 3 모두 끔
+local MUTE_LABELS = { "🔊 소리 켬", "🎵 음악 끔", "🔇 모두 끔" }
+
+local started = false
+local sfxGroup: SoundGroup? = nil
+local musicGroup: SoundGroup? = nil
+local muteLevel = 1
+
 local warned: { [string]: boolean } = {}
+local lastPlayed: { [string]: number } = {}
+local activeSfx = 0
+
+local currentMusicName: string? = nil
+local currentMusic: Sound? = nil
+
+local fadeInfo = TweenInfo.new(MUSIC_FADE, Enum.EasingStyle.Linear)
 
 local function warnOnce(kind: string, name: string)
 	local key = `{kind}:{name}`
@@ -22,11 +53,90 @@ local function warnOnce(kind: string, name: string)
 	warn(`[Sfx] unknown {kind} "{name}" (see Shared.SfxCues)`)
 end
 
-function Sfx.play(cue: string, _at: (BasePart | Vector3)?)
+local function applyMute()
+	if sfxGroup then
+		sfxGroup.Volume = if muteLevel >= 3 then 0 else SFX_GROUP_VOLUME
+	end
+	if musicGroup then
+		musicGroup.Volume = if muteLevel >= 2 then 0 else MUSIC_GROUP_VOLUME
+	end
+end
+
+local function makeGroup(name: string, volume: number): SoundGroup
+	local group = Instance.new("SoundGroup")
+	group.Name = name
+	group.Volume = volume
+	group.Parent = SoundService
+	return group
+end
+
+function Sfx.play(cue: string, at: (BasePart | Vector3)?)
 	if not SfxCues.isEffect(cue) then
 		warnOnce("cue", cue)
 		return
 	end
+	if not started then
+		return
+	end
+	local entry = SfxLibrary.get(cue)
+	if entry == nil or entry.id == nil then
+		return
+	end
+	local now = os.clock()
+	local last = lastPlayed[cue]
+	if last ~= nil and now - last < SAME_CUE_GAP then
+		return
+	end
+	if activeSfx >= MAX_ACTIVE_SFX then
+		return
+	end
+	lastPlayed[cue] = now
+
+	local sound = Instance.new("Sound")
+	sound.Name = cue
+	sound.SoundId = entry.id :: string
+	sound.Volume = entry.volume
+	local jitter = entry.pitchJitter or 0
+	sound.PlaybackSpeed = (entry.pitch or 1) * (1 + (math.random() * 2 - 1) * jitter)
+	sound.SoundGroup = sfxGroup
+	sound.RollOffMaxDistance = ROLLOFF_MAX_DISTANCE
+
+	-- 소리가 붙을 곳: 파트, 임시 Attachment(위치), SoundService(2D)
+	local holder: Instance? = nil
+	if typeof(at) == "Instance" then
+		if not (at :: Instance):IsA("BasePart") then
+			sound:Destroy()
+			return
+		end
+		sound.Parent = at
+	elseif typeof(at) == "Vector3" then
+		local attachment = Instance.new("Attachment")
+		attachment.Name = "SfxAt"
+		attachment.WorldPosition = at :: Vector3
+		attachment.Parent = workspace.Terrain
+		holder = attachment
+		sound.Parent = attachment
+	else
+		sound.Parent = SoundService
+	end
+
+	activeSfx += 1
+	local done = false
+	local function finish()
+		if done then
+			return
+		end
+		done = true
+		activeSfx -= 1
+		sound:Destroy()
+		if holder then
+			holder:Destroy()
+		end
+	end
+	sound.Ended:Once(finish)
+	sound.Destroying:Once(finish) -- 붙은 파트가 먼저 사라져도 개수를 맞춰요
+	task.delay(SFX_MAX_LIFETIME, finish)
+	sound:Play()
 end
 
 function Sfx.setMusic(name: string?)
@@ -34,8 +144,139 @@ function Sfx.setMusic(name: string?)
 		warnOnce("music", name)
 		return
 	end
+	if not started or name == currentMusicName then
+		return
+	end
+	currentMusicName = name
+
+	local old = currentMusic
+	currentMusic = nil
+	if old then
+		local tween = TweenService:Create(old, fadeInfo, { Volume = 0 })
+		tween.Completed:Once(function()
+			old:Destroy()
+		end)
+		tween:Play()
+	end
+
+	if name == nil then
+		return
+	end
+	local entry = SfxLibrary.get(name)
+	if entry == nil or entry.id == nil then
+		return
+	end
+	local sound = Instance.new("Sound")
+	sound.Name = `Music_{name}`
+	sound.SoundId = entry.id :: string
+	sound.Looped = true
+	sound.Volume = 0
+	sound.SoundGroup = musicGroup
+	sound.Parent = SoundService
+	sound:Play()
+	TweenService:Create(sound, fadeInfo, { Volume = entry.volume }):Play()
+	currentMusic = sound
 end
 
-function Sfx.start(_gui: Instance) end
+-- 배경음: 방/매치 상태를 기억해 두고 바뀔 때마다 musicFor로 골라요
+local inMatch = false
+local phaseInfo: Types.MatchPhaseInfo? = nil
+
+local function refreshMusic()
+	local info = if inMatch then phaseInfo else nil
+	Sfx.setMusic(
+		SfxLibrary.musicFor(
+			inMatch,
+			if info then info.phase else nil,
+			if info then info.roundIndex else nil,
+			if info then info.roundCount else nil
+		)
+	)
+end
+
+local function hookButton(instance: Instance)
+	if instance:IsA("GuiButton") then
+		instance.Activated:Connect(function()
+			Sfx.play("ButtonClick")
+		end)
+	end
+end
+
+local function buildMuteButton(playerGui: Instance)
+	local screen = Instance.new("ScreenGui")
+	screen.Name = "SoundGui"
+	screen.ResetOnSpawn = false
+	screen.DisplayOrder = 5
+
+	local button = Instance.new("TextButton")
+	button.Name = "MuteButton"
+	-- HUD 타이머(오른쪽 위 y 16~52) 아래. 기본 메뉴 줄은 IgnoreGuiInset = false라 피해져요
+	button.AnchorPoint = Vector2.new(1, 0)
+	button.Position = UDim2.new(1, -16, 0, 60)
+	button.Size = UDim2.fromOffset(110, 28)
+	button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	button.BackgroundTransparency = 0.35
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.Text = MUTE_LABELS[muteLevel]
+	button.AutoButtonColor = true
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = button
+
+	button.Activated:Connect(function()
+		muteLevel = muteLevel % #MUTE_LABELS + 1
+		button.Text = MUTE_LABELS[muteLevel]
+		applyMute()
+	end)
+
+	button.Parent = screen
+	screen.Parent = playerGui
+end
+
+function Sfx.start(_gui: Instance)
+	if started then
+		return
+	end
+	started = true
+
+	sfxGroup = makeGroup("Sfx", SFX_GROUP_VOLUME)
+	musicGroup = makeGroup("Music", MUSIC_GROUP_VOLUME)
+	applyMute()
+
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+
+	-- 버튼 클릭음: 지금 있는 버튼 + 나중에 생기는 버튼 (다른 UI 파일을 고치지 않아요)
+	for _, descendant in playerGui:GetDescendants() do
+		hookButton(descendant)
+	end
+	playerGui.DescendantAdded:Connect(hookButton)
+
+	buildMuteButton(playerGui)
+
+	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
+		inMatch = room ~= nil and room.state == "InMatch"
+		if not inMatch then
+			phaseInfo = nil
+		end
+		refreshMusic()
+	end)
+
+	Remotes.event("MatchPhase").OnClientEvent:Connect(function(info: Types.MatchPhaseInfo)
+		phaseInfo = info
+		refreshMusic()
+	end)
+
+	Remotes.event("PlayerResult").OnClientEvent:Connect(function(result: Types.PlayerResult)
+		if result.userId == player.UserId and result.result == "Passed" then
+			Sfx.play("Qualified")
+		end
+	end)
+
+	refreshMusic()
+end
 
 return Sfx

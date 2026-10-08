@@ -8,6 +8,7 @@
 | `developer` | 개발 | `src/`, `tests/`, `default.project.json`, 스펙의 "개발 메모", `docs/developer/` | `docs/` |
 | `qa` | QA | `docs/qa/`, `tests/` (테스트 추가만) | `src/`, `docs/` |
 | `docs-writer` | 문서화 | `CLAUDE.md`, `README.md`, `docs/DEV-SETUP.md`, `docs/CHANGELOG.md`, `docs/docs-writer/` | 전부 |
+| 사용자 | 플레이테스트 기록 | `docs/playtest/` (친구 테스트 결과, 양식은 `docs/DEV-SETUP.md` 3-8 N) | — |
 
 모든 에이전트는 담당 스펙의 `status:` 줄과 "결정 기록"은 수정할 수 있다.
 

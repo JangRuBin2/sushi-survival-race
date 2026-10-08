@@ -351,6 +351,30 @@ return function(t: Test.Test)
 		t.eq(button.Text, "🎵 음악 끔")
 	end)
 
+	t.test("D4: a press sent before the server loaded is sent again after the first profile", function()
+		local env, button = muteEnv()
+		button.Activated:Fire() -- 2
+		env.now += 0.5
+		env.runDelayed(env.now)
+		t.eq(saves(env), { 2 }, "sent, but the server had no profile yet and dropped it")
+		env.pushProfile(view(1)) -- 서버의 값은 아직 1
+		t.eq(button.Text, "🎵 음악 끔", "user value wins")
+		env.now += 2
+		env.runDelayed(env.now)
+		t.eq(saves(env), { 2, 2 }, "sent again")
+	end)
+
+	t.test("D4: no resend when the first profile already has the pressed value", function()
+		local env, button = muteEnv()
+		button.Activated:Fire() -- 2
+		env.now += 0.5
+		env.runDelayed(env.now)
+		env.pushProfile(view(2))
+		env.now += 2
+		env.runDelayed(env.now)
+		t.eq(saves(env), { 2 })
+	end)
+
 	t.test("mute: a press before the profile arrives wins", function()
 		local env, button = muteEnv()
 		button.Activated:Fire() -- 2

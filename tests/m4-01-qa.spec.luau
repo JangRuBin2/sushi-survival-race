@@ -14,6 +14,7 @@ local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
 local Config = RobloxRequire.require(Shared.Config)
+local ProfileLogic = RobloxRequire.require(Shared.ProfileLogic)
 local ProfileSchema = RobloxRequire.require(Shared.ProfileSchema)
 local RoundLogic = RobloxRequire.require(Shared.RoundLogic)
 
@@ -166,15 +167,35 @@ local function loadDataService(): DataEnv
 			return table.clone(list)
 		end,
 	}
-	local services = { Players = Players, ReplicatedStorage = { Shared = sharedFolder() } }
+	-- m4-07 병합: DataService가 DataStore를 쓰게 됐어요. Studio 기본(persistDataInStudio = false) = 메모리 모드로 돌려요.
+	local guid = 0
+	local services = {
+		Players = Players,
+		ReplicatedStorage = { Shared = sharedFolder() },
+		DataStoreService = {},
+		RunService = {
+			IsStudio = function()
+				return true
+			end,
+		},
+		HttpService = {
+			GenerateGUID = function()
+				guid += 1
+				return `guid-{guid}`
+			end,
+		},
+	}
 	local DataService = load("src/server/DataService.luau", {
 		game = {
+			JobId = "",
 			GetService = function(_, name: string)
 				return assert(services[name], name)
 			end,
+			BindToClose = function() end,
 		},
 		require = fakeRequire({
 			Config = Config,
+			ProfileLogic = ProfileLogic,
 			ProfileSchema = ProfileSchema,
 			Remotes = { event = event },
 		}),

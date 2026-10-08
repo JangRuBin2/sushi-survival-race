@@ -10,6 +10,7 @@
 --   simulate(events) -> { [userId]: coins }      한 판 시나리오의 사람별 총 코인 (테스트용)
 
 local Config = require(script.Parent.Config)
+local ProfileLogic = require(script.Parent.ProfileLogic)
 local Types = require(script.Parent.Types)
 
 export type Grant = {
@@ -43,8 +44,6 @@ export type SimEvent = {
 	lastDays: { [number]: number }?,
 }
 
-local SECONDS_PER_DAY = 86400
-
 local RewardLogic = {}
 
 function RewardLogic.forPass(isFinalRound: boolean): number?
@@ -72,9 +71,8 @@ function RewardLogic.dailyBonus(lastDay: number?, today: number): number?
 	return Config.Rewards.DailyFirstMatch
 end
 
-function RewardLogic.dayNumber(unixTime: number): number
-	return unixTime // SECONDS_PER_DAY
-end
+-- 하나로 모음: ProfileLogic.dayNumber (m4-07)
+RewardLogic.dayNumber = ProfileLogic.dayNumber
 
 function RewardLogic.matchTotal(grants: { { amount: number } }): number
 	local total = 0

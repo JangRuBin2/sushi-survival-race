@@ -3,19 +3,19 @@
 --   ProfileLogic.migrate(raw) -> (Profile, { persistable, notes })
 --       DataStore에서 읽은 값을 지금 모양으로 정리해요. 없는 칸은 기본값, 잘못된 숫자는 0, tamago는 항상 보유,
 --       보유하지 않은 장착 스킨은 tamago, 모르는 칸은 그대로 보존. version이 더 높으면(미래 데이터) persistable = false.
---   ProfileLogic.lockDecision(lock?, myJobId, now, expiry) -> "take" | "wait" | "steal"
---   ProfileLogic.canWrite(lock?, myJobId) -> boolean      내 잠금일 때만 true
+--   ProfileLogic.lockDecision(lock?, myJobId, now, expiry, mySession?) -> "take" | "wait" | "steal"
+--   ProfileLogic.canWrite(lock?, myJobId, mySession?) -> boolean  내 잠금(같은 JobId + 같은 세션)일 때만 true
 --   ProfileLogic.dayNumber(unixTime) -> number            UTC 날짜 번호 (1970-01-01 = 0)
 --   ProfileLogic.claim(stored, myJobId, now, expiry, allowSteal) -> (Stored?, decision)
 --   ProfileLogic.commit(stored, profile, myJobId, now, release) -> (Stored?, written)
 --       DataService가 UpdateAsync 변환 함수 안에서 부르는 것. 돌려준 Stored가 nil이면 쓰지 않아요.
--- 저장 값 모양: { profile = Profile, lock = { jobId, at }? } (키 u_<UserId>)
+-- 저장 값 모양: { profile = Profile, lock = { jobId, at, session? }? } (키 u_<UserId>)
 
 local Config = require(script.Parent.Config)
 local ProfileSchema = require(script.Parent.ProfileSchema)
 
 export type Profile = ProfileSchema.Profile
-export type Lock = { jobId: string, at: number }
+export type Lock = { jobId: string, at: number, session: string? }
 export type Stored = { [string]: any }
 export type MigrateInfo = { persistable: boolean, notes: { string } }
 export type LockDecision = "take" | "wait" | "steal"
@@ -131,11 +131,23 @@ function ProfileLogic.readLock(stored: unknown): Lock?
 	if type(lock) ~= "table" or type(lock.jobId) ~= "string" or type(lock.at) ~= "number" then
 		return nil
 	end
-	return { jobId = lock.jobId, at = lock.at }
+	return { jobId = lock.jobId, at = lock.at, session = if type(lock.session) == "string" then lock.session else nil }
 end
 
-function ProfileLogic.lockDecision(lock: Lock?, myJobId: string, now: number, expiry: number): LockDecision
-	if lock == nil or lock.jobId == myJobId then
+-- 잠금 주인 = 서버(JobId) + 세션(접속마다 새 GUID). 세션이 없으면(nil) JobId만 비교하는 것과 같아요.
+-- 같은 서버로 바로 다시 들어온 새 세션은 옛 세션의 잠금을 남의 것으로 봐요 (m4-07 QA D1).
+local function owns(lock: Lock, myJobId: string, mySession: string?): boolean
+	return lock.jobId == myJobId and lock.session == mySession
+end
+
+function ProfileLogic.lockDecision(
+	lock: Lock?,
+	myJobId: string,
+	now: number,
+	expiry: number,
+	mySession: string?
+): LockDecision
+	if lock == nil or owns(lock, myJobId, mySession) then
 		return "take"
 	end
 	if now - lock.at < expiry then
@@ -144,8 +156,8 @@ function ProfileLogic.lockDecision(lock: Lock?, myJobId: string, now: number, ex
 	return "steal"
 end
 
-function ProfileLogic.canWrite(lock: Lock?, myJobId: string): boolean
-	return lock ~= nil and lock.jobId == myJobId
+function ProfileLogic.canWrite(lock: Lock?, myJobId: string, mySession: string?): boolean
+	return lock ~= nil and owns(lock, myJobId, mySession)
 end
 
 function ProfileLogic.dayNumber(unixTime: number): number
@@ -166,9 +178,10 @@ function ProfileLogic.claim(
 	myJobId: string,
 	now: number,
 	expiry: number,
-	allowSteal: boolean
+	allowSteal: boolean,
+	mySession: string?
 ): (Stored?, LockDecision)
-	local decision = ProfileLogic.lockDecision(ProfileLogic.readLock(stored), myJobId, now, expiry)
+	local decision = ProfileLogic.lockDecision(ProfileLogic.readLock(stored), myJobId, now, expiry, mySession)
 	if decision == "wait" then
 		if not allowSteal then
 			return nil, "wait"
@@ -176,7 +189,7 @@ function ProfileLogic.claim(
 		decision = "steal"
 	end
 	local new = cloneStored(stored)
-	new.lock = { jobId = myJobId, at = now }
+	new.lock = { jobId = myJobId, at = now, session = mySession }
 	return new, decision
 end
 
@@ -186,20 +199,21 @@ function ProfileLogic.commit(
 	profile: Profile,
 	myJobId: string,
 	now: number,
-	release: boolean
+	release: boolean,
+	mySession: string?
 ): (Stored?, boolean)
-	if not ProfileLogic.canWrite(ProfileLogic.readLock(stored), myJobId) then
+	if not ProfileLogic.canWrite(ProfileLogic.readLock(stored), myJobId, mySession) then
 		return nil, false
 	end
 	local new = cloneStored(stored)
 	new.profile = profile
-	new.lock = if release then nil else { jobId = myJobId, at = now }
+	new.lock = if release then nil else { jobId = myJobId, at = now, session = mySession }
 	return new, true
 end
 
 -- 잠금만 풀어요 (저장하지 않는 프로필을 로드한 뒤). 내 잠금이 아니면 nil.
-function ProfileLogic.release(stored: unknown, myJobId: string): Stored?
-	if not ProfileLogic.canWrite(ProfileLogic.readLock(stored), myJobId) then
+function ProfileLogic.release(stored: unknown, myJobId: string, mySession: string?): Stored?
+	if not ProfileLogic.canWrite(ProfileLogic.readLock(stored), myJobId, mySession) then
 		return nil
 	end
 	local new = cloneStored(stored)

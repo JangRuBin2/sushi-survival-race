@@ -299,10 +299,12 @@ local function restoreMute(view: Types.ProfileView)
 	if type(saved) ~= "number" or saved % 1 ~= 0 or saved < 1 or saved > #MUTE_LABELS then
 		return
 	end
+	lastMuteSent = saved -- 서버에 있는 값
 	if userChangedMute then
-		return -- 사용자 값 우선 (누른 값은 곧 저장돼요)
+		-- 사용자 값 우선. 로드 전에 보낸 값은 서버가 버렸을 수 있으니 다르면 다시 보내요 (QA D4)
+		scheduleMuteSave()
+		return
 	end
-	lastMuteSent = saved
 	muteLevel = saved
 	applyMute()
 	if refreshMuteButton then

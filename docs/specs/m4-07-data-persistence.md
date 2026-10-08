@@ -67,6 +67,17 @@ status: qa-passed
 - 2026-10-08 · (developer) Studio에서 `persistDataInStudio = true`인데 DataStore 요청이 에러면 재시도 없이 바로 그 서버 전체를 메모리 모드로 바꿈(경고 한 줄) · AC8 "경고 한 줄만". 라이브 서버는 스펙대로 3번 재시도 후 임시 프로필 · developer
 - 2026-10-08 · (developer) 30분 넘게 바뀐 게 없어도 잠금이 만료되지 않게 자동 저장 때 `SessionLockExpiry / 3`(10분)마다 잠금 시간을 갱신 · 스펙에 없던 빈틈 · developer
 
+- 2026-10-08 · **QA 후 수정** (docs/qa/m4-07-data-persistence.md) · developer
+  - D1(P2) 수정: 잠금에 세션 GUID(`lock.session`, 접속마다 새로)를 넣어 주인을 JobId + 세션으로 판별. 같은 UserId의 옛 세션(로드 중·저장/해제 중)이 이 서버에 남아 있으면 새 로드가 최대 30초 기다림. 기다린 뒤 남은 같은 JobId 잠금은 끝난 세션 것이라 바로 가져옴. 늦게 온 옛 해제 저장은 새 세션 잠금을 풀지 못함. 테스트 `tests/data-service.spec.luau`(가짜 DataStore로 DataService 실제 실행).
+  - D2(P2) 수정: 잠금을 푼 세션의 저장(`saveNow` 포함)은 쓰지 않고 false.
+  - D3(P3) 같이 수정: `sendView`가 `canPersist`를 보내고, Studio에서 저장소가 꺼지면 모든 세션에 ProfileUpdated를 다시 보냄.
+  - D4(P3) 수정: 첫 프로필이 오면 서버 값을 `lastMuteSent`로 삼고, 사용자가 먼저 눌렀으면 다르면 다시 보냄.
+  - `RewardLogic.dayNumber = ProfileLogic.dayNumber`로 하나로 모음(m4-08 테스트 통과).
+  - m4-01 QA 테스트(`tests/m4-01-qa.spec.luau`)의 DataService 가짜 환경에 DataStoreService·RunService(IsStudio true)·HttpService·BindToClose·ProfileLogic을 더함(병합으로 DataService가 이것들을 쓰게 되어 깨짐, 테스트 내용은 그대로).
+  - 보류 D5: 로드 중 서버 종료 → 다음 서버가 10초 기다릴 뿐 데이터 유실 없음. 종료 중 로드 대기를 넣으면 BindToClose 25초 예산을 잡아먹어 다른 사람 저장이 늦어짐.
+  - 보류 D6: 스펙 2번(LoadRetries × RetryDelay 뒤 가져오기) 설계 그대로. m4-11 텔레포트에서 실제 지연을 재고 `Config.Data.LoadRetries`를 정함(공용 파일이라 여기서 안 바꿈).
+  - 보류 D7: m4-08 RewardService가 `waitForProfile(player, 10)`으로 시간을 직접 넘겨서 DataService 기본값을 올려도 효과 없음. m4-08 담당이 `PROFILE_WAIT`를 40초 이상(잠금 대기 10초 + 재접속 대기 30초)으로 올리거나 `onLoaded` 뒤 지급하도록 제안.
+
 ## 개발 메모
 - 바뀐 파일: `src/server/DataService.luau`(DataStore·세션 잠금·자동 저장·BindToClose·`saveNow`), `src/shared/ProfileLogic.luau`(새), `src/client/Sfx.luau`(음소거 저장·복원), `tests/profile-logic.spec.luau`(새, 28개), `tests/lib/FakeSfxEnv.luau`(가짜 ProfileStore·FireServer).
 - 동작 요약: 로드는 비동기(`PlayerAdded` → UpdateAsync). 다른 서버 잠금이면 2초 간격 5번 기다린 뒤 가져옴. 미래 버전 데이터는 임시 프로필 + 잠금 즉시 해제. 저장은 사람마다 한 번에 하나(세대 번호), 나갈 때·BindToClose는 잠금 해제. 잠금을 뺏기면 쓰지 않고 그 사람은 `persistent = false`로 바뀌어 ProfileUpdated가 다시 감.

@@ -8,11 +8,13 @@
 --   DataService.onLoaded(fn(player, profile)) -> 해제 함수   이미 로드된 사람에게도 바로 불러요
 --   DataService.canPersist(player) -> boolean              이 프로필이 저장되는가
 --   DataService.saveNow(player) -> boolean                 지금 저장하고 성공 여부 (m4-14 결제). 같은 사람 저장은
---                                                         한 번에 하나씩, 겹치면 앞 저장이 끝난 뒤 한 번 더 (yield)
+--                                                         한 번에 하나씩, 겹치면 앞 저장이 끝난 뒤 한 번 더 (yield).
+--                                                         실제로 쓰지 못하면 false (임시 프로필, 잠금 해제 뒤, 에러)
 -- 리모트: SaveSettings({ muteLevel }) — 표·정수 1~3·요청 간격(Config.Data.SettingsMinInterval)을 검증하고
 -- 잘못된 값은 조용히 무시해요.
 --
 -- 저장: 저장소 Config.Data.StoreName, 키 u_<UserId>, 값 { profile, lock = { jobId, at }? } (ProfileLogic).
+--   잠금 주인 = JobId + 세션 GUID(접속마다 새로). 같은 서버로 바로 다시 들어오면 옛 세션의 저장·해제를 기다려요.
 --   로드(PlayerAdded): UpdateAsync로 읽으며 잠금을 걸어요. 남의 잠금이 만료 전이면 RetryDelay초 뒤 다시
 --   (LoadRetries번), 그래도 잠겨 있으면 가져와요(경고). 요청 에러는 MAX_RETRIES번 다시, 그래도 실패하면
 --   임시 프로필(저장 안 함 — 진짜 데이터를 빈 값으로 덮어쓰지 않게).
@@ -36,6 +38,7 @@ export type Profile = ProfileSchema.Profile
 type Session = {
 	player: Player,
 	key: string,
+	sessionId: string, -- 접속마다 새 GUID. 잠금 주인 = JobId + sessionId (QA D1)
 	profile: Profile,
 	persist: boolean, -- false면 임시 프로필 (저장 안 함)
 	dirty: boolean,
@@ -54,6 +57,7 @@ type Transform = (old: unknown) -> { [string]: any }?
 local DataService = {}
 
 local DEFAULT_WAIT = 10
+local REJOIN_WAIT = 30 -- 같은 서버로 다시 들어오면 옛 세션 저장·해제를 이만큼까지 기다려요
 local MAX_RETRIES = 3 -- DataStore 요청 에러 때 다시 시도하는 횟수
 local CLOSE_TIMEOUT = 25 -- BindToClose에서 저장을 기다리는 최대 시간(초)
 local BUDGET_MAX_WAIT = 10 -- 요청 예산이 0일 때 기다리는 최대 시간(초)
@@ -65,6 +69,8 @@ local studio = false
 local closing = false
 
 local sessions: { [Player]: Session } = {}
+local loading: { [Player]: boolean } = {}
+local userBusy: { [number]: number } = {} -- UserId별로 아직 안 끝난 세션 수 (로드 중·저장/해제 중 포함)
 local saving: { [Session]: boolean } = {} -- 나간 사람 포함, 저장 중인 세션 (BindToClose가 기다려요)
 local dirtyView: { [Player]: boolean } = {} -- 이번 프레임 끝에 ProfileUpdated를 보낼 사람
 local lastSettingsAt: { [Player]: number } = {}
@@ -81,7 +87,7 @@ local function sendView(player: Player)
 	if session == nil or player.Parent == nil then
 		return
 	end
-	profileUpdatedEvent:FireClient(player, ProfileSchema.toView(session.profile, session.persist))
+	profileUpdatedEvent:FireClient(player, ProfileSchema.toView(session.profile, DataService.canPersist(player)))
 end
 
 local function scheduleView(player: Player)
@@ -111,6 +117,9 @@ local function disableStore(reason: string)
 	end
 	store = nil
 	warn(`[DataService] DataStore unavailable in Studio, using memory only: {reason}`)
+	for player in sessions do
+		scheduleView(player) -- 화면도 persistent = false로 (QA D3)
+	end
 end
 
 local function waitForBudget(requestType: Enum.DataStoreRequestType)
@@ -162,7 +171,7 @@ local function updateAsync(key: string, userId: number, transform: Transform)
 end
 
 -- 잠금을 걸고 프로필을 읽어요. 돌려주는 값: (프로필, 저장 가능)
-local function loadFromStore(player: Player): (Profile, boolean)
+local function loadFromStore(player: Player, sessionId: string): (Profile, boolean)
 	if store == nil then
 		return ProfileSchema.new(), false
 	end
@@ -175,7 +184,10 @@ local function loadFromStore(player: Player): (Profile, boolean)
 		local decision = "take"
 		local ok = request(`load {key}`, function()
 			updateAsync(key, userId, function(old)
-				local new, result = ProfileLogic.claim(old, jobId, os.time(), expiry, allowSteal)
+				-- 이 서버의 옛 세션 잠금은 그 세션이 끝난 뒤(load가 기다림) 남은 것이라 바로 가져와요
+				local lock = ProfileLogic.readLock(old)
+				local stale = lock ~= nil and lock.jobId == jobId
+				local new, result = ProfileLogic.claim(old, jobId, os.time(), expiry, allowSteal or stale, sessionId)
 				decision = result
 				raw = if type(old) == "table" then (old :: any).profile else nil
 				return new
@@ -203,7 +215,7 @@ local function loadFromStore(player: Player): (Profile, boolean)
 			-- 저장하지 않으니 잠금을 바로 풀어 둬요 (다른 서버가 기다리지 않게)
 			task.spawn(request, `release {key}`, function()
 				updateAsync(key, userId, function(old)
-					return ProfileLogic.release(old, jobId)
+					return ProfileLogic.release(old, jobId, sessionId)
 				end)
 			end)
 			return profile, false
@@ -216,7 +228,7 @@ end
 -- 저장 한 번. 성공하면 true.
 local function writeOnce(session: Session, release: boolean): boolean
 	if session.released then
-		return true
+		return false -- 잠금을 이미 풀어서 쓸 수 없어요 (QA D2: saveNow가 true를 돌려주면 안 됨)
 	end
 	if not session.persist or store == nil then
 		return false
@@ -227,7 +239,7 @@ local function writeOnce(session: Session, release: boolean): boolean
 	local written = false
 	local ok = request(`save {session.key}`, function()
 		updateAsync(session.key, session.player.UserId, function(old)
-			local new, canWrite = ProfileLogic.commit(old, snapshot, jobId, os.time(), release)
+			local new, canWrite = ProfileLogic.commit(old, snapshot, jobId, os.time(), release, session.sessionId)
 			written = canWrite
 			return new
 		end)
@@ -282,14 +294,30 @@ local function save(session: Session, release: boolean): boolean
 	return session.okGen >= myGen
 end
 
+local function finishUser(userId: number)
+	local count = (userBusy[userId] or 1) - 1
+	userBusy[userId] = if count > 0 then count else nil
+end
+
 local function load(player: Player)
-	if sessions[player] then
+	if sessions[player] or loading[player] then
 		return
 	end
-	local profile, persist = loadFromStore(player)
+	loading[player] = true
+	local userId = player.UserId
+	-- 같은 서버로 바로 다시 들어왔으면 옛 세션의 저장·해제가 끝날 때까지 기다려요 (QA D1)
+	local deadline = os.clock() + REJOIN_WAIT
+	while (userBusy[userId] or 0) > 0 and player.Parent ~= nil and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	userBusy[userId] = (userBusy[userId] or 0) + 1
+	local sessionId = HttpService:GenerateGUID(false)
+	local profile, persist = loadFromStore(player, sessionId)
+	loading[player] = nil
 	local session: Session = {
 		player = player,
 		key = keyFor(player),
+		sessionId = sessionId,
 		profile = profile,
 		persist = persist,
 		dirty = false,
@@ -306,6 +334,7 @@ local function load(player: Player)
 		if persist then
 			save(session, true)
 		end
+		finishUser(userId)
 		return
 	end
 	sessions[player] = session
@@ -320,9 +349,13 @@ local function unload(player: Player)
 	sessions[player] = nil
 	dirtyView[player] = nil
 	lastSettingsAt[player] = nil
-	if session and session.persist then
+	if session == nil then
+		return -- 로드 중에 나갔으면 load가 정리해요
+	end
+	if session.persist then
 		save(session, true)
 	end
+	finishUser(player.UserId)
 end
 
 function DataService.get(player: Player): Profile?

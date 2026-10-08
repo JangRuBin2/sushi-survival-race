@@ -122,7 +122,9 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 M5)
   - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
-  - 개인정보 삭제 요청(Right to Erasure)이 오면: Creator Dashboard → Data Stores → `PlayerData_v1`에서 키 `u_<UserId>` 삭제. MemoryStore는 곧 만료되니 따로 지울 것 없음
+  - 개인정보 삭제 요청(Right to Erasure)이 오면 두 곳을 지워요. MemoryStore는 곧 만료되니 따로 지울 것 없음.
+    1. `PlayerData_v1`: Creator Dashboard → Data Stores에서 키 `u_<UserId>` 삭제
+    2. `Purchases_v1`(로벅스 구매 기록): 키가 PurchaseId라 UserId로 바로 찾을 수 없어요. 각 기록에 UserId 메타데이터가 붙어 있으니, Studio Command Bar(퍼블리시된 게임, API 접근 켬)에서 `ListKeysAsync`로 키를 돌며 `GetAsync`의 `KeyInfo:GetUserIds()`에 그 UserId가 있는 키를 `RemoveAsync`로 지워요. 요청이 오면 에이전트에게 스크립트를 달라고 하면 돼요.
 
 ---
 

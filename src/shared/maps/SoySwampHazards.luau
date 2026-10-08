@@ -6,12 +6,16 @@
 -- 태그 파츠는 ctx.model 하위에 있는 것만 써요 (M1 B10 (A)). 상태는 전부 이 함수들의 지역 변수에 둬서
 -- 여러 방이 같은 맵을 동시에 돌려도 섞이지 않아요. Roblox API는 함수 안에서만 불러요.
 
+local Art = require(script.Parent.SoySwampArt)
 local Config = require(script.Parent.Parent.Config)
 local Layout = require(script.Parent.SoySwampLayout)
+local MoveExempt = require(script.Parent.Parent.MoveExempt)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 
 local Hazards = {}
+
+local WASABI_EXEMPT = 2.5 -- 와사비 튕김 뒤 이동 감시 면제 (위 80·앞 30 studs/s 포물선이 착지할 때까지, 초)
 
 -- ctx.model 하위에 있는 태그 파츠만
 function Hazards.taggedParts(ctx: MapTypes.RoundContext, tag: string): { BasePart }
@@ -71,12 +75,14 @@ function Hazards.soyStepper(ctx: MapTypes.RoundContext): (racers: { Player }) ->
 					soaked[player] = humanoid
 					humanoid.WalkSpeed = slowSpeed
 					humanoid.JumpPower = 0
+					MoveExempt.mark(player.Character) -- 서버가 속도를 바꿨어요 (m4-10 이동 감시 오탐 방지)
 					MapSfx.play(root, "SoySlow")
 				end
 			elseif soaked[player] ~= nil then
 				if soaked[player] == humanoid then
 					humanoid.WalkSpeed = Config.Character.WalkSpeed
 					humanoid.JumpPower = Config.Character.JumpPower
+					MoveExempt.mark(player.Character)
 				end
 				soaked[player] = nil
 			end
@@ -157,9 +163,11 @@ function Hazards.wasabiStepper(ctx: MapTypes.RoundContext): (racers: { Player })
 			for _, pad in pads do
 				if isAbove(pad, root.Position, Layout.WASABI_ZONE_HEIGHT) then
 					if cooldown.tryUse(player, os.clock()) then
+						local character = player.Character
+						-- 큰 튕김: 날아가 착지할 때까지 이동 감시(m4-10)에서 빼요
+						MoveExempt.mark(character, WASABI_EXEMPT)
 						launch(ctx, root, velocity)
 						MapSfx.play(pad, "WasabiBoing")
-						local character = player.Character
 						if character then
 							showSpicyText(ctx, character)
 						end
@@ -182,8 +190,11 @@ local function spawnBall(ctx: MapTypes.RoundContext, folder: Instance): BasePart
 	ball.Name = "Tobiko"
 	ball.Shape = Enum.PartType.Ball
 	ball.Size = Vector3.one * Layout.BALL_DIAMETER
-	ball.Color = Color3.fromRGB(255, 120, 30)
-	ball.Material = Enum.Material.SmoothPlastic
+	-- 아트 (m4-02): 날치알 오렌지 모래 질감. 구르는 물리는 M3의 SmoothPlastic 그대로.
+	local tobiko = Art.COLORS.tobiko
+	ball.Color = Color3.fromRGB(tobiko.r, tobiko.g, tobiko.b)
+	ball.Material = Enum.Material.Sand
+	ball.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic)
 	ball.Anchored = false
 	ball.CanCollide = true
 	ball.CFrame = origin * CFrame.new(x, y, Layout.BALL_SPAWN_Z)
@@ -200,6 +211,8 @@ end
 
 local function knockDown(ctx: MapTypes.RoundContext, player: Player, humanoid: Humanoid)
 	humanoid.PlatformStand = true
+	-- 공에 맞아 튕겨 넘어져요: 일어날 때까지 이동 감시(m4-10)에서 빼요
+	MoveExempt.mark(player.Character, Layout.KNOCKDOWN_DURATION + 1)
 	ctx.cleanup:add(task.delay(Layout.KNOCKDOWN_DURATION, function()
 		-- 그 사이 통과·탈락했으면 손대지 않아요 (탈락 고정은 PlatformStand를 켜 둬요).
 		if humanoid.Parent == nil or player.Character ~= humanoid.Parent then

@@ -5,28 +5,23 @@
 -- 치수·튜닝 값은 SoySwampLayout, 장애물 동작은 SoySwampHazards에 있어요.
 -- 코스는 origin의 LookVector(로컬 -Z)로 뻗어요. build/start 안에서만 Roblox API를 써서 Lune에서 require해도 안전해요.
 
+local Art = require(script.Parent.SoySwampArt)
 local Config = require(script.Parent.Parent.Config)
 local Hazards = require(script.Parent.SoySwampHazards)
 local Layout = require(script.Parent.SoySwampLayout)
+local MapKit = require(script.Parent.MapKit)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "soy-swamp"
 local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
 
--- 색 표. Color3는 Roblox API라 build 안에서만 만들어요 (require만 할 때 부르지 않게).
-local function palette()
-	return {
-		floor = Color3.fromRGB(214, 202, 190),
-		swamp = Color3.fromRGB(176, 160, 140),
-		soy = Color3.fromRGB(60, 30, 15),
-		mountain = Color3.fromRGB(150, 170, 120),
-		wasabi = Color3.fromRGB(120, 220, 60),
-		ramp = Color3.fromRGB(190, 180, 160),
-		slope = Color3.fromRGB(200, 170, 140),
-		wall = Color3.fromRGB(235, 230, 220),
-		spawn = Color3.fromRGB(246, 196, 70),
-		finish = Color3.fromRGB(255, 196, 40),
-	}
+-- 색 표 (m4-02 아트: SoySwampArt.COLORS). Color3는 Roblox API라 build 안에서만 만들어요.
+local function palette(): { [string]: Color3 }
+	local colors = {}
+	for key, c in Art.COLORS do
+		colors[key] = Color3.fromRGB(c.r, c.g, c.b)
+	end
+	return colors
 end
 
 -- Instance.new + 속성 적용. Parent는 맨 마지막에 넣어요.
@@ -52,6 +47,8 @@ local function build(origin: CFrame): Model
 	local CollectionService = game:GetService("CollectionService")
 
 	local COLORS = palette()
+	-- 아트 재질(나무·모래)을 입혀도 마찰·밀도는 M3의 SmoothPlastic 그대로 (날치알 구르기·발밑 느낌이 같게)
+	local SMOOTH = PhysicalProperties.new(Enum.Material.SmoothPlastic)
 	local model = Instance.new("Model")
 	model.Name = ID
 
@@ -67,13 +64,16 @@ local function build(origin: CFrame): Model
 		width: number,
 		depth: number,
 		height: number,
-		color: Color3
+		color: Color3,
+		material: Enum.Material
 	): BasePart
 		return makePart({
 			Name = name,
 			Size = Vector3.new(width, height, depth),
 			CFrame = at(x, height / 2, z),
 			Color = color,
+			Material = material,
+			CustomPhysicalProperties = SMOOTH,
 			Parent = model,
 		})
 	end
@@ -87,6 +87,8 @@ local function build(origin: CFrame): Model
 		Size = Vector3.new(Layout.WIDTH, Layout.FLOOR_THICKNESS, length),
 		CFrame = at(0, -Layout.FLOOR_THICKNESS / 2, Layout.START.front - length / 2),
 		Color = COLORS.floor,
+		Material = Enum.Material.WoodPlanks,
+		CustomPhysicalProperties = SMOOTH,
 		Parent = model,
 	})
 
@@ -162,6 +164,7 @@ local function build(origin: CFrame): Model
 			CFrame = at(box.x, 0.1 + Layout.PUDDLE_DEPTH / 2, box.z),
 			Color = COLORS.soy,
 			Material = Enum.Material.Glass,
+			Reflectance = Art.SOY_REFLECTANCE,
 			Transparency = 0.15,
 			CanCollide = false,
 			CanTouch = false,
@@ -173,9 +176,9 @@ local function build(origin: CFrame): Model
 	-- 3. 와사비 산: 앞이 절벽인 몸통 + 폭 전체 뒷단 + 오른쪽 경사로 (지면 통로 끝에서 되돌아 올라가요)
 	local h = Layout.MOUNTAIN_HEIGHT
 	local body = Layout.MOUNTAIN_BODY
-	block("MountainBody", body.x, body.z, body.width, body.depth, h, COLORS.mountain)
+	block("MountainBody", body.x, body.z, body.width, body.depth, h, COLORS.mountain, Enum.Material.Sand)
 	local back = Layout.MOUNTAIN_BACK
-	block("MountainBack", back.x, back.z, back.width, back.depth, h, COLORS.mountain)
+	block("MountainBack", back.x, back.z, back.width, back.depth, h, COLORS.mountain, Enum.Material.Sand)
 
 	local ramp = Layout.RAMP
 	local run = ramp.high - ramp.low
@@ -188,6 +191,8 @@ local function build(origin: CFrame): Model
 		CFrame = at(ramp.x, h / 2 - (slab / 2) / math.cos(angle), (ramp.low + ramp.high) / 2)
 			* CFrame.Angles(-angle, 0, 0),
 		Color = COLORS.ramp,
+		Material = Enum.Material.WoodPlanks,
+		CustomPhysicalProperties = SMOOTH,
 		Parent = model,
 	})
 
@@ -209,7 +214,7 @@ local function build(origin: CFrame): Model
 	-- 4. 날치알 내리막: 산 높이의 받침 위에 결승 쪽이 높은 판
 	local slopeDepth = Layout.SLOPE.front - Layout.SLOPE.back
 	local slopeCenterZ = Layout.SLOPE.front - slopeDepth / 2
-	block("SlopeBase", 0, slopeCenterZ, Layout.WIDTH, slopeDepth, Layout.SLOPE_LOW, COLORS.mountain)
+	block("SlopeBase", 0, slopeCenterZ, Layout.WIDTH, slopeDepth, Layout.SLOPE_LOW, COLORS.mountain, Enum.Material.Sand)
 	local rise = Layout.SLOPE_HIGH - Layout.SLOPE_LOW
 	local slopeAngle = math.atan(rise / slopeDepth)
 	makePart({
@@ -219,6 +224,8 @@ local function build(origin: CFrame): Model
 		CFrame = at(0, (Layout.SLOPE_LOW + Layout.SLOPE_HIGH) / 2 - (slab / 2) / math.cos(slopeAngle), slopeCenterZ)
 			* CFrame.Angles(slopeAngle, 0, 0),
 		Color = COLORS.slope,
+		Material = Enum.Material.WoodPlanks,
+		CustomPhysicalProperties = SMOOTH,
 		Parent = model,
 	})
 	-- 경사판 아래 빈틈은 받침(아래)·결승 단(앞)·양옆 벽으로 막혀 있어서 따로 채우지 않아요.
@@ -232,7 +239,8 @@ local function build(origin: CFrame): Model
 		Layout.WIDTH,
 		finishDepth,
 		Layout.SLOPE_HIGH,
-		COLORS.floor
+		COLORS.floor,
+		Enum.Material.WoodPlanks
 	)
 	makePart({
 		Name = "FinishLine",
@@ -243,6 +251,11 @@ local function build(origin: CFrame): Model
 		CanCollide = false,
 		Parent = model,
 	})
+
+	-- 아트 (m4-02): 장식은 충돌·쿼리·터치 없음, 손으로 짠 소개 카메라, 사용자 Studio 아트 자리
+	MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))
+	MapKit.introCamera(model, Art.introCamera(), origin)
+	MapKit.attachStudioArt(model, ID, origin)
 
 	return model
 end

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-07 — 플레이어 데이터 저장 (DataStore) · 음소거 설정 저장

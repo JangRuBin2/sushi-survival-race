@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-06 — 다이브
@@ -71,6 +71,20 @@ Shift(또는 E, 모바일 다이브 버튼)를 누르면 초밥이 앞으로 배
 - 2026-10-08 · 로비에서도 다이브 · 판정과 무관하고 기다리는 동안 놀 거리라 허용 · planner
 - 2026-10-08 · 키 · Shift / E / 게임패드 X / 모바일 버튼. Fall Guys PC 기본은 Ctrl(다이브)·Shift(잡기)지만 GDD 6 표를 따름 · planner
 - 2026-10-08 · 간장 웅덩이 · 다이브도 속도 배수를 따르고 위로 튀지 않음("점프 불가" 규칙 유지). **기본값으로 진행, 사용자 수정 가능** · planner
+- 2026-10-08 · 관전 판정 보강 · `CameraSubject`가 내 Humanoid가 아니거나 `CameraType = Scriptable`이면 "관전 중"으로 봄. 탈락 대상 3초 비추기(위치만 남은 경우)는 카메라를 Scriptable로 두고 CameraSubject는 그대로라, 스펙 조건만으로는 E가 다이브로 새어 나감. 연출 중(소개·우승)에도 막히는데 그때는 어차피 WalkSpeed 0 · developer
+- 2026-10-08 · 날아가는 동안 수평 속도 유지 · Humanoid 공중 제어가 수평 속도를 WalkSpeed 쪽으로 끌어내려서, Flying 동안 매 프레임(PreSimulation) 발사 수평 속도를 다시 넣음 (수직은 물리 그대로). 발판 끝에서 공중 다이브하면 최대 1초 × 40 = 40 studs까지 갈 수 있음 — 너무 멀면 m3-09에서 감쇠 검토 · developer
+- 2026-10-08 · 기울인 자세 · 루트를 80도 기울이면 Humanoid가 넘어짐 상태로 빠질 수 있어 다이브 동안 로컬에서 `FallingDown`·`Ragdoll`·`GettingUp` 상태를 끔 (끝나면 다시 켬). 서버 값(PlatformStand 등)은 건드리지 않음 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · 브랜치 `m3-06-dive`
+- 바뀐 파일
+  - `src/shared/DiveLogic.luau` (새, 순수): `canDive`, `launch`, `begin`, `step`, `cooldownLeft`, `groundFlightTime`
+  - `src/client/input/DiveController.luau`: 입력(Shift/E/ButtonX, gameProcessed 무시) → `canDive` → 루트 속도 설정, `AlignOrientation`(RigidityEnabled)로 80도 엎드림 + `AutoRotate` 끔, Flying 동안 수평 속도 유지, 착지하면 `BindToRenderStep("DiveStun", Input+2)`로 `Move(zero)` + 로컬 Jumping 끔, 끊김(PlatformStand/WalkSpeed 0/Anchored/Sit/사망/리스폰)이면 즉시 해제. `Sfx.play("Dive"/"DiveLand", root)`
+  - `src/client/input/DiveButton.luau` (새): 터치 기기 + `TouchGui.TouchControlFrame.JumpButton`이 있을 때만 `DiveGui`(ResetOnSpawn false)에 점프 버튼 왼쪽·같은 크기·간격 폭×0.15. 쿨다운 덮개는 아래에 붙어 위에서부터 줄어듦. 점프 버튼 위치·크기·화면 크기가 바뀌면 다시 맞춤
+  - `tests/dive.spec.luau` (새, 14개): AC1~AC5
+- 공용 파일 변경 없음 (Config.Dive, Config.Character, SfxCues 읽기만)
+- Studio 확인: 수용 기준 AC7~AC15. 혼자 F5 로비에서 Shift/E/게임패드 X, 연타(1.5초), 점프 꼭대기 다이브. `Config.DEBUG.forceMapPlan`으로 `soy-swamp`(AC11 간장 웅덩이), `rotating-belt`(AC10 젓가락), `skewer-showdown`(AC10 넘어짐). Clients and Servers 2명으로 AC12·AC13, 휴대폰 에뮬레이터로 AC14
+- 남은 이슈 / Studio에서 봐야 할 위험
+  - `FloorMaterial` 착지 판정과 80도 기울인 루트가 실제로 자연스러운지(엎드린 채 떠 보이거나 바닥에 박히는지)는 Studio 체감 필요. 어색하면 `PRONE_PITCH`나 착지 판정 조정
+  - 경직 중 `Move(zero)`가 기본 ControlModule(Input 우선순위)보다 늦게 실행돼 이기는 것을 전제로 함

@@ -5,7 +5,7 @@
 
 로블록스 멀티플레이 파티 게임 · 엘리미네이션 레이스 · 4~24명 · 한 판 4~5분 · PC / 모바일
 
-> 🚧 **출시 준비 (비공개)** — 출시 준비(M4) 개발까지 끝났어요. 지금은 Studio 확인·퍼블리시·비공개 테스트를 준비하고 있어요. → [로드맵](#로드맵)
+> 🚧 **출시 준비 (비공개)** — 출시 준비(M4) 개발까지 끝났고, M5 첫 업데이트(결승 연장전)가 들어갔어요. 지금은 Studio 확인·퍼블리시·비공개 테스트를 준비하고 있어요. → [로드맵](#로드맵)
 
 ---
 
@@ -65,11 +65,11 @@
 | 🏃 Race | **라멘 국물 급류** | 급류에 휩쓸려 내려가고, 가라앉는 차슈를 건너고, 도는 젓가락 막대를 피해요. |
 | 🛡️ Survival | **뜨거운 철판** | 밟은 타일이 달아올라 사라져요. 3층 중 맨 아래로 떨어지면 탈락이에요. |
 | 🛡️ Survival | **셰프의 도마** | 빨간 줄 뒤에 칼이 내려쳐요. 도마는 잘려 나가며 작아지고 가끔 기울어요. |
-| 🏆 Final | **회전 꼬치 쇼다운** | 도는 꼬치를 피해 마지막 1명이 남을 때까지 버티세요. |
+| 🏆 Final | **회전 꼬치 쇼다운** | 도는 꼬치를 피해 마지막 1명이 남을 때까지 버티세요. 연장전에는 꼬치가 빨라지고 접시가 바깥부터 무너져요. |
 
 - **Race**: 결승선에 정해진 인원이 들어오면 끝나요 (최대 90초).
 - **Survival**: 정해진 인원만 남거나 시간이 끝날 때까지 버티면 통과예요 (최대 60초).
-- **Final**: 마지막 1명이 남는 순간 우승이에요 (최대 90초).
+- **Final**: 마지막 1명이 남는 순간 우승이에요. 90초가 지나면 **⚡ 연장전** — 20초 동안 발판이 무너져 설 곳이 사라지고, 가장 늦게 떨어진 초밥이 우승해요.
 
 ## 공정한 수익화
 
@@ -85,7 +85,7 @@
 | M2 | 맵 4개, 결승, 관전, 한 판 전체 흐름 | ✅ |
 | M3 | 계란초밥 캐릭터, 탈락·우승 연출, 다이브·잡기, 사운드 | ✅ (Studio 확인·친구 테스트 대기) |
 | M4 | 맵 아트, 새 맵 2개, 저장·코인·칭호, 모바일 UI, 이동 감시, 로비/매치 서버 분리, 스킨 상점 | ✅ 개발 완료 (Studio 확인·퍼블리시·비공개 테스트 대기) |
-| M5 | 새 맵, 시즌 스킨, 이벤트 (2주마다 업데이트) | 예정 |
+| M5 | 결승 연장전, 새 맵, 시즌 스킨, 이벤트 (2주마다 업데이트) | 🔨 진행 중 (결승 연장전·테스트용 스킨 미리보기 완료) |
 
 자세한 내역은 [변경 기록](docs/CHANGELOG.md)에 있어요.
 
@@ -113,11 +113,13 @@ rojo serve                     # Studio의 Rojo 플러그인으로 Connect → F
 rojo build -o build.rbxl       # 1. 프로젝트 구조 확인
 stylua --check src tests       # 2. 포맷
 selene src                     # 3. 린트
-lune run tests                 # 4. 순수 로직 테스트 (Studio 없이, 1021개)
+lune run tests                 # 4. 순수 로직 테스트 (Studio 없이, 1090개)
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사
 ```
 혼자 테스트하는 방법, 디버그 설정(`Config.DEBUG.forceMapPlan` 등), 마일스톤별 Studio 확인 목록은 [개발 환경 세팅](docs/DEV-SETUP.md)에 있어요.
+
+**테스트 도구 — 관리자 스킨 미리보기**: 관리자(Studio에서는 모두, 실서버는 서버 전용 `src/server/AdminConfig.luau`의 UserId 목록·게임 소유자)에게만 화면 왼쪽에 "🛠" 버튼이 생겨 스킨 16종을 사지 않고 입어 볼 수 있어요. 저장·코인·결제 기록에는 남지 않고, 권한은 서버가 계정으로만 판단해요(비밀번호 입력 없음).
 
 ### 구조
 ```
@@ -137,4 +139,4 @@ docs/         기획서, 스펙, QA 리포트, 변경 기록, 사용자 할 일
 - [협업 워크플로](docs/WORKFLOW.md) — 기획 → 개발 → QA → 문서화를 스펙 파일로 넘기는 방식
 - [변경 기록](docs/CHANGELOG.md)
 - [사용자가 직접 할 일](docs/USER-TODO.md) — 퍼블리시, 상품 만들기, 수치 결정, 테스트
-- 참고 자료: [파티 로얄 레퍼런스](docs/REFERENCE-party-royale.md), [맵 제작 리서치](docs/REFERENCE-map-production.md), [로블록스 수익화 시세](docs/REFERENCE-roblox-monetization.md)
+- 참고 자료: [파티 로얄 레퍼런스](docs/REFERENCE-party-royale.md), [맵 제작 리서치](docs/REFERENCE-map-production.md), [로블록스 수익화 시세](docs/REFERENCE-roblox-monetization.md), [결승 연장전·관리자 권한 조사](docs/REFERENCE-final-overtime.md)

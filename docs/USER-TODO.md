@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-08 (M4 개발 완료 — m4-01~m4-14 전부 QA 통과·문서 반영(`done`). 이제 이 목록이 다음 단계예요. 기획서는 GDD v0.4)
+> 마지막 갱신: 2026-10-08 (M5 첫 묶음 반영 — m5-01 결승 연장전, m5-02 테스트용 관리자 스킨 미리보기 `done`. M4는 m4-01~m4-14 전부 `done`. 기획서는 GDD v0.5)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -26,6 +26,12 @@
   - M4 로벅스 판매는 스킨 15개만(VIP·번들은 M5) — [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md)
   - **확정됨 (2026-10-08)**: 스킨 가격 **A안** — 로벅스 일반 29 / 레어 59 / 에픽 99 / 전설 199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만 (GDD v0.4 §9.2, 근거 [`docs/REFERENCE-roblox-monetization.md`](REFERENCE-roblox-monetization.md) 7절)
   - **확정됨 (2026-10-08)**: 코인을 로벅스로 파는 상품은 만들지 않음
+- [ ] **M5 기본값** — 읽을 곳: [`docs/CHANGELOG.md`](CHANGELOG.md) M5 절, [`docs/planner/m5-plan.md`](planner/m5-plan.md)
+  - 결승 연장전 수치: 90초에 시작, 20초 동안 접시 붕괴, 꼬치 190/150°/s — 플레이테스트 뒤 조정 ([`docs/specs/m5-01-final-overtime.md`](specs/m5-01-final-overtime.md))
+  - **확정됨 (2026-10-08, 위임)**: 150초 안전 상한 판정은 **가장 높이 있는 1명 우승** (공동 우승·무승부 안 함)
+  - **확정됨 (2026-10-08, 위임)**: 관리자 기능 실서버에서도 **켜 둠** (`src/server/AdminConfig.luau`의 `LiveEnabled = true`). 관리자 판단은 계정(UserId)으로만 — 비밀번호 방식은 보안상 거절됨
+  - [ ] **공개 출시 전에 다시 확인**: 관리자 미리보기를 실서버에서 유지할지, 끌지(`LiveEnabled = false`). 켜 두면 관리자가 안 산 스킨을 입은 모습이 다른 사람에게 보여요(능력치 영향 없음)
+- [x] **관리자 UserId 알려 주기** — 완료 (2026-10-08): **11402290839** → `src/server/AdminConfig.luau`의 `UserIds`에 들어갔어요
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
@@ -38,7 +44,7 @@
 지금은 아래가 무음이에요 (`src/shared/SfxLibrary.luau`에서 `sfx(nil, …)` / `music(nil, …)`인 것).
 
 - [ ] 배경음 4곡: `Lobby`(로비·대기실), `Round`(라운드), `Final`(결승), `Victory`(우승)
-- [ ] 효과음 8개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고)
+- [ ] 효과음 9개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고), `Overtime`(결승 연장전 시작 — 경적·징 같은 짧은 소리, m5-01)
 - 반복 재생이 자연스러운 곡(루프), 저작권이 Roblox 라이선스인 것만 고르세요.
 
 ### A3. 출시 준비물 (m4-12 체크리스트에 들어갈 것)
@@ -64,7 +70,8 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - 특히: 잡혔을 때 절반 속도로 계속 움직이는지, 이름표가 하나만 보이는지, 다이브 자세, 음소거 버튼이 위쪽 바에서 겹치지 않는지, 휴대폰 가로에서 "출발!"이 배너를 가리지 않는지
 - 맵 순서 고정: `src/shared/Config.luau`의 `DEBUG.forceMapPlan`에 맵 id 3~4개 → 확인 후 **반드시 `nil`로 되돌리기**
 
-### B3. M4 확인 (기능별 QA 리포트의 "사용자 Studio 확인 체크리스트" 절)
+### B3. M4·M5 확인 (기능별 QA 리포트의 "사용자 Studio 확인 체크리스트" 절)
+- [ ] M5: [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10** A(결승 연장전)·B(관리자 스킨 미리보기). 디버그·관리자 설정 표와 되돌리기 포함.
 - [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-9** A~O에 기능별로 모아 두었어요(QA 뒤 고쳐진 것·확정 가격 반영, 디버그 설정 표와 되돌리기 포함). 원본은 아래 QA 리포트예요.
 
 | 기능 | 읽을 파일 | 사용자 작업 먼저? |
@@ -83,8 +90,10 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 | 출시 점검 (연속 5판·잡기 입력·다이브 지름길·8명 부하·P3 눈 확인) | [`docs/qa/m4-12-release-hardening.md`](qa/m4-12-release-hardening.md) | 아니요 (`DEBUG.forceMapPlans`·`logArenaStats` 사용 후 되돌리기). 서버 종료 확인(7)만 C1 먼저 |
 | 스킨·탈의실·코인 해금 | [`docs/qa/m4-13-skins-closet.md`](qa/m4-13-skins-closet.md) (가격은 A안: 일반 🍚300, 레어 🍚900 — 리포트의 500은 옛 값) | 아니요. 저장 유지 확인만 C1 먼저 |
 | 로벅스 상점 | [`docs/qa/m4-14-robux-shop.md`](qa/m4-14-robux-shop.md) (가격은 A안 — 리포트의 R$ 49/99는 옛 값) | 가짜 결제(`DEBUG.fakeRobuxInStudio`)는 아니요, 실제 결제 창은 **C1 + C3 먼저**, 실서버 구매는 퍼블리시 후 |
+| (M5) 결승 연장전 | [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10 A** (원본 [`docs/qa/m5-01-final-overtime.md`](qa/m5-01-final-overtime.md)) | 아니요 (`DEBUG.forceMapPlan`·`overtimeAt` 사용 후 `nil`로) |
+| (M5) 관리자 스킨 미리보기 | [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10 B** (원본 [`docs/qa/m5-02-admin-skin-preview.md`](qa/m5-02-admin-skin-preview.md)) | 1~5 아니요 (**5번은 `AdminConfig.StudioAllAdmins = false`로 2명 테스트 뒤 `true`로 되돌리기**), 6은 C1 먼저, 7·8은 실서버 |
 
-공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`)은 확인 후 원래 값(`nil`/`false`)으로 되돌리고 커밋하지 마세요.
+공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`)은 확인 후 원래 값(`nil`/`false`)으로, `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요.
 
 ---
 

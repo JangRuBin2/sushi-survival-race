@@ -50,10 +50,10 @@ lune run tests               # 4. 순수 로직 테스트 (라운드 규칙·판
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사
 ```
-- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M4 기준 68개 파일, 1021개).
+- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M5 m5-01·m5-02 반영 기준 71개 파일, 1090개).
 - 5단계(타입 검사)는 에러가 없으면 끝 코드 0이고 `[INFO] Loading definitions…`·`[WARN] … didChangeWatchedFiles` 같은 줄만 나와요. 에러가 있으면 `파일(줄,칸): TypeError …`와 끝 코드 1. `sourcemap.json`은 커밋 안 함(.gitignore). 정의 파일·검사기 선택 이유는 `types/README.md`.
 - 도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 적어요.
-- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정").
+- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요.
 
 ## 3. Studio에서 게임 테스트
 
@@ -65,14 +65,14 @@ luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@ro
 
 ### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
-- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`
+- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`
 - [ ] `ServerStorage` → `MapArt` 폴더 (비어 있어도 정상, `assets/map-art`)
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 6개 `RotatingBelt*`, `SoySwamp*`, `RamenRapids*`, `HotPlate*`, `ChefBoard*`, `SkewerShowdown*` — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `input` 폴더: `Dive*`, `Grab*`)
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 6개 `RotatingBelt*`, `SoySwamp*`, `RamenRapids*`, `HotPlate*`, `ChefBoard*`, `SkewerShowdown*` — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `Admin*`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `input` 폴더: `Dive*`, `Grab*`)
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 20개(RemoteFunction 9, RemoteEvent 11)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 21개(RemoteFunction 10, RemoteEvent 11)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
 - [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨" 버튼이 떠요 (3-4, 3-9)
 
@@ -569,7 +569,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 |---|---|---|---|
 | 1 | 출시 방식 결정: 한 플레이스 모드(서버 최대 40, C2 불필요) / 로비·매치 분리(C2 필요). 소리가 없을 때 무음으로 시작할지 | A1 | 비공개 테스트 전 |
 | 2 | 게임 이름·설명(한국어 + 영어 한 줄), 장르, 아이콘 512×512, 썸네일 1920×1080 3장 이상 ("먹히는 초밥"을 전면에) | A3 | 비공개 테스트 전 |
-| 3 | 소리 고르기(배경음 4·효과음 8, 지금 무음) | A2 | 비공개 테스트 전(또는 무음으로 시작 결정) |
+| 3 | 소리 고르기(배경음 4·효과음 9, 지금 무음 — M5 `Overtime` 포함) | A2 | 비공개 테스트 전(또는 무음으로 시작 결정) |
 | 4 | M3·M4 Studio 확인 (3-8, 3-9) | B2, B3 | 비공개 테스트 전 |
 | 5 | 퍼블리시 + Studio API 접근 허용 | C1 | 비공개 테스트 전 |
 | 6 | (분리로 낼 때) Match 플레이스 만들기, 같은 빌드를 두 플레이스에 퍼블리시, PlaceId 2개 → `Config.Places` | C2 | 비공개 테스트 전 |
@@ -580,6 +580,79 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 | 11 | 공개 전환 | C4 | m4-14 확인 + 비공개 테스트 큰 문제 없음 |
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M4 "알려진 한계 · 보류" 참고.
+
+### 3-10. M5 확인 (결승 연장전 · 테스트용 관리자 스킨 미리보기)
+출처: `docs/qa/m5-01-final-overtime.md`, `docs/qa/m5-02-admin-skin-preview.md`의 "사용자 Studio 확인 체크리스트". QA 뒤 고쳐진 것(m5-01 B1 훅 스레드, B2 훅 없는 결승)은 반영했어요. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요. 표시 [바로] / [C1 먼저] / [C2 먼저]는 3-9와 같아요.
+
+**디버그 설정 (M5에서 추가)** — 로컬에서만 바꾸고 **커밋 금지**. 3-9 표의 설정도 그대로 써요.
+
+| 설정 | 위치 | 기본값(커밋 값) | 바꾸면 | 쓰는 절 |
+|---|---|---|---|---|
+| `overtimeAt` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 결승 연장전 시작을 그 초로 당겨요(예: `15`). Studio에서만 적용 | A |
+| `StudioAllAdmins` | `src/server/AdminConfig.luau` | `true` | `false`면 Studio에서도 UserId 목록(과 퍼블리시된 플레이스의 개인 소유자)만 관리자 — 비관리자 화면 확인용 | B5 |
+| `LiveEnabled` | `src/server/AdminConfig.luau` | `true` (확정, 2026-10-08) | `false`면 **실서버**에서 아무도 관리자가 아님. Studio에는 영향 없음. 공개 출시 전에 유지/끄기 재확인(USER-TODO A1) | B7 |
+
+**되돌리기**: 확인이 끝나면 `forceMapPlan = nil`, `overtimeAt = nil`(타입 표기 `nil :: number?` 그대로), `StudioAllAdmins = true`, `persistDataInStudio = false`. 안 되돌리면 `lune run tests`가 실패하거나(Config 커밋 값 고정 테스트) 관리자 확인이 헷갈려요.
+
+**A. 결승 연장전 (m5-01)** [바로] — 준비: `forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, 빠르게 보려면 `overtimeAt = 15`
+1. (AC11) Test → Clients and Servers 2명, 방 만들고 시작 → 결승(꼬치 쇼다운)까지 둘 다 살아남아 버티기. 15초(디버그) 또는 90초가 되면:
+   - [ ] 두 화면 모두 가운데 "⚡ 연장전!" / "접시가 무너져요! 끝까지 버텨요" 배너가 약 2초 뜨고 사라져요.
+   - [ ] 오른쪽 위 타이머가 빨간 "⚡ 20초"로 바뀌어 1초씩 줄고, 0이 되면 "⚡ 버텨요!".
+   - [ ] 배경음이 조금 빨라져요(곡 id가 있을 때). `Overtime` 경적은 id가 없으면 무음이 정상.
+2. (AC12)
+   - [ ] 남은 모든 조각의 가장 바깥 남색 줄이 1초 빨갛게 깜빡인 뒤 사라지고, 약 2.7초(19/7초)마다 한 줄씩 안쪽으로 이어져요. 디버그 15초(조각이 여러 개 남은 상태)여도 **남은 조각 전부**가 같이 무너져요.
+   - [ ] 연장전 뒤 셰프 손이 새 조각을 집으러 오지 않아요(이미 빨갛게 깜빡이던 조각은 마저 가져감).
+   - [ ] 꼬치가 눈에 띄게 빨라져요.
+3. (AC13)
+   - [ ] 연장전 시작 약 20초 뒤 가장 안쪽 줄까지 사라져 두 사람 다 떨어져요. **더 늦게 떨어진 쪽**에 "🏆 우승했어요!" → 약 3초 뒤 Victory 연출.
+   - [ ] 기둥 옆에 붙기, 기둥 위로 점프, 꼬치·손·장식 위에 올라타기 — 전부 실패하고 떨어져요.
+4. (AC14) Play(혼자) 같은 설정으로 결승까지 →
+   - [ ] 연장전 → 붕괴로 떨어지면 우승 처리되고 Victory → 로비로 끝나요(멈추지 않음). 기본값이면 약 110초, `overtimeAt = 15`면 약 36초.
+5. (AC15) 2명, 연장전 중(빨간 타이머가 보일 때)
+   - [ ] 한 명이 리셋(Esc → Reset)하면 남은 사람에게 즉시 "🏆 우승했어요!".
+   - [ ] 다시 해서 한 명이 게임을 나가면(창 닫기) 남은 사람이 즉시 우승.
+   - [ ] 연장전 전에 떨어진 사람(관전 중) 화면에도 배너·빨간 타이머가 똑같이 보여요.
+6. (AC16) `forceMapPlan = { "skewer-showdown", "hot-plate", "rotating-belt" }`, 2명
+   - [ ] 1라운드(꼬치 쇼다운)는 90초가 되어도 연장전 배너가 없고, 버틴 사람이 전원 통과해요.
+   - [ ] 매치 시작 때 서버 Output에 `forceMapPlan ends with rotating-belt (Race), not a Final map …` 경고 한 줄. 3라운드(회전 벨트가 결승 역할)는 연장전·배너 없이 끝나요 — 아무도 결승선에 안 들어가면 90초에 가장 멀리 간 1명이 우승(m5-01 B2 수정).
+7. (AC17) Test → Device(휴대폰 가로) 에뮬레이터로 1번 반복
+   - [ ] "⚡ 20초", "⚡ 버텨요!"가 타이머 칸 안에 들어가고(잘리거나 넘치지 않음) 읽혀요.
+   - [ ] "⚡ 연장전!" 배너가 왼쪽 위 인원·내 결과·조작 버튼과 겹치지 않아요.
+8. 끝나면 `forceMapPlan`, `overtimeAt`를 `nil`로.
+
+**B. 테스트용 관리자: 스킨 미리보기 (m5-02)** — 1~5 [바로], 6 [C1 먼저], 7 실서버(C1 뒤), 8 실서버(C2 뒤)
+1. (AC6) Play(혼자)
+   - [ ] 화면 왼쪽 가장자리 세로 가운데에 "🛠" 버튼. 위쪽 바(코인·음소거)·오른쪽 아래 터치 버튼·탈의실 창과 겹치지 않아요.
+   - [ ] 누르면 패널 제목 "🛠 테스트 착용 (저장 안 됨)", 16종 버튼(등급 색).
+   - [ ] `황금 오토로`(golden-otoro, 안 산 전설)를 누르면 내 초밥이 바로 바뀌고, 서버 Output에 `[Admin] <이름>(<id>) preview golden-otoro`.
+   - [ ] "🍣 스킨" 탈의실에서 황금 오토로는 여전히 구매 버튼(상품 id 전이면 "R$ 199 — 곧 열려요"), 코인 숫자 그대로.
+2. (AC7)
+   - [ ] 미리보기 중 탈의실에서 계란초밥 "입기" → 계란초밥으로 바뀌고 패널의 초록 강조가 꺼져요.
+   - [ ] 다시 아무 스킨 미리보기 → 패널 "끄기 (내 스킨으로)" → 프로필 장착 스킨으로 돌아와요.
+   - [ ] 미리보기 중인 안 산 스킨은 탈의실에서 "입기"가 아니라 구매 버튼이에요(미리보기는 보유가 아님).
+3. (AC8) Test → Clients and Servers 2명
+   - [ ] Player1이 `용 롤`(dragon-roll) 미리보기 → Player2 화면에서도 Player1이 용 롤, 이름표·칭호 높이 정상.
+   - [ ] 그대로 매치(필요하면 `forceMapPlan`) → 라운드·탈락 연출 인형·우승 연출·로비 단상(우승했을 때)에서 같은 스킨.
+4. (AC9)
+   - [ ] 라운드 소개·달리는 중·탈락 연출 중에 패널 버튼 → "라운드 중에는 바꿀 수 없어요", 외형 그대로.
+5. (AC10, **가장 중요 — 비관리자 차단 확인**)
+   1. `src/server/AdminConfig.luau`의 `StudioAllAdmins = true` → **`false`**로 바꾸고 저장.
+   2. Test → Clients and Servers **2명**으로 Start (Studio 테스트 계정은 음수 UserId라 목록에 없어요).
+   - [ ] 두 클라이언트 모두 화면에 "🛠" 버튼이 없고, Explorer의 `Players.<이름>.PlayerGui`에 `AdminPanel` ScreenGui가 **아예 없어요**.
+   - [ ] 클라이언트 창 하나의 Command Bar(Current: Client)에서 `print(game.ReplicatedStorage.Remotes.AdminPreviewSkin:InvokeServer("uni"))` → `false 권한이 없어요`, 외형이 바뀌지 않아요.
+   - [ ] 같은 줄을 여러 번 실행해도 서버 Output의 `[Admin] … tried AdminPreviewSkin without permission` 경고는 **플레이어당 한 줄**.
+   - [ ] 클라이언트 Command Bar `game.Players.LocalPlayer:SetAttribute("IsAdmin", true)` 뒤 다시 Invoke해도 `false 권한이 없어요`(클라이언트 속성은 권한이 아님).
+   3. **확인 뒤 `StudioAllAdmins = true`로 되돌리기.** (참고: 퍼블리시된 플레이스를 본인 계정으로 Play(혼자)하면 `false`여도 목록·소유자라 관리자예요 — 이 확인은 Clients and Servers로 해요, m5-02 B2)
+6. (AC11) [C1 먼저] `persistDataInStudio = true`
+   - [ ] 미리보기를 켜고 나갔다 다시 들어오면 탈의실 보유·장착·코인이 미리보기 전과 같아요. Creator Dashboard → Data Stores의 `PlayerData_v1` / 키 `u_<UserId>`도 그대로, `Purchases_v1`에 새 기록 없음.
+   - 확인 뒤 `persistDataInStudio = false`.
+7. (AC12) [실서버, C1 뒤]
+   - [ ] 퍼블리시된 게임에 본인 계정(11402290839)으로 들어가면 "🛠"가 있고, 목록에 없는 친구 계정 화면에는 없어요.
+8. (AC13) [실서버, C2 뒤 — 플레이스 분리로 낼 때만]
+   - [ ] 로비에서 미리보기를 켠 채 매치에 들어가면 매치 서버에서도 같은 스킨이고, 매치가 끝나 로비로 돌아와도 유지돼요.
+   - [ ] 끄기(또는 1시간 뒤) 다음 접속은 내 장착 스킨.
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |
@@ -598,7 +671,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

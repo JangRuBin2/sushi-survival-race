@@ -6,18 +6,20 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 **v0.4** (M3·M4 기본값, 맵 6개, 저장·이동 감시·플레이스 분리, 스킨 가격 A안 확정). **M0~M4 개발 완료** — 모든 스펙(m2-01~m4-14)이 `done`. 자세한 내역은 `docs/CHANGELOG.md`.
-- **지금은 사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7·3-8·3-9), 기본값 결정, 소리 고르기, 퍼블리시·Match 플레이스·개발자 상품 만들기, 비공개 테스트. 할 일 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)** (끝낸 항목·결정은 그 파일 "답변 기록"에 사용자가 적는다).
-- **다음 단계**: 사용자 확인·테스트 결과(`docs/USER-TODO.md` 답변 기록, `docs/playtest/m3.md`·`m4.md`)에 따른 수정(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개 → **M5**(새 맵, 시즌 스킨, VIP·연출 팩·스타터 팩, 콘솔 UI). 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- 기획서 **v0.5** (v0.4: M3·M4 기본값, 맵 6개, 저장·이동 감시·플레이스 분리, 스킨 가격 A안 확정 / v0.5: 결승 연장전, 관리자 스킨 미리보기·11.7 "테스트 도구"). **M0~M4 개발 완료** — 모든 스펙(m2-01~m4-14)이 `done`. 자세한 내역은 `docs/CHANGELOG.md`.
+- **M5 진행 중 — 첫 두 스펙 완료(`done`)**: m5-01 결승 연장전(90초 → 20초 붕괴 → 늦게 떨어진 사람 우승, 150초 안전 상한), m5-02 테스트용 관리자 스킨 미리보기("🛠" 패널, 저장 안 됨). Studio 확인은 `docs/DEV-SETUP.md` 3-10. 사용자 확정(위임, 2026-10-08): 150초 상한은 가장 높이 1명 우승, 실서버 관리자 기능 켜 둠(`LiveEnabled = true`), 관리자 UserId 11402290839.
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7·3-8·3-9·3-10), 기본값 결정, 소리 고르기, 퍼블리시·Match 플레이스·개발자 상품 만들기, 비공개 테스트. 할 일 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)** (끝낸 항목·결정은 그 파일 "답변 기록"에 사용자가 적는다).
+- **다음 단계**: 사용자 확인·테스트 결과(`docs/USER-TODO.md` 답변 기록, `docs/playtest/m3.md`·`m4.md`)에 따른 수정(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개. 그와 함께 M5 백로그(새 맵 — 새 Final 맵은 연장전 훅 필수, 시즌 스킨, VIP·연출 팩·스타터 팩, 콘솔 UI, 관리자 명령 확장)를 planner가 스펙으로. 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - 맵 풀 6개: Race `rotating-belt`(회전 벨트)·`soy-swamp`(간장 늪 & 와사비 산)·`ramen-rapids`(라멘 국물 급류), Survival `hot-plate`(뜨거운 철판)·`chef-board`(셰프의 도마), Final `skewer-showdown`(회전 꼬치 쇼다운). 판정 지오메트리는 코드, 색·재질·장식(`MapKit`)도 코드, 사용자 Studio 장식은 `assets/map-art/<id>.rbxm`(장식 전용).
-- 들어간 것: 방 시스템, 한 판 전체 흐름, 관전, 계란초밥 캐릭터, 탈락·우승·라운드 소개 연출, 다이브·잡기, 소리(일부 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금), 밥알 코인·승수·칭호, 휴대폰 UI, 서버 이동 감시, 로비/매치 플레이스 분리(플레이스 id 없으면 한 플레이스 모드), 스킨 16종·탈의실·코인 해금, 로벅스 개발자 상품 결제(상품 id 입력 전이라 버튼은 "곧 열려요").
+- 들어간 것: 방 시스템, 한 판 전체 흐름, 관전, 계란초밥 캐릭터, 탈락·우승·라운드 소개 연출, 다이브·잡기, 소리(일부 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금), 밥알 코인·승수·칭호, 휴대폰 UI, 서버 이동 감시, 로비/매치 플레이스 분리(플레이스 id 없으면 한 플레이스 모드), 스킨 16종·탈의실·코인 해금, 로벅스 개발자 상품 결제(상품 id 입력 전이라 버튼은 "곧 열려요"), 결승 연장전(m5-01), 테스트용 관리자 스킨 미리보기(m5-02).
 - 남은 P3·보류 요약 (자세한 건 CHANGELOG M4 "알려진 한계 · 보류"):
   - 이동 감시: 복제가 0.6초 넘게 멈추면 정상 플레이어도 되돌려질 수 있음(m4-10 R1, 허용 0.5초와 맞바꿈), 지속 속도 약 110 studs/s 미만 조작은 못 잡음(R2), 캐릭터끼리 튕김 오탐(B4).
   - 다이브 지름길 확인 대기(m3-06 B2·B3, m4-12 AC6), 결승 소개 중 리셋 연출 잘림(m3-09 B4, 둠).
   - 맵: 철판·결승 큰 장식의 카메라 가림(m4-03 B2, Studio 확인), 꼬치 음식 장식 서버 복제(B5), 도마 계단 모양 가장자리(m4-05 C1).
   - 저장·서버 이동: 퇴장 저장이 10초를 넘으면 마지막 진행 유실 가능(m4-07 D6·m4-11 R4), 정원 복귀 방 10초 뒤 자동 출발(m4-11 R6, 기획 확인).
   - 단상·연출: 우승자가 일찍 나가면 단상 칭호·승수 없음·우승 연출 인형 기본 외형(m4-13 N4), 매치 서버 늦은 프로필로 라운드 중 외형 바뀜(N2), 잡기 재전송 네트워크 흔들림(m4-12 N2).
-- 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). 참고 자료: `docs/REFERENCE-map-production.md`(맵 제작), `docs/REFERENCE-party-royale.md`(파티 로얄 장르), `docs/REFERENCE-roblox-monetization.md`(가격·수익화, A안 근거).
+  - M5: 관리자 미리보기 서버 이동 직후 복원이 방금 입은 스킨을 덮을 수 있음(m5-02 B1), `AdminConfig.StudioAllAdmins = false`여도 Studio의 퍼블리시 소유자는 관리자 — 설정 주석과 다름(B2), `Overtime` 효과음 무음.
+- 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). 참고 자료: `docs/REFERENCE-map-production.md`(맵 제작), `docs/REFERENCE-party-royale.md`(파티 로얄 장르), `docs/REFERENCE-roblox-monetization.md`(가격·수익화, A안 근거), `docs/REFERENCE-final-overtime.md`(결승 시간 초과 처리·관리자 권한 관행, m5-01·m5-02 근거).
 
 ## 스킨 · 상점 규칙
 - 스킨은 **겉모습만** 바꾼다(토핑·색·효과 1개 이하). 크기·히트박스·속도는 모두 같다. 능력치 판매·뽑기 없음 (GDD 9.1).
@@ -25,6 +27,14 @@
 - 카탈로그는 `shared/Skins.luau`(16종). **가격 A안 확정**: 로벅스 일반 29 / 레어 59 / 에픽 99 / 전설 199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만. 코인을 로벅스로 파는 상품은 만들지 않는다.
 - 로벅스 결제는 `RobuxShopService`의 `ProcessReceipt` 하나. 프로필 `saveNow` 성공 → 구매 기록(`Purchases_v1`, 키 PurchaseId) 성공일 때만 `PurchaseGranted`, 아니면 `NotProcessedYet`. 판단은 순수 `ReceiptLogic`. 상품 id는 사용자가 만든 뒤 `Skins.luau`의 `productId`에.
 - 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·코인 해금을 거절한다.
+
+## 관리자 (테스트 도구) 규칙 (m5-02)
+- 관리자 판단은 **서버만**, 접속할 때 `AdminLogic.isAdmin`으로 한 번 계산해 `AdminService`의 표(`admins[UserId]`)에 두고 리모트마다 다시 본다. 입력은 `player.UserId`, `RunService:IsStudio()`, `game.CreatorType/CreatorId`, 서버 전용 `src/server/AdminConfig.luau`(ServerScriptService라 클라이언트에 복제되지 않음)뿐. 이름(Name·DisplayName)·클라이언트 속성으로는 판단하지 않는다.
+- 규칙: Studio + `StudioAllAdmins`면 누구나, 실서버는 `LiveEnabled`이고 `UserId > 0`이고 (`UserIds` 목록 또는 `IncludeOwner` + 개인 계정 소유자). 지금 목록 `{ 11402290839 }`.
+- **비밀번호·PIN·키 입력 방식은 금지**(계정 탈취 위험, Roblox 커뮤니티 기준 위반 — 사용자 원안을 거절함). 관리자 목록은 `Shared.Config`(클라이언트에 복제)에 두지 않는다.
+- `Attributes.IsAdmin`(Player)은 클라이언트가 "🛠" 패널을 만들지 말지만 정한다. 권한이 아니다. `AdminPreview`는 패널 강조용.
+- 미리보기는 **경제에 기록하지 않는다**: `ShopService`의 서버 메모리 슬롯(`setPreview`/`getPreview`)만 쓰고 `DataService`·`ShopLogic`·`ReceiptLogic`·`PurchaseLog`·`RewardService`를 부르지 않는다. 외형 순서는 `AdminLogic.pickAppearance`(미리보기 > 장착 스킨 > 계란초밥), 입히는 곳은 여전히 `applyAppearance`. 서버 간 유지는 MemoryStore `AdminPreview_v1`(키 `u_<UserId>`, 1시간), 읽는 서버가 관리자를 다시 판단한다.
+- 새 관리자 명령을 만들 때도 같은 표로 확인하고, 경제·판정에 영향을 주는 명령은 테스트 서버 전용으로 따로 기획한다(M5 백로그).
 
 ## 역할 분담 (에이전트 협업)
 기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
@@ -37,7 +47,7 @@
 - **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~24명 → 4라운드. 한 판 4~5분.
 - **통과 인원**: `clamp(round(시작 × 비율), 2, 시작 - 1)`. 비율 3라운드 [0.60, 0.50, 결승], 4라운드 [0.65, 0.55, 0.50, 결승]. 결승 전 남은 인원 ≤ 2면 바로 결승. 코드(`Rules.qualifyCount`)는 "시작"을 **그 라운드를 시작할 때 살아 있는 인원**으로 계산한다.
 - **맵**: 라운드마다 맵이 바뀌고 맵마다 규칙이 다르다. 종류는 Race / Survival / Final. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
-- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람. 같은 묶음에 낙하와 리셋·퇴장이 섞이면 리셋·퇴장이 더 나쁜 등수. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
+- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람. 같은 묶음에 낙하와 리셋·퇴장이 섞이면 리셋·퇴장이 더 나쁜 등수. **연장전**(m5-01, 결승 = 마지막 라운드에서만): 결승 맵 시간 제한(90초)에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 그래도 안 끝나면 안전 상한(+`HardCapMargin` 40 → 150초)에 가장 높이 있는 1명 우승. 결승 맵에 훅이 없으면(디버그 강제 플랜) 연장전 없이 시간 제한에 점수 순. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
 - **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제(통과). 리셋·퇴장은 구제 없음. 결승 전 라운드에서 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
 - **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50(UTC, 매치 끝까지 방에 남은 사람). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
 - **판정은 전부 서버**(결승선, 탈락, 순위, 코인, 구매, 이동 감시). 클라이언트는 입력·UI·연출만.
@@ -71,25 +81,28 @@ src/
     LobbyService.luau    # 로비 건물·조명·우승자 단상 (Match 역할이면 로비 안 지음)
     RewardService.luau   # 코인·승수·칭호 지급 (MatchEvents 구독)
     MovementGuardService.luau  # 서버 이동 감시: 되돌리기, 통과 막기, 로그 (킥 없음)
-    ShopService.luau     # EquipSkin, BuyWithCoins, grantSkin, 장착 resolver
+    ShopService.luau     # EquipSkin, BuyWithCoins, grantSkin, 장착 resolver, 관리자 미리보기 슬롯(setPreview/getPreview)
     RobuxShopService.luau    # RequestRobuxPurchase, ProcessReceipt, Studio 가짜 결제
     PurchaseLog.luau     # 구매 기록 DataStore Purchases_v1 (키 PurchaseId, UserId 메타데이터)
+    AdminConfig.luau     # 관리자 목록·설정 (서버 전용, 클라이언트 복제 안 됨): UserIds, IncludeOwner, StudioAllAdmins, LiveEnabled
+    AdminService.luau    # 관리자 판단 표, AdminPreviewSkin 리모트, IsAdmin/AdminPreview 속성, MemoryStore AdminPreview_v1
   client/            -> StarterPlayerScripts.Client
     init.client.luau     # LobbyController.start() → 컨트롤러들 start(gui) (ProfileStore → Sfx → 나머지)
     CameraDirector.luau  # 카메라 우선순위 중재 (관전 < 우승자 비추기 < 소개 < 탈락 연출 < 우승 연출)
     ProfileStore.luau    # ProfileUpdated 보관: get/changed
     Sfx.luau             # 효과음·배경음, 음소거 버튼(위쪽 바, 단계 저장)
-    ui/                  # Lobby*, Room*, RoomUiKit, Hud*, Spectate*, Coin*(배지·알림·정산), Shop*(탈의실), UiScaleController
+    ui/                  # Lobby*, Room*, RoomUiKit, Hud*(연장전 배너·타이머 포함), Spectate*, Coin*(배지·알림·정산), Shop*(탈의실), Admin*(관리자 "🛠" 패널, IsAdmin일 때만 생성), UiScaleController
     fx/                  # CharacterFxController(이름표·칭호), EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps, LobbyFxController
     input/               # DiveController/DiveButton, GrabController/GrabButton
   shared/            -> ReplicatedStorage.Shared
     Config.luau          # 튜닝 값 전부 + DEBUG (Roblox API 없음)
     Rules.luau           # 순수: roundCount, qualifyCount, shouldSkipToFinal, nextRound, roundKinds, buildRoundPlan
-    RoundLogic.luau      # 라운드 판정·매치 순위 순수 로직 (Race/Survival/Final, Outcome, Standings, decideWinner, finalBatchOrder)
+    RoundLogic.luau      # 라운드 판정·매치 순위 순수 로직 (Race/Survival/Final, Outcome, Standings, decideWinner, finalBatchOrder, 연장전 일정 schedule/clockPhase/loopAction)
     RoomLogic.luau  SpectateLogic.luau
-    Remotes.luau         # RemoteFunction 9 + RemoteEvent 11 = 20개 (Remotes.fn / Remotes.event)
+    Remotes.luau         # RemoteFunction 10 + RemoteEvent 11 = 21개 (Remotes.fn / Remotes.event)
     Types.luau           # 리모트로 주고받는 데이터 모양 (ProfileView, RewardGrant, RoomListing.remote 등)
-    Attributes.luau      # 공유 Instance 속성 이름 (AppearanceId, Title, MoveExemptUntil, PlaceRole, …)
+    Attributes.luau      # 공유 Instance 속성 이름 (AppearanceId, Title, MoveExemptUntil, PlaceRole, IsAdmin, AdminPreview, …)
+    AdminLogic.luau      # 순수: isAdmin, checkPreview, pickAppearance, MemoryStore 키·값 (목록은 없음 — AdminConfig에)
     Cleanup.luau  CameraPriority.luau
     SushiBody.luau       # 초밥 몸 레이아웃(스킨 16종)·build·bounds
     Skins.luau  ShopLogic.luau  ReceiptLogic.luau            # 스킨 카탈로그·가격, 탈의실·코인 해금 판단, 결제 처리 판단
@@ -109,14 +122,14 @@ src/
       RamenRapids.luau   (+ RamenRapidsLayout, RamenRapidsLogic, RamenRapidsArt)  # Race 라멘 국물 급류
       HotPlate.luau      (+ HotPlateLogic, HotPlateArt)                      # Survival 뜨거운 철판
       ChefBoard.luau     (+ ChefBoardLogic, ChefBoardArt)                    # Survival 셰프의 도마
-      SkewerShowdown.luau (+ SkewerShowdownLogic, SkewerShowdownArt)         # Final 회전 꼬치 쇼다운
-tests/               # 순수 로직 테스트 (Studio 없이 실행, 68개 파일 1021개)
+      SkewerShowdown.luau (+ SkewerShowdownLogic, SkewerShowdownArt)         # Final 회전 꼬치 쇼다운 (연장전: 손 멈춤·꼬치 가속·바깥 줄부터 붕괴)
+tests/               # 순수 로직 테스트 (Studio 없이 실행, 71개 파일 1090개)
   init.luau            # 실행기: tests/*.spec.luau
   *.spec.luau          # 기능별 테스트 + QA가 추가한 *-qa / m*-qa 테스트 (가짜 Roblox 환경으로 서비스 소스를 직접 돌리는 것도 있음)
   lib/Test.luau  lib/RobloxRequire.luau  lib/FakeSfxEnv.luau
 docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md
-  REFERENCE-map-production.md  REFERENCE-party-royale.md  REFERENCE-roblox-monetization.md
+  REFERENCE-map-production.md  REFERENCE-party-royale.md  REFERENCE-roblox-monetization.md  REFERENCE-final-overtime.md
   specs/  qa/  proposals/            # specs/qa는 _TEMPLATE.md에서 시작
   planner/  developer/  docs-writer/ # 역할별 작업 기록(인계 메모)
   playtest/                          # 사용자가 채우는 친구·비공개 테스트 기록 (m3.md, m4.md)
@@ -134,7 +147,10 @@ export type MapModule = {
   build: (origin: CFrame) -> Model,          -- 판정 지오메트리 + 장식 (Spawns 폴더 필수)
   start: (ctx: RoundContext) -> (),          -- 장애물 가동, 결승선/낙하 판정 → ctx.pass / ctx.eliminate
   cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만 정리
+  overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?,  -- 결승 연장전 (m5-01). kind == "Final"이면 필수
 }
+
+export type OvertimeInfo = { collapseDuration: number }  -- 이 초 안에 설 곳을 모두 없앤다
 
 export type RoundContext = {
   model: Model, origin: CFrame, rng: Random,
@@ -153,6 +169,7 @@ export type RoundContext = {
 - 맵 상태는 모듈이 아니라 `ctx`(또는 `start` 지역 변수)에 둔다 (한 서버에서 여러 방이 같은 맵을 동시에 돌릴 수 있다).
 - 장애물은 `CollectionService` 태그를 달고, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그: `Conveyor`·`Chopstick`(회전 벨트), `SoySauce`·`Wasabi`(간장 늪), `Broth`·`Chashu`·`NoodleSweeper`(라멘), `HotTile`(철판), `ChefBoardCell`·`ChefKnife`(도마), `SkewerShowdownSkewer`·`SkewerShowdownSlice`·`SkewerShowdownHand`(꼬치).- **장식**은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 재질을 바꾸면 `CustomPhysicalProperties`로 원래 물성을 유지한다. 예산 맵당 파츠 600·파티클 8·조명 12. `build` 끝에서 `MapKit.introCamera`(소개 경로)와 `MapKit.attachStudioArt(model, id, origin)`를 부른다.
 - **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비, 젓가락 집기·놓기, 날치알, 간장 경계) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기 같은 **연속 밀기에는 달지 않는다**(기본 기준 안이고, 달면 속도 조작 구멍이 된다).
+- **연장전 훅** (m5-01): `RoundService`가 결승(마지막 라운드)에서 시간 제한이 되면 `overtime(ctx, { collapseDuration })`을 별도 스레드로 **한 번** 부른다. 맵은 그 초 안에 **어떤 레이서도 안전하게 서 있을 수 없게**(바닥 제거·치명 구역 — 매달리기·높은 곳 버티기 자리도 없게) 만들고, 낙하는 `start`에서 하던 대로 `ctx.eliminate`. 훅 안에서 `task.wait`로 기다리지 말고 일정은 `task.delay`/`task.spawn`을 `ctx.cleanup`에 넣는다. 훅이 실패해도 안전 상한이 판정을 마무리한다. `kind == "Final"`인데 훅이 없으면 `MapTypes.validate`가 에러. 결승이 아닌 라운드(강제 플랜 중간의 Final 맵)에서는 부르지 않는다.
 - GDD 11절의 인터페이스 표기는 개요이고, 실제 계약은 위 `MapTypes.luau`다.
 
 ## 규칙
@@ -168,6 +185,8 @@ export type RoundContext = {
   - `simulateMatchServer = false` — true면 Studio를 매치 서버처럼.
   - `logArenaStats = false` — true면 매치 끝마다 `[ArenaStats]` 한 줄.
   - `fakeRobuxInStudio = false` — true면 상품 id 없이 가짜 영수증 결제 (`persistDataInStudio`와 같이 켜면 꺼짐).
+  - `overtimeAt = nil` — 숫자를 넣으면 결승 연장전 시작을 그 초로 당김 (m5-01).
+  - 관리자 설정은 `Config`가 아니라 `src/server/AdminConfig.luau`: 커밋 값 `StudioAllAdmins = true`(비관리자 화면 확인 때만 false), `LiveEnabled = true`(사용자 확정, 공개 출시 전 재확인). 사용법은 `docs/DEV-SETUP.md` 3-10.
 
 ## 검증 (작업 끝내기 전에 반드시, 5단계)
 도구는 `rokit.toml`에 버전이 고정돼 있다. 처음 한 번(그리고 도구가 추가되면) `rokit install` (Windows: `~/.rokit/bin`이 PATH에 있어야 함).

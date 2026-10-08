@@ -23,6 +23,7 @@
   - 코인: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50 — [`docs/specs/m4-08-rewards-titles.md`](specs/m4-08-rewards-titles.md)
   - 매치 서버: 도착하면 바로 시작, 20초 안에 2명 미만이면 취소 — [`docs/specs/m4-11-place-split.md`](specs/m4-11-place-split.md)
   - M4 로벅스 판매는 스킨 15개만(VIP·번들은 M5) — [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md)
+- [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
   - 걸리면 킥 없이 제자리로 되돌리기만 — 유지/킥 추가
   - 복제 지연 허용 0.5초 — 유지/0.75초(정상 플레이어 오탐↓, 치트 허용↑)
@@ -110,7 +111,9 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 - [ ] **친구 테스트 (4명 이상, 3판 이상)** — 양식: [`docs/DEV-SETUP.md`](DEV-SETUP.md) 3-8 "N. 친구 테스트", 결과는 [`docs/playtest/m3.md`](playtest/m3.md)에 판마다 한 줄
 - [ ] **실제 휴대폰 테스트** — [`docs/qa/m4-09-mobile-ui.md`](qa/m4-09-mobile-ui.md) AC9
 - [ ] **실서버 다인원** — 플레이스 분리(m4-11) AC9~AC13, 저장 두 서버(m4-07 AC10)
-- [ ] **비공개 테스트 (C1·C2 뒤, 친구만 접근 허용)** — 4명 이상 × 5판 이상, 결과는 `docs/playtest/m4.md`에 M3 양식 + "저장·텔레포트 문제" 칸
+- [ ] **비공개 테스트** — 4명 이상 × 5판 이상, 결과는 [`docs/playtest/m4.md`](playtest/m4.md)
+  - 먼저 할 것: B2·B3 Studio 확인, C1(분리로 낸다면 C2도)
+  - 접근 제한: Creator Dashboard → 이 게임 → **Configure → Access**(또는 Settings → Permissions)에서 비공개(Private) 유지, 테스트할 친구를 Collaborators/허용 목록에 추가. 메뉴 이름은 대시보드 버전에 따라 조금 달라요.
 
 ---
 

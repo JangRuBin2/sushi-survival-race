@@ -5,11 +5,19 @@
 --   라운드 결과 사이). 시작 카운트다운·라운드 소개·달리는 중·우승 연출 동안은 숨기고 창도 닫아요.
 --   매치 서버(m4-11)는 매치가 시작되기 전(연결 중 안내)에는 숨겨요.
 
+--   로벅스 (m4-14): RequestRobuxPurchase → 서버가 Roblox 결제 창을 띄워요 (Studio 가짜 결제면 바로 처리).
+--   지급은 서버 ProcessReceipt가 해요. 여기서는 요청한 스킨이 ProfileUpdated로 보유에 들어오면 "🎉 획득!" 한 줄.
+--   상품 id가 있는 스킨은 MarketplaceService:GetProductInfo의 실제 가격을 받아 보여 줘요 (실패하면 카탈로그 값).
+
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
+local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
@@ -27,19 +35,25 @@ function ShopController.start(_gui: Instance)
 	local busy = false
 	local view: Types.ProfileView? = ProfileStore.get()
 	local screen: ShopScreen.ShopScreen
+	local robux: ShopLogic.RobuxOptions = {
+		fake = RunService:IsStudio() and Config.DEBUG.fakeRobuxInStudio == true,
+		prices = {},
+	}
+	local pending: { [string]: boolean } = {} -- 로벅스 결제를 요청한 스킨 (보유에 들어오면 획득 안내)
 
 	-- 매치 상태 (버튼을 보일지)
 	local room: Types.RoomSnapshot? = nil
 	local phase: Types.MatchPhase? = nil
 	local alive = true -- 이 매치에서 아직 탈락하지 않았는지
 	local passed = false -- 이번 라운드를 통과해 대기석에 있는지
+	local hiddenUntil = 0 -- os.clock(): 탈락 연출이 끝나는 시각 (그때까지 버튼 숨김)
 
 	local function render()
 		local current = view
 		if current == nil or screen == nil then
 			return
 		end
-		screen:render(current, tier, selected)
+		screen:render(current, tier, selected, robux)
 	end
 
 	local function canShow(): boolean
@@ -51,7 +65,8 @@ function ShopController.start(_gui: Instance)
 			return false
 		end
 		if not alive then
-			return true -- 관전 중
+			-- 관전 중. 단 탈락 연출 동안은 서버가 장착을 잠가서 숨겨요 (m4-13 QA N1)
+			return os.clock() >= hiddenUntil
 		end
 		if phase == "RoundResults" then
 			return true -- 라운드 사이 대기석
@@ -76,6 +91,31 @@ function ShopController.start(_gui: Instance)
 		return ok == true, if type(err) == "string" then err else nil
 	end
 
+	local function buyRobux(skinId: string)
+		local current = view
+		local skin = Skins.get(skinId)
+		if busy or current == nil or skin == nil or table.find(current.ownedSkins, skinId) then
+			return
+		end
+		if not ShopLogic.robuxOpen(skin, robux.fake) then
+			return -- 상품 id가 아직 없어요 (버튼 비활성)
+		end
+		busy = true
+		screen:setBusy(true)
+		local ok, err = request("RequestRobuxPurchase", skinId)
+		busy = false
+		screen:setBusy(false)
+		if ok then
+			pending[skinId] = true
+			screen:showResult(
+				if robux.fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
+				false
+			)
+		else
+			screen:showResult(err or "다시 해 주세요", true)
+		end
+	end
+
 	local function act(skinId: string)
 		local current = view
 		local skin = Skins.get(skinId)
@@ -88,7 +128,8 @@ function ShopController.start(_gui: Instance)
 		end
 		local name = if owned then "EquipSkin" elseif skin.coins then "BuyWithCoins" else nil
 		if name == nil then
-			return -- 로벅스는 m4-14가 켜요 (버튼 비활성)
+			buyRobux(skinId) -- 레어 이상: 행동 버튼이 로벅스 버튼
+			return
 		end
 		busy = true
 		screen:setBusy(true)
@@ -119,6 +160,7 @@ function ShopController.start(_gui: Instance)
 			render()
 		end,
 		act = act,
+		buyRobux = buyRobux,
 		tab = function(newTier: Skins.Tier?)
 			tier = newTier
 			render()
@@ -131,9 +173,42 @@ function ShopController.start(_gui: Instance)
 
 	ProfileStore.changed(function(newView: Types.ProfileView)
 		view = newView
+		-- 로벅스로 산 스킨이 들어왔어요 (서버가 지급 + 장착)
+		local got: string? = nil
+		for skinId in table.clone(pending) do
+			if table.find(newView.ownedSkins, skinId) then
+				pending[skinId] = nil
+				local skin = Skins.get(skinId)
+				if skin then
+					selected = skinId
+					got = `🎉 {skin.displayName} 획득!`
+				end
+			end
+		end
 		render()
 		refreshVisibility()
+		if got then
+			screen:showResult(got, false)
+		end
 	end)
+
+	-- 실제 상품 가격 (상품 id가 있는 스킨만, 한 번)
+	for _, skin in Skins.LIST do
+		local productId = skin.productId
+		if productId == nil then
+			continue
+		end
+		task.spawn(function()
+			local ok, info = pcall(function()
+				return MarketplaceService:GetProductInfoAsync(productId, Enum.InfoType.Product)
+			end)
+			local price = if ok and type(info) == "table" then (info :: any).PriceInRobux else nil
+			if type(price) == "number" and price > 0 then
+				(robux.prices :: { [string]: number })[skin.id] = price
+				render()
+			end
+		end)
+	end
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(snapshot: Types.RoomSnapshot?)
 		local wasInMatch = room ~= nil and room.state == "InMatch"
@@ -172,6 +247,11 @@ function ShopController.start(_gui: Instance)
 		end
 		if result.result == "Eliminated" then
 			alive = false
+			if result.cause ~= "Left" then
+				-- 서버 ShopService.isLocked와 같은 시간 (Config.Match.EliminationCutscene)
+				hiddenUntil = os.clock() + Config.Match.EliminationCutscene
+				task.delay(Config.Match.EliminationCutscene, refreshVisibility)
+			end
 		elseif result.result == "Passed" then
 			passed = true
 		end

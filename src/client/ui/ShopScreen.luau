@@ -4,7 +4,8 @@
 --   창: 등급 탭(전체/일반/레어/에픽/전설) + 스킨 카드 격자(이름, 등급 색 테두리, 상태 글씨) +
 --       큰 미리보기(ViewportFrame + SushiBody.build, 천천히 회전) + 말풍선 대사 + 행동 버튼 + 결과 글씨.
 --   compact(휴대폰): 카드 2열, 미리보기는 위쪽. 그 밖: 미리보기 왼쪽, 카드 3열.
--- 카드 상태 글씨·버튼 활성은 Shared.ShopLogic.cardState (로벅스는 m4-14 전까지 "곧 열려요" 비활성).
+-- 카드 상태 글씨·버튼 활성은 Shared.ShopLogic.cardState. 로벅스(m4-14)는 상품 id가 있거나 Studio 가짜 결제일 때만
+-- 켜지고, 아니면 "곧 열려요" 비활성. 일반 스킨은 코인 해금 버튼 아래에 "R$ 49로 사기" 버튼이 하나 더 있어요.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -21,7 +22,8 @@ export type Actions = {
 	open: () -> (),
 	close: () -> (),
 	select: (skinId: string) -> (),
-	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금)
+	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 로벅스 레어 이상)
+	buyRobux: (skinId: string) -> (), -- 일반 스킨의 두 번째 버튼 "R$ 49로 사기" (m4-14)
 	tab: (tier: Skins.Tier?) -> (),
 }
 
@@ -30,7 +32,13 @@ export type ShopScreen = {
 	setButtonVisible: (self: ShopScreen, visible: boolean) -> (),
 	setOpen: (self: ShopScreen, open: boolean) -> (),
 	isOpen: (self: ShopScreen) -> boolean,
-	render: (self: ShopScreen, view: ShopLogic.ViewLike, tier: Skins.Tier?, selected: string) -> (),
+	render: (
+		self: ShopScreen,
+		view: ShopLogic.ViewLike,
+		tier: Skins.Tier?,
+		selected: string,
+		robux: ShopLogic.RobuxOptions?
+	) -> (),
 	setBusy: (self: ShopScreen, busy: boolean) -> (),
 	showResult: (self: ShopScreen, text: string, isError: boolean) -> (),
 	setLayout: (self: ShopScreen, m: UiLayout.Metrics) -> (),
@@ -209,10 +217,18 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Size = UDim2.new(1, 0, 0, 44),
 		TextSize = 17,
 	})
+	local robuxButton = Kit.button("R$", Color.Egg, {
+		Name = "Robux",
+		Parent = infoBox,
+		LayoutOrder = 5,
+		Size = UDim2.new(1, 0, 0, 36),
+		TextSize = 15,
+		Visible = false,
+	})
 	local resultLabel = Kit.label({
 		Name = "Result",
 		Parent = infoBox,
-		LayoutOrder = 5,
+		LayoutOrder = 6,
 		TextSize = 14,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -282,6 +298,9 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	Kit.onClick(actionButton, function()
 		actions.act(selectedId)
 	end)
+	Kit.onClick(robuxButton, function()
+		actions.buyRobux(selectedId)
+	end)
 
 	-- 미리보기 인형: 바뀔 때만 다시 만들고, 창이 열려 있을 때만 돌려요
 	local previewModel: Model? = nil
@@ -340,6 +359,12 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end
 		actionButton.Text = ShopLogic.cardButtonText(state)
 		Kit.setEnabled(actionButton, state.enabled and not busy)
+		local robuxText = ShopLogic.robuxButtonText(state)
+		robuxButton.Visible = robuxText ~= nil
+		if robuxText then
+			robuxButton.Text = robuxText
+			Kit.setEnabled(robuxButton, state.robuxEnabled == true and not busy)
+		end
 	end
 
 	local screen = {} :: ShopScreen
@@ -362,7 +387,13 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		return backdrop.Visible
 	end
 
-	function screen.render(_self: ShopScreen, view: ShopLogic.ViewLike, tier: Skins.Tier?, selected: string)
+	function screen.render(
+		_self: ShopScreen,
+		view: ShopLogic.ViewLike,
+		tier: Skins.Tier?,
+		selected: string,
+		robux: ShopLogic.RobuxOptions?
+	)
 		coinLabel.Text = `🍚 {view.coins}`
 		for _, tab in tabButtons do
 			Kit.setSelected(tab.button, tab.tier == tier)
@@ -370,7 +401,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		for _, skin in Skins.LIST do
 			local card = cards[skin.id]
 			card.button.Visible = tier == nil or skin.tier == tier
-			local state = ShopLogic.cardState(skin, view)
+			local state = ShopLogic.cardState(skin, view, robux)
 			card.status.Text = ShopLogic.cardButtonText(state)
 			card.status.TextColor3 = if state.kind == "Equipped" then Color.Salmon else Color.SubText
 			card.button.BackgroundColor3 = if skin.id == selected then Color.Row else Color.White
@@ -391,7 +422,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		tierLabel.Text = info.displayName
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
-		currentState = ShopLogic.cardState(skin, view)
+		currentState = ShopLogic.cardState(skin, view, robux)
 		refreshAction()
 	end
 
@@ -441,6 +472,8 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		speechLabel.TextSize = text(15)
 		actionButton.Size = UDim2.new(1, 0, 0, buttonHeight)
 		actionButton.TextSize = text(17)
+		robuxButton.Size = UDim2.new(1, 0, 0, UiLayout.touchSize(36, m))
+		robuxButton.TextSize = text(15)
 		resultLabel.TextSize = text(14)
 		grid.ScrollBarThickness = UiLayout.scrollBarThickness(m)
 

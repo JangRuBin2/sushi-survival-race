@@ -43,7 +43,7 @@ Layout.FINISH_LINE_INSET = 4 -- 결승선을 끝 벽보다 이만큼 앞에 둬�
 Layout.RAPIDS_SLOPE_DEG = 12
 -- 앞으로 미는 목표 속도 (studs/s). 걷기(16)보다 빨라서 앞으로 달려도 더 밀려요 (QA R2).
 -- 소용돌이 옆 밀기(10)를 합쳐도 약 22 studs/s라 이동 감시 상한(MovementGuard.MaxHorizontalSpeed)보다 한참 낮고,
--- 밀 때마다 MoveExempt.mark도 해요.
+-- 표시 없이도 감시 기준 안이라 밀기에는 MoveExempt.mark를 하지 않아요 (m4-10 QA B1: 면제 중엔 속도 조작이 안 잡혀요).
 Layout.BROTH_PUSH_SPEED = 20
 Layout.BROTH_PUSH_ACCEL = 40 -- 그 속도까지 올리는 가속도 (studs/s^2)
 Layout.WHIRLPOOL_FORWARD_SPEED = 14 -- 소용돌이 안에서는 앞 밀기를 이만큼으로 줄여요 (옆으로 쏠리게, AC4)
@@ -119,9 +119,6 @@ Layout.FINISH_FLOOR_OVERLAP = 6
 Layout.SPAWN_COLUMNS = 6
 Layout.SPAWN_ROWS = 4
 Layout.SPAWN_SPACING = 3.6
-
--- 이동 감시 예외 표시 간격 (밀기는 매 프레임이라 속성을 매번 쓰지 않게)
-Layout.EXEMPT_REFRESH = 0.5
 
 function Layout.sections(): { Span }
 	return { Layout.START, Layout.RAPIDS, Layout.TOPPINGS, Layout.SWEEPERS, Layout.FINISH }

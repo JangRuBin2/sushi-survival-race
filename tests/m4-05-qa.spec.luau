@@ -242,10 +242,14 @@ return function(t: Test.Test)
 			t.eq(string.find(source, "ctx.pass(", 1, true), nil)
 			t.eq(countMatches(source, "ctx%.eliminate%("), 1)
 			t.ok(string.find(source, "relative.Y < -Logic.FALL_DEPTH", 1, true) ~= nil, "fall depth from origin")
-			-- 칼 넉백 + 기울기 밀기 두 곳
-			t.eq(countMatches(source, "MoveExempt%.mark%("), 2)
+			-- 칼 넉백 한 곳만. 기울기 밀기는 반복 면제를 달지 않아요 — 설계 변경 (m4-10 QA B1, 2026-10-08):
+			-- 면제 중엔 속도 조작이 안 잡혀서 뺐고, 대신 밀기(+다이브 최악 합)가 기본 기준 안인지 고정해요.
+			t.eq(countMatches(source, "MoveExempt%.mark%("), 1)
 			t.ok(string.find(source, "MoveExempt.mark(player.Character, Logic.KNOCKDOWN_TIME", 1, true) ~= nil, "knock")
-			t.ok(string.find(source, "MoveExempt.mark(character)", 1, true) ~= nil, "tilt push")
+			t.eq(string.find(source, "MoveExempt.mark(character)", 1, true), nil, "no repeated tilt-push exempt")
+			local guard = Config.MovementGuard
+			local worst = (Logic.TILT_PUSH_SPEED + Config.Dive.ForwardSpeed) * guard.SampleInterval
+			t.ok(worst <= guard.MaxHorizontalSpeed * guard.SampleInterval + guard.Slack, `tilt + dive {worst}`)
 			-- 랜덤은 ctx.rng만
 			t.eq(string.find(source, "Random.new", 1, true), nil)
 			t.eq(string.find(source, "math.random", 1, true), nil)

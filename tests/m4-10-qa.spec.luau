@@ -132,18 +132,20 @@ return function(t: Test.Test)
 	end)
 
 	-- 2. 표시 간격·길이
-	t.test("continuous push maps refresh MoveExempt before it runs out (refresh + one sample < exempt)", function()
-		local refreshes = {
-			belt = localNumber("src/shared/maps/RotatingBelt.luau", "CONVEYOR_EXEMPT_REFRESH"),
-			chef = localNumber("src/shared/maps/ChefBoard.luau", "EXEMPT_REFRESH"),
-			ramen = RamenLayout.EXEMPT_REFRESH,
-		}
-		for name, refresh in refreshes do
-			t.ok(
-				refresh + SAMPLE < cfg.ExemptAfterServerMove,
-				`{name}: refresh {refresh} too close to exempt {cfg.ExemptAfterServerMove}`
-			)
-		end
+	-- 설계 변경 (m4-10 QA B1, 2026-10-08): 연속 밀기(벨트·급류·소용돌이·도마 기울기)는 반복 MoveExempt를 달지 않아요
+	-- (면제 중엔 속도 조작이 안 잡혀서). 그 대신 밀기(+다이브 최악 합)가 표시 없이 기준 안인 것은 위 1번 표가 고정해요.
+	t.test("continuous push maps do not refresh MoveExempt (pushes are within the unmarked limit)", function()
+		t.ok(
+			string.find(fs.readFile("src/shared/maps/RotatingBelt.luau"), "MoveExempt", 1, true) == nil,
+			"belt conveyor"
+		)
+		t.ok(string.find(fs.readFile("src/shared/maps/ChefBoard.luau"), "EXEMPT_REFRESH", 1, true) == nil, "chef tilt")
+		t.ok(RamenLayout.EXEMPT_REFRESH == nil, "ramen broth")
+		t.ok(
+			string.find(fs.readFile("src/shared/maps/RamenRapids.luau"), "MoveExempt.mark(player.Character)", 1, true)
+				== nil,
+			"ramen broth mark"
+		)
 	end)
 
 	t.test("wasabi exempt covers the whole launch flight", function()
@@ -164,10 +166,13 @@ return function(t: Test.Test)
 		t.ok(cfg.ExemptAfterServerMove >= localNumber("src/shared/maps/SkewerShowdown.luau", "KNOCKDOWN_TIME"))
 	end)
 
-	t.test("every map that sets a character velocity also calls MoveExempt.mark", function()
+	-- 설계 변경 (m4-10 QA B1): 회전 벨트(RotatingBelt.luau)는 연속 밀기만 속도를 줘서 표시가 없어요 → 목록에서 빼고
+	-- 벨트의 순간 충격(젓가락 집기·놓기)은 RotatingBeltChopstick.luau의 표시로 확인해요.
+	t.test("every map that gives a character an impulse also calls MoveExempt.mark", function()
+		local chop = fs.readFile("src/shared/maps/RotatingBeltChopstick.luau")
+		t.ok(string.find(chop, "MoveExempt.mark(character, GRAB_DURATION + 1)", 1, true) ~= nil, "chopstick grab")
 		for _, file in
 			{
-				"src/shared/maps/RotatingBelt.luau",
 				"src/shared/maps/SoySwampHazards.luau",
 				"src/shared/maps/SkewerShowdown.luau",
 				"src/shared/maps/RamenRapids.luau",

@@ -4,7 +4,8 @@
 - **브랜치**: 로컬 `m4-10-guard`에 `origin/m4-10-qa`(main 0314eb8 포함) 병합 후 수정 → `origin/m4-10-qa`에 push.
 - **끝난 것**: B1(면제 중 상한 130/200 studs/s, 통과 순간 재검사도 적용), B2(RoundService 배치 알림·placedRoomOf, 기준점 = 스폰, Track 없으면 통과 거부), B3(StallGrace 0.5), B5(RevertSettle 0.5초 안 위반은 세지 않음).
 - **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 826 passed / 0 failed.
-- **남은 것**: QA 재검증, Studio AC6~AC9. 연속 밀기 표시를 뺄지 기획/QA 판단(결정 기록) — 빼면 벨트 위 속도 조작도 잡힘.
+- **후속(같은 날)**: 메인 세션 결정으로 연속 밀기(벨트·급류·소용돌이·도마 기울기) 반복 MoveExempt 제거, 관련 다른 스펙 테스트 기대 갱신(사유 주석), 벨트·급류 위 속도 120 재현 테스트. lune 827 passed.
+- **남은 것**: QA 재검증, Studio AC6~AC9 (밀기 구간 다이브 연타 오탐 여부 특히).
 - **다음에 할 첫 단계**: QA가 m4-10-qa 브랜치로 재검증.
 - **막힌 점**: 없음.
 

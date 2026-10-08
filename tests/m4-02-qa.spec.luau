@@ -171,10 +171,15 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"이동 감시: 벨트 면제 갱신 간격이 면제 시간보다 짧아 밀리는 동안 빈틈이 없어요",
+		"이동 감시: 벨트 밀기는 반복 면제 없이 기본 기준 안이고, 젓가락 잡기는 면제를 달아요",
 		function()
-			local refresh = constant(belt, "CONVEYOR_EXEMPT_REFRESH")
-			t.ok(refresh < Config.MovementGuard.ExemptAfterServerMove, `refresh {refresh}`)
+			-- 설계 변경 (m4-10 QA B1, 2026-10-08): 연속 밀기에 MoveExempt를 반복해서 달면 벨트 위 속도 조작이
+			-- 안 잡혀서 뺐어요. 대신 밀기 속도(+다이브 최악 합)가 0.2초 기본 기준(수평 22 studs) 안인지 고정해요.
+			t.eq(string.find(belt, "MoveExempt", 1, true), nil, "no repeated conveyor exempt")
+			local guard = Config.MovementGuard
+			local push = constant(belt, "PUSH_SPEED")
+			local worst = (push + Config.Dive.ForwardSpeed) * guard.SampleInterval
+			t.ok(worst <= guard.MaxHorizontalSpeed * guard.SampleInterval + guard.Slack, `belt + dive {worst}`)
 			-- 젓가락 잡기 면제(GRAB + 1)는 잡힌 시간보다 길어요
 			local chop = stripComments(fs.readFile("src/shared/maps/RotatingBeltChopstick.luau"))
 			t.ok(string.find(chop, "MoveExempt.mark(character, GRAB_DURATION + 1)", 1, true) ~= nil, "grab exempt")

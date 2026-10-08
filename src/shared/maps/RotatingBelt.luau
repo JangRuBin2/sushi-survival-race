@@ -8,7 +8,6 @@
 -- 장애물(젓가락 Zone "Chopstick", 벨트 구역 "Conveyor")은 start가 태그로 찾아요 (M1 B10).
 
 local Config = require(script.Parent.Parent.Config)
-local MoveExempt = require(script.Parent.Parent.MoveExempt)
 local Art = require(script.Parent.RotatingBeltArt)
 local Chopstick = require(script.Parent.RotatingBeltChopstick)
 local MapKit = require(script.Parent.MapKit)
@@ -35,7 +34,6 @@ local VOID_DROP = 40 -- origin보다 이만큼 아래로 떨어지면 탈락 (�
 local CHOPSTICK_OFFSETS = { -3, 3 } -- 벨트 B 구간에서 두 젓가락이 자리잡을 좌우 위치 (반대 레인으로 피하게)
 local FINISH_LINE_INSET = 4 -- 결승선을 결승 구역 끝 벽보다 이만큼 앞에 둬요 (넘은 뒤 서 있을 자리)
 local CONVEYOR_TAG = "Conveyor" -- 벨트가 미는 구역 (start가 태그로 찾아요, M1 B10)
-local CONVEYOR_EXEMPT_REFRESH = 0.5 -- 벨트에 밀리는 동안 이동 감시 면제를 이 간격으로 다시 달아요 (초)
 
 -- 아트 색(순수 RGB) → Color3. build 안에서만 불러요.
 local function rgb(c: MapKitLogic.RGB): Color3
@@ -282,7 +280,6 @@ local function start(ctx: MapTypes.RoundContext)
 
 	-- 장애물은 폴더 구조가 아니라 태그로 찾아요 (M1 B10). 이 방의 맵(ctx.model) 하위만.
 	local conveyorZones = Chopstick.taggedIn(model, CONVEYOR_TAG)
-	local exemptAt: { [Player]: number } = {}
 
 	-- 결승선 통과: 서버 Heartbeat에서 HumanoidRootPart가 결승선의 로컬 z를 지났는지로 판정한다.
 	-- Touched는 얇은 판 위로 점프해 넘으면 안 닿아서 쓰지 않는다 (높이와 상관없이 지나가면 통과).
@@ -321,12 +318,8 @@ local function start(ctx: MapTypes.RoundContext)
 							local delta = math.min(PUSH_ACCEL * dt, PUSH_SPEED - along)
 							root.AssemblyLinearVelocity = current + pushDirection * delta
 						end
-						-- 서버가 미는 동안은 이동 감시(m4-10)에서 빼요. 매 프레임 달면 복제가 많아서 간격을 둬요.
-						local now = os.clock()
-						if now - (exemptAt[player] or -math.huge) >= CONVEYOR_EXEMPT_REFRESH then
-							exemptAt[player] = now
-							MoveExempt.mark(character)
-						end
+						-- 이동 감시(m4-10) 면제는 달지 않아요: 밀기(최고 10, +다이브 50)는 표시 없이도 감시 기준 안이고,
+						-- 면제를 달면 벨트 위 속도 조작이 안 잡혀요 (m4-10 QA B1).
 						break
 					end
 				end

@@ -246,14 +246,26 @@ return function(t: Test.Test)
 		t.ok(string.find(source, "ctx.cleanup:add(RunService.Heartbeat:Connect", 1, true) ~= nil, "heartbeat cleaned")
 	end)
 
-	t.test("MoveExempt: 급류 밀기와 막대 넉백 둘 다 표시해요", function()
+	t.test("MoveExempt: 막대 넉백만 표시하고, 급류 밀기는 표시 없이 기준 안이에요", function()
+		-- 설계 변경 (m4-10 QA B1, 2026-10-08): 급류·소용돌이 밀기에 반복 면제를 달면 국물 위 속도 조작이
+		-- 안 잡혀서 뺐어요. 대신 밀기(+다이브 최악 합)가 0.2초 기본 기준(수평 22 studs) 안인지 고정해요.
 		local source = fs.readFile(SOURCE_PATH)
-		t.ok(string.find(source, "MoveExempt.mark(player.Character)", 1, true) ~= nil, "push marks")
+		t.eq(string.find(source, "MoveExempt.mark(player.Character)", 1, true), nil, "no repeated push exempt")
+		local guard = Config.MovementGuard
+		local limit = guard.MaxHorizontalSpeed * guard.SampleInterval + guard.Slack
+		local whirl = math.sqrt(Layout.WHIRLPOOL_FORWARD_SPEED ^ 2 + Layout.WHIRLPOOL_PUSH_SPEED ^ 2)
+		for name, speed in
+			{
+				broth = Layout.BROTH_PUSH_SPEED + Config.Dive.ForwardSpeed,
+				whirlpool = whirl + Config.Dive.ForwardSpeed,
+			}
+		do
+			t.ok(speed * guard.SampleInterval <= limit, `{name} + dive {speed}`)
+		end
 		t.ok(
 			string.find(source, "MoveExempt.mark(player.Character, Layout.KNOCKDOWN_TIME + 0.5)", 1, true) ~= nil,
 			"knockback marks"
 		)
-		-- 표시 갱신 간격이 기본 예외 시간보다 짧아서 밀리는 동안 끊기지 않아요
-		t.ok(Layout.EXEMPT_REFRESH < Config.MovementGuard.ExemptAfterServerMove, "exempt refresh shorter than exempt")
+		t.eq(Layout.EXEMPT_REFRESH, nil, "no exempt refresh interval")
 	end)
 end

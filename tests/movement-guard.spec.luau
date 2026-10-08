@@ -301,6 +301,30 @@ return function(t: Test.Test)
 		t.eq(Logic.check(base, at(0, 0, -70, time + 0.2), nil, cfg), "violation")
 	end)
 
+	t.test("B1: WalkSpeed 120 on the belt / ramen broth is caught (no repeated exempt on pushes)", function()
+		-- 연속 밀기 맵은 이제 MoveExempt를 반복해서 달지 않아요 → 기본 기준으로 검사돼요.
+		local function belt(): string
+			return fs.readFile("src/shared/maps/RotatingBelt.luau")
+		end
+		t.eq(string.find(belt(), "MoveExempt", 1, true), nil, "belt has no repeated exempt")
+		local beltPush = tonumber(string.match(belt(), "local PUSH_SPEED%s*=%s*([%d%.]+)")) :: number
+		local brothPush = RobloxRequire.require(Shared.maps.RamenRapidsLayout).BROTH_PUSH_SPEED
+		-- 서버 Heartbeat 샘플은 SampleInterval 이상 (60fps면 0.2~0.217초)
+		for _, dt in { SAMPLE_DT + 1 / 600, SAMPLE_DT + 1 / 60 } do
+			-- 벨트 반대(앞)로 달리기: 120 - 10 = 110
+			local forward = at(0, 0, -(120 - beltPush) * dt, 10 + dt)
+			t.eq(Logic.check(at(0, 0, 0, 10), forward, nil, cfg), "violation", `belt forward dt {dt}`)
+			-- 벨트 방향(뒤)으로: 130
+			local backward = at(0, 0, (120 + beltPush) * dt, 10 + dt)
+			t.eq(Logic.check(at(0, 0, 0, 10), backward, nil, cfg), "violation", `belt backward dt {dt}`)
+			-- 급류: 120 + 20
+			local broth = at(0, 0, -(120 + brothPush) * dt, 10 + dt)
+			t.eq(Logic.check(at(0, 0, 0, 10), broth, nil, cfg), "violation", `broth dt {dt}`)
+		end
+		-- 예전처럼 면제가 달려 있었다면 놓쳤을 속도 (면제 상한 130 안)
+		t.eq(Logic.check(at(0, 0, 0, 10), at(0, 0, -22.2, 10.2), 11, cfg), "exempt")
+	end)
+
 	t.test("B5: violations within RevertSettle after a revert are not counted", function()
 		t.eq(Logic.countsStrike(10, nil), true)
 		t.eq(Logic.countsStrike(10.2, 10 + Logic.RevertSettle), false)

@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-10 — 서버 이동 감시 (순간이동·속도 조작 막기)
@@ -51,6 +51,22 @@ status: ready
 ## 결정 기록
 - 2026-10-08 · 위반 처리 · 되돌리기 + 통과 2초 막기 + 로그만, 킥·탈락 없음 (어린 유저 대상, 오탐 시 억울함 최소). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 서버가 움직인 직후 면제는 `MoveExemptUntil` 속성 방식 · 맵 스펙(m4-02~05)이 각자 표시 · planner
+- 2026-10-08 · 복제 멈춤 오탐 방지 · 거의 안 움직인(0.05 studs) 샘플은 기준 시각을 최대 `StallGrace` 1초까지 유지하고, check의 dt는 `MaxGap` 1초로 자른다 (`MovementGuardLogic` 상수, Config 공용 파일은 손대지 않음). 멈췄던 위치 복제가 한꺼번에 따라잡아도 짧은 dt로 재지 않게. 대신 오래 서 있다가 순간이동하면 허용 거리가 최대 80×1+6 = 86 studs · developer
+- 2026-10-08 · 통과 순간 재검사 · 결승선으로 순간이동한 그 프레임에 맵이 `ctx.pass`를 부르면 0.2초 샘플보다 먼저일 수 있어서, pass validator 안에서 그 자리에서 한 번 더 `check`하고 위반이면 되돌리고 거부한다 · developer
+- 2026-10-08 · strikeLog 시그니처 · `strikeLog(strikes, alreadyLogged, cfg?)` — cfg 생략 시 `Config.MovementGuard` (스펙 시그니처에 cfg만 선택 인자로 추가) · developer
+- 2026-10-08 · 위반 기록 초기화 · 레이서가 아니게 되면(통과·탈락·라운드 끝) 기록을 지운다 → "라운드당" 횟수·로그. 같은 라운드에서 캐릭터가 바뀌면 위치 기준만 새로 잡는다 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-08 · developer · 브랜치 `m4-10-guard`
+- **바뀐 파일**: `src/server/MovementGuardService.luau`(구현), 새 `src/shared/MovementGuardLogic.luau`(순수 판정), 새 `tests/movement-guard.spec.luau`(26개: AC1~4 + 정상 이동 시뮬레이션 — 걷기, 바닥 다이브 연타, 점프+공중 다이브, 와사비 무표시/표시, 꼬치 넉백, 손이 판 들어 올림, 벨트 밀기, 철판 낙하, 서버 프레임 지연 0.5초, 복제 멈춤 뒤 따라잡기, 스폰/로비 이동 면제 / 위반: 속도 120, 서 있다 결승선 순간이동).
+- **동작**: Heartbeat마다 샘플 차례인 플레이어만(0.2초, 첫 샘플 시각을 흩음) 검사. 달리지 않는 사람은 `activeRoomOf`도 0.2초마다만 물음. 위반이면 마지막 정상 위치로 `PivotTo`(회전 유지) + 속도 0, 위반 시각·횟수 기록, 3번째에 `warn("[MovementGuard] userId … strikes …")` 한 번. 결승선 통과는 validator에서 즉석 재검사 + 위반 2초 안이면 거부.
+- **튜닝 근거(코드 상수 기준)**: 걷기 16, 다이브 수평 40(공중 위 16 상한), 와사비 위 80·앞 30, 꼬치 넉백 바깥 32·위 22, 벨트 밀기 10, 서든데스 손이 판을 0.5초에 30 들어 올림(ease-out 최고 120/s, 0.2초 19 studs). 모두 0.2초 기준 수평 22 / 위 34 안 — 맵이 `MoveExempt.mark`를 안 불러도 걸리지 않음. 실측 최고 수평 속도는 Studio에서 재서 40(80의 절반)을 넘으면 결정 기록에 적을 것.
+- **Studio 확인 방법**:
+  - AC6: `Config.DEBUG.forceMapPlan`에 맵 3~4개씩 두 판(6개 맵 전부) → 다이브 연타·와사비·벨트·급류·꼬치/칼 맞기. 서버 Output에 `[MovementGuard]`가 없어야 함. (m4-02~05 병합된 `main`을 merge한 뒤)
+  - AC7: Race 라운드 출발 뒤 클라이언트 명령창(Studio Test 탭의 클라이언트 쪽 Command Bar)에서
+    `local f; for _, d in workspace:GetDescendants() do if d.Name == "FinishLine" and d:IsA("BasePart") then f = d end end; game.Players.LocalPlayer.Character:PivotTo(f.CFrame + Vector3.new(0, 3, 0))`
+    → 통과 처리(통과 토스트·대기석 이동) 없이 원래 자리로 돌아와야 함.
+  - AC8: `game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 120` 후 달리기 → 계속 뒤로 당겨지고 서버 Output에 `[MovementGuard] userId … strikes 3 in this round` 한 줄. 킥 없음.
+  - AC9: Test → Clients and Servers 2명 이상, 잡기·넉백으로 부딪히기 → 경고 없음.
+- **남은 이슈**: 캐릭터끼리 물리 충돌로 튕겨 날아가는(fling) 경우는 표시가 없어 위반될 수 있음(되돌리기만, AC9에서 확인). 서 있다가 순간이동하면 86 studs까지는 못 잡음(복제 멈춤 오탐 방지와 맞바꿈).

@@ -164,7 +164,13 @@ function VictoryCutsceneController.start(gui: Instance)
 			return CFrame.lookAt(eye, target)
 		end
 
+		-- 연출 전 FOV (끝나면 되돌려요, QA B2)
+		local savedFov: number? = nil
+
 		local function applyCamera(camera: Camera)
+			if savedFov == nil then
+				savedFov = camera.FieldOfView
+			end
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.FieldOfView = CAMERA_FOV
 			camera.CFrame = cameraCFrame(0)
@@ -208,6 +214,10 @@ function VictoryCutsceneController.start(gui: Instance)
 		CameraDirector.request(OWNER, CameraDirector.Priority.VictoryCutscene, applyCamera)
 		cleanup:add(function()
 			CameraDirector.release(OWNER)
+			local camera = workspace.CurrentCamera
+			if camera and savedFov then
+				camera.FieldOfView = savedFov
+			end
 			screen:hide()
 		end)
 

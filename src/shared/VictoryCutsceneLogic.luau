@@ -234,7 +234,8 @@ function VictoryCutsceneLogic.cameraPose(t: number, duration: number): CameraPos
 	local alpha = easeOut(clamp01((base - BEATS[4].start) / 0.6))
 	local target = { 0, Layout.WaterY + 1.5, Layout.DiveLandZ }
 	local fromEye = addVec({ 0, Layout.WaterY + 1, Layout.DiveLandZ }, sideOffset)
-	local toEye = { 0, Layout.WaterY + 6, Layout.DiveLandZ + 17 }
+	-- 부두 끝(DOCK_END_Z) 너머 물 위에서 봐요 (부두 위에 두면 판자 끝이 인형·물고기를 가려요, QA B1)
+	local toEye = { 0, Layout.WaterY + 6, math.min(Layout.DiveLandZ + 9, DOCK_END_Z - 1) }
 	return { eye = lerpVec(fromEye, toEye, alpha), target = target }
 end
 

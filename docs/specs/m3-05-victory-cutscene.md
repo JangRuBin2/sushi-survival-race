@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-05 — 우승 연출 ("탈출 성공!")
@@ -66,6 +66,7 @@ status: in-dev
 - 2026-10-08 · `HudScreen.luau` 수정 · m3-03은 `HudController.luau`만, 이 스펙은 `HudScreen.luau`의 Victory 분기만 고쳐서 병렬 중 같은 파일을 건드리지 않음 · planner
 - 2026-10-08 · `HudScreen.luau` 범위 · Victory 분기 말고도 두 줄을 더 고침: 맨 위 `Config` require, `setPhase`·`setVisible(false)` 첫 줄의 `victoryToken += 1`(연출 중 단계가 바뀌거나 대기실로 돌아가면 늦게 뜨는 배너를 막는 용도). 그 밖의 분기는 그대로 · developer
 - 2026-10-08 · 시작 시각 · 연출 시계는 각 클라이언트가 `Victory`를 받은 순간부터 잼(서버 시각 동기 안 함). HUD 배너도 같은 순간부터 `VictoryCutscene`초 뒤라서 서로 맞음. 네트워크 지연만큼 사람마다 조금 어긋날 수 있음 · developer
+- 2026-10-08 · QA B3(우승자 화면 아래 "🏆 우승했어요!" 개인 결과가 연출 시작 4초 동안 겹침) · 고칠 곳이 `HudController.luau`(m3-03 담당 파일)라 이 스펙에서 손대지 않음. **m3-09로 넘김** (예: 내 결과가 `Won`이면 개인 결과 글씨를 띄우지 않기, 또는 Victory 동안 숨기기) · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
@@ -90,3 +91,9 @@ status: in-dev
 - m3-02 머지 전에는 인형이 회색 박스 1개. 머지 뒤 계란초밥으로 바뀌는데, 인형의 앞이 -Z(LookVector)라고 가정함 — 반대면 박수 때 등을 보임(m3-09에서 yaw만 뒤집으면 됨).
 - 소리는 m3-08 전에는 안 남(Sfx 껍데기).
 - 연출 시계는 클라이언트 수신 시각 기준 (결정 기록).
+
+### 2026-10-08 · developer · QA 반려 수정 (`docs/qa/m3-05-victory-cutscene.md`)
+- B1 [P1]: `VictoryCutsceneLogic.cameraPose` 박수 장면 카메라 눈을 부두 위(z -23)에서 부두 끝 너머 물 위 `(0, WaterY + 6, DiveLandZ + 9)` = `(0, 1, -31)`로 옮김. 옆 카메라(18, 2, -38)에서 옮겨 가는 동안에도 내내 z < -30이라 부두가 시선을 가리지 않음. QA B1 테스트 통과.
+- B2 [P2]: `VictoryCutsceneController` — 카메라를 처음 잡을 때 원래 FieldOfView를 저장하고, 정리(release) 때 되돌림.
+- B3 [P3]: 범위 밖(`HudController.luau`) → 결정 기록에 m3-09로 넘김.
+- Studio에서 볼 것: 박수 장면(3.8초~)에 인형 머리와 물고기 5마리가 부두 끝에 가리지 않고 보이는지, 연출 뒤 시야(FOV)가 원래대로(기본 70)인지.

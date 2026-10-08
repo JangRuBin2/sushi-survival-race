@@ -372,7 +372,7 @@ return function(t: Test.Test)
 			t.eq(profile.coins, 1000)
 			h.advance(COOLDOWN)
 			t.eq((h.invoke("BuyWithCoins", p, "tuna")), true)
-			t.eq(profile.coins, 500)
+			t.eq(profile.coins, 700)
 			-- 다른 사람은 따로 세요
 			local q = withProfile(h, 2, 0, { "salmon" })
 			t.eq((h.invoke("EquipSkin", q, "salmon")), true)
@@ -386,7 +386,7 @@ return function(t: Test.Test)
 			local h = harness()
 			local p, profile = withProfile(h, 1, 1000)
 			t.eq((h.invoke("BuyWithCoins", p, "salmon")), true)
-			t.eq(profile.coins, 500)
+			t.eq(profile.coins, 700)
 			t.eq(profile.ownedSkins.salmon, true)
 			t.eq(profile.equippedSkin, "salmon")
 			t.eq(h.updates, 1, "update 한 번")
@@ -396,30 +396,30 @@ return function(t: Test.Test)
 			local ok, err = h.invoke("BuyWithCoins", p, "salmon")
 			t.eq(ok, false)
 			t.eq(err, ShopLogic.message("AlreadyOwned"))
-			t.eq(profile.coins, 500)
+			t.eq(profile.coins, 700)
 		end
 	)
 
 	t.test(
-		"QA BuyWithCoins: 500으로 두 개를 사려 하면 두 번째는 '🍚 500개 더', 음수 없음",
+		"QA BuyWithCoins: 300으로 두 개를 사려 하면 두 번째는 '🍚 300개 더', 음수 없음",
 		function()
 			local h = harness()
-			local p, profile = withProfile(h, 1, 500)
+			local p, profile = withProfile(h, 1, 300)
 			t.eq((h.invoke("BuyWithCoins", p, "salmon")), true)
 			h.advance(COOLDOWN)
 			local ok, err = h.invoke("BuyWithCoins", p, "tuna")
 			t.eq(ok, false)
-			t.eq(err, "🍚 500개 더 필요해요")
+			t.eq(err, "🍚 300개 더 필요해요")
 			t.eq(profile.coins, 0)
 			t.eq(profile.ownedSkins.tuna, nil)
 		end
 	)
 
 	t.test(
-		"QA BuyWithCoins: 499 코인 → '🍚 1개 더 필요해요', 레어 → '코인으로는 살 수 없어요'",
+		"QA BuyWithCoins: 299 코인 → '🍚 1개 더 필요해요', 전설 → '코인으로는 살 수 없어요'",
 		function()
 			local h = harness()
-			local p, profile = withProfile(h, 1, 499)
+			local p, profile = withProfile(h, 1, 299)
 			local ok, err = h.invoke("BuyWithCoins", p, "shrimp")
 			t.eq(ok, false)
 			t.eq(err, "🍚 1개 더 필요해요")
@@ -430,6 +430,31 @@ return function(t: Test.Test)
 			t.eq(err, ShopLogic.message("NotForCoins"))
 			t.eq(profile.coins, 99999)
 			t.eq(profile.ownedSkins["dragon-roll"], nil)
+		end
+	)
+
+	t.test(
+		"BuyWithCoins 레어: 899 → '🍚 1개 더', 900 → 해금·장착, 다시 하면 '이미 있음'(한 번만 차감)",
+		function()
+			local h = harness()
+			local p, profile = withProfile(h, 1, 899)
+			local ok, err = h.invoke("BuyWithCoins", p, "eel")
+			t.eq(ok, false)
+			t.eq(err, "🍚 1개 더 필요해요")
+			t.eq(profile.coins, 899)
+			t.eq(profile.ownedSkins.eel, nil)
+			h.advance(COOLDOWN)
+			profile.coins = 900
+			t.eq((h.invoke("BuyWithCoins", p, "eel")), true)
+			t.eq(profile.coins, 0)
+			t.eq(profile.ownedSkins.eel, true)
+			t.eq(profile.equippedSkin, "eel")
+			h.advance(COOLDOWN)
+			profile.coins = 5000
+			ok, err = h.invoke("BuyWithCoins", p, "eel")
+			t.eq(ok, false)
+			t.eq(err, ShopLogic.message("AlreadyOwned"))
+			t.eq(profile.coins, 5000)
 		end
 	)
 
@@ -483,7 +508,7 @@ return function(t: Test.Test)
 			s.studio = true
 			local sp, sprofile = withProfile(s, 1, 600)
 			t.eq((s.invoke("BuyWithCoins", sp, "salmon")), true)
-			t.eq(sprofile.coins, 100)
+			t.eq(sprofile.coins, 300)
 			t.eq(s.saves, 0, "임시 프로필은 saveNow 안 불러요")
 		end
 	)

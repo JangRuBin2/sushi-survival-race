@@ -5,7 +5,7 @@
 --       큰 미리보기(ViewportFrame + SushiBody.build, 천천히 회전) + 말풍선 대사 + 행동 버튼 + 결과 글씨.
 --   compact(휴대폰): 카드 2열, 미리보기는 위쪽. 그 밖: 미리보기 왼쪽, 카드 3열.
 -- 카드 상태 글씨·버튼 활성은 Shared.ShopLogic.cardState. 로벅스(m4-14)는 상품 id가 있거나 Studio 가짜 결제일 때만
--- 켜지고, 아니면 "곧 열려요" 비활성. 일반 스킨은 코인 해금 버튼 아래에 "R$ 49로 사기" 버튼이 하나 더 있어요.
+-- 켜지고, 아니면 "곧 열려요" 비활성. 일반·레어 스킨은 코인 해금 버튼 아래에 "R$ 29로 사기"(레어는 59) 버튼이 하나 더 있어요.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -23,7 +23,7 @@ export type Actions = {
 	close: () -> (),
 	select: (skinId: string) -> (),
 	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 로벅스 레어 이상)
-	buyRobux: (skinId: string) -> (), -- 일반 스킨의 두 번째 버튼 "R$ 49로 사기" (m4-14)
+	buyRobux: (skinId: string) -> (), -- 일반·레어 스킨의 두 번째 버튼 "R$ 29로 사기" (m4-14)
 	tab: (tier: Skins.Tier?) -> (),
 }
 

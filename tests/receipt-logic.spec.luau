@@ -384,21 +384,21 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 카드 상태 (AC6 보조)
 	t.test(
-		"cardState: 가짜 결제면 상품 id 없이도 로벅스 켜짐, 일반 스킨은 코인 옆에 로벅스 버튼",
+		"cardState: 가짜 결제면 상품 id 없이도 로벅스 켜짐, 일반·레어 스킨은 코인 옆에 로벅스 버튼",
 		function()
 			local v = { coins = 0, ownedSkins = { "tamago" }, equippedSkin = "tamago" }
-			local uni = table.clone(Skins.get("uni") :: any)
-			uni.productId = nil
-			local off = ShopLogic.cardState(uni, v)
+			local epic = table.clone(Skins.get("aburi-salmon") :: any)
+			epic.productId = nil
+			local off = ShopLogic.cardState(epic, v)
 			t.eq(off.enabled, false)
 			t.eq(ShopLogic.cardButtonText(off), "R$ 99 — 곧 열려요")
-			local on = ShopLogic.cardState(uni, v, { fake = true })
+			local on = ShopLogic.cardState(epic, v, { fake = true })
 			t.eq(on.kind, "Robux")
 			t.eq(on.enabled, true)
 			t.eq(ShopLogic.cardButtonText(on), "R$ 99")
 			-- 실제 상품 가격이 오면 그 값
-			uni.productId = 1
-			local priced = ShopLogic.cardState(uni, v, { prices = { uni = 89 } })
+			epic.productId = 1
+			local priced = ShopLogic.cardState(epic, v, { prices = { ["aburi-salmon"] = 89 } })
 			t.eq(priced.enabled, true)
 			t.eq(ShopLogic.cardButtonText(priced), "R$ 89")
 			-- 일반: 코인이 모자라도 로벅스 버튼
@@ -406,13 +406,13 @@ return function(t: Test.Test)
 			salmon.productId = nil
 			local common = ShopLogic.cardState(salmon, v, { fake = true })
 			t.eq(common.kind, "NeedCoins")
-			t.eq(ShopLogic.robuxButtonText(common), "R$ 49로 사기")
+			t.eq(ShopLogic.robuxButtonText(common), "R$ 29로 사기")
 			t.eq(common.robuxEnabled, true)
-			t.eq(ShopLogic.robuxButtonText(ShopLogic.cardState(salmon, v)), "R$ 49 — 곧 열려요")
+			t.eq(ShopLogic.robuxButtonText(ShopLogic.cardState(salmon, v)), "R$ 29 — 곧 열려요")
 			-- 가진 스킨·기본 스킨은 로벅스 버튼 없음 (AC8)
-			local owned = { coins = 0, ownedSkins = { "tamago", "uni" }, equippedSkin = "tamago" }
-			t.eq(ShopLogic.cardState(uni, owned, { fake = true }).kind, "Equip")
-			t.eq(ShopLogic.robuxButtonText(ShopLogic.cardState(uni, owned, { fake = true })), nil)
+			local owned = { coins = 0, ownedSkins = { "tamago", "aburi-salmon" }, equippedSkin = "tamago" }
+			t.eq(ShopLogic.cardState(epic, owned, { fake = true }).kind, "Equip")
+			t.eq(ShopLogic.robuxButtonText(ShopLogic.cardState(epic, owned, { fake = true })), nil)
 			t.eq(ShopLogic.robuxOpen(Skins.get(Skins.DEFAULT_ID) :: any, true), false)
 		end
 	)

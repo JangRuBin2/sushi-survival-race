@@ -11,7 +11,7 @@
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
 -- productId에 넣으면 그 스킨의 로벅스 버튼이 켜져요 (nil이면 "곧 열려요"). 계란초밥은 무료라 상품 없음.
--- 코인 해금은 일반 등급만 (GDD 9.4).
+-- 코인 해금은 일반·레어 등급만 (GDD 9.4).
 
 export type Tier = "Basic" | "Common" | "Rare" | "Epic" | "Legendary"
 
@@ -20,7 +20,7 @@ export type Skin = {
 	displayName: string,
 	tier: Tier,
 	robux: number?, -- 로벅스 가격 (기본 스킨은 nil)
-	coins: number?, -- 밥알 코인 해금 가격 (일반 등급만, 나머지는 nil)
+	coins: number?, -- 밥알 코인 해금 가격 (일반·레어 등급만, 나머지는 nil)
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
@@ -36,7 +36,8 @@ local Config = require(script.Parent.Config)
 local Skins = {}
 
 Skins.DEFAULT_ID = Config.Appearance.Default -- "tamago"
-Skins.COMMON_COINS = 500 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
+Skins.COMMON_COINS = 300 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
+Skins.RARE_COINS = 900 -- 레어 스킨 코인 해금 가격 (GDD 9.4)
 
 Skins.TIERS = { "Basic", "Common", "Rare", "Epic", "Legendary" } :: { Tier }
 
@@ -49,6 +50,7 @@ Skins.TIER_INFO = {
 } :: { [Tier]: TierInfo }
 
 local COINS = Skins.COMMON_COINS
+local RARE_COINS = Skins.RARE_COINS
 
 Skins.LIST = {
 	{
@@ -62,7 +64,7 @@ Skins.LIST = {
 		id = "salmon",
 		displayName = "연어",
 		tier = "Common",
-		robux = 49,
+		robux = 29,
 		coins = COINS,
 		speech = { "연어는 언제나 옳아!", "기름기가 살살 녹네~" },
 		order = 2,
@@ -71,7 +73,7 @@ Skins.LIST = {
 		id = "tuna",
 		displayName = "참치",
 		tier = "Common",
-		robux = 49,
+		robux = 29,
 		coins = COINS,
 		speech = { "참치는 빨개야 제맛!", "쫄깃쫄깃 참치~" },
 		order = 3,
@@ -80,7 +82,7 @@ Skins.LIST = {
 		id = "shrimp",
 		displayName = "새우",
 		tier = "Common",
-		robux = 49,
+		robux = 29,
 		coins = COINS,
 		speech = { "꼬리까지 바삭!", "탱글탱글 새우다!" },
 		order = 4,
@@ -89,7 +91,7 @@ Skins.LIST = {
 		id = "inari",
 		displayName = "유부",
 		tier = "Common",
-		robux = 49,
+		robux = 29,
 		coins = COINS,
 		speech = { "달콤한 유부 주머니~", "속이 꽉 찼네!" },
 		order = 5,
@@ -98,7 +100,7 @@ Skins.LIST = {
 		id = "kappa-maki",
 		displayName = "오이마키",
 		tier = "Common",
-		robux = 49,
+		robux = 29,
 		coins = COINS,
 		speech = { "아삭아삭 오이!", "상큼하다~" },
 		order = 6,
@@ -107,7 +109,8 @@ Skins.LIST = {
 		id = "eel",
 		displayName = "장어",
 		tier = "Rare",
-		robux = 99,
+		robux = 59,
+		coins = RARE_COINS,
 		speech = { "소스가 끝내줘!", "장어 먹고 힘내자~" },
 		order = 7,
 	},
@@ -115,7 +118,8 @@ Skins.LIST = {
 		id = "uni",
 		displayName = "성게",
 		tier = "Rare",
-		robux = 99,
+		robux = 59,
+		coins = RARE_COINS,
 		speech = { "바다 향이 가득해", "고소한 성게 최고!" },
 		order = 8,
 	},
@@ -123,7 +127,8 @@ Skins.LIST = {
 		id = "ikura",
 		displayName = "연어알 군함",
 		tier = "Rare",
-		robux = 99,
+		robux = 59,
+		coins = RARE_COINS,
 		speech = { "톡톡 터지는 맛!", "알알이 반짝반짝~" },
 		order = 9,
 	},
@@ -131,7 +136,8 @@ Skins.LIST = {
 		id = "octopus",
 		displayName = "문어",
 		tier = "Rare",
-		robux = 99,
+		robux = 59,
+		coins = RARE_COINS,
 		speech = { "빨판이 쫀득해!", "문어는 씹는 맛이지~" },
 		order = 10,
 	},
@@ -139,7 +145,7 @@ Skins.LIST = {
 		id = "rainbow-roll",
 		displayName = "무지개 롤",
 		tier = "Epic",
-		robux = 199,
+		robux = 99,
 		speech = { "한 입에 일곱 가지 맛!", "알록달록 예쁘다~" },
 		order = 11,
 	},
@@ -147,7 +153,7 @@ Skins.LIST = {
 		id = "aburi-salmon",
 		displayName = "불꽃 연어",
 		tier = "Epic",
-		robux = 199,
+		robux = 99,
 		speech = { "앗 뜨거, 불맛 최고!", "살짝 그을려서 더 맛있어" },
 		order = 12,
 	},
@@ -155,7 +161,7 @@ Skins.LIST = {
 		id = "california-roll",
 		displayName = "아보카도 캘리포니아롤",
 		tier = "Epic",
-		robux = 199,
+		robux = 99,
 		speech = { "아보카도가 부드러워~", "날치알이 톡톡!" },
 		order = 13,
 	},
@@ -163,7 +169,7 @@ Skins.LIST = {
 		id = "golden-otoro",
 		displayName = "황금 참치 뱃살",
 		tier = "Legendary",
-		robux = 399,
+		robux = 199,
 		speech = { "황금빛 뱃살이라니!", "입에서 사르르 녹아~" },
 		order = 14,
 	},
@@ -171,7 +177,7 @@ Skins.LIST = {
 		id = "diamond-uni",
 		displayName = "다이아 성게",
 		tier = "Legendary",
-		robux = 399,
+		robux = 199,
 		speech = { "반짝반짝 보석 같아!", "이건 정말 귀한 맛이야" },
 		order = 15,
 	},
@@ -179,7 +185,7 @@ Skins.LIST = {
 		id = "dragon-roll",
 		displayName = "용 롤",
 		tier = "Legendary",
-		robux = 399,
+		robux = 199,
 		speech = { "용을 먹다니 대단해!", "불을 뿜을 것 같은 맛!" },
 		order = 16,
 	},
@@ -227,7 +233,7 @@ local function isPrice(value: unknown): boolean
 	return type(value) == "number" and value == value and value > 0 and value % 1 == 0 and value < math.huge
 end
 
--- 카탈로그 규칙: id·순서 겹침 없음, 등급 유효, 기본 스킨은 무료, 코인은 일반 등급만, 대사 1~2줄
+-- 카탈로그 규칙: id·순서 겹침 없음, 등급 유효, 기본 스킨은 무료, 코인은 일반·레어 등급만, 대사 1~2줄
 function Skins.validate(list: { Skin }): (boolean, { string })
 	local problems: { string } = {}
 	local ids: { [string]: boolean } = {}
@@ -265,8 +271,8 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 				table.insert(problems, `{where}: robux price missing`)
 			end
 		end
-		if skin.coins ~= nil and (skin.tier ~= "Common" or not isPrice(skin.coins)) then
-			table.insert(problems, `{where}: coin price only for Common skins`)
+		if skin.coins ~= nil and ((skin.tier ~= "Common" and skin.tier ~= "Rare") or not isPrice(skin.coins)) then
+			table.insert(problems, `{where}: coin price only for Common and Rare skins`)
 		end
 		if skin.productId ~= nil then
 			if not isPrice(skin.productId) then

@@ -15,21 +15,21 @@ local Config = RobloxRequire.require(Shared.Config)
 -- 스펙 표 그대로: id, 이름, 등급, 로벅스, 코인
 local EXPECTED = {
 	{ "tamago", "계란초밥", "Basic", nil, nil },
-	{ "salmon", "연어", "Common", 49, 500 },
-	{ "tuna", "참치", "Common", 49, 500 },
-	{ "shrimp", "새우", "Common", 49, 500 },
-	{ "inari", "유부", "Common", 49, 500 },
-	{ "kappa-maki", "오이마키", "Common", 49, 500 },
-	{ "eel", "장어", "Rare", 99, nil },
-	{ "uni", "성게", "Rare", 99, nil },
-	{ "ikura", "연어알 군함", "Rare", 99, nil },
-	{ "octopus", "문어", "Rare", 99, nil },
-	{ "rainbow-roll", "무지개 롤", "Epic", 199, nil },
-	{ "aburi-salmon", "불꽃 연어", "Epic", 199, nil },
-	{ "california-roll", "아보카도 캘리포니아롤", "Epic", 199, nil },
-	{ "golden-otoro", "황금 참치 뱃살", "Legendary", 399, nil },
-	{ "diamond-uni", "다이아 성게", "Legendary", 399, nil },
-	{ "dragon-roll", "용 롤", "Legendary", 399, nil },
+	{ "salmon", "연어", "Common", 29, 300 },
+	{ "tuna", "참치", "Common", 29, 300 },
+	{ "shrimp", "새우", "Common", 29, 300 },
+	{ "inari", "유부", "Common", 29, 300 },
+	{ "kappa-maki", "오이마키", "Common", 29, 300 },
+	{ "eel", "장어", "Rare", 59, 900 },
+	{ "uni", "성게", "Rare", 59, 900 },
+	{ "ikura", "연어알 군함", "Rare", 59, 900 },
+	{ "octopus", "문어", "Rare", 59, 900 },
+	{ "rainbow-roll", "무지개 롤", "Epic", 99, nil },
+	{ "aburi-salmon", "불꽃 연어", "Epic", 99, nil },
+	{ "california-roll", "아보카도 캘리포니아롤", "Epic", 99, nil },
+	{ "golden-otoro", "황금 참치 뱃살", "Legendary", 199, nil },
+	{ "diamond-uni", "다이아 성게", "Legendary", 199, nil },
+	{ "dragon-roll", "용 롤", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -80,13 +80,16 @@ return function(t: Test.Test)
 		t.ok(ok, table.concat(problems, "; "))
 	end)
 
-	t.test("AC1: 레어 이상은 코인 해금이 없고, 일반은 500 코인 (GDD 9.4)", function()
+	t.test("AC1: 에픽 이상은 코인 해금이 없고, 일반은 300·레어는 900 코인 (GDD 9.4)", function()
+		t.eq(Skins.COMMON_COINS, 300)
+		t.eq(Skins.RARE_COINS, 900)
 		for _, skin in Skins.LIST do
-			if skin.tier == "Rare" or skin.tier == "Epic" or skin.tier == "Legendary" then
+			if skin.tier == "Epic" or skin.tier == "Legendary" then
 				t.eq(skin.coins, nil, skin.id)
 			elseif skin.tier == "Common" then
-				t.eq(skin.coins, 500, skin.id)
-				t.eq(skin.coins, Skins.COMMON_COINS)
+				t.eq(skin.coins, Skins.COMMON_COINS, skin.id)
+			elseif skin.tier == "Rare" then
+				t.eq(skin.coins, Skins.RARE_COINS, skin.id)
 			end
 		end
 	end)
@@ -121,14 +124,14 @@ return function(t: Test.Test)
 	t.test("validate가 잘못된 카탈로그를 잡아요", function()
 		local bad = {
 			{ id = "tamago", displayName = "계란", tier = "Basic", speech = { "a" }, order = 1 },
-			{ id = "x", displayName = "x", tier = "Rare", robux = 99, coins = 500, speech = { "a" }, order = 2 },
-			{ id = "x", displayName = "y", tier = "Common", robux = 49, speech = {}, order = 2 },
-			{ id = "z", displayName = "z", tier = "Mythic", robux = 49, speech = { "a", "b", "c" }, order = 3 },
+			{ id = "x", displayName = "x", tier = "Epic", robux = 99, coins = 900, speech = { "a" }, order = 2 },
+			{ id = "x", displayName = "y", tier = "Common", robux = 29, speech = {}, order = 2 },
+			{ id = "z", displayName = "z", tier = "Mythic", robux = 29, speech = { "a", "b", "c" }, order = 3 },
 		}
 		local ok, problems = Skins.validate(bad :: any)
 		t.eq(ok, false)
 		local text = table.concat(problems, "\n")
-		t.ok(string.find(text, "coin price only for Common", 1, true) ~= nil, "rare coins")
+		t.ok(string.find(text, "coin price only for Common and Rare", 1, true) ~= nil, "epic coins")
 		t.ok(string.find(text, "duplicate id", 1, true) ~= nil, "duplicate id")
 		t.ok(string.find(text, "duplicate order", 1, true) ~= nil, "duplicate order")
 		t.ok(string.find(text, "unknown tier", 1, true) ~= nil, "unknown tier")

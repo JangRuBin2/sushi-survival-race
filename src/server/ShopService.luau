@@ -3,7 +3,7 @@
 -- 리모트 (RemoteFunction, 반환 ok: boolean, err: string?):
 --   EquipSkin(skinId)     카탈로그에 있고 보유 중이어야 해요. 라운드 레이서(소개 포함)이거나 탈락·우승 연출 중이면 거절.
 --                         로비·방 대기실·관전·대기석에서는 돼요. 성공하면 equippedSkin 저장 + 캐릭터에 바로 다시 입혀요.
---   BuyWithCoins(skinId)  일반 스킨만, 미보유, 코인 ≥ 가격 → 한 번의 DataService.update 안에서 차감 + 보유 + 장착.
+--   BuyWithCoins(skinId)  일반·레어 스킨만, 미보유, 코인 ≥ 가격 → 한 번의 DataService.update 안에서 차감 + 보유 + 장착.
 --                         라운드·연출 중이면 거절 (바로 입혀야 해서). 실제 서버에서 프로필 로드에 실패했으면
 --                         (canPersist = false) 거절, Studio 메모리 모드는 허용.
 --   두 요청은 Config.Shop.RequestCooldown 간격 제한을 같이 써요. 판단은 Shared.ShopLogic (순수).

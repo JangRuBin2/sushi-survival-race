@@ -11,7 +11,7 @@
 --   LeaveRoom()            방 대기실에서 나가기, 탈락 후 "로비로"
 --   StartRoom()            방장만
 --   EquipSkin(skinId: string)     보유한 스킨 입기 (m4-13, ShopService: 라운드·연출 중 거절, Config.Shop.RequestCooldown)
---   BuyWithCoins(skinId: string)  일반 스킨 코인 해금 + 자동 장착 (m4-13, ShopService)
+--   BuyWithCoins(skinId: string)  일반·레어 스킨 코인 해금 + 자동 장착 (m4-13, ShopService)
 --   RequestRobuxPurchase(skinId: string)  로벅스 결제 창 열기 (m4-14, RobuxShopService: 상품·미보유·저장 가능 검증,
 --                                 Config.Shop.PurchaseRequestCooldown). 지급은 ProcessReceipt가 해요
 --

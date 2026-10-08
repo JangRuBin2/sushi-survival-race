@@ -102,21 +102,21 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 
     | 스킨 id | 상품 이름 | 가격(R$) |
     |---|---|---|
-    | salmon | 연어 | 49 |
-    | tuna | 참치 | 49 |
-    | shrimp | 새우 | 49 |
-    | inari | 유부 | 49 |
-    | kappa-maki | 오이마키 | 49 |
-    | eel | 장어 | 99 |
-    | uni | 성게 | 99 |
-    | ikura | 연어알 군함 | 99 |
-    | octopus | 문어 | 99 |
-    | rainbow-roll | 무지개 롤 | 199 |
-    | aburi-salmon | 불꽃 연어 | 199 |
-    | california-roll | 아보카도 캘리포니아롤 | 199 |
-    | golden-otoro | 황금 참치 뱃살 | 399 |
-    | diamond-uni | 다이아 성게 | 399 |
-    | dragon-roll | 용 롤 | 399 |
+    | salmon | 연어 | 29 |
+    | tuna | 참치 | 29 |
+    | shrimp | 새우 | 29 |
+    | inari | 유부 | 29 |
+    | kappa-maki | 오이마키 | 29 |
+    | eel | 장어 | 59 |
+    | uni | 성게 | 59 |
+    | ikura | 연어알 군함 | 59 |
+    | octopus | 문어 | 59 |
+    | rainbow-roll | 무지개 롤 | 99 |
+    | aburi-salmon | 불꽃 연어 | 99 |
+    | california-roll | 아보카도 캘리포니아롤 | 99 |
+    | golden-otoro | 황금 참치 뱃살 | 199 |
+    | diamond-uni | 다이아 성게 | 199 |
+    | dragon-roll | 용 롤 | 199 |
   - 그다음 Studio 테스트 구매 확인: [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md) 개발 메모 AC7
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)

@@ -3,13 +3,13 @@
 --   canEquip(skinId, ownedSkins, locked?) -> (ok, reason?)
 --       카탈로그에 있고 보유 중이어야 해요. locked = 라운드 중·연출 중 (서버 ShopService가 판단해서 넘겨요).
 --   canBuyWithCoins(skinId, profile, canSave?) -> Decision
---       코인 가격이 있는(일반) 스킨, 미보유, 코인 ≥ 가격. canSave가 false면(실제 서버 로드 실패) 거절.
+--       코인 가격이 있는(일반·레어) 스킨, 미보유, 코인 ≥ 가격. canSave가 false면(실제 서버 로드 실패) 거절.
 --   buyWithCoins(profile, skinId) -> Decision
 --       DataService.update 안에서 부르는 것: 다시 판단하고 통과하면 차감 + 보유 + 장착을 한 번에 (중복·음수 방지).
 --   grantSkin(profile, skinId, equip?) -> boolean   보유 목록에 넣어요 (로벅스 결제 m4-14). 새로 넣었으면 true.
 --   message(reason, missing?) -> string              거절 이유 한국어 한 줄 (탈의실 결과 글씨)
 --   cardState(skin, view, robux?) -> CardState       탈의실 카드 상태 (입는 중 / 입기 / 코인 해금 / 코인 부족 / 로벅스)
---       로벅스 버튼은 상품 id가 있거나 Studio 가짜 결제(robux.fake)일 때만 켜져요 (m4-14). 일반 스킨은 코인 해금 옆에
+--       로벅스 버튼은 상품 id가 있거나 Studio 가짜 결제(robux.fake)일 때만 켜져요 (m4-14). 일반·레어 스킨은 코인 해금 옆에
 --       로벅스 버튼이 하나 더 있어요 (robux·robuxEnabled → robuxButtonText).
 --   robuxOpen(skin, fake?) / robuxPrice(skin, robux?)  로벅스 판매 여부 / 보여 줄 가격 (실제 상품 가격 우선)
 --   cardButtonText(state) -> string · robuxButtonText(state) -> string?
@@ -50,7 +50,7 @@ export type CardState = {
 	price: number?, -- Unlock·NeedCoins: 코인 가격, Robux: 로벅스 가격
 	missing: number?, -- NeedCoins
 	enabled: boolean, -- 누를 수 있는 버튼인지 (Robux는 상품 id가 있거나 Studio 가짜 결제일 때만)
-	robux: number?, -- Unlock·NeedCoins: 로벅스로도 살 수 있는 가격 (일반 스킨, m4-14)
+	robux: number?, -- Unlock·NeedCoins: 로벅스로도 살 수 있는 가격 (일반·레어 스킨, m4-14)
 	robuxEnabled: boolean?, -- 그 로벅스 버튼을 누를 수 있는지
 }
 
@@ -228,7 +228,7 @@ function ShopLogic.cardButtonText(state: CardState): string
 	return `R$ {state.price} — 곧 열려요`
 end
 
--- 일반 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)
+-- 일반·레어 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)
 function ShopLogic.robuxButtonText(state: CardState): string?
 	if state.robux == nil or (state.kind ~= "Unlock" and state.kind ~= "NeedCoins") then
 		return nil

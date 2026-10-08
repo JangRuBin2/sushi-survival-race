@@ -2,6 +2,7 @@
 -- 매치 HUD 화면 (GDD 10): 라운드 번호, 맵 이름/규칙, 남은 시간, 통과 인원/목표 인원,
 -- 라운드 소개·결과·우승 배너, 내 개인 결과(통과/탈락/우승 + 순위) 안내, 우승 때 최종 순위표.
 -- Survival·결승(생존형)에서는 왼쪽 위에 "통과 n/목표" 대신 "남은 인원 n"을 보여요.
+-- 결승 연장전(m5-01): "⚡ 연장전!" 배너 2초, 타이머는 빨간 "⚡ N초"(바닥이 다 사라질 때까지) → "⚡ 버텨요!".
 -- LobbyScreen/RoomScreen과 같은 ScreenGui 위에 떠 있고, 매치 중(room.state == "InMatch")에만 보여요.
 -- compact(휴대폰 가로, m4-09): 위쪽 가운데 한 줄에 [인원] [라운드 · 맵 이름] [남은 시간], 내 결과는 그 아래
 -- 오른쪽 (오른쪽 아래는 점프·다이브·잡기 버튼 자리). 글씨는 실제 14px 이상. PC 큰 화면은 예전 배치 그대로.
@@ -23,6 +24,9 @@ export type HudScreen = {
 	-- keep = true면 4초 뒤 지우지 않고 clearPersonalResult·setVisible(false)까지 둬요 (우승 글씨, m3-09)
 	showPersonalResult: (self: HudScreen, text: string, keep: boolean?) -> (),
 	clearPersonalResult: (self: HudScreen) -> (),
+	-- 결승 연장전 (m5-01): 배너 2초 + 타이머를 빨간 "⚡ N초"(collapseAt까지) → "⚡ 버텨요!"로. clearOvertime으로 되돌려요.
+	showOvertime: (self: HudScreen, collapseAt: number) -> (),
+	clearOvertime: (self: HudScreen) -> (),
 }
 
 local HudScreen = {}
@@ -31,6 +35,7 @@ HudScreen.ROOT_NAME = "Hud"
 HudScreen.TOP_BANNER_NAME = "TopBanner"
 
 local BANNER_POSITION = UDim2.fromScale(0.5, 0.42)
+local OVERTIME_BANNER_TIME = 2 -- "⚡ 연장전!" 배너를 보여 주는 시간(초)
 local VICTORY_BANNER_POSITION = UDim2.fromScale(0.5, 0.2)
 local STANDING_ROW_HEIGHT = 28
 
@@ -98,6 +103,13 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		TextColor3 = Color.Salmon,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		Size = UDim2.fromOffset(110, 36),
+	})
+	-- 칸보다 긴 글씨("⚡ 버텨요!")는 줄여서 칸 안에 넣어요. 최대 크기는 applyLayout이 정해요 (m5-01)
+	timerLabel.TextScaled = true
+	local timerTextLimit = Kit.new("UITextSizeConstraint", {
+		Parent = timerLabel,
+		MinTextSize = 12,
+		MaxTextSize = 26,
 	})
 
 	-- 왼쪽 위: 통과 인원 / 목표 / 남은 인원
@@ -226,8 +238,17 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 
 	local endsAt: number? = nil
 	local mapKind: Types.MapKind? = nil
+	local overtimeCollapseAt: number? = nil -- 결승 연장전 중이면 바닥이 다 사라지는 시각 (m5-01)
 
 	local function refreshTimer()
+		local collapseAt = overtimeCollapseAt
+		if collapseAt ~= nil then
+			timerLabel.TextColor3 = Color.Error
+			local left = math.ceil(collapseAt - workspace:GetServerTimeNow())
+			timerLabel.Text = if left > 0 then `⚡ {left}초` else "⚡ 버텨요!"
+			return
+		end
+		timerLabel.TextColor3 = Color.Salmon
 		if endsAt == nil then
 			timerLabel.Text = ""
 			return
@@ -274,6 +295,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			timerLabel.Size = UDim2.new(0.14, 0, 0, rowHeight + 8)
 			timerLabel.TextXAlignment = Enum.TextXAlignment.Left
 			timerLabel.TextSize = text(26)
+			timerTextLimit.MaxTextSize = text(26)
 			-- 내 결과: 위쪽 줄 오른쪽 (아래는 터치 버튼·관전 버튼 자리)
 			personalLabel.AnchorPoint = Vector2.new(1, 0)
 			personalLabel.Position = UDim2.new(1, -8, 0, rowHeight + 18)
@@ -299,6 +321,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			timerLabel.Size = UDim2.fromOffset(110, 36)
 			timerLabel.TextXAlignment = Enum.TextXAlignment.Right
 			timerLabel.TextSize = 26
+			timerTextLimit.MaxTextSize = 26
 			personalLabel.AnchorPoint = Vector2.new(0.5, 1)
 			personalLabel.Position = UDim2.new(0.5, 0, 1, -24)
 			personalLabel.Size = UDim2.new(1, 0, 0, 30)
@@ -316,6 +339,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 	UiScaleController.onChanged(applyLayout)
 
 	local personalToken = 0
+	-- 연장전 배너를 2초 뒤 숨길 때, 그 사이 다른 배너(결과·우승)가 떴는지 확인용 (m5-01)
+	local overtimeBannerToken = 0
 	-- 우승 배너·순위표를 연출 뒤에 띄울 때, 그 사이 단계가 바뀌거나 HUD가 숨겨졌는지 확인용 (m3-05)
 	local victoryToken = 0
 
@@ -325,6 +350,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		root.Visible = visible
 		if not visible then
 			victoryToken += 1
+			overtimeBannerToken += 1
+			overtimeCollapseAt = nil
 			banner.Visible = false
 			banner.Position = BANNER_POSITION
 			clearStandings()
@@ -336,6 +363,10 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 
 	function screen.setPhase(_self: HudScreen, info: Types.MatchPhaseInfo)
 		victoryToken += 1
+		overtimeBannerToken += 1
+		if info.phase ~= "RoundActive" then
+			overtimeCollapseAt = nil -- 연장전 표시는 다음 단계(결과·우승)에서 지워요 (m5-01)
+		end
 		endsAt = info.endsAt
 		refreshTimer()
 		if info.mapKind then
@@ -431,6 +462,34 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 	function screen.clearPersonalResult(_self: HudScreen)
 		personalToken += 1
 		personalLabel.Text = ""
+	end
+
+	function screen.showOvertime(_self: HudScreen, collapseAt: number)
+		overtimeCollapseAt = collapseAt
+		refreshTimer()
+		overtimeBannerToken += 1
+		local mine = overtimeBannerToken
+		banner.Position = BANNER_POSITION
+		banner.Visible = true
+		bannerTitle.Text = "⚡ 연장전!"
+		bannerSubtitle.Text = "접시가 무너져요! 끝까지 버텨요"
+		task.delay(OVERTIME_BANNER_TIME, function()
+			if overtimeBannerToken == mine then
+				banner.Visible = false
+			end
+		end)
+	end
+
+	function screen.clearOvertime(_self: HudScreen)
+		if overtimeCollapseAt == nil then
+			return
+		end
+		overtimeCollapseAt = nil
+		overtimeBannerToken += 1
+		if bannerTitle.Text == "⚡ 연장전!" then
+			banner.Visible = false
+		end
+		refreshTimer()
 	end
 
 	return (screen :: any) :: HudScreen

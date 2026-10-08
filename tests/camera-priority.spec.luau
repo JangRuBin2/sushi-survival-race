@@ -99,6 +99,7 @@ return function(t: Test.Test)
 			"Qualified",
 			"Eliminated",
 			"VictoryFanfare",
+			"Overtime", -- m5-01 결승 연장전 경적
 			"ChopstickClack",
 			"Struggle",
 			"SoyDip",

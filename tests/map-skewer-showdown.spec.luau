@@ -158,4 +158,71 @@ return function(t: Test.Test)
 		t.ok(not Logic.isHit(25, 0, STANDING, -0.01, 0.01, LOW), "outside the stage")
 		t.ok(not Logic.isHit(0.5, 0, STANDING, -0.01, 0.01, LOW), "inside the pillar")
 	end)
+
+	------------------------------------------------------------------------
+	-- m5-01 결승 연장전
+
+	local function near(a: number, b: number): boolean
+		return math.abs(a - b) < 1e-6
+	end
+
+	t.test("m5-01 AC7: skewer-showdown에는 overtime 훅이 있어요", function()
+		local map = Maps.get("skewer-showdown")
+		t.eq(type(map.overtime), "function")
+	end)
+
+	t.test(
+		"m5-01 AC8: speeds — 연장전 전에는 그대로, 연장전 +10초 170/135, +20초 이상 190/150",
+		function()
+			for _, elapsed in { 0, 5, 10, 30, 59, 60, 89, 89.9 } do
+				t.eq(Logic.speeds(elapsed, nil), Logic.speeds(elapsed), `elapsed {elapsed} (nil)`)
+				t.eq(Logic.speeds(elapsed, 90), Logic.speeds(elapsed), `elapsed {elapsed} (before 90)`)
+			end
+			local atStart = Logic.speeds(90, 90)
+			t.ok(near(atStart.low, 150) and near(atStart.high, 120), "start of overtime keeps the max speed")
+			local mid = Logic.speeds(100, 90)
+			t.ok(near(mid.low, 170) and near(mid.high, 135), `+10s: {mid.low}/{mid.high}`)
+			for _, elapsed in { 110, 120, 200 } do
+				local s = Logic.speeds(elapsed, 90)
+				t.ok(near(s.low, 190) and near(s.high, 150), `+{elapsed - 90}s: {s.low}/{s.high}`)
+			end
+			-- 램프 길이를 넘기면 그 시간에 최고 속도
+			local custom = Logic.speeds(100, 90, 10)
+			t.ok(near(custom.low, 190) and near(custom.high, 150), "custom ramp")
+			-- 디버그로 일찍 시작해도 속도가 줄지 않아요
+			local previous = Logic.speeds(0, 15)
+			for elapsed = 0, 60, 0.5 do
+				local now = Logic.speeds(elapsed, 15)
+				t.ok(now.low >= previous.low - 1e-9, `low decreased at {elapsed}`)
+				previous = now
+			end
+		end
+	)
+
+	t.test("m5-01 AC9: collapseTimes(8, 20, 1) — 바깥 줄부터 8개, 마지막 dropAt 20, 경고 1초", function()
+		local steps = Logic.collapseTimes(8, 20, 1)
+		t.eq(#steps, 8)
+		t.eq(steps[1].warnAt, 0)
+		t.ok(near(steps[#steps].dropAt, 20), `last dropAt {steps[#steps].dropAt}`)
+		local lastWarn = -math.huge
+		for i, step in steps do
+			t.eq(step.strip, 9 - i)
+			t.ok(near(step.dropAt - step.warnAt, 1), `strip {step.strip} warn length`)
+			t.ok(step.warnAt >= 0, "warnAt >= 0")
+			t.ok(step.warnAt > lastWarn, "warnAt increases")
+			lastWarn = step.warnAt
+			-- 다음 줄 경고는 이 줄이 사라진 뒤에 시작해요 (한 번에 한 줄)
+			local nextStep = steps[i + 1]
+			if nextStep then
+				t.ok(nextStep.warnAt >= step.dropAt - 1e-9, "one strip at a time")
+			end
+		end
+		-- 기본값(Config.Final)과 맵 상수로도 같은 약속
+		local defaults = Logic.collapseTimes(8, Config.Final.CollapseDuration, Logic.COLLAPSE_WARN_TIME)
+		t.ok(near(defaults[#defaults].dropAt, Config.Final.CollapseDuration), "default collapse ends on time")
+		t.eq(#Logic.collapseTimes(0, 20, 1), 0)
+		local single = Logic.collapseTimes(1, 20, 1)
+		t.eq(#single, 1)
+		t.ok(near(single[1].dropAt, 20) and near(single[1].warnAt, 19), "single strip")
+	end)
 end

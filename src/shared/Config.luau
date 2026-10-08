@@ -40,7 +40,13 @@ Config.Match = {
 Config.TimeLimit = {
 	Race = 90,
 	Survival = 60,
-	Final = 90,
+	Final = 90, -- 결승은 끝나는 시각이 아니라 연장전 시작 시각 (Config.Final, m5-01)
+}
+
+-- 결승 연장전 (m5-01, GDD 5.2). 연장전 시작 = 결승 맵의 시간 제한(Config.TimeLimit.Final 또는 map.timeLimit)
+Config.Final = {
+	CollapseDuration = 20, -- 연장전 시작부터 맵이 설 곳을 다 없앨 때까지(초)
+	HardCapMargin = 40, -- 바닥이 다 사라진 뒤에도 안 끝나면 이만큼 더 기다렸다가 높이 순 판정(안전 상한)
 }
 
 -- 매치 맵이 지어지는 위치. 로비(원점)와 겹치지 않게 띄우고,
@@ -196,6 +202,8 @@ Config.DEBUG = {
 	-- 그대로 타요 (m4-14). 저장이 메모리 모드면 메모리에. 실제 서버에서는 무시. 커밋할 때는 false로.
 	-- persistDataInStudio와 같이 켜면 운영 저장소에 가짜 기록이 써지니 가짜 결제는 꺼지고 경고만 남겨요 (m4-14 QA R4).
 	fakeRobuxInStudio = false,
+	-- 결승 연장전 시작을 이 초로 당겨요 (Studio 전용, 혼자·2명 테스트용, m5-01). 커밋할 때는 nil로.
+	overtimeAt = nil :: number?,
 }
 
 return Config

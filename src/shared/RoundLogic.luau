@@ -11,7 +11,9 @@
 --   Final     마지막 라운드(생존형 결승). 떨어질 때마다 탈락, 1명이 남는 순간 그 사람 우승.
 --             같은 묶음(판정 틱)에 떨어져 0명이 되면 그 묶음의 낙하자 중 점수(높이)가 가장 큰 사람이 우승.
 --             리셋·퇴장은 같은 묶음의 낙하보다 더 나쁜 등수예요. 묶음이 전부 리셋·퇴장이면 우승자 없음 (m4-01).
---             시간 종료면 점수가 가장 큰 사람이 우승. 맵이 pass를 부르면 첫 통과자가 우승(fallback).
+--             시간 제한 대신 연장전(m5-01): 시간 제한(overtimeAt)에 맵의 overtime 훅이 켜져 collapseAt까지 설 곳을
+--             없애고, 가장 늦게 떨어진 사람이 우승해요. 시간 종료(안전 상한 hardCapAt)면 점수가 가장 큰 사람이 우승.
+--             맵이 pass를 부르면 첫 통과자가 우승(fallback).
 -- 점수(score)는 클수록 잘한 거예요: Race는 진행도, Survival·Final은 높이(HumanoidRootPart Y).
 --
 -- 결승 진출 2명 보장 (m2-07, m2-05 QA F1, GDD 4.1 "최소 2명은 결승에 가요")
@@ -70,6 +72,40 @@ export type Standings = {
 	nextWorst: number,
 	winnerUserId: number?, -- Won을 받은 사람 (매치에서 많아야 1명)
 }
+
+------------------------------------------------------------------------
+-- 시간 일정 (m5-01)
+
+-- 라운드 출발 기준 초. Race·Survival은 hardCapAt(= 시간 제한)만 있어요.
+-- Final: overtimeAt(연장전 시작) → collapseAt(설 곳 0) → hardCapAt(안전 상한, 높이 순 판정).
+export type Schedule = { overtimeAt: number?, collapseAt: number?, hardCapAt: number }
+export type ClockPhase = "Normal" | "Overtime" | "Collapsed" | "Expired"
+export type FinalTiming = { CollapseDuration: number, HardCapMargin: number }
+
+-- overtimeAtOverride(Studio 디버그)가 있으면 결승의 연장전 시작만 그 값으로 당겨요.
+function RoundLogic.schedule(mode: Mode, timeLimit: number, final: FinalTiming, overtimeAtOverride: number?): Schedule
+	if mode ~= "Final" then
+		return { hardCapAt = timeLimit }
+	end
+	local overtimeAt = overtimeAtOverride or timeLimit
+	local collapseAt = overtimeAt + final.CollapseDuration
+	return { overtimeAt = overtimeAt, collapseAt = collapseAt, hardCapAt = collapseAt + final.HardCapMargin }
+end
+
+function RoundLogic.clockPhase(schedule: Schedule, elapsed: number): ClockPhase
+	if elapsed >= schedule.hardCapAt then
+		return "Expired"
+	end
+	local overtimeAt = schedule.overtimeAt
+	if overtimeAt == nil or elapsed < overtimeAt then
+		return "Normal"
+	end
+	local collapseAt = schedule.collapseAt
+	if collapseAt == nil or elapsed < collapseAt then
+		return "Overtime"
+	end
+	return "Collapsed"
+end
 
 ------------------------------------------------------------------------
 -- 라운드
@@ -372,7 +408,7 @@ function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -
 	return out
 end
 
--- 시간 종료
+-- 시간 종료 (clockPhase가 Expired일 때. 결승이면 안전 상한)
 function RoundLogic.timeout(round: Round, scoreOf: (number) -> number): { Outcome }
 	local out: { Outcome } = {}
 	if round.ended then

@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-01 — 결승 연장전: 마지막 1명이 남을 때까지
@@ -128,3 +128,25 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-08 · developer · 브랜치 `m5-01-overtime`
+
+**바뀐 파일**
+- `src/shared/RoundLogic.luau`: `Schedule`·`ClockPhase`·`FinalTiming` 타입, `schedule(mode, timeLimit, final, override?)`, `clockPhase(schedule, elapsed)`. 머리 주석 Final 설명 갱신. 판정 함수(eliminate/timeout/pass)는 그대로.
+- `src/server/RoundService.luau`: 대기 루프를 `schedule`/`clockPhase`로. 처음 Normal이 아닌 순간 한 번 `pcall(map.overtime, ctx, { collapseDuration = Config.Final.CollapseDuration })`(훅이 없으면 경고만 → 안전 상한), RoundProgress 다시 보냄. Expired면 예전처럼 flush → timeout. `overtimeOverride` = Studio에서만 `Config.DEBUG.overtimeAt`. 출발 기준 시각은 map.start 직전(예전엔 직후 — 차이 무시할 만함).
+- `src/shared/maps/MapTypes.luau`: `OvertimeInfo`, `MapModule.overtime?`, validate 규칙 2개, 머리 주석에 연장전 약속.
+- `src/shared/maps/SkewerShowdownLogic.luau`: `speeds(elapsed, overtimeAt?, rampDuration?)`(연장전 시작 순간 속도 → 190/150 선형, 기본 램프 20초), `collapseTimes`, 상수 `LOW/HIGH_SPEED_OVERTIME`, `OVERTIME_RAMP`, `COLLAPSE_WARN_TIME`.
+- `src/shared/maps/SkewerShowdown.luau`: 조각 띠·장식에 `Strip` 속성(장식은 바깥 끝이 걸친 줄). ctx별 `roundStates`(start ↔ overtime 공유, ctx.cleanup이 지움). `overtime`: 손은 새 조각을 안 고름, 꼬치 가속, 남은 조각 전부를 줄 단위로 1초 빨간 깜빡임 → CanCollide/CanTouch/CanQuery false + 투명, 줄당 `TileVanish` 1번.
+- `src/shared/Config.luau`(`Config.Final`, `DEBUG.overtimeAt = nil`, TimeLimit.Final 주석), `src/shared/Types.luau`(`RoundProgress.overtime?`, `collapseAt?`).
+- `src/client/ui/HudScreen.luau`(`showOvertime`/`clearOvertime`, 빨간 "⚡ N초"/"⚡ 버텨요!", 타이머는 TextScaled + UITextSizeConstraint로 칸 안에), `src/client/ui/HudController.luau`(처음 overtime 받을 때 배너·`Overtime`·음악 1.1배, RoundActive 밖 단계·HUD 숨김에서 지움), `src/client/Sfx.luau`(`setMusicSpeed`), `src/shared/SfxCues.luau`·`SfxLibrary.luau`(`Overtime`, 무음).
+- 테스트: `tests/round-logic.spec.luau`(AC1~6), `tests/map-skewer-showdown.spec.luau`(AC7~9), `tests/maps.spec.luau`(AC7), `tests/camera-priority.spec.luau`(고정 cue 목록에 `Overtime` 추가).
+
+**스펙과 다른 점 / 해석**
+- 줄 간격: AC9(첫 경고 0, 마지막 dropAt 20, 경고 1초, 8줄)를 지키면 사라지는 간격은 2.5초가 아니라 19/7 ≈ 2.71초예요(사라지는 시각 1, 3.71, … 20). "2.5초마다"는 대략값으로 봤어요.
+- 꼬치 가속은 "연장전 시작 순간 속도"에서 190/150으로 올라가요. 90초 시작이면 150/120에서 시작(AC8 그대로), 디버그 15초면 그때 속도에서 이어져 끊기지 않아요.
+- 이동 감시(m4-10): 아래로 떨어지는 건 보지 않고, 꼬치 넉백은 이미 MoveExempt라 충돌 없음.
+
+**검증**: rojo build, stylua --check, selene(0/0/0), lune run tests **1032 passed, 0 failed**, luau-lsp analyze 오류 없음.
+
+**Studio 확인 방법 (AC11~17)**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, 빠르게는 `Config.DEBUG.overtimeAt = 15`. Test → Clients and Servers 2명으로 결승까지 가서 둘 다 버티기 → 배너·빨간 타이머·바깥 줄부터 붕괴·늦게 떨어진 사람 우승. 혼자(Play Solo)·리셋/퇴장·관전 화면·중간 꼬치 쇼다운(`{ "skewer-showdown", "hot-plate", "rotating-belt" }`)·휴대폰 에뮬레이터는 스펙 AC 그대로. **확인 뒤 둘 다 nil**.
+
+**남은 이슈**: `Overtime` 효과음 id 없음(무음, USER-TODO A2 제안). GDD 반영은 사용자 확정 뒤 planner.

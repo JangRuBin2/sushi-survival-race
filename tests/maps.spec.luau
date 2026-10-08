@@ -59,6 +59,32 @@ return function(t: Test.Test)
 		end
 	end)
 
+	t.test("m5-01 AC7: Final 맵은 overtime 함수가 있어야 해요", function()
+		local final = validMap()
+		final.kind = "Final"
+		local problem = MapTypes.validate(final)
+		t.eq(problem, "TestMap: Final maps must have an overtime function")
+		final.overtime = function() end
+		t.eq(MapTypes.validate(final), nil)
+		final.overtime = "later"
+		t.ok(MapTypes.validate(final), "non-function overtime on a Final map")
+		-- 다른 종류는 선택이지만, 있으면 함수여야 해요
+		local race = validMap()
+		race.overtime = function() end
+		t.eq(MapTypes.validate(race), nil)
+		race.overtime = 5
+		t.eq(MapTypes.validate(race), "TestMap: overtime must be a function")
+	end)
+
+	t.test("m5-01 AC7: 맵 풀 6개가 모두 validate를 통과해요", function()
+		local count = 0
+		for _, info in Maps.infos() do
+			t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
+			count += 1
+		end
+		t.eq(count, 6)
+	end)
+
 	t.test("RotatingBelt: MapModule 인터페이스를 지키고 Race 맵이에요", function()
 		t.eq(MapTypes.validate(RotatingBelt), nil)
 		t.eq(RotatingBelt.kind, "Race")

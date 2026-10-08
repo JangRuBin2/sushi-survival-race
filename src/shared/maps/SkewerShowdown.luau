@@ -36,6 +36,7 @@ local TAG_HAND = "SkewerShowdownHand"
 local STAGE_RADIUS = Logic.STAGE_RADIUS
 local STAGE_THICKNESS = 1.5
 local STRIPS_PER_SLICE = 8
+local STRIP_ATTRIBUTE = "Strip" -- 조각 안 파츠가 속한 줄 (1 = 가장 안쪽, 연장전 붕괴용)
 local PILLAR_DIAMETER = Logic.PILLAR_DIAMETER
 local PILLAR_TOP = 16 -- 무대 위로 이만큼 솟아서 뛰어 올라갈 수 없어요
 local PILLAR_BOTTOM = -10
@@ -118,15 +119,21 @@ local function buildSlice(model: Model, origin: CFrame, index: number): Model
 	local color = if index % 2 == 0 then rgb(PALETTE.Porcelain) else Color3.fromRGB(228, 233, 242)
 	for strip = 1, STRIPS_PER_SLICE do
 		local mid = (strip - 0.5) * depth
-		makePart({
+		local plate = makePart({
 			Name = "Plate",
 			Size = Vector3.new(depth, STAGE_THICKNESS, 2 * mid * halfTan),
 			CFrame = radialCFrame(origin, bisector, mid, -STAGE_THICKNESS / 2),
 			Color = if strip == STRIPS_PER_SLICE then rgb(PALETTE.PorcelainRim) else color,
 			Parent = slice,
 		})
+		plate:SetAttribute(STRIP_ATTRIBUTE, strip) -- 연장전 붕괴(m5-01)가 바깥 줄부터 없애요
 	end
-	MapKit.buildDecor(Art.sliceDecor(index), origin, slice)
+	-- 장식은 바깥 끝이 걸친 줄과 같이 사라져요 (장식 로컬 X = 바깥쪽)
+	for _, part in MapKit.buildDecor(Art.sliceDecor(index), origin, slice) do
+		local relative = origin:PointToObjectSpace(part.Position)
+		local outerEdge = math.sqrt(relative.X * relative.X + relative.Z * relative.Z) + part.Size.X / 2
+		part:SetAttribute(STRIP_ATTRIBUTE, math.clamp(math.ceil(outerEdge / depth), 1, STRIPS_PER_SLICE))
+	end
 	slice:SetAttribute("SliceIndex", index)
 	slice:SetAttribute("Bisector", bisector)
 	CollectionService:AddTag(slice, TAG_SLICE)
@@ -364,12 +371,32 @@ local function setFoodVisible(food: FoodSet, visible: boolean)
 	end
 end
 
+-- 라운드(ctx)마다 start와 overtime이 같이 보는 상태 (m5-01). 키가 ctx라 여러 방이 섞이지 않고,
+-- 라운드가 끝나면 ctx.cleanup이 지워요.
+type RoundState = {
+	startedAt: number, -- os.clock() 출발 시각
+	overtimeAt: number?, -- 연장전 시작 (출발 기준 초). nil이면 아직 연장전 전
+	rampDuration: number, -- 연장전 꼬치 가속 시간
+	alive: { Model }, -- 손이 아직 고르지 않은 조각 (경고·집는 중인 조각은 빠져 있어요)
+}
+local roundStates: { [MapTypes.RoundContext]: RoundState } = {}
+
 local function start(ctx: MapTypes.RoundContext)
 	local RunService = game:GetService("RunService")
 
 	local origin = ctx.origin
 	local stageTopY = origin.Position.Y
 	local startedAt = os.clock()
+	local state: RoundState = {
+		startedAt = startedAt,
+		overtimeAt = nil,
+		rampDuration = Logic.OVERTIME_RAMP,
+		alive = {},
+	}
+	roundStates[ctx] = state
+	ctx.cleanup:add(function()
+		roundStates[ctx] = nil
+	end)
 
 	local lowSkewer: BasePart? = nil
 	local highSkewer: BasePart? = nil
@@ -454,7 +481,7 @@ local function start(ctx: MapTypes.RoundContext)
 			return
 		end
 		local elapsed = os.clock() - startedAt
-		local speeds = Logic.speeds(elapsed)
+		local speeds = Logic.speeds(elapsed, state.overtimeAt, state.rampDuration)
 		local highActive = Logic.highSkewerActive(elapsed)
 		if MapSfxLogic.crossedMark(lastElapsed, elapsed, whooshMarks) then
 			MapSfx.play(lowSkewer, "SkewerWhoosh")
@@ -508,21 +535,107 @@ local function start(ctx: MapTypes.RoundContext)
 		end
 	end))
 
-	-- 셰프의 손: 정해진 시각마다 남은 조각 중 무작위로 하나 (서 있는 사람과 상관없이)
+	-- 셰프의 손: 정해진 시각마다 남은 조각 중 무작위로 하나 (서 있는 사람과 상관없이).
+	-- 연장전이 시작되면 새 조각을 고르지 않아요 (이미 집는 중인 조각은 끝까지, m5-01).
+	state.alive = table.clone(slices)
 	ctx.cleanup:add(task.spawn(function()
-		local alive = table.clone(slices)
+		local alive = state.alive
 		for _, grabAt in Logic.grabTimes(#slices) do
 			local untilGrab = grabAt - (os.clock() - startedAt)
 			if untilGrab > 0 then
 				task.wait(untilGrab)
 			end
-			if not ctx.isActive() or #alive <= Logic.SLICES_AT_END then
+			if not ctx.isActive() or state.overtimeAt ~= nil or #alive <= Logic.SLICES_AT_END then
 				break
 			end
 			local slice = table.remove(alive, ctx.rng:NextInteger(1, #alive)) :: Model
 			grabSlice(ctx, slice, hand)
 		end
 	end))
+end
+
+-- 한 줄(모든 남은 조각의 같은 번호 띠 + 그 위 장식): 경고 동안 빨갛게 깜빡인 뒤 사라져요.
+local function collapseStrip(ctx: MapTypes.RoundContext, parts: { BasePart }, dropAt: number)
+	local warnColor = Color3.fromRGB(WARN_RGB[1], WARN_RGB[2], WARN_RGB[3])
+	local baseColors: { [BasePart]: Color3 } = {}
+	for _, part in parts do
+		baseColors[part] = part.Color
+	end
+	local blinkOn = true
+	while os.clock() < dropAt do
+		if not ctx.isActive() then
+			return
+		end
+		for _, part in parts do
+			if part.Parent then
+				part.Color = if blinkOn then warnColor else baseColors[part]
+			end
+		end
+		blinkOn = not blinkOn
+		task.wait(math.min(WARN_BLINK, math.max(dropAt - os.clock(), 0)))
+	end
+	if not ctx.isActive() then
+		return
+	end
+	local sound: BasePart? = nil
+	for _, part in parts do
+		if part.Parent then
+			part.CanCollide = false
+			part.CanTouch = false
+			part.CanQuery = false
+			part.Transparency = 1
+			sound = sound or part
+		end
+	end
+	MapSfx.play(sound, "TileVanish") -- 줄 단위로 한 번
+end
+
+-- 결승 연장전 (m5-01): 꼬치가 더 빨라지고(Logic.speeds), 손은 새 조각을 고르지 않고, 남은 모든 조각이
+-- 바깥 줄부터 안쪽으로 한 줄씩 무너져서 info.collapseDuration 뒤에는 설 곳이 없어요.
+-- 기둥은 위로 16 솟아 올라갈 수 없고, 꼬치·손·장식은 충돌이 없어서 매달려 버틸 곳이 없어요.
+local function overtime(ctx: MapTypes.RoundContext, info: MapTypes.OvertimeInfo)
+	local now = os.clock()
+	local state = roundStates[ctx]
+	local slices: { Model } = {}
+	if state then
+		state.overtimeAt = now - state.startedAt
+		state.rampDuration = info.collapseDuration
+		slices = table.clone(state.alive)
+	else
+		-- start가 실패했어도 바닥은 없애요 (안전 상한까지 기다리지 않게)
+		for _, instance in taggedInModel(ctx.model, TAG_SLICE) do
+			if instance:IsA("Model") then
+				table.insert(slices, instance)
+			end
+		end
+	end
+
+	-- 줄 번호 → 그 줄의 파츠 (남은 조각 전부)
+	local partsByStrip: { [number]: { BasePart } } = {}
+	for _, slice in slices do
+		if slice.Parent == nil then
+			continue
+		end
+		for _, part in slice:GetDescendants() do
+			local strip = part:GetAttribute(STRIP_ATTRIBUTE)
+			if part:IsA("BasePart") and type(strip) == "number" then
+				local list = partsByStrip[strip]
+				if list == nil then
+					list = {}
+					partsByStrip[strip] = list
+				end
+				table.insert(list, part)
+			end
+		end
+	end
+
+	for _, step in Logic.collapseTimes(STRIPS_PER_SLICE, info.collapseDuration, Logic.COLLAPSE_WARN_TIME) do
+		local parts = partsByStrip[step.strip]
+		if parts == nil then
+			continue
+		end
+		ctx.cleanup:add(task.delay(step.warnAt, collapseStrip, ctx, parts, now + step.dropAt))
+	end
 end
 
 local SkewerShowdown: MapTypes.MapModule = {
@@ -532,6 +645,7 @@ local SkewerShowdown: MapTypes.MapModule = {
 	rule = "돌아오는 꼬치를 뛰어넘고 끝까지 버티세요! 마지막 1명만 탈출해요",
 	build = build,
 	start = start,
+	overtime = overtime,
 }
 
 return SkewerShowdown

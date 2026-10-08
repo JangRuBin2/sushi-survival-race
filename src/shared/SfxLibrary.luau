@@ -50,6 +50,7 @@ SfxLibrary.Entries = {
 	Qualified = sfx(SOUNDS.getUp, 0.9, 1.4),
 	Eliminated = sfx(SOUNDS.oof, 0.9),
 	VictoryFanfare = sfx(nil, 0.9),
+	Overtime = sfx(nil, 0.9), -- 결승 연장전 경적·징 (m5-01, id는 사용자가 고를 때까지 무음)
 	-- 탈락 연출
 	ChopstickClack = sfx(SOUNDS.jumpLand, 0.8, 1.6, 0.05),
 	Struggle = sfx(SOUNDS.ouch, 0.7, 1.1, 0.08),

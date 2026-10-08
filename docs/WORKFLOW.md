@@ -44,9 +44,14 @@
 ## 규칙
 - **질문은 위로 올린다.** 스펙이 모호하면 개발은 추측하지 않고 스펙 "결정 기록"에 질문을 적고 멈춘다. GDD 원칙과 어긋나거나 수치를 확정해야 하는 결정은 사용자가 내린다.
 - **남의 파일은 고치지 않는다.** 소유권 밖의 수정이 필요하면 보고에 "누가 무엇을 바꿔야 하는지"를 적는다.
-- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/maps/init.luau`, `default.project.json`)은 병렬 개발 중에는 스펙에 지정된 개발 에이전트 한 명만 수정한다.
-- **검증 통과 전에는 넘기지 않는다**: `rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests`
-- 돌려 보지 않은 것을 통과로 적지 않는다. Studio 확인이 필요한 항목은 "사용자 확인 필요"로 남긴다.
+- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/Attributes.luau`, `shared/maps/init.luau`, `shared/maps/MapTypes.luau`, `default.project.json`, `src/server/init.server.luau`, `src/client/init.client.luau`, `rokit.toml`)은 병렬 개발 중에는 스펙에 지정된 개발 에이전트 한 명만 수정한다.
+- **검증 5단계를 통과하기 전에는 넘기지 않는다** (자세한 설명은 `CLAUDE.md` "검증", `docs/DEV-SETUP.md` 2절):
+  ```bash
+  rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests
+  rojo sourcemap default.project.json -o sourcemap.json && luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
+  ```
+- **도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 보고에 적는다** — 예: "타입 검사 못 함(luau-lsp 설치 불가)". 돌려 보지 않은 것을 통과로 적지 않는다. Studio 확인이 필요한 항목은 "사용자 확인 필요"로 남긴다.
+- 사용자가 손으로 할 일(퍼블리시, 상품 만들기, 수치 결정 등)은 `docs/USER-TODO.md`에 모은다.
 
 ## 실행 방법
 
@@ -84,7 +89,7 @@ Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `3487
 
 **클라우드 세션이 받으면**
 - 그 브랜치를 체크아웃하고 `CLAUDE.md`, 이 문서, 역할 정의, `docs/<역할>/<스펙>.md`의 인계 메모 순서로 읽고 시작한다.
-- 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 도구(rojo, stylua, selene, lune)를 설치할 수 없으면 검증하지 못한 항목을 보고에 분명히 적는다.
+- 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 도구(rojo, stylua, selene, lune, luau-lsp)를 설치할 수 없으면 검증하지 못한 단계를 보고에 분명히 적는다 (예: "타입 검사 못 함").
 - 사용량 한도는 계정 단위라서, 한도 때문에 로컬이 멈췄다면 클라우드 세션도 한도가 풀린 뒤에 돈다.
 
 ## 스펙 ID

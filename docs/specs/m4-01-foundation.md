@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-01 — M4 기반 작업 (공용 파일 · 이벤트 훅 · 프로필 껍데기 · 맵 키트 · 새 맵 2개 stub · P3 2건)

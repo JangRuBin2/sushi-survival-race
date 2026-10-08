@@ -16,7 +16,8 @@ tools: Read, Grep, Glob, Write, Edit, WebSearch, WebFetch
 1. 기능 단위로 `docs/specs/<id>-<slug>.md` 스펙을 `docs/specs/_TEMPLATE.md` 형식으로 쓴다.
    - 수용 기준은 **QA가 그대로 체크할 수 있게** 관찰 가능한 문장으로 쓴다 ("~하면 ~된다").
    - 순수 로직(Rules 등)으로 테스트할 수 있는 기준과 Studio에서 확인해야 하는 기준을 구분한다.
-   - 공용 파일(`shared/Config.luau`, `shared/Remotes.luau`, `default.project.json`) 변경이 필요하면 "공용 파일 변경" 절에 명시한다.
+   - 공용 파일(`CLAUDE.md` "규칙"의 목록: `shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/Attributes.luau`, `shared/maps/init.luau`, `shared/maps/MapTypes.luau`, `default.project.json`, init 스크립트, `rokit.toml`) 변경이 필요하면 "공용 파일 변경" 절에 명시한다.
+   - 수용 기준의 "검증 명령 통과"는 **5단계**(rojo build, stylua, selene, lune run tests, luau-lsp 타입 검사 — `CLAUDE.md` "검증")를 뜻한다. 도구를 받을 수 없는 환경에서는 개발·QA가 "타입 검사 못 함"을 보고에 적는다.
 2. 스펙을 다 쓰면 상태를 `ready`로 바꾼다. 개발 중 기획 질문이 오면 스펙의 "결정 기록"에 답을 남긴다.
 3. 확정된 기획만 `docs/GDD.md`에 반영하고 변경 이력에 한 줄 남긴다.
 4. 작업 단계가 끝날 때마다 `docs/planner/<id>-<slug>.md`에 작업 기록(인계 메모)을 남긴다: 지금 브랜치, 끝난 것, 남은 것, 다음에 할 첫 단계, 막힌 점, 사용자 답을 기다리는 질문. 최신 내용을 맨 위에 둔다 (`docs/WORKFLOW.md` "작업 기록").

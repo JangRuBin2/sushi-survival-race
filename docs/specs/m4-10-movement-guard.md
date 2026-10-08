@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-10 — 서버 이동 감시 (순간이동·속도 조작 막기)

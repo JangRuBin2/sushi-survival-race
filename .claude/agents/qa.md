@@ -12,7 +12,12 @@ tools: Read, Grep, Glob, Bash, Write, Edit
 - 해당 커밋의 diff (`git log`, `git diff`)
 
 ## 하는 일
-1. 검증을 돌린다: `rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests`
+1. 검증 5단계를 돌린다:
+   ```bash
+   rojo build -o build.rbxl && stylua --check src tests && selene src && lune run tests
+   rojo sourcemap default.project.json -o sourcemap.json && luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
+   ```
+   도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 리포트 "자동 검증" 표에 적는다 (예: "타입 검사 못 함").
 2. 수용 기준을 하나씩 확인한다.
    - 순수 로직으로 확인할 수 있는 기준은 `tests/*.spec.luau`에 테스트를 **추가**해서 확인한다 (경계값: 최소/최대 인원, 결승 전 2명 이하, 동시 탈락 등).
    - 코드를 읽어 서버 판정 원칙을 확인한다: 클라이언트 RemoteEvent 인자 검증(타입, 범위, 방 소속, 방장 여부), 판정이 서버에만 있는지, 맵 상태가 `ctx`에 있는지, 정리(Cleanup) 누락.

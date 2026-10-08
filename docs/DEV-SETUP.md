@@ -16,7 +16,7 @@ cd sushi-survival-race
 이미 받아 둔 저장소면 `git pull`만 해요.
 
 ### 1-3. Rokit (도구 버전 관리)
-rojo, stylua, selene, lune 버전은 `rokit.toml`에 고정돼 있어요. Rokit이 그 버전 그대로 설치해 줘요.
+rojo, stylua, selene, lune, luau-lsp(타입 검사, M4부터) 버전은 `rokit.toml`에 고정돼 있어요. Rokit이 그 버전 그대로 설치해 줘요.
 ```bash
 curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
 ```
@@ -24,7 +24,9 @@ curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.
 ```bash
 rokit install        # 처음이면 각 도구를 신뢰할지 물어봐요 → 모두 y
 rojo --version       # Rojo 7.7.1 이 나오면 성공
+luau-lsp --version   # 1.70.1 이 나오면 성공
 ```
+M4 전에 받아 둔 저장소라면 `git pull` 뒤 `rokit install`을 한 번 더 해요(luau-lsp가 새로 들어갔어요).
 
 ### 1-4. Rojo Studio 플러그인
 ```bash
@@ -34,19 +36,24 @@ rojo plugin install
 
 ### 1-5. 에디터 (VS Code 추천, 선택)
 확장 프로그램:
-- **Luau Language Server** (JohnnyMorganz) — 자동 완성, 타입 검사
+- **Luau Language Server** (JohnnyMorganz) — 자동 완성, 타입 검사. 검증과 같은 결과를 보려면 설정 `luau-lsp.fflags.enableNewSolver = true`
 - **StyLua** — 저장할 때 자동 정렬
 - **Selene** — 린트
 
 ## 2. 코드 검증 (Studio 없이, 커밋 전에 매번)
-저장소 루트에서:
+저장소 루트에서 5단계 (PowerShell·bash 공통):
 ```bash
-rojo build -o build.rbxl     # Rojo 프로젝트 구조가 맞는지 (build.rbxl은 커밋 안 함, .gitignore에 있음)
-stylua --check src tests     # 포맷 검사. 고칠 때는: stylua src tests
-selene src                   # 린트
-lune run tests               # 순수 로직 테스트 (라운드 규칙·판정·순위, 방 로직, 관전, 맵 인터페이스·맵별 계산, 연출·다이브·잡기·소리 계산)
+rojo build -o build.rbxl     # 1. Rojo 프로젝트 구조가 맞는지 (build.rbxl은 커밋 안 함, .gitignore에 있음)
+stylua --check src tests     # 2. 포맷 검사. 고칠 때는: stylua src tests
+selene src                   # 3. 린트
+lune run tests               # 4. 순수 로직 테스트 (라운드 규칙·판정·순위, 방·맵·연출·입력·저장·보상·결제 로직)
+rojo sourcemap default.project.json -o sourcemap.json
+luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사
 ```
-4개 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M3 기준 38개 파일, 493개). `Config.DEBUG.forceMapPlan`을 바꾼 채로 두면 실패해요 (3-7).
+- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M4 기준 68개 파일, 1021개).
+- 5단계(타입 검사)는 에러가 없으면 끝 코드 0이고 `[INFO] Loading definitions…`·`[WARN] … didChangeWatchedFiles` 같은 줄만 나와요. 에러가 있으면 `파일(줄,칸): TypeError …`와 끝 코드 1. `sourcemap.json`은 커밋 안 함(.gitignore). 정의 파일·검사기 선택 이유는 `types/README.md`.
+- 도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 적어요.
+- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정").
 
 ## 3. Studio에서 게임 테스트
 
@@ -58,15 +65,16 @@ lune run tests               # 순수 로직 테스트 (라운드 규칙·판정
 
 ### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
-- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `RoomService`, `MatchService`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `SfxCues`, `SfxLibrary`, `maps`(안에 `MapTypes`, `MapSfx`, `MapSfxLogic`, `RotatingBelt`, `RotatingBeltChopstick`, `SoySwamp`, `SoySwampLayout`, `SoySwampHazards`, `HotPlate`, `HotPlateLogic`, `SkewerShowdown`, `SkewerShowdownLogic`)
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `input` 폴더: `Dive*`, `Grab*`)
-- [ ] `Workspace`에 나무 바닥판 `Baseplate`와 `LobbySpawn`
+- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`
+- [ ] `ServerStorage` → `MapArt` 폴더 (비어 있어도 정상, `assets/map-art`)
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 6개 `RotatingBelt*`, `SoySwamp*`, `RamenRapids*`, `HotPlate*`, `ChefBoard*`, `SkewerShowdown*` — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `input` 폴더: `Dive*`, `Grab*`)
+- [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 13개(RemoteFunction 6, RemoteEvent 7)가 있어요
-- [ ] **Output** 창(View → Output)에 빨간 에러가 없어요
-- [ ] 캐릭터가 나무 바닥 위 스폰에 계란초밥 모습으로 서 있고, 화면에 로비 UI가 떠요 (3-4)
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 20개(RemoteFunction 9, RemoteEvent 11)가 있어요
+- [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
+- [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨" 버튼이 떠요 (3-4, 3-9)
 
 동기화 확인:
 - [ ] `src/shared/Config.luau`에서 아무 숫자를 바꾸고 저장 → Studio의 `Shared.Config`를 열어 보면 바뀌어 있어요 (확인 후 되돌려요)
@@ -122,9 +130,10 @@ Explorer 창에서:
 > - **혼자 남으면 부전승**: 결승 전 라운드에서 다른 사람이 모두 리셋·퇴장해 1명만 남으면, 결과 화면 없이 바로 "🏆 우승했어요!"와 우승 배너가 떠요.
 > - **결승 건너뛰기**: 결승 전 라운드를 시작할 때 남은 사람이 2명 이하면(소개 중 이탈 포함) 바로 결승으로 가요.
 > - **위치**: Race 통과자는 바로 로비 스폰(대기석)으로 옮겨져요. 라운드가 끝나면 남은 통과자·우승자도 로비 스폰으로 가고, 다음 소개 때 새 맵으로 옮겨져요. 탈락자는 3초 멈췄다가 로비 스폰으로 가요. 이때 걷기·점프 값도 돌아와요.
-> - **관전**: 탈락하면 3초 뒤 자동 관전 + [로비로](관전만 끔, 방은 유지) → [👀 관전하기]로 다시 관전할 수 있어요. Race 통과자는 대기석에서 바로 관전하고 [내 캐릭터 보기]로 꺼요. ←/→ 또는 Q/E로 대상을 바꿔요. 우승 때는 모두의 카메라가 우승자를 비추고 순위표(1등~꼴등)가 떠요.
+> - **관전**: 탈락하면 3초 뒤 자동 관전 + [로비로](관전만 끔, 방은 유지) → [👀 관전하기]로 다시 관전할 수 있어요. Race 통과자는 대기석에서 바로 관전하고 [내 캐릭터 보기]로 꺼요. Q/E(또는 화면 ◀ ▶)로 대상을 바꿔요(←/→는 M4에서 뺐어요). 우승 때는 모두의 카메라가 우승자를 비추고 순위표(1등~꼴등)가 떠요.
 > - **HUD 진행 숫자**: Race는 "통과 n/목표 · 남은 인원 n", Survival·결승은 "남은 인원 n".
 > - 시간(초)은 `Config`에 있어요: 매치 시작 3 · 라운드 소개 3 · 결과 5 · 우승 10(M3: 우승 연출 6 + 순위표 4) · 탈락 연출 3, 라운드 제한 Race 90 / Survival 60 / Final 90.
+> - **M4에서 바뀐 것**: 맵 풀이 6개(Race에 `ramen-rapids` 라멘 국물 급류, Survival에 `chef-board` 셰프의 도마 추가)이고 결승은 그대로 회전 꼬치 쇼다운. 관전 대상은 **Q/E와 화면 ◀ ▶로만** 바꿔요(←/→ 삭제). 결승에서 같은 순간 낙하와 리셋이 섞이면 리셋한 사람이 더 나쁜 등수예요. 라운드 통과·결승 출발·우승 때 코인 알림이 뜨고, 우승 순위표 아래에 이번 판 코인 합계가 나와요. M4 확인은 3-9.
 > - **M3에서 바뀐 것**: 우승 때 우승 연출(6초)이 먼저 나오고 그 뒤에 "🏆 우승!" 배너·순위표가 떠요. 낙하·리셋·시간 종료 탈락은 "🥢 탈락했어요…" 글씨 대신 탈락 연출의 "먹혔다!" 도장과 등수가 떠요. 결승에서 마지막 한 명이 떨어지면 3초 뒤에 우승이 발표돼요. 아래 체크리스트의 글씨·시간은 M3 기준으로 고쳐 두었어요. M3 기능 확인은 3-8.
 
 **혼자 (Play, F5)** — 라운드는 안 돌아요
@@ -169,9 +178,9 @@ Explorer 창에서:
    ```
 2. Explorer에서 생긴 `rotating-belt` Model을 확인해요.
    - [ ] `Spawns` 폴더 안에 `Spawn01`~`Spawn24` 24개가 있어요
-   - [ ] `Conveyors`, `Hazards`(`ChopstickStation` 2개), `FinishLine`, `EndWall` 파츠가 있어요
-   - [ ] 출발 구간(넓음) → 벨트(어두운 금속 바닥) → 병목(간장 종지로 좁아짐) → 벨트(젓가락 2개) → 결승(네온 노란 줄) 순서로 바닥이 이어져요
-   - [ ] 벽(반투명 유리색)이 양옆을 막고 있어서 코스 밖으로 안 떨어져요
+   - [ ] `Conveyors`, `Hazards`(`ChopstickStation` 2개, 정리용 — 동작은 `Conveyor`·`Chopstick` 태그로 찾아요), `FinishLine`, `EndWall` 파츠와 장식 `Decor`, 소개 카메라 `IntroCamera` 폴더가 있어요
+   - [ ] 출발 구간(나무 바닥) → 벨트(어두운 바닥 + 가로 줄무늬) → 병목(흰 간장 종지로 좁아짐) → 벨트(젓가락 2개) → 결승(체크무늬 + 노렌 문) 순서로 바닥이 이어져요 (M4 아트, 치수는 M1 그대로)
+   - [ ] 벽(반투명 유리색 + 위에 은색 레일)이 양옆을 막고 있어서 코스 밖으로 안 떨어져요
 3. 다 봤으면 `model:Destroy()`로 치워요.
 
 **동작 확인 (Play, F5 — `RoundContext`를 손으로 흉내 내서 start() 호출)**
@@ -229,7 +238,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 - [ ] (`table.clear(_G.beltDone)` 후 다시 Spawn01로 옮겨서) 코스 옆 벽을 넘어 바닥 아래로 떨어지면 Output에 `[race-belt] ELIMINATE (내 이름)`이 떠요
 - [ ] 확인이 끝나면 `_G.beltCtx.cleanup:run()`으로 벨트/젓가락 루프를 멈추고 `_G.beltCtx.model:Destroy()`로 치워요 (안 하면 Heartbeat 연결이 계속 돌아요)
 
-실제 라운드에서는 `RoundService`가 이 맵을 지어서 돌려요 — 3-5에서 매치 흐름 안의 동작(목표 인원 통과 시 라운드 종료, 탈락 시 로비 스폰 복귀와 자동 관전)을 확인할 수 있어요. 다른 맵(`soy-swamp`, `hot-plate`, `skewer-showdown`)도 `Maps.get("<id>")`만 바꾸면 같은 방법으로 지어 볼 수 있어요. 다만 `hot-plate`와 `skewer-showdown`은 결승선이 없어서 `pass`가 불리지 않아요.
+실제 라운드에서는 `RoundService`가 이 맵을 지어서 돌려요 — 3-5에서 매치 흐름 안의 동작(목표 인원 통과 시 라운드 종료, 탈락 시 로비 스폰 복귀와 자동 관전)을 확인할 수 있어요. 다른 맵(`soy-swamp`, `ramen-rapids`, `hot-plate`, `chef-board`, `skewer-showdown`)도 `Maps.get("<id>")`만 바꾸면 같은 방법으로 지어 볼 수 있어요. 다만 `hot-plate`, `chef-board`, `skewer-showdown`은 결승선이 없어서 `pass`가 불리지 않아요. 이 방법은 라운드 밖이라 이동 감시(m4-10)가 보지 않고, Command bar(Edit 모드)에서는 Studio 아트(`ServerStorage.MapArt`)가 붙지 않아요.
 
 ### 3-7. M2 확인 (한 판 MVP)
 출처: `docs/qa/m2-07-full-match-integration.md`의 "한 번에 따라 하는 Studio 체크리스트". 결과(특히 실패·이상한 점)는 QA 리포트에 반영할 수 있게 메모해 두세요.
@@ -240,7 +249,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
    ```lua
    forceMapPlan = { "rotating-belt", "soy-swamp", "hot-plate", "skewer-showdown" } :: { string }?,
    ```
-2. 맵 id 3개면 3라운드, 4개면 4라운드로 그 순서 그대로 돌아요. 종류 순서는 검사하지 않아서 Survival을 1라운드에 두는 것도 돼요. 맵 id: `rotating-belt`, `soy-swamp`, `hot-plate`, `skewer-showdown`.
+2. 맵 id 3개면 3라운드, 4개면 4라운드로 그 순서 그대로 돌아요. 종류 순서는 검사하지 않아서 Survival을 1라운드에 두는 것도 돼요. 맵 id: `rotating-belt`, `soy-swamp`, `ramen-rapids`(Race), `hot-plate`, `chef-board`(Survival), `skewer-showdown`(Final). 매치마다 다른 플랜을 쓰려면 `forceMapPlans`(3-9).
 3. 강제 플랜일 때는 **결승 건너뛰기가 없고, 혼자(생존자 1명)여도 모든 라운드를 끝까지 돌아요.** 혼자 F5로 방을 만들고 **시작!**하면 돼요.
 4. 목록 길이가 3·4가 아니거나 없는 id가 있으면 무시돼요. 서버 Output에 `ignoring Config.DEBUG.forceMapPlan` 경고가 뜨고 평소 랜덤 구성으로 돌아요.
 5. **끝나면 반드시 `forceMapPlan = nil :: { string }?,`으로 되돌려요.** 안 되돌리면 `lune run tests`가 실패하고, 커밋하면 안 돼요.
@@ -281,7 +290,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 **7. 두 방 동시 (4명)**
 - [ ] 2명씩 두 방을 만들어 거의 동시에 시작 (Studio라 1명부터 시작 가능). 두 아레나가 x 2000 간격으로 따로 지어지고, HUD 숫자·관전 대상·순위표가 각자 방 사람만이에요
 
-> 알려진 한계 (P3): 관전 중 ←/→는 카메라도 같이 돌려요(Q/E 권장). Studio에서는 관전 순서가 역순일 수 있어요(m2-06 S2, Studio 전용). 결승에서 낙하와 리셋이 같은 순간이면 리셋한 사람이 우승할 수 있어요(m2-07 I1, 기획 결정 대기).
+> 알려진 한계 (P3): Studio에서는 관전 순서가 역순일 수 있어요(m2-06 S2, Studio 전용). (관전 ←/→ 카메라 회전과 결승 같은 순간 낙하 + 리셋(m2-07 I1)은 M4에서 해소 — ←/→ 삭제, 리셋한 사람이 더 나쁜 등수)
 
 ### 3-8. M3 확인 (맛 내기: 캐릭터 · 연출 · 다이브/잡기 · 소리)
 출처: `docs/qa/m3-09-integration-polish.md`의 "사용자 Studio 확인 체크리스트 (M3 전체)". 수치는 모두 기본값이라, 바꾸고 싶은 것도 같이 메모해 두세요 (N).
@@ -396,6 +405,182 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M3 "알려진 한계 · 보류" 참고.
 
+### 3-9. M4 확인 (출시 준비: 맵 6개 · 로비 · 저장 · 코인 · 휴대폰 · 이동 감시 · 서버 분리 · 스킨 · 결제)
+출처: `docs/qa/m4-01-foundation.md` ~ `docs/qa/m4-14-robux-shop.md`의 "사용자 Studio 확인 체크리스트"를 기능별로 모았어요. QA 뒤 고쳐진 버그는 빼고 "고쳐졌는지" 확인으로 바꿨고, 가격은 확정된 A안(일반 R$29·🍚300, 레어 R$59·🍚900, 에픽 R$99, 전설 R$199) 기준이에요. 결과(특히 실패·이상한 점·숫자)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요.
+
+각 절 제목 옆 표시: **[바로]** = 지금 Studio에서 바로 · **[C1 먼저]** = 게임 퍼블리시 + Studio API 접근 허용 뒤 · **[C2 먼저]** = Match 플레이스 + PlaceId 입력 뒤(실서버) · **[C3 먼저]** = 개발자 상품 15개 + 상품 id 입력 뒤. C1~C3은 `docs/USER-TODO.md` C절.
+
+**준비**
+- `rojo serve` → Studio 연결. **모든 단계에서 서버·클라이언트 Output에 빨간 에러가 없는지** 같이 봐요. 여러 명은 Test 탭 → 플레이어 수 → Start (Clients and Servers), 휴대폰은 Test 탭 → Device 에뮬레이터.
+- 서버 쪽 Command Bar가 필요한 항목은 Test 탭 **Current: Server**로 바꾼 뒤 써요.
+
+**디버그 설정** (`src/shared/Config.luau`의 `Config.DEBUG`, 전부 **Studio에서만** 적용, 로컬에서만 바꾸고 **커밋 금지**)
+
+| 설정 | 기본값(커밋 값) | 켜면 | 쓰는 절 |
+|---|---|---|---|
+| `minPlayersToStart` | `1` | Studio에서 혼자도 시작 (바꿀 일 없음) | 전부 |
+| `forceMapPlan` | `nil :: { string }?` | 맵 id 3~4개 순서 그대로 라운드 구성, 혼자여도 끝까지 (3-7) | 맵 확인 |
+| `forceMapPlans` | `nil :: { { string } }?` | 플랜 목록을 넣으면 매치마다 다음 플랜 (`forceMapPlan`이 우선) | L 연속 5판 |
+| `persistDataInStudio` | `false` | Studio에서도 진짜 DataStore에 저장 (C1 필요) | G·H·M·N |
+| `simulateMatchServer` | `false` | Studio를 매치 서버처럼: 대기실 없이 바로 매치, 끝나면 텔레포트 대신 로그 + 로비 스폰 | K |
+| `logArenaStats` | `false` | 매치가 끝날 때마다 `[ArenaStats]` 한 줄 (Workspace 자식 수·남은 아레나·라운드 훅·메모리) | L |
+| `fakeRobuxInStudio` | `false` | 상품 id 없이도 로벅스 버튼이 켜지고 결제 창 없이 가짜 영수증으로 결제 흐름을 탐. `persistDataInStudio`와 같이 켜면 가짜 결제는 꺼지고 경고만 나와요 | N |
+
+**되돌리기**: 확인이 끝나면 위 표의 기본값으로 되돌려요(`nil`은 `nil :: { string }?`처럼 타입 표기를 그대로 둬요). 안 되돌리면 `lune run tests`가 실패해요(커밋 값을 고정하는 테스트가 있음). Studio 설정 → Network → **Incoming Replication Lag**을 바꿨다면(J) 0으로 되돌려요. Studio에서 `ServerStorage.MapArt`에 시험용 Model을 넣었다면(B) 지워요.
+
+**A. 기반·회귀 (m4-01)** [바로]
+1. `forceMapPlan = { "ramen-rapids", "chef-board", "soy-swamp", "skewer-showdown" }`로 혼자 한 판 → 4라운드까지 돌고 우승 화면 → 로비. (라멘·도마는 이제 완성 맵이에요, D·E)
+2. 클라이언트 Command Bar `local v = require(game.Players.LocalPlayer.PlayerScripts.Client.ProfileStore).get() print(v and v.coins, v and v.persistent)` → `0 false`. `nil nil`이면 그대로 알려 주세요(Command Bar가 모듈 캐시를 따로 쓰는 경우).
+3. 서버 Explorer에 `ServerStorage.MapArt` 폴더(비어 있음).
+4. `forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, Clients and Servers 2명: 결승에서 Player1이 무대 밖으로 떨어지면 Player2 화면의 탈락 연출이 **무대 가장자리 높이**에서 나와요(예전엔 무대 20 studs 아래). 리셋 탈락은 리셋한 자리에서.
+5. Device 에뮬레이터 휴대폰 → 기기를 세로로 돌려도 화면이 가로로 유지.
+6. (선택) 2명 결승에서 둘이 거의 동시에 떨어지게 → 우승 화면의 우승자가 "🏆 우승했어요!"를 받은 사람과 같아요. 한 명은 떨어지고 한 명은 리셋하면 떨어진 사람이 우승.
+
+**B. Race 맵 아트: 회전 벨트 · 간장 늪 (m4-02)** [바로] — `forceMapPlan = { "rotating-belt", "soy-swamp", "hot-plate", "skewer-showdown" }`
+1. 회전 벨트: 나무 바닥 출발·결승, 어두운 벨트 + 가로 줄무늬, 벽 위 은색 레일·나무 손잡이, 벽 밖 카운터·의자·초밥 접시·간장병·찻잔, 거대 손님 얼굴 3개, 흰 종지 + 남색 테두리 + 빨강·파랑·금색 접시 더미, 빨강/검정 젓가락 + 나무색 끝, 체크무늬 결승 + 노렌 문. 간장 늪: 나무 바닥, 반짝이는 간장, 웅덩이 흰 테두리, 연두 패드 위 작은 공, 연두 언덕, 날치알 그릇, 거대 간장병, 강판, 분홍 생강. 맵마다 스크린샷 1장 이상.
+2. 줄무늬·체크무늬·웅덩이 테두리·와사비 공 위를 걸어도 걸리거나 튀지 않아요. 카메라를 한 바퀴 돌려 코스가 가려지는 곳이 없어요. 회전 벨트 결승 노렌이 머리 위로 충분히 높아요(m4-12에서 올림).
+3. 회전 벨트: 벨트에서 뒤로 밀림, 빨간 경고 약 1초 → 약 3초 못 움직임 → 풀림, 젓가락 끝 나무색 조각이 젓가락과 같이 움직여요(떨어져 남지 않음). 간장 늪: 간장에서 느려지고 점프 안 됨, 와사비 튕김, 날치알에 맞으면 넘어졌다 일어남. 완주 시간이 M3와 비슷해요.
+4. 라운드 소개: 회전 벨트는 출발 위 → 병목·젓가락 → 결승 노렌 → 출발선 뒤, 간장 늪은 출발 위 → 와사비·절벽 → 날치알 내리막·결승 → 출발선 뒤. 벽 속에 묻히지 않고, 간장 늪 마지막 구간에서 빨간 종이 등이 화면을 덮지 않아요(m4-12에서 비킴). 간장 늪 끝점은 출발 유리벽 뒤라 유리 너머로 보이는 게 정상.
+5. **스폰 수정 확인**: Clients and Servers 4명, 2명씩 방 2개를 만들어 둘 다 회전 벨트로 시작 → 시작 직후 아무도 떨어지지 않고 끼지 않아요. 각 방의 젓가락이 자기 맵에서만 움직여요. (선택) 회전 벨트 `Spawns`의 Spawn13~24가 모두 나무 바닥 위.
+6. `ServerStorage.MapArt`에 Model `rotating-belt`(파트 1개, 피벗 = 맵 origin)를 넣고 회전 벨트 시작 → 맵 `Decor/StudioArt`에 나타나고 그 파트를 지나갈 수 있어요. 확인 뒤 지우기.
+7. Shift+F1/F2로 두 맵이 도는 동안 프레임 50 이상.
+
+**C. Survival·결승 맵 아트: 철판 · 꼬치 쇼다운 (m4-03)** [바로] — B와 같은 `forceMapPlan`
+1. 철판: 진회색 다이아몬드 철판 + 스테인리스 테두리·모서리 기둥 + 위 후드 + 멀리 흰 타일 벽 + 주걱 2개 + 테두리에서 김. 결승: 흰 도자기 접시(남색 테두리·금 선) + 빨간 기둥 + 앞쪽 가게 문(노렌·등롱·출구 판). 스크린샷.
+2. 철판 타일을 밟고 서 있기 → 회색 → 주황 → 빨강(0.9초부터 빛남) → 1.5초에 사라짐. 주황 단계가 그림자 때문에 어둡지 않아요.
+3. 철판 맨 아래층에서 떨어지면 아래 입 벌린 손님 얼굴 3개 쪽으로 떨어지는 게 보이고 이어서 탈락 연출.
+4. **카메라 가림(m4-03 B2)**: 철판 맨 위층 앞쪽 가장자리에서 가운데를 보며 줌아웃 → 주방 벽(62 studs 밖으로 옮김)에 화면이 막히는지, 카메라를 높이 들면 후드 천장에 가려지는지. 결승 무대 가게 문 쪽 가장자리에서도. 가리면 거리를 메모.
+5. **툇마루(m4-03 B1 수정 확인)**: 결승 무대 가게 문 쪽 가장자리에서 문 쪽으로 점프 → 꼭대기에서 다이브 → 가게 툇마루에 닿지 않아요(8 낮추고 18 studs 밖으로 옮김).
+6. 2명 이상 결승: 닭·대파 조각에 몸이 닿아 보일 때만 맞아요("안 닿았는데 맞음" 없음).
+7. 라운드 소개: 결승은 가게 문 → 무대 한 바퀴 → 무대 바깥 위, 철판은 손님 얼굴 → 층 옆 → 앞쪽 바깥에서 끝. 장식 속을 지나가지 않아요.
+8. 우승 연출에서 초밥이 박차고 나가는 문 방향이 결승 맵의 가게 문 쪽(무대 앞 -Z)과 같아요.
+9. Shift+F1/F2로 프레임을 M3와 비교. 높은 꼬치가 10초에 나타날 때 음식 장식도 같이 나타나고, 셰프 손이 조각을 집을 때 금 선·테두리도 같이 빨갛게 깜빡이고 사라져요. 철판·꼬치 무대 테두리가 턱처럼 보이지 않아요(m4-12에서 윗면을 맞춤). 철판 테두리가 "밟을 수 있는 바닥"처럼 보여 헷갈리면 알려 주세요(충돌 없음, 밟으면 떨어짐).
+
+**D. 새 Race "라멘 국물 급류" (m4-04)** [바로] — `forceMapPlan = { "ramen-rapids", "hot-plate", "soy-swamp", "skewer-showdown" }`
+1. 소개 카메라가 그릇 위를 지나 출발선 뒤로 와요. 스폰 노란 발판 24개가 전부 출발 바닥 위.
+2. 급류에서 가만히 서 있으면 앞으로 흘러가고, **달려도 밀리는 느낌**이 있어요(밀기 20 studs/s). 소용돌이(진한 원) 위에서 벽 쪽으로 쏠려요. 벽(높이 3)을 넘으면 떨어져 탈락.
+3. 급류 끝 넓은 착지판에 내려선 뒤, 차슈 위에 서면 같이 천천히 내려가고 수면 아래로 잠기면 빠져서 탈락. 잠기기 전에 옆 차슈·나루토로 건널 수 있어요. 미끄러지거나 차슈가 올라올 때 덜컹거리지 않아요.
+4. 회전 젓가락 막대에 맞으면 바깥으로 튕겨 약 1초 넘어지고(@_@), 점프로 넘을 수 있어요.
+5. 급류 옆·토핑 사이·원판 밖에서 떨어지면 1초 안에 탈락 연출. 결승선(노란 네온)을 넘으면 통과 → 대기석.
+6. 급류를 **가장자리로** 내려와 끝에서 걸어 나가기·점프 → 착지판에 내려서요. 처음 하는 사람 기준 60~90초 안에 목표 인원이 차는 난이도인지(바꿀 값은 `RamenRapidsLayout`).
+7. Clients and Servers 4명, 방 2개를 동시에 이 맵으로 → 각 방의 차슈·막대·나루토 장식이 자기 맵에서만 움직이고, 한 방이 끝나도 다른 방은 계속 돌아요.
+
+**E. 새 Survival "셰프의 도마" (m4-05)** [바로] — `forceMapPlan = { "rotating-belt", "chef-board", "soy-swamp", "skewer-showdown" }`
+1. 약 3초에 빨간 줄이 깜박이고 1.2초 뒤 칼이 그 줄로 내려쳐요. 줄 위면 바깥으로 튕겨 1초 넘어지고(@_@), 바로 옆 줄이면 무사. 40초 이후엔 경고가 0.8초.
+2. 칼이 지나간 줄 양 끝 칸이 0.5초 흔들리다 떨어지고 칸 떨어지는 소리. 60초 동안 도마가 작아지되 가운데 3×3(24×24 studs)은 끝까지 남아요.
+3. 10·20·30·40·50초에 도마가 약 8도 기울고 낮은 쪽으로 밀리다 3초 뒤 평평해져요. 경고 줄과 칼도 기울기를 따라 내려치고, 친 뒤 도마 가운데 위로 올라가요(m4-12에서 고침).
+4. 도마 밖으로 떨어지면 손님 얼굴 쪽으로 떨어지며 탈락 연출. 4명 이상에서 남은 인원이 목표 이하가 되면 바로 끝나고, 60초를 버티면 남은 사람 전원 통과.
+5. 4명 이상에서 60초 안에 적당히 떨어지는지 (바꿀 값은 `ChefBoardLogic` 맨 위 상수).
+6. 클라이언트 8명 정도로 방 2개를 동시에 → 칼·경고 줄·칸·기울기가 자기 방 맵에서만.
+
+**F. 로비 · 조명 · 우승자 단상 (m4-06)** [바로]
+1. F5: 스폰 앞(-Z) 약 40에 타원 카운터와 도는 접시 16개, 카운터 안 셰프·도마, 뒤 벽 메뉴판 4장·남색 노렌, 반대쪽 벽 빨간 노렌과 수조, 오른쪽(+X 30) 3단 단상 위 "다음 우승자는 누구?". 조명이 따뜻해요. 스크린샷.
+2. 스폰에서 W로 카운터까지, D로 단상까지 막힘 없이. 카운터 위로 뛰어 안쪽에 들어갔다 나올 수 있고, 벽 모서리·기둥 사이에 끼이지 않아요. 로비 UI가 건물에 가려지지 않아요.
+3. `forceMapPlan`에 맵 3개를 넣고 혼자 한 판 이기기 → 단상 가운데에 1.5배 초밥 인형(입은 스킨, 스폰 쪽을 봄)과 "🏆 내 이름 / 탈출 초밥 / 1승"이 **세 줄 다 보여요**(m4-06 L1 수정 확인). 한 번 더 이기면 "2승". 인형은 클라이언트 Explorer `Workspace.Lobby.Podium.WinnerDoll`에만 있어요(서버에는 없는 게 정상).
+4. Clients and Servers 2명: 두 창에서 금색 첫 접시 자리가 거의 같고(1초 이내), 서버 뷰 `Workspace.Lobby.Plates.Plate01` Position은 안 바뀌어요.
+5. 2명 이상으로 매치 → 아레나도 따뜻한 조명, 관전 화면에서 먼 쪽이 안개로 뿌옇지 않아요.
+6. 로비 프레임(Shift+F5 또는 Ctrl+F6)을 M3 로비와 비교, 휴대폰 에뮬레이터에서도.
+7. (선택) 방 2개를 거의 같은 시각에 끝내면 단상에 나중에 끝난 방의 우승자만 남아요.
+
+**G. 저장 (m4-07)** — 1은 [바로], 2~6은 [C1 먼저]
+1. 기본(`persistDataInStudio = false`) Play → Output에 `[DataService]` 경고·에러 없음. 클라이언트 `print(require(game.Players.LocalPlayer.PlayerScripts.Client.ProfileStore).get().persistent)` → `false`.
+2. `persistDataInStudio = true` → Play → 서버 Command Bar `require(game.ServerScriptService.Server.DataService).update(game.Players:GetPlayers()[1], function(p) p.coins = 123 end)` → 2초 → Stop → 다시 Play → `ProfileStore.get().coins` = 123, `.persistent` = true, 배지에 "(저장 안 됨)" 없음.
+3. 음소거 버튼을 🔇까지 누르고 2초 → Stop → Play → 🔇로 시작하고 효과음이 안 나요.
+4. coins = 456으로 바꾸고 **바로** Stop → Play → 456. Output에 `session lock lost`·`failed` 없음.
+5. API 접근을 끈 채 `persistDataInStudio = true` → `DataStore unavailable in Studio, using memory only` 경고 **한 줄만**, 게임 정상, `persistent = false`.
+6. 접속 직후(1초 안) Stop → 저장 오류·멈춤 없이 종료되고, 다음 Play에서 로드가 10초 기다리지 않아요(m4-07 D5 수정).
+7. [C2 먼저, 실서버 2개] 같은 계정으로 서버 A에서 코인을 바꾸고 나가 바로 서버 B → 코인이 줄지 않아요. B Output에 `taking the lock` 경고가 보이면 알려 주세요(m4-07 D6).
+- 끝나면 `persistDataInStudio = false`.
+
+**H. 밥알 코인 · 칭호 (m4-08)** — 1~6 [바로], 7 [C1 먼저]
+1. `forceMapPlan`에 맵 4개(예: `{ "rotating-belt", "hot-plate", "soy-swamp", "skewer-showdown" }`), 혼자 Play: 왼쪽 위 "🍚 0 (저장 안 됨)". 1·2·3라운드 통과마다 "+10 🍚 라운드 통과", 결승 출발 때 "+30 🍚 결승 진출", 우승 "+100 🍚 우승!", 이어서 "+50 🍚 오늘 첫 판". 우승 연출 6초 뒤 순위표 아래 "이번 판 +210 🍚 (총 210)"이 4초 동안, 순위표와 안 겹쳐요.
+2. 같은 세션에서 한 판 더 → "오늘 첫 판" 없이 "+160 🍚 (총 370)".
+3. 로비·매치 중·관전에서 배지가 보이고 음소거 버튼·HUD·로비 패널과 안 겹쳐요. 창 폭 800 / 1280 / 1920, 휴대폰 에뮬레이터. **작은 창(세로 720 이하)에서 우승할 때 "+100 🍚 우승!" 알림이 우승 큰 글씨와 겹치는지**(m4-08 B4).
+4. Clients and Servers 2명, `forceMapPlan = nil`로 한 명이 우승 → 다른 창에서 우승자 머리 위 이름 위에 작은 금색 "탈출 초밥". 이름 줄 높이가 칭호 없는 사람과 같고, 우승자 본인 화면엔 자기 이름표가 안 보여요.
+5. 한 명이 탈락할 때 탈락 연출 동안 그 사람의 이름표·칭호가 같이 사라져요.
+6. 2명 판에서 1라운드를 통과(+10)한 뒤 "방 나가기" → 코인 그대로, 에러 없음. 남은 사람이 판을 끝내도 나간 사람에게 "+50 오늘 첫 판"이 **안 떠요**(m4-08 B1 수정 확인).
+7. 저장 켠 상태에서 이긴 뒤 나갔다 다시 접속 → 코인·승수·칭호 유지.
+
+**I. 휴대폰 · 작은 화면 (m4-09)** — 1~7 [바로], 8 [C1 먼저 + 실제 휴대폰]
+1. **iPhone SE (667×375)**: 로비 패널이 위쪽에 붙고 위쪽 바와 안 겹침. 위쪽 바 줄 왼쪽에 코인 배지, 오른쪽에 음소거. 방 목록이 드래그로 스크롤, 버튼 높이 44px 이상(스크린샷으로 재 보기). 방 만들기: 이름 칸이 맨 위, 인원 버튼 두 줄(4+1), 맨 아래까지 스크롤해 "만들기"와 안내 줄이 안 잘림. 방 대기실 목록 스크롤. 매치 HUD 위쪽 한 줄 [인원] [라운드·맵] [시간], 내 결과는 위쪽 오른쪽, "출발!"이 위쪽 줄과 안 겹침, 코인 알림이 HUD와 심하게 안 겹침. 오른쪽 아래 점프, 왼쪽 "🤸 다이브", 위 "✊ 잡기"가 안 겹치고 각각 동작, 조이스틱과 안 겹침, 다이브 쿨다운 동안 어두워짐. 탈락 도장 글씨가 화면 안. 관전 ◀ 왼쪽 아래·▶ 오른쪽(잡기 버튼 바로 위)·"로비로"는 아래 가운데, ◀를 누를 때 조이스틱이 같이 반응하지 않음. 우승 순위표가 화면 안이고 정산 줄과 안 겹침.
+2. **iPhone 14 Pro Max (932×430)**: 1의 로비·HUD·터치 버튼·관전 반복. 노치 쪽에 글씨·버튼이 가리지 않아요.
+3. **iPad (1024×768)**: PC와 같은 배치(배율 약 1.07), 잘림 없음. 터치 버튼은 큰 점프 버튼 기준 85%.
+4. **1366×768 PC 창**: 로비 → 한 판, 잘림·겹침 없음.
+5. **1920×1080 PC**: M3와 같은 배치이고 25% 커진 정도. 코인 배지는 위쪽 바 왼쪽, 음소거는 오른쪽.
+6. **관전 키**: 관전 중 ←/→로는 대상이 안 바뀌고(카메라만 기본대로), Q/E로 바뀜. 관전 중 E를 눌러도 대기석 캐릭터가 다이브하지 않아요.
+7. 플레이 중 Device를 iPhone SE ↔ 1920×1080으로 바꾸면 배치가 바로 바뀌어요.
+8. 실제 휴대폰(Android·iOS)으로 한 판, 불편한 점을 `docs/playtest/m4.md`에(USER-TODO D).
+
+**J. 서버 이동 감시 (m4-10)** [바로] — 서버 Output은 서버 창에서 봐요
+1. **오탐 없음**: `forceMapPlan = { "rotating-belt", "soy-swamp", "hot-plate", "skewer-showdown" }`로 한 판, `{ "ramen-rapids", "chef-board", "soy-swamp", "skewer-showdown" }`로 한 판. 다이브 연타(땅·점프 직후 공중), 벨트 위 뒤로 걷기·다이브, 젓가락에 잡히기, 간장 들락날락, 와사비 연속, 날치알 맞기, 급류·소용돌이 타며 다이브, 막대·꼬치·칼에 맞기, 철판 타일 떨어질 때까지 서 있기, 셰프 손이 조각을 집을 때 근처 서 있기, 도마가 기울 때 가장자리에서 다이브. 기대: 서버 Output에 `[MovementGuard]` 없음, 갑자기 뒤로 끌려가는 일 없음.
+2. **순간이동**: 회전 벨트 라운드에서 (a) 출발 구역 (b) 벨트 위 (c) **소개 중**에 각각 클라이언트 Command Bar `local f; for _, d in workspace:GetDescendants() do if d.Name == "FinishLine" and d:IsA("BasePart") then f = d end end; game.Players.LocalPlayer.Character:PivotTo(f.CFrame + Vector3.new(0, 3, 0))` → 세 경우 모두 통과 없이 원래 자리(소개 중이면 스폰)로 돌아와요.
+3. **속도**: `game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 120` 후 출발 구역과 벨트·급류 위에서 달리기 → 계속 뒤로 당겨지고 서버 Output에 `[MovementGuard] userId … strikes 3 in this round` 한 줄, 킥 없음. 다음 라운드에서 다시 하면 또 한 줄. 벨트 위에서 가끔 안 끌려오면 기록(m4-10 R2).
+4. Clients and Servers 2~3명: 서로 잡기, 다이브로 부딪히기, 넉백으로 다른 사람 쪽으로 날아가기 → 경고·되돌림이 있으면 몇 번인지 기록(B4).
+5. **복제 지연**: Studio 설정 → Network → Incoming Replication Lag 0.3초로 벨트·급류에서 다이브 연타 → 되돌림 없음. 0.6초로 한 번 더 해 보고 되돌림이 얼마나 자주 나는지 기록(m4-10 R1, USER-TODO A1 결정에 씀). **끝나면 0으로.**
+6. 다이브 중 서버 Command Bar로 `HumanoidRootPart.AssemblyLinearVelocity.Magnitude`를 찍어 40을 넘는지 기록.
+
+**K. 로비/매치 서버 분리 (m4-11)** — 1~2 [바로], 3 [C2 먼저]
+1. **한 플레이스 회귀** (설정 그대로, Clients and Servers 2~4명): `Config.Places`가 비어 있고 `simulateMatchServer = false`. 방 만들기(공개/비공개), 목록 참가, 코드 참가, 빠른 참가(방 있을 때/없을 때), 나가기, 방장 시작 → 한 판 끝까지 → 같은 방 대기실로 → 단상에 우승자. 서버 Output에 `[PlaceService]`·`[RoomDirectory]` 줄이 **하나도 없고**, 방 목록에 🌐가 없어요.
+2. **매치 서버 흉내** (`simulateMatchServer = true`, Clients and Servers 2~4명): 로비 건물·방 목록·대기실 없이 "매치 서버 연결 중…" → 마지막 사람이 들어오고 약 5초 뒤 바로 Starting → 라운드들 → 우승 화면 → 서버 Output `[PlaceService] (Studio) would teleport N players back to the lobby (match finished), room studio-simulated`, 캐릭터가 로비 스폰으로, 화면 "로비로 돌아가는 중…". 관전 "로비로"는 관전만 꺼요. (선택) 1명만 켜도 시작돼요. **끝나면 false.**
+3. **실서버** (USER-TODO C2: Match 플레이스 + 두 플레이스 퍼블리시 + `Config.Places`, 친구 3명 이상)
+   - 4명이 한 방에서 시작 → 로딩 뒤 같은 매치 서버 → 한 판 → 함께 로비로 → **같은 이름·설정·방장**의 방(비공개면 새 코드) → 단상에 우승자. F9 Server 로그 `[PlaceService] room … → match server`, `… arrived, starting match`, `… players → lobby (match finished)`.
+   - 다른 로비 서버의 공개 방이 내 목록에 🌐로(최대 5초 지연) → 누르면 "방이 있는 서버로 이동하고 있어요…" → 그 방에 들어감. 비공개 코드도.
+   - 매치 중 한 명이 게임 종료 → 매치 계속 → 나머지가 같은 방으로.
+   - 매치 전 코인·승수 기억 → 매치에서 받고 로비로 돌아와도 그대로, 한 번 더 갔다 와도 그대로. `[DataService] … taking the lock` 경고가 보이면 기록.
+   - 시작 직후 한 명이 게임을 닫음 → 나머지는 약 20초 뒤 시작. 남은 사람이 1명이면 매치 없이 같은 방으로.
+   - 매치 서버 링크로 직접 들어가려 하면 로비로 돌려보내져요.
+   - 4/4 정원 방이 돌아오면 10초 뒤 자동 출발해요(m4-11 R6). 이게 싫으면 알려 주세요.
+
+**L. 출시 점검 (m4-12)** [바로]
+1. **연속 5판**: `logArenaStats = true`, `forceMapPlan = nil` 그대로, `forceMapPlans`에 아래 목록. Play 한 번(서버 하나)에서 방 만들기 → 시작 → 끝까지를 5번(매치마다 다음 플랜, 6개 맵이 다 나와요).
+   ```lua
+   forceMapPlans = {
+   	{ "rotating-belt", "hot-plate", "skewer-showdown" },
+   	{ "soy-swamp", "chef-board", "skewer-showdown" },
+   	{ "ramen-rapids", "hot-plate", "rotating-belt", "skewer-showdown" },
+   	{ "soy-swamp", "ramen-rapids", "chef-board", "skewer-showdown" },
+   	{ "rotating-belt", "soy-swamp", "skewer-showdown" },
+   } :: { { string } }?,
+   ```
+   매치가 끝날 때마다 `[ArenaStats] room … ended: workspace children N, arena models 0, open matches 0, round hooks 0, instances …, memory M MB`. 기준: 5줄 모두 `arena models 0`·`round hooks 0`·`children` 같음, 5번째 memory − 1번째 ≤ 50, 빨간 에러 없음. 첫 판 전 Workspace 자식 수와 5줄의 숫자를 알려 주세요. **끝나면 `logArenaStats = false`, `forceMapPlans = nil`.**
+2. **잡기 입력**: Clients and Servers 2명, 상대 바로 뒤에서 좌클릭을 아주 빨리 두 번 하고 두 번째를 누른 채 → 약 0.1초 뒤 잡힘. Device 휴대폰에서 잡기 버튼을 누른 채 마우스 왼쪽을 눌렀다 떼도 잡기 유지, 버튼을 떼면 놓음. 반대 순서도.
+3. **다이브 지름길**: 6개 맵의 벽 끝·절벽·국물 구간에서 점프 → 다이브로 코스를 건너뛸 수 있는지(간장 늪은 와사비 위 다이브도). 찾으면 맵·대략 위치를 알려 주세요(m4-12 결정 기록에 적고 고칠지 정함).
+4. **8명 부하**: Clients and Servers 8명, 24명 방 → 시작(4라운드는 `forceMapPlan` 4개) → F9 → Server Stats → Heartbeat 55 이상. 꼬치 쇼다운 결승에서 특히(m4-03 B5).
+
+**M. 스킨 · 탈의실 (m4-13)** — 1~5 [바로], 2의 저장 확인은 [C1 먼저]
+1. 왼쪽 위 코인 배지 아래 "🍣 스킨" → 16종 카드(등급 색 테두리), 탭(전체/일반/레어/에픽/전설) 전환, 카드를 누르면 미리보기가 천천히 돌고 말풍선 대사. Device 휴대폰에서 카드 2열·미리보기 위쪽·잘림 없음. 스킨 모양 스크린샷(색·토핑 수정에 씀).
+2. 서버 Command Bar `local D=require(game.ServerScriptService.Server.DataService) for _,p in game.Players:GetPlayers() do D.update(p,function(x) x.coins+=400 end) end` → "연어" 카드 "🍚 300으로 해금" → 코인 100, 바로 연어초밥. "참치"는 "🍚 200개 더 필요해요"(비활성). 레어 "성게"는 "🍚 900으로 해금" 버튼(코인이 모자라면 "🍚 n개 더 필요해요")과 "R$ 59 — 곧 열려요" 버튼 두 개. [C1 먼저] `persistDataInStudio = true`로 Stop → Play 해도 연어 유지.
+3. 연어를 입고 `forceMapPlan`으로 한 판 → 매치 캐릭터, 탈락 연출 인형(다른 사람 탈락 포함), 우승 연출 인형, 로비 단상 인형이 모두 연어. 탈락 말풍선에 "연어는 언제나 옳아!"/"기름기가 살살 녹네~"가 나올 수 있음(무작위).
+4. 달리는 중 "🍣 스킨" 버튼이 숨어요. 클라이언트 `print(game.ReplicatedStorage.Remotes.EquipSkin:InvokeServer("tamago"))` → `false 매치가 끝나면 바꿀 수 있어요`. **탈락 연출 3초 동안은 버튼이 안 보이고**(m4-13 N1 수정), 그 뒤 관전·대기석에서 버튼이 보이고 장착이 거절 없이 바뀌어요.
+5. Clients and Servers 2명: 한 명 연어, 한 명 계란초밥 → 서로 같은 모습, 이름표 높이·키·꼬치 맞는 높이가 같아요. 반짝이(황금 참치·다이아 성게)·불꽃(불꽃 연어)이 시야를 크게 가리지 않아요 — 서버 Command Bar `D.update(p,function(x) x.ownedSkins["golden-otoro"]=true end)`로 지급 후 입기.
+6. 상품 id가 없을 때 에픽·전설 카드 버튼은 "R$ 99 — 곧 열려요"/"R$ 199 — 곧 열려요"(회색), 눌러도 아무 일 없어요.
+
+**N. 로벅스 상점 (m4-14)** — 1~3·5 [바로], 4 [C1 + C3 먼저], 6 [C3 먼저 + 실서버]
+1. `fakeRobuxInStudio = true`(`persistDataInStudio = false` 그대로) → "🍣 스킨" → 레어 "성게" → "R$ 59로 사기" → 결제 창 없이 성게를 입고 카드 "입는 중", 결과 줄 "🎉 성게 획득!". 서버 Output `[Shop] receipt studio-… skin uni -> PurchaseGranted (GrantAndRecord: granted)` 한 줄. 에픽 "무지개 롤"은 "R$ 99" 버튼 하나로 같은 결과. false로 돌리면 다시 "곧 열려요"(회색).
+2. (fake = true, Play 중) 서버 Command Bar `print(game.ServerStorage.ShopDebug.ReplayReceipt:Invoke("<내 이름>", "eel", "studio-test-1"))`를 두 번 → 둘 다 `PurchaseGranted`, Output 두 번째 줄이 `AlreadyRecorded`, 장어 카드 하나. fake = false로 Play하면 `game.ServerStorage:FindFirstChild("ShopDebug")`가 `nil`.
+3. 가진 스킨은 로벅스 버튼 없이 "입기"/"입는 중". fake = false + `persistDataInStudio = false`에서 클라이언트 `print(game.ReplicatedStorage.Remotes.RequestRobuxPurchase:InvokeServer("eel"))` → `false 준비 중이에요`(상품 id 없을 때). 상품 id를 넣은 뒤 같은 상태로 로벅스 버튼 → "저장이 안 되는 상태라 지금은 살 수 없어요". `fakeRobuxInStudio`와 `persistDataInStudio`를 같이 켜면 시작 때 경고가 나오고 가짜 결제가 꺼져요.
+4. [C1 + C3] 상품 15개 id를 `src/shared/Skins.luau`에 넣고 `lune run tests` → 퍼블리시 → `persistDataInStudio = true`, `fakeRobuxInStudio = false` → 로벅스 버튼 → Roblox 결제 창(Studio 테스트 구매, 청구 없음)의 가격이 버튼 가격과 같음 → 확인 → 스킨이 들어오고 입혀짐, Output `[Shop] receipt <PurchaseId> … PurchaseGranted`. Stop 후 다시 Play해도 남음. 결제 창을 취소하면 아무것도 안 바뀌고, 그 뒤 같은 스킨을 코인으로 해금해도 "🎉 획득!"이 아니라 코인 해금 문구. 결제 창이 열린 동안 같은 스킨 코인 해금은 "로벅스 결제가 끝날 때까지 기다려 주세요". **이 확인 때 fake는 끄기.**
+5. 휴대폰 에뮬레이터(iPhone SE)에서 일반·레어 스킨 정보 칸에 "🍚 해금" + "R$ n로 사기" + 결과 줄이 잘리지 않고 겹치지 않으며 손가락으로 따로 눌려요. 에픽·전설은 버튼 하나.
+6. [C3 + 실서버] 실제 계정으로 가장 싼 일반 스킨 하나 구매 → 들어오고, 매치 서버로 옮겨 가도 남아요. Creator Dashboard → Data Stores → `Purchases_v1`에 PurchaseId 키 한 줄.
+
+**O. 비공개 테스트 → 공개 (출시 체크리스트, m4-12)** — 사용자 할 일은 `docs/USER-TODO.md` 칸으로 연결해요
+
+| # | 할 일 | USER-TODO | 언제 |
+|---|---|---|---|
+| 1 | 출시 방식 결정: 한 플레이스 모드(서버 최대 40, C2 불필요) / 로비·매치 분리(C2 필요). 소리가 없을 때 무음으로 시작할지 | A1 | 비공개 테스트 전 |
+| 2 | 게임 이름·설명(한국어 + 영어 한 줄), 장르, 아이콘 512×512, 썸네일 1920×1080 3장 이상 ("먹히는 초밥"을 전면에) | A3 | 비공개 테스트 전 |
+| 3 | 소리 고르기(배경음 4·효과음 8, 지금 무음) | A2 | 비공개 테스트 전(또는 무음으로 시작 결정) |
+| 4 | M3·M4 Studio 확인 (3-8, 3-9) | B2, B3 | 비공개 테스트 전 |
+| 5 | 퍼블리시 + Studio API 접근 허용 | C1 | 비공개 테스트 전 |
+| 6 | (분리로 낼 때) Match 플레이스 만들기, 같은 빌드를 두 플레이스에 퍼블리시, PlaceId 2개 → `Config.Places` | C2 | 비공개 테스트 전 |
+| 7 | 경험 설문, 지원 기기(PC·휴대폰·태블릿 켬, 콘솔 끔), 서버 최대 인원 Lobby 40 / Match 24 | C4 | 비공개 테스트 전 |
+| 8 | 접근을 친구·지정 사용자로 제한(비공개 유지 + Collaborators/허용 목록, 메뉴 이름은 대시보드 버전마다 다름)하고 4명 이상 × 5판 이상, 결과는 `docs/playtest/m4.md` | D | 위 1~7 뒤 |
+| 9 | 개인정보 삭제 요청 절차 메모 (`PlayerData_v1`의 `u_<UserId>`, `Purchases_v1`의 그 사용자 기록) | C4 | 공개 전 |
+| 10 | 개발자 상품 15개(가격 A안) + 상품 id 입력 → N4 확인 | C3 | 공개 전 |
+| 11 | 공개 전환 | C4 | m4-14 확인 + 비공개 테스트 큰 문제 없음 |
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M4 "알려진 한계 · 보류" 참고.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -405,13 +590,15 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 | 플러그인이 버전이 안 맞는다고 함 | `rojo plugin install`을 다시 실행해서 플러그인을 CLI 버전에 맞춰요 |
 | Connect가 안 됨 | `rojo serve`가 켜져 있는지, 포트가 플러그인 창의 포트와 같은지 확인 |
 | 포트가 이미 쓰임 | 다른 `rojo serve`를 끄거나 `rojo serve --port 34873` 후 플러그인에서 포트 변경 |
+| `luau-lsp: command not found` | 저장소 폴더에서 `rokit install`을 다시 해요 (M4에서 추가된 도구) |
+| 타입 검사가 `sourcemap.json`을 못 찾음 | 같은 폴더에서 `rojo sourcemap default.project.json -o sourcemap.json`을 먼저 돌려요 |
 | `stylua --check`가 모든 파일이 다르다고 함 | 줄바꿈 문제예요. `.gitattributes`가 LF로 고정하니까 `git add --renormalize .` 후 다시 체크아웃 |
 
 ## 5. 에이전트 협업·병렬 작업할 때
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

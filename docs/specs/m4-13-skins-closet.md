@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-13 — 스킨 목록 · 탈의실(미리보기·장착) · 코인 해금

@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-04 — 새 Race 맵: 라멘 국물 급류 (`ramen-rapids`)

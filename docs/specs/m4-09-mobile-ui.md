@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-09 — 모바일 UI (화면 크기 대응 · 터치 버튼 배치 · 안전 영역)

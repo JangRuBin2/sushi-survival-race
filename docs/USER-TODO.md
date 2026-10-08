@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-08 (M4 진행 중 — m4-01~12 병합(m4-12 QA 중), m4-13~14 남음)
+> 마지막 갱신: 2026-10-08 (M4 개발 완료 — m4-01~m4-14 전부 QA 통과·문서 반영(`done`). 이제 이 목록이 다음 단계예요. 기획서는 GDD v0.4)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -22,7 +22,11 @@
   - 하루 첫 판 보너스 기준 **UTC**(한국 오전 9시 초기화) — 유지/한국 시간으로
   - 코인: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50 — [`docs/specs/m4-08-rewards-titles.md`](specs/m4-08-rewards-titles.md)
   - 매치 서버: 도착하면 바로 시작, 20초 안에 2명 미만이면 취소 — [`docs/specs/m4-11-place-split.md`](specs/m4-11-place-split.md)
+  - 정원이 찬 방이 매치에서 돌아오면 10초 뒤 자동 출발 — 유지/끄기 ([`docs/qa/m4-11-place-split.md`](qa/m4-11-place-split.md) R6)
   - M4 로벅스 판매는 스킨 15개만(VIP·번들은 M5) — [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md)
+  - **확정됨 (2026-10-08)**: 스킨 가격 **A안** — 로벅스 일반 29 / 레어 59 / 에픽 99 / 전설 199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만 (GDD v0.4 §9.2, 근거 [`docs/REFERENCE-roblox-monetization.md`](REFERENCE-roblox-monetization.md) 7절)
+  - **확정됨 (2026-10-08)**: 코인을 로벅스로 파는 상품은 만들지 않음
+- [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
   - 걸리면 킥 없이 제자리로 되돌리기만 — 유지/킥 추가
@@ -61,7 +65,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 - 맵 순서 고정: `src/shared/Config.luau`의 `DEBUG.forceMapPlan`에 맵 id 3~4개 → 확인 후 **반드시 `nil`로 되돌리기**
 
 ### B3. M4 확인 (기능별 QA 리포트의 "사용자 Studio 확인 체크리스트" 절)
-DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로 모아요). 그 전까지는 QA 리포트를 보면 돼요.
+- [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-9** A~O에 기능별로 모아 두었어요(QA 뒤 고쳐진 것·확정 가격 반영, 디버그 설정 표와 되돌리기 포함). 원본은 아래 QA 리포트예요.
 
 | 기능 | 읽을 파일 | 사용자 작업 먼저? |
 |---|---|---|
@@ -76,9 +80,11 @@ DEV-SETUP에는 M4 절이 아직 없어요(M4가 끝나면 docs-writer가 3-9로
 | 모바일 UI | [`docs/qa/m4-09-mobile-ui.md`](qa/m4-09-mobile-ui.md) | 실제 휴대폰(AC9)은 C1 먼저 |
 | 이동 감시 | [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) | 아니요 |
 | 플레이스 분리 | [`docs/qa/m4-11-place-split.md`](qa/m4-11-place-split.md) | Studio 흉내(`DEBUG.simulateMatchServer`)는 아니요, 실제 서버는 **C2 먼저** |
-| 출시 점검 (연속 5판·잡기 입력·다이브 지름길·8명 부하·P3 눈 확인) | [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모 "Studio 확인" 1~6 (QA 리포트가 나오면 `docs/qa/m4-12-release-hardening.md`) | 아니요 (`DEBUG.forceMapPlans`·`logArenaStats` 사용 후 되돌리기) |
+| 출시 점검 (연속 5판·잡기 입력·다이브 지름길·8명 부하·P3 눈 확인) | [`docs/qa/m4-12-release-hardening.md`](qa/m4-12-release-hardening.md) | 아니요 (`DEBUG.forceMapPlans`·`logArenaStats` 사용 후 되돌리기). 서버 종료 확인(7)만 C1 먼저 |
+| 스킨·탈의실·코인 해금 | [`docs/qa/m4-13-skins-closet.md`](qa/m4-13-skins-closet.md) (가격은 A안: 일반 🍚300, 레어 🍚900 — 리포트의 500은 옛 값) | 아니요. 저장 유지 확인만 C1 먼저 |
+| 로벅스 상점 | [`docs/qa/m4-14-robux-shop.md`](qa/m4-14-robux-shop.md) (가격은 A안 — 리포트의 R$ 49/99는 옛 값) | 가짜 결제(`DEBUG.fakeRobuxInStudio`)는 아니요, 실제 결제 창은 **C1 + C3 먼저**, 실서버 구매는 퍼블리시 후 |
 
-공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `persistDataInStudio`, `simulateMatchServer`)은 확인 후 원래 값(`nil`/`false`)으로 되돌리고 커밋하지 마세요.
+공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`)은 확인 후 원래 값(`nil`/`false`)으로 되돌리고 커밋하지 마세요.
 
 ---
 

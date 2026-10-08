@@ -29,12 +29,14 @@ export type ResultKind = "Passed" | "Eliminated" | "Won"
 -- simulate 이벤트
 --   { kind = "RoundStart", roundIndex, roundCount, userIds }
 --   { kind = "Result", userId, result }
---   { kind = "MatchEnd", userIds (끝까지 남은 참가자), today, lastDays? ({ [userId]: day }) }
+--   { kind = "MatchEnd", userIds (매치 끝 시점 방 멤버), participants? (있으면 userIds와 교집합만), today,
+--     lastDays? ({ [userId]: day }) }
 export type SimEvent = {
 	kind: "RoundStart" | "Result" | "MatchEnd",
 	roundIndex: number?,
 	roundCount: number?,
 	userIds: { number }?,
+	participants: { number }?,
 	userId: number?,
 	result: ResultKind?,
 	today: number?,
@@ -99,6 +101,23 @@ function RewardLogic.summaryText(matchTotal: number, coins: number): string
 	return `이번 판 +{matchTotal} 🍚 (총 {coins})`
 end
 
+-- 매치 끝 지급(하루 첫 판·matchesPlayed) 대상: 매치를 시작한 참가자 중 매치 끝 시점에 방에 남은 사람 (참가자 순서).
+-- 방만 나가고 서버에 남은 사람은 빠져요 (m4-08 QA B1).
+function RewardLogic.matchEndRecipients(participants: { number }, remainingUserIds: { number }): { number }
+	local remaining: { [number]: boolean } = {}
+	for _, userId in remainingUserIds do
+		remaining[userId] = true
+	end
+	local out: { number } = {}
+	for _, userId in participants do
+		if remaining[userId] then
+			table.insert(out, userId)
+			remaining[userId] = nil -- 같은 사람을 두 번 넣지 않아요
+		end
+	end
+	return out
+end
+
 function RewardLogic.newTracker(): Tracker
 	return { roundIndex = nil, roundCount = nil }
 end
@@ -161,7 +180,11 @@ function RewardLogic.simulate(events: { SimEvent }): { [number]: number }
 			add(RewardLogic.onResult(tracker, event.userId :: number, event.result :: ResultKind))
 		elseif event.kind == "MatchEnd" then
 			local lastDays = event.lastDays or {}
-			for _, userId in event.userIds or {} do
+			local recipients = event.userIds or {}
+			if event.participants then
+				recipients = RewardLogic.matchEndRecipients(event.participants, recipients)
+			end
+			for _, userId in recipients do
 				local amount = RewardLogic.dailyBonus(lastDays[userId], event.today :: number)
 				if amount then
 					add({ { userId = userId, reason = "DailyFirstMatch", amount = amount } })

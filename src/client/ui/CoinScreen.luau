@@ -32,7 +32,7 @@ function CoinScreen.new(playerGui: Instance): CoinScreen
 	local gui = Kit.new("ScreenGui", {
 		Name = "CoinGui",
 		ResetOnSpawn = false,
-		DisplayOrder = 5,
+		DisplayOrder = 55, -- 우승 연출 큰 글씨(50) 위: 우승 순간 토스트가 가리지 않게 (m4-08 QA B4)
 		ScreenInsets = Enum.ScreenInsets.TopbarSafeInsets,
 		Parent = playerGui,
 	}) :: ScreenGui

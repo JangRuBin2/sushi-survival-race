@@ -1,6 +1,13 @@
 # m4-08 rewards-titles — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA 후 수정 (최신)
+- **브랜치**: `m4-08-rewards` (origin/m4-08-qa 병합) → `origin/m4-08-qa`로 push.
+- **끝난 것**: QA B1(P2) 매치 끝 지급을 끝까지 방에 남은 참가자로 제한, B2 늦은 결과는 Won만, B3 B1로 해소, B4 CoinGui DisplayOrder 55. 테스트 2개 추가.
+- **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 545 passed / 0 failed.
+- **남은 것**: Studio 체크리스트(QA 리포트) 사용자 확인, AC11은 m4-07 뒤.
+- **다음에 할 첫 단계**: 병합 후 docs-writer 문서 반영.
+- **막힌 점**: 없음.
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `m4-08-rewards` (origin/main f33086b 기반), push 완료.
 - **끝난 것**: 스펙 범위 1~6 전부. RewardLogic(순수) + RewardService(서버 지급·승수·판 수·칭호 속성) + CoinScreen/CoinController(배지·토스트·정산) + CharacterFxController 칭호 줄 + `tests/reward-logic.spec.luau` 14개.
 - **검증**: rojo build OK, stylua --check OK, selene 0/0/0, lune 533 passed / 0 failed.

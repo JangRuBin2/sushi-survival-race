@@ -62,6 +62,7 @@ status: qa-passed
 - 2026-10-08 · "하루"는 UTC 기준 · 서버 시간대 차이 없이 단순하게 (한국 오전 9시에 바뀜). **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 코인 배지 위치 · 위쪽 바 줄 왼쪽(음소거 버튼 반대편) · planner
 - 2026-10-08 · 매치 정산 한 줄은 위쪽 바 칸(TopbarSafeInsets) 밖이라 두 번째 ScreenGui `CoinSummaryGui`(DisplayOrder 60, 우승 연출 위)에 둠. 배지·토스트는 스펙대로 `CoinGui`. 둘 다 `UiScaleController.attach` · developer
+- 2026-10-08 · **QA 후 수정** (docs/qa/m4-08-rewards-titles.md) · B1: 하루 첫 판 +50·matchesPlayed 대상을 `participants` ∩ 매치 끝 시점 방 멤버(`RoomService.getPlayers`, 관전 중인 탈락자 포함)로 제한 (`RewardLogic.matchEndRecipients`, 결정 기록 "끝까지 남은 사람만" 기준). B3: 클라이언트 합계 섞임은 B1의 결과였고, 방을 나간 사람에게 매치 끝 지급이 더 이상 가지 않아 해소. 라운드 중 지급은 그 방 레이서에게만 가므로 다른 매치와 섞일 길 없음. B2: 매치 끝 뒤(tracker 없음) 늦게 온 결과는 Won만 지급하도록 코드·주석 일치. B4: `CoinGui` DisplayOrder 5 → 55 (우승 연출 50 위, 정산 60 아래) · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

@@ -1,7 +1,7 @@
 --!strict
 -- 밥알 코인 지급·승수·우승 칭호 (GDD 9.4, 8, m4-08). MatchEvents·DataService 공개 API만 써요.
 --   라운드 통과 +10 (결승 제외), 결승 출발 +30 (레이서 전원), 우승 +100 (+ wins), 매치 끝 하루 첫 판 +50
---   (+ matchesPlayed, 끝까지 남은 참가자만). 규칙은 RewardLogic, 값은 Config.Rewards.
+--   (+ matchesPlayed, 끝까지 방에 남은 참가자만). 규칙은 RewardLogic, 값은 Config.Rewards.
 --   지급은 그 순간 바로 DataService.update로 반영하고 본인에게 RewardGranted({ reason, amount, total })를 보내요.
 --   프로필이 아직 없으면 waitForProfile로 최대 10초 기다리고, 그래도 없으면 버려요(경고).
 --   칭호: 캐릭터가 생길 때·프로필이 로드될 때·승수가 바뀔 때 캐릭터 Model에 Attributes.Title을 달아요 (0승이면 지움).
@@ -17,6 +17,7 @@ local RewardLogic = require(ReplicatedStorage.Shared.RewardLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
 local DataService = require(script.Parent.DataService)
 local MatchEvents = require(script.Parent.MatchEvents)
+local RoomService = require(script.Parent.RoomService)
 
 type Profile = ProfileSchema.Profile
 type Mutate = (profile: Profile) -> number? -- 지급할 코인 (nil이면 지급 없음)
@@ -110,15 +111,24 @@ local function onRoundStart(roomId: string, roundIndex: number, roundCount: numb
 end
 
 local function onResult(roomId: string, result: Types.PlayerResult)
-	-- 매치가 끝난 뒤 늦게 온 결과(퇴장 등)는 저장하지 않는 빈 상태로 계산해요 (Won만 지급 대상)
-	local tracker = trackers[roomId] or RewardLogic.newTracker()
-	grantAll(RewardLogic.onResult(tracker, result.userId, result.result))
+	-- 매치가 끝난 뒤(tracker 없음) 늦게 온 결과는 Won만 지급해요 — 결승 여부를 모르니 Passed +10은 주지 않아요
+	local tracker = trackers[roomId]
+	if tracker == nil and result.result ~= "Won" then
+		return
+	end
+	grantAll(RewardLogic.onResult(tracker or RewardLogic.newTracker(), result.userId, result.result))
 end
 
 local function onMatchEnd(roomId: string, info: MatchEvents.MatchEndInfo)
 	trackers[roomId] = nil
+	-- 끝까지 방에 남은 참가자만 (방만 나가고 서버에 남은 사람 제외, m4-08 QA B1). 이 훅은 RoomService.endMatch
+	-- 전에 불리고 여기까지 기다림 없이 와서, 지금 방 멤버 = 매치 끝 시점 멤버(관전 중인 탈락자 포함)예요.
+	local memberIds = {}
+	for _, member in RoomService.getPlayers(roomId) do
+		table.insert(memberIds, member.UserId)
+	end
 	local today = RewardLogic.dayNumber(os.time())
-	for _, userId in info.participants do
+	for _, userId in RewardLogic.matchEndRecipients(info.participants, memberIds) do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
 			task.spawn(grantWith, player, "DailyFirstMatch", function(profile): number?

@@ -181,4 +181,26 @@ return function(t: Test.Test)
 		t.eq(ProfileSchema.titleFor(10), "전설의 참치")
 		t.eq(ProfileSchema.titleFor(100), "바다의 왕")
 	end)
+
+	t.test("B1: matchEndRecipients keeps only participants still in the room", function()
+		t.eq(
+			RewardLogic.matchEndRecipients({ 1, 2, 3, 4 }, { 4, 2, 9 }),
+			{ 2, 4 },
+			"left room or joined later excluded"
+		)
+		t.eq(RewardLogic.matchEndRecipients({ 1, 2 }, {}), {})
+		t.eq(RewardLogic.matchEndRecipients({ 1, 1, 2 }, { 1, 2 }), { 1, 2 }, "no duplicates")
+	end)
+
+	t.test("B1: participant who left the room but stayed on the server gets no daily bonus", function()
+		local events = eightPlayerMatch(nil)
+		local last = events[#events]
+		last.participants = ids(1, 8)
+		last.userIds = { 1, 2, 3, 4, 5, 7, 8, 42 } -- 6이 방만 나감, 42는 매치 뒤 들어온 사람
+		local totals = RewardLogic.simulate(events)
+		t.eq(totals[6], nil, "left room")
+		t.eq(totals[42], nil, "not a participant")
+		t.eq(totals[7], 50, "stayed spectating")
+		t.eq(totals[1], 200, "winner")
+	end)
 end

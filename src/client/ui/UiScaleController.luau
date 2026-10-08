@@ -1,13 +1,135 @@
 --!strict
 -- 화면 크기 배율 (m4-09). ScreenGui마다 UIScale을 붙여 휴대폰·작은 화면에서 UI 크기를 맞춰요.
---   UiScaleController.attach(screenGui)  배율을 붙일 ScreenGui를 등록해요. 새 화면(m4-08 CoinGui 등)도 만들 때 불러요.
--- m4-01 껍데기: attach는 아직 아무것도 하지 않아요. 동작은 m4-09 스펙이 이 파일에 채워요
--- (init.client.luau 등록은 m4-01이 끝냄).
+--   UiScaleController.attach(screenGui)   UIScale(이름 "UiScale")을 하나 붙이고 화면 크기가 바뀔 때마다 갱신해요.
+--                                         같은 gui에 두 번 불러도 하나. ScreenInsets = CoreUISafeInsets도 맞춰요
+--                                         이미 TopbarSafeInsets인 위쪽 바 gui는 그대로 두고 UIScale도 붙이지 않아요
+--                                         (options.scale로 바꿀 수 있어요).
+--   UiScaleController.metrics()           지금 화면의 UiLayout.Metrics (scale, compact, width, height)
+--   UiScaleController.onChanged(fn)       화면 크기가 바뀔 때마다 fn(metrics). 바로 한 번 불러요. 돌려준 함수로 끊어요.
+-- 배율 계산은 Shared.UiLayout(순수). UIScale 안에서 Offset v는 v × scale 실제 픽셀이라,
+-- AbsolutePosition/AbsoluteSize(실제 픽셀)를 Offset에 넣을 때는 scale로 나눠야 해요 (IntroScreen 참고).
+-- 터치 버튼(DiveGui·GrabGui)은 점프 버튼 픽셀 위치에 맞춰야 해서 붙이지 않아요.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+
+local SCALE_NAME = "UiScale"
 
 local UiScaleController = {}
 
-function UiScaleController.attach(_screenGui: ScreenGui) end
+export type Listener = (metrics: UiLayout.Metrics) -> ()
 
-function UiScaleController.start(_gui: Instance) end
+local scales: { [ScreenGui]: UIScale } = {}
+local listeners: { [number]: Listener } = {}
+local nextListenerId = 0
+local current: UiLayout.Metrics = UiLayout.metrics(0, 0)
+local watching = false
+local cameraConnection: RBXScriptConnection? = nil
+
+local function apply()
+	for gui, scale in scales do
+		if gui.Parent == nil and scale.Parent == nil then
+			scales[gui] = nil
+		elseif scale.Scale ~= current.scale then
+			scale.Scale = current.scale
+		end
+	end
+	for _, listener in table.clone(listeners) do
+		task.spawn(listener, current)
+	end
+end
+
+local function refresh()
+	local camera = workspace.CurrentCamera
+	if camera == nil then
+		return
+	end
+	local size = camera.ViewportSize
+	if size.X == current.width and size.Y == current.height then
+		return
+	end
+	current = UiLayout.metrics(size.X, size.Y)
+	apply()
+end
+
+local function watchCamera()
+	if cameraConnection then
+		cameraConnection:Disconnect()
+		cameraConnection = nil
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		cameraConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(refresh)
+	end
+	refresh()
+end
+
+-- 처음 쓰일 때 화면 크기를 보기 시작해요 (LobbyController가 start보다 먼저 attach해요)
+local function ensureWatching()
+	if watching then
+		return
+	end
+	watching = true
+	workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
+	watchCamera()
+end
+
+function UiScaleController.metrics(): UiLayout.Metrics
+	ensureWatching()
+	return current
+end
+
+function UiScaleController.onChanged(listener: Listener): () -> ()
+	ensureWatching()
+	nextListenerId += 1
+	local id = nextListenerId
+	listeners[id] = listener
+	listener(current)
+	return function()
+		listeners[id] = nil
+	end
+end
+
+export type AttachOptions = {
+	-- false면 UIScale을 붙이지 않아요. 기본: 위쪽 바 gui(TopbarSafeInsets)는 false, 그 밖은 true
+	scale: boolean?,
+}
+
+function UiScaleController.attach(screenGui: ScreenGui, options: AttachOptions?)
+	ensureWatching()
+	-- 위쪽 바 줄에 들어가는 gui(음소거 m3, 코인 배지 m4-08)는 TopbarSafeInsets 예외: 안전 영역도 배율도
+	-- 건드리지 않아요 — 음소거 버튼(Sfx, attach 안 함)과 크기가 같게 (m4-09 QA B1·B4)
+	local topbar = screenGui.ScreenInsets == Enum.ScreenInsets.TopbarSafeInsets
+	local wantScale = if options and options.scale ~= nil then options.scale else not topbar
+	if not topbar then
+		screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	end
+	if not wantScale then
+		return
+	end
+	local scale = scales[screenGui]
+	if scale == nil then
+		local existing = screenGui:FindFirstChild(SCALE_NAME)
+		if existing and existing:IsA("UIScale") then
+			scale = existing
+		else
+			local created = Instance.new("UIScale")
+			created.Name = SCALE_NAME
+			created.Parent = screenGui
+			scale = created
+		end
+		scales[screenGui] = scale :: UIScale
+	end
+	(scale :: UIScale).Scale = current.scale
+end
+
+-- init.client.luau가 부르는 시작점: 로비·방·HUD·관전·연출이 같이 쓰는 LobbyGui를 붙여요
+-- (LobbyController가 이미 붙였으면 그대로). 우승 큰 글씨 gui는 VictoryCutsceneScreen이 붙여요.
+function UiScaleController.start(gui: Instance)
+	if gui:IsA("ScreenGui") then
+		UiScaleController.attach(gui)
+	end
+end
 
 return UiScaleController

@@ -2,6 +2,8 @@
 -- 클라이언트 Sfx.luau를 Lune에서 불러 보려는 가짜 Roblox 환경 (m3-08 QA).
 -- 인스턴스(Parent/Destroy/IsA/시그널), SoundService, TweenService, Players, Remotes, task.delay, os.clock을 흉내 내요.
 -- 시간은 env.now로 직접 움직이고, task.delay로 미룬 함수는 env.runDelayed()로 실행해요.
+-- m4-07: 클라이언트 ProfileStore(script.Parent.ProfileStore)도 흉내 내요 — env.pushProfile(view)로 프로필을 보내고,
+-- 클라이언트가 FireServer로 보낸 것은 env.sent에 { name, args }로 쌓여요.
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
@@ -209,6 +211,9 @@ export type Env = {
 	playerGui: any,
 	events: { [string]: Signal },
 	userId: number,
+	sent: { { name: string, args: { any } } },
+	profileView: any,
+	pushProfile: (view: any) -> (),
 	runDelayed: (upTo: number?) -> (),
 	sounds: () -> { any },
 }
@@ -222,6 +227,8 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 		tweens = {},
 		events = {},
 		userId = 1,
+		sent = {},
+		profileView = nil,
 	}
 	local soundService = newInstance("SoundService")
 	local terrain = newInstance("Terrain")
@@ -259,7 +266,12 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 				signal = newSignal()
 				env.events[name] = signal
 			end
-			return { OnClientEvent = signal }
+			return {
+				OnClientEvent = signal,
+				FireServer = function(_self, ...)
+					table.insert(env.sent, { name = name, args = { ... } })
+				end,
+			}
 		end,
 	}
 	local sharedModules = {
@@ -270,6 +282,33 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 		Config = RealConfig,
 		Attributes = RealAttributes,
 	}
+	local profileChanged = newSignal()
+	local clientModules = {
+		ProfileStore = {
+			get = function()
+				return env.profileView
+			end,
+			changed = function(fn)
+				local connection = profileChanged:Connect(fn)
+				return {
+					Connected = true,
+					Disconnect = function()
+						connection.Disconnect()
+					end,
+				}
+			end,
+		},
+	}
+	function env.pushProfile(view: any)
+		env.profileView = view
+		profileChanged:Fire(view)
+	end
+	local clientFolder = setmetatable({}, {
+		__index = function(_, name: string)
+			return { __client = name }
+		end,
+	})
+
 	local sharedFolder = setmetatable({}, {
 		__index = function(_, name: string)
 			return { __shared = name }
@@ -295,6 +334,7 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 					return assert(services[name], `no fake service {name}`)
 				end,
 			},
+			script = { Name = "Sfx", Parent = clientFolder },
 			workspace = { Terrain = terrain },
 			Instance = { new = newInstance },
 			TweenInfo = { new = stub("TweenInfo") },
@@ -344,6 +384,9 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 				table.insert(env.warnings, table.concat(parts, " "))
 			end,
 			require = function(target: any)
+				if target.__client then
+					return assert(clientModules[target.__client], `no fake client module {target.__client}`)
+				end
 				local name = target.__shared
 				return assert(sharedModules[name], `no fake shared module {name}`)
 			end,

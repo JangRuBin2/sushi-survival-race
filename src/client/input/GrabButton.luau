@@ -1,5 +1,6 @@
 --!strict
--- 모바일 "잡기" 버튼 (m3-07). 기본 점프 버튼 위쪽에 같은 크기로 둬요 (다이브 버튼은 왼쪽, m3-06).
+-- 모바일 "잡기" 버튼 (m3-07). 기본 점프 버튼 위쪽에 85% 크기로 둬요 (다이브 버튼은 왼쪽, m3-06).
+-- 자리는 Shared.UiLayout.touchButtons가 정해요 (m4-09). 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
 --   GrabButton.create(onHold) -> { setActive(active), destroy() }?
 --     터치 기기가 아니면 nil. 누르면 onHold(true), 손을 떼면 onHold(false).
 --     기본 터치 컨트롤(PlayerGui.TouchGui.TouchControlFrame.JumpButton)이 나타날 때까지 기다렸다가 보여요.
@@ -8,8 +9,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
-
-local GAP_RATIO = 0.15 -- 점프 버튼과의 간격 (버튼 높이 배수)
+local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 local IDLE_COLOR = Color3.fromRGB(255, 255, 255)
 local ACTIVE_COLOR = Color3.fromRGB(255, 170, 60)
 
@@ -35,7 +35,7 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 	local button = Instance.new("TextButton")
 	button.Name = "GrabButton"
 	button.AutoButtonColor = false
-	button.Text = "잡기"
+	button.Text = "✊ 잡기"
 	button.Font = Enum.Font.GothamBold
 	button.TextScaled = true
 	button.TextColor3 = Color3.fromRGB(40, 40, 40)
@@ -77,10 +77,16 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 		screen.IgnoreGuiInset = touchGui.IgnoreGuiInset
 		screen.ScreenInsets = touchGui.ScreenInsets
 		local size = jump.AbsoluteSize
-		local pos = jump.AbsolutePosition
-		local gap = size.Y * GAP_RATIO
-		button.Size = UDim2.fromOffset(size.X, size.Y)
-		button.Position = UDim2.fromOffset(pos.X, pos.Y - size.Y - gap)
+		-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 (인셋 차이 흡수)
+		local origin = jump.AbsolutePosition - screen.AbsolutePosition
+		local screenSize = screen.AbsoluteSize
+		local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
+			x = origin.X,
+			y = origin.Y,
+			size = math.min(size.X, size.Y),
+		}).grab
+		button.Size = UDim2.fromOffset(rect.size, rect.size)
+		button.Position = UDim2.fromOffset(rect.x, rect.y)
 		button.Visible = jump.Visible and size.X > 0
 	end
 

@@ -3,7 +3,7 @@
 --   라운드 통과 +10 (결승 제외), 결승 출발 +30 (레이서 전원), 우승 +100 (+ wins), 매치 끝 하루 첫 판 +50
 --   (+ matchesPlayed, 끝까지 방에 남은 참가자만). 규칙은 RewardLogic, 값은 Config.Rewards.
 --   지급은 그 순간 바로 DataService.update로 반영하고 본인에게 RewardGranted({ reason, amount, total })를 보내요.
---   프로필이 아직 없으면 waitForProfile로 최대 10초 기다리고, 그래도 없으면 버려요(경고).
+--   프로필이 아직 없으면 waitForProfile로 최대 45초 기다리고, 그래도 없으면 버려요(경고).
 --   칭호: 캐릭터가 생길 때·프로필이 로드될 때·승수가 바뀔 때 캐릭터 Model에 Attributes.Title을 달아요 (0승이면 지움).
 -- 코인은 서버만 지급해요 — 클라이언트 요청으로 지급하는 리모트는 없어요.
 
@@ -24,7 +24,8 @@ type Mutate = (profile: Profile) -> number? -- 지급할 코인 (nil이면 지�
 
 local RewardService = {}
 
-local PROFILE_WAIT = 10
+-- 최악의 로드(같은 서버 옛 세션 대기 30초 + 재시도)보다 길게 (m4-07 QA D7)
+local PROFILE_WAIT = 45
 
 local trackers: { [string]: RewardLogic.Tracker } = {}
 local rewardGrantedEvent: RemoteEvent

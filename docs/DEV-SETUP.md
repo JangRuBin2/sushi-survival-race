@@ -44,9 +44,9 @@ rojo plugin install
 rojo build -o build.rbxl     # Rojo 프로젝트 구조가 맞는지 (build.rbxl은 커밋 안 함, .gitignore에 있음)
 stylua --check src tests     # 포맷 검사. 고칠 때는: stylua src tests
 selene src                   # 린트
-lune run tests               # 순수 로직 테스트 (라운드 규칙·판정·순위, 방 로직, 관전, 맵 인터페이스·맵별 계산)
+lune run tests               # 순수 로직 테스트 (라운드 규칙·판정·순위, 방 로직, 관전, 맵 인터페이스·맵별 계산, 연출·다이브·잡기·소리 계산)
 ```
-4개 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M2 기준 18개 파일, 209개). `Config.DEBUG.forceMapPlan`을 바꾼 채로 두면 실패해요 (3-7).
+4개 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M3 기준 37개 파일, 486개). `Config.DEBUG.forceMapPlan`을 바꾼 채로 두면 실패해요 (3-7).
 
 ## 3. Studio에서 게임 테스트
 
@@ -58,15 +58,15 @@ lune run tests               # 순수 로직 테스트 (라운드 규칙·판정
 
 ### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
-- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `RoomService`, `MatchService`, `RoundService`, `EliminationService`, `CharacterUtil`
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `maps`(안에 `MapTypes`, `RotatingBelt`, `RotatingBeltChopstick`, `SoySwamp`, `SoySwampLayout`, `SoySwampHazards`, `HotPlate`, `HotPlateLogic`, `SkewerShowdown`, `SkewerShowdownLogic`)
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`)
+- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `RoomService`, `MatchService`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `SfxCues`, `SfxLibrary`, `maps`(안에 `MapTypes`, `MapSfx`, `MapSfxLogic`, `RotatingBelt`, `RotatingBeltChopstick`, `SoySwamp`, `SoySwampLayout`, `SoySwampHazards`, `HotPlate`, `HotPlateLogic`, `SkewerShowdown`, `SkewerShowdownLogic`)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `input` 폴더: `Dive*`, `Grab*`)
 - [ ] `Workspace`에 나무 바닥판 `Baseplate`와 `LobbySpawn`
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 11개(RemoteFunction 6, RemoteEvent 5)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 13개(RemoteFunction 6, RemoteEvent 7)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요
-- [ ] 캐릭터가 나무 바닥 위 스폰에 서 있고, 화면에 로비 UI가 떠요 (3-4)
+- [ ] 캐릭터가 나무 바닥 위 스폰에 계란초밥 모습으로 서 있고, 화면에 로비 UI가 떠요 (3-4)
 
 동기화 확인:
 - [ ] `src/shared/Config.luau`에서 아무 숫자를 바꾸고 저장 → Studio의 `Shared.Config`를 열어 보면 바뀌어 있어요 (확인 후 되돌려요)
@@ -124,18 +124,19 @@ Explorer 창에서:
 > - **위치**: Race 통과자는 바로 로비 스폰(대기석)으로 옮겨져요. 라운드가 끝나면 남은 통과자·우승자도 로비 스폰으로 가고, 다음 소개 때 새 맵으로 옮겨져요. 탈락자는 3초 멈췄다가 로비 스폰으로 가요. 이때 걷기·점프 값도 돌아와요.
 > - **관전**: 탈락하면 3초 뒤 자동 관전 + [로비로](관전만 끔, 방은 유지) → [👀 관전하기]로 다시 관전할 수 있어요. Race 통과자는 대기석에서 바로 관전하고 [내 캐릭터 보기]로 꺼요. ←/→ 또는 Q/E로 대상을 바꿔요. 우승 때는 모두의 카메라가 우승자를 비추고 순위표(1등~꼴등)가 떠요.
 > - **HUD 진행 숫자**: Race는 "통과 n/목표 · 남은 인원 n", Survival·결승은 "남은 인원 n".
-> - 시간(초)은 `Config`에 있어요: 매치 시작 3 · 라운드 소개 3 · 결과 5 · 우승 6 · 탈락 연출 3, 라운드 제한 Race 90 / Survival 60 / Final 90.
+> - 시간(초)은 `Config`에 있어요: 매치 시작 3 · 라운드 소개 3 · 결과 5 · 우승 10(M3: 우승 연출 6 + 순위표 4) · 탈락 연출 3, 라운드 제한 Race 90 / Survival 60 / Final 90.
+> - **M3에서 바뀐 것**: 우승 때 우승 연출(6초)이 먼저 나오고 그 뒤에 "🏆 우승!" 배너·순위표가 떠요. 낙하·리셋·시간 종료 탈락은 "🥢 탈락했어요…" 글씨 대신 탈락 연출의 "먹혔다!" 도장과 등수가 떠요. 결승에서 마지막 한 명이 떨어지면 3초 뒤에 우승이 발표돼요. 아래 체크리스트의 글씨·시간은 M3 기준으로 고쳐 두었어요. M3 기능 확인은 3-8.
 
 **혼자 (Play, F5)** — 라운드는 안 돌아요
-- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너가 3초 뜬 뒤, **라운드 없이 바로** "🏆 우승!" 배너에 내 이름이 떠요 (살아 있는 사람이 1명이라 바로 부전승이에요)
-- [ ] 6초 뒤 방 대기실로 돌아오고, 같은 방에서 **시작!**을 다시 누를 수 있어요
+- [ ] 방을 만들고 **시작!** → "매치 시작!" 배너가 3초 뜬 뒤, **라운드 없이 바로** 우승 연출(6초)이 나오고 "🏆 우승!" 배너에 내 이름이 떠요 (살아 있는 사람이 1명이라 바로 부전승이에요)
+- [ ] 우승 단계 10초 뒤 방 대기실로 돌아오고, 같은 방에서 **시작!**을 다시 누를 수 있어요
 - 혼자서 라운드를 끝까지 돌려 보려면 3-7의 `forceMapPlan`을 써요. 맵 하나만 빨리 보려면 3-6의 Command bar 방법을 써요.
 
 **두 명 (Test → Clients and Servers, 2명)** — 결승만 가장 빨리 보는 방법
 - [ ] 방장이 **시작!** → "매치 시작!" 뒤 **"라운드 1 / 3" 없이 바로 "라운드 3 / 3 · 회전 꼬치 쇼다운"** 소개가 떠요 (시작부터 2명이라 결승으로 건너뛰어요, 정상). 소개 동안 이미 무대 위에 서 있고 움직일 수 없어요
 - [ ] 왼쪽 위 "남은 인원 2", 오른쪽 위 남은 시간(90초부터)
-- [ ] 먼저 떨어진 사람은 "🥢 탈락했어요… (2등)", 남은 사람은 그 순간 "🏆 우승했어요!"를 받아요
-- [ ] "🏆 우승!" 배너와 순위표(1·2등)가 두 화면 모두 같고, 두 카메라가 우승자를 비춰요. 우승자는 로비 스폰에 살아 있어요. 6초 뒤 방 대기실로 돌아와요
+- [ ] 먼저 떨어진 사람은 셰프 손 연출과 "먹혔다!" 도장 + "2등", 남은 사람은 3초 뒤 "🏆 우승했어요!"를 받아요
+- [ ] 우승 연출 뒤 "🏆 우승!" 배너와 순위표(1·2등)가 두 화면 모두 같고, 두 카메라가 우승자를 비춰요. 우승자는 로비 스폰에 살아 있어요. 우승 단계 10초 뒤 방 대기실로 돌아와요
 
 **네 명 (Test → Clients and Servers, 4명)** — M1부터 이어진 기본 흐름
 - [ ] 정원 4명 방에 4명이 다 들어가면 10초 뒤 자동 시작돼요 (또는 방장이 **시작!**). 4명 모두 같은 소개·결과·우승 배너를 동시에 봐요
@@ -247,7 +248,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 준비: `rojo serve` → Studio 연결. **매 단계마다 서버·클라이언트 Output에 빨간 에러가 없는지 봐요.** 여러 명은 Test 탭 → 플레이어 수 → Start (Clients and Servers). 스톱워치를 하나 준비해요.
 
 **1. 혼자 기본 확인 (1분)**
-- [ ] F5 → 방 만들기 → 시작 → 라운드 없이 "🏆 우승!"(내 이름), 6초 뒤 대기실
+- [ ] F5 → 방 만들기 → 시작 → 라운드 없이 우승 연출 뒤 "🏆 우승!"(내 이름), 10초 뒤 대기실
 
 **2. 5명 3라운드 (5명, 약 5분 × 2~3판)**
 - [ ] 공개 방, 5명 참가, 방장 시작. 스톱워치 시작
@@ -282,6 +283,103 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): 관전 중 ←/→는 카메라도 같이 돌려요(Q/E 권장). Studio에서는 관전 순서가 역순일 수 있어요(m2-06 S2, Studio 전용). 결승에서 낙하와 리셋이 같은 순간이면 리셋한 사람이 우승할 수 있어요(m2-07 I1, 기획 결정 대기).
 
+### 3-8. M3 확인 (맛 내기: 캐릭터 · 연출 · 다이브/잡기 · 소리)
+출처: `docs/qa/m3-09-integration-polish.md`의 "사용자 Studio 확인 체크리스트 (M3 전체)". 수치는 모두 기본값이라, 바꾸고 싶은 것도 같이 메모해 두세요 (N).
+
+준비
+- `rojo serve` → Studio 연결. **모든 단계에서 서버·클라이언트 Output에 빨간 에러가 없는지** 같이 봐요. 여러 명은 Test 탭 → 플레이어 수 → Start (Clients and Servers).
+- 맵 순서를 고르고 싶을 때만 `src/shared/Config.luau`의 `Config.DEBUG.forceMapPlan`을 **로컬에서** 바꿔요 (사용법은 3-7 "강제 플랜 디버그"). 예: 4맵 한 번씩 `{ "rotating-belt", "soy-swamp", "hot-plate", "skewer-showdown" }`, 결승만 빨리 `{ "rotating-belt", "hot-plate", "skewer-showdown" }`. 강제 플랜이면 혼자서도 모든 라운드가 돌아요.
+- **확인이 끝나면 `forceMapPlan = nil :: { string }?,`으로 되돌려요.** 안 되돌리면 `lune run tests`가 실패하고, 커밋하면 안 돼요.
+- 서버 Explorer와 클라이언트 Explorer를 오가야 하는 항목이 있어요. Test 탭의 **Current: Client / Server** 버튼으로 바꿔요.
+
+**A. 계란초밥 외형 (m3-02)**
+- [ ] 혼자 F5. 로비 캐릭터가 계란초밥(흰 밥·노란 계란·김 띠·눈·입·발)이고 아바타 옷·모자·얼굴이 안 보여요. 끝까지 줌인해서 1인칭이 돼도 초밥이 화면을 가리지 않아요.
+- [ ] Esc → Reset 3번. 서버 Explorer `Workspace/<내 이름>` 아래 `SushiBody`가 하나, 그 안 `Body`에 `SushiJoint`가 있어요. 라운드를 옮겨 다닌 뒤에도 하나예요.
+- [ ] 2명: 상대 초밥 머리 위에 **흰 이름이 하나만** 보여요(두 개 겹치면 안 돼요). 100 studs 넘게 떨어지면 사라져요.
+- [ ] 걸으면 통통 튀며 기우뚱하고, 멈추면 서요. 날치알·꼬치에 맞으면 누워 떨며 "@_@"와 넘어지는 소리가 나요.
+- [ ] 낙하로 탈락하는 순간에는 내 화면·남 화면 모두 "@_@"·넘어지는 소리가 **나지 않아요**.
+
+**B. 탈락 연출 (m3-03)**
+- [ ] 3명, 회전 벨트에서 A가 떨어져요 → A 화면: 젓가락 → 간장 → "냠!" + "먹혔다!" 도장 + "n등", 약 3초 뒤 관전. B·C 화면: 같은 연출이 그 자리에서 보이고, 그동안 A 캐릭터·이름표는 안 보여요.
+- [ ] 라운드 중 Esc → Reset → 리셋한 자리에서 젓가락 연출.
+- [ ] 철판에서 떨어지면 아래에서 벌린 입 연출.
+- [ ] **시간 종료(Timeout)**: 회전 벨트에서 통과 인원이 차거나 90초가 지나 남은 사람이 탈락 → 그 사람에게도 젓가락 연출 + "먹혔다!" (예전 "🥢 탈락했어요" 글씨 대신).
+- [ ] 방 나가기로 빠진 사람은 연출이 없어요.
+- [ ] 클라이언트 Explorer `Workspace/EliminationCutscenes`가 연출 뒤 비어 있어요.
+
+**C. 라운드 소개 (m3-04)**
+- [ ] 혼자 4라운드(강제 플랜 4개): 소개 3초 동안 카메라가 새 맵을 훑고 내 초밥 뒤로 돌아온 뒤 "출발!" + 소리, 바로 움직일 수 있어요.
+- [ ] 3명: 1라운드에서 탈락한 C는 2라운드 소개 때 관전 화면 그대로, 플라이스루·"출발!"이 없어요.
+- [ ] 소개 3초 안에 Esc → Reset: 탈락 연출로 넘어가고 "출발!"·출발 소리가 **안 뜨며**, 플라이스루 카메라가 다시 잡히지 않아요.
+- [ ] 방 2개(2명씩) 동시 시작: 각자 자기 방 아레나만 훑어요.
+
+**D. 우승 연출 (m3-05)**
+- [ ] 결승 우승 → 문이 열리고 초밥 인형이 부두를 달려 물에 뛰어듦 → "탈출 성공! 🏆"(다른 사람 화면은 "{이름} 탈출 성공!") + 물고기 박수(인형·물고기가 보임) → 약 6초 뒤 로비의 우승자 비추기 → "🏆 우승!" 배너·순위표 → 대기실.
+- [ ] 끝난 뒤 `Workspace.CurrentCamera.FieldOfView`가 70이고, `Workspace`에 `VictoryCutscene`이 없어요.
+- [ ] 연출 도중 우승자 창을 닫아도 나머지 화면에서 끝까지 재생돼요.
+
+**E. 다이브 (m3-06)**
+- [ ] Shift / E / 게임패드 X로 앞으로 엎드려 날고, 착지 뒤 0.5초 경직, 1.5초 쿨다운.
+- [ ] **점프 직후 Shift를 1.5초마다 반복**해도 그냥 달리기보다 빠르지 않아요. 점프 꼭대기에서 다이브하면 그냥 점프보다 멀리 가요.
+- [ ] 다이브 도중 맵 밖으로 떨어져 탈락 → 엎드린 자세가 아니라 탈락 연출 인형이 보이고, 연출 뒤 로비 캐릭터가 똑바로 서서 방향을 돌고 점프할 수 있어요.
+- [ ] 젓가락에 들린 동안·넘어진 동안·소개 중·관전 중에는 다이브가 안 돼요.
+- [ ] (메모) 발판 끝·벨트 틈에서 공중 다이브로 코스를 건너뛸 수 있는지, 와사비 패드 + 다이브가 너무 멀리 가는지 (m3-06 B2·B3).
+
+**F. 잡기 (m3-07)**
+- [ ] 2명, 라운드 중: A가 B 뒤에서 마우스 왼쪽 버튼을 누르고 있으면 선 + "잡혔다!", B가 약 절반 속도, 2초 뒤 풀려요.
+- [ ] 잡힌 B가 젓가락에 들리거나 날치알에 맞으면 풀리고, 내려온 뒤 B 속도가 정상이에요(서버 `Humanoid.WalkSpeed` 16).
+- [ ] 잡힌 B가 다이브해서 멀어지면 풀려요.
+- [ ] 3명: A가 B를 잡고 있는 동안 C가 A를 잡으려 해도 안 잡혀요. A가 놓으면 C가 A를 잡을 수 있어요.
+- [ ] A가 잡은 채 Shift(다이브) → 바로 풀려요. 버튼을 계속 누르고 있어도 다시 누르기 전에는 안 잡아요.
+- [ ] 로비·대기석에서는 잡히지 않아요.
+
+**G. 사운드 (m3-08)**
+- [ ] 로비 버튼을 누르면 "딸깍". 오른쪽 위 음소거 버튼: 🔊 소리 켬 → 🎵 음악 끔 → 🔇 모두 끔(딸깍·장애물 소리도 안 남) → 다시 🔊.
+- [ ] 결승선 통과 "뿅". 한 판 뒤 클라이언트 Explorer `SoundService`에 다 울린 Sound가 쌓여 있지 않아요(`Sfx`·`Music` SoundGroup과 지금 곡만).
+- [ ] 휴대폰 에뮬레이터에서 점프·다이브·잡기 버튼은 "딸깍"이 **안 나요**(메뉴 버튼은 나요).
+
+**H. 장애물 소리 (m3-09)**
+- [ ] 간장 늪: 간장 웅덩이에 들어갈 때 "출렁"(낮은 수영 소리), 와사비 패드에 튕길 때 "뾰잉"(높은 점프 소리).
+- [ ] 철판: 타일이 사라질 때 낮은 발소리.
+- [ ] 꼬치 쇼다운: 10·20·30·40·50·60초마다 "휙".
+- [ ] 회전 벨트 젓가락 경고·철판 달아오름·셰프 손 경고는 지금 **무음이 정상**이에요(`SfxLibrary`에 id 없음, 아래 "소리 id 넣는 법").
+- [ ] 120 studs 밖 장애물 소리는 안 들리고, 다른 방 아레나 소리도 안 들려요. 🔇 모두 끔이면 장애물 소리도 안 나요.
+
+**I. 맵 판정 회귀** — 4맵을 한 번씩(강제 플랜 4개)
+- [ ] 회전 벨트 결승선 통과·젓가락 포획, 간장 늪 감속·와사비, 철판 타일(뜨거운 타일 탈락, 60초를 버티면 버틴 사람 전원 통과), 꼬치 쇼다운 낙하 탈락·우승이 M2와 같아요(3-7).
+
+**J. 교차 시나리오 (3명)**
+- [ ] 관전 중에 다음 라운드 소개가 와도 관전 화면이 그대로예요.
+- [ ] 달리는 사람 기준 카메라 순서: 플라이스루 → "출발!" → 떨어짐 → 탈락 연출 카메라 → 자동 관전 → (결승 뒤) 우승 연출 → 로비 우승자 비추기 → 대기실 내 캐릭터. 카메라가 엉뚱한 곳에 멈추지 않아요.
+- [ ] 관전 중 보던 사람이 떨어지면 약 2.7초 그 자리를 비춘 뒤 다음 사람으로 넘어가요(로비로 순간이동하는 모습이 안 보여요).
+- [ ] 2명 결승에서 한 명이 떨어짐 → 셰프 손 연출이 3초 끝까지 보이고(진 사람 화면에 "먹혔다! 2등"), 그동안 맵이 남아 있어요. 우승자 화면에는 그 3초 뒤부터 우승 연출 직전까지 "🏆 우승했어요!"가 떠 있어요. 그 뒤 "라운드 종료" 약 5초 → 모두 우승 연출을 봐요. 두 사람이 거의 동시에 떨어져도 같아요.
+- [ ] 탈락 연출·우승 연출·플라이스루 도중 "방 나가기" → 카메라가 로비의 내 캐릭터로 돌아오고, `Workspace`에 연출 소품(`EliminationCutscenes` 안, `VictoryCutscene`)이 남지 않아요.
+
+**K. 휴대폰** — Test 탭 Device 에뮬레이터(iPhone SE 가로 등)
+- [ ] 음소거 버튼이 아이콘(🔊)만 오른쪽 위 끝에 있고, HUD 위 가운데 패널·로비 패널 내용과 안 겹쳐요.
+- [ ] 점프·다이브·잡기 버튼, 관전 바, HUD가 서로 안 겹쳐요. "먹혔다!"·"탈출 성공!" 글씨가 잘리지 않아요.
+- [ ] (메모) PC 창을 폭 900~980px로 줄이면 글자 음소거 버튼이 로비 패널 제목 줄 오른쪽 끝 위에 놓여요(m3-09 B5, 글자는 안 가림). 거슬리는지 메모.
+
+**L. 성능** — Clients and Servers 8명
+- [ ] 1라운드에서 여러 명이 거의 동시에 떨어져도 클라이언트 프레임(Ctrl+F7 또는 Shift+F5 통계)이 30fps 아래로 오래 떨어지지 않아요. 7명째부터는 연출 없이 캐릭터만 사라졌다 나타나요(동시 연출 한도 6).
+
+**M. 두 판 연속**
+- [ ] 한 판을 우승까지 → 같은 방에서 바로 다시 시작해 우승까지. 두 번째 판도 같게 동작하고(소개·연출·관전·소리), Output에 빨간 에러가 없어요.
+
+**N. 친구 테스트 (M3 완료 기준)**
+- [ ] 4명 이상으로 몇 판. 탈락·우승 연출에 "웃기다" 반응이 나오는지 봐요.
+- [ ] 바꾸고 싶은 수치(`Config.Fx`, `Config.Dive`, `Config.Grab`, `Config.Match`)와 연출·대사를 메인 세션에 알려 주세요. 기획 담당이 GDD·스펙에 반영해요.
+
+**소리 id 넣는 법**
+1. Studio **Toolbox → Creator Store → Audio**(또는 create.roblox.com의 Creator Store)에서 소리를 골라 에셋 id(숫자)를 복사해요. 다른 사람이 올린 오디오는 권한 때문에 재생되지 않을 수 있으니, Studio에서 실제로 소리가 나는지 들어 보고 써요.
+2. `src/shared/SfxLibrary.luau`의 `SfxLibrary.Entries`에서 그 cue의 `nil`을 `"rbxassetid://<id>"`로 바꿔요. 예: `VictoryFanfare = sfx("rbxassetid://1234567890", 0.9),`, `Lobby = music("rbxassetid://1234567890", 0.6),`
+3. 저장하면 Rojo가 바로 반영해요. 지금 비어 있는 것: 배경음 `Lobby`·`Round`·`Final`·`Victory`, 효과음 `VictoryFanfare`·`SpeechPop`·`ChefHand`·`FishClap`·`GrabStart`·`ChopstickWarn`·`HotTileSizzle`·`ChefHandWarn`.
+4. 이미 채워진 기본 소리(`rbxasset://sounds/...`)가 어색하면 같은 자리에서 바꿔요. 음 높이는 `sfx(id, 볼륨, pitch, 흔들림)`의 세 번째 값이에요.
+5. 배경음은 로비 → 라운드 → 결승 → 우승으로 바뀔 때 0.5초 동안 서서히 넘어가요. 전체 볼륨은 `Config.Fx.SfxVolume`(0.7)·`MusicVolume`(0.3).
+6. 바꾼 뒤 `lune run tests`로 확인하고 커밋해요(`tests/sfx-library.spec.luau`가 cue 목록과 맞는지 봐요).
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M3 "알려진 한계 · 보류" 참고.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -297,7 +395,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

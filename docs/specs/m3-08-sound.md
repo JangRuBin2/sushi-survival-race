@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-08 — 사운드 (효과음 재생기 · 배경음 · 음소거)

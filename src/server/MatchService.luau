@@ -198,7 +198,7 @@ local function forcedPlan(roomId: string): { Rules.MapInfo }?
 	if ids == nil then
 		return nil
 	end
-	local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())
+	local plan, problem = Rules.resolveForcedPlan(ids, Maps.allInfos()) -- 껍데기(inPool = false) 맵도 강제 플랜으로는 돌아요 (m5-03)
 	if plan == nil then
 		warn(`[MatchService] room {roomId}: ignoring Config.DEBUG.forceMapPlan — {problem}`)
 	else

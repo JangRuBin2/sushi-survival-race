@@ -58,6 +58,8 @@ export type MapModule = {
 	start: (ctx: RoundContext) -> (),
 	cleanup: ((ctx: RoundContext) -> ())?,
 	overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?, -- Final 맵은 필수 (m5-01)
+	-- false면 랜덤 판(Maps.infos)에 안 나오고 Maps.get·디버그 강제 플랜으로만 돌아요 (m5-03, 미완성 껍데기). nil·true면 풀에 들어가요
+	inPool: boolean?,
 }
 
 local KINDS = { Race = true, Survival = true, Final = true }
@@ -97,6 +99,9 @@ function MapTypes.validate(map: any): string?
 	end
 	if map.overtime ~= nil and type(map.overtime) ~= "function" then
 		return `{id}: overtime must be a function`
+	end
+	if map.inPool ~= nil and type(map.inPool) ~= "boolean" then
+		return `{id}: inPool must be a boolean`
 	end
 	return nil
 end

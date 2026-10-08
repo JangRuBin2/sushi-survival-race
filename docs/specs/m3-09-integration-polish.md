@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-09 — M3 통합 · 장애물 소리 · 튜닝
@@ -66,6 +66,53 @@ M3 기능 일곱 개가 한 판 안에서 서로 부딪히지 않고 함께 돈�
 - 2026-10-08 · 장애물 소리는 서버에서 · 장애물 타이밍을 서버 맵 모듈이 알고 있어서 서버가 파트에 Sound를 붙여 재생(복제되면 클라이언트에 3D로 들림). 맵 파일은 소리 호출 한 줄씩만 고침. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 마지막 순차 단계 · 맵 파일과 공용 파일을 여러 worktree가 동시에 고치지 않게 장애물 소리와 튜닝을 통합 단계로 미룸 · planner
 - 2026-10-08 · 수치 확정은 친구 테스트 뒤 사용자가 · M3 스펙의 기본값은 모두 "기본값으로 진행, 사용자 수정 가능" — 사용자 지시("일단 개발 다 해 놓으면 나중에 수정 명령을 내리겠다") · user (메인 세션 경유)
+- 2026-10-08 · 장애물 소리를 내는 곳 (스펙 범위 1과 다름) · 서버가 Sound를 만들면 pitch는 넣을 수 있어도 클라이언트 음소거 "🔇 모두 끔"(로컬 SoundGroup)이 못 끄고 동시 재생 한도도 따로 돌아요 (m3-08 QA B4). 그래서 서버 `MapSfx.play(part, cue)`는 간격 제한(MapSfxLogic)과 id 확인만 하고 새 RemoteEvent `MapSfx(cue, part, position)`를 모든 클라이언트에 보내요. 클라이언트 `Sfx`가 카메라에서 `Config.Fx.SfxMaxDistance`(120) 안이면 `Sfx.play(cue, part)`로 3D 재생 (pitch·흔들림·음소거·한도 공통). **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 시간 종료·정원 마감 탈락 cause · `Types.EliminationCause`에 `"Timeout"` 추가, `RoundService`가 낙하·리셋이 아닌 탈락을 Timeout으로 채움. `EliminationCutsceneLogic.shouldPlay("Timeout") = true` — 연출 종류는 기존 규칙(Race·Survival = 젓가락, 결승 = 셰프 손). 관전 3초 비추기도 Timeout 포함. QA 테스트 `m3-03-qa` "shouldPlay: Fall·Reset 말고는 전부 false"의 Timeout 기대값을 true로 바꿈(이 결정 때문). **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 결승 마지막 탈락 뒤 우승 발표 시점 (m3-03 QA B1) · 출발 뒤 같은 판정 묶음에서 탈락(방에 남은 사람)과 우승이 같이 나오면, 서버가 `Config.Match.EliminationCutscene`(3초) 기다린 뒤 `Won` → `Victory`. 그동안 맵·우승자는 그대로(판정 없음). 한 판이 결승에서 최대 3초 길어짐. 소개 중 취소·상대 퇴장(Left)은 기다리지 않음. **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 공중 다이브 위쪽 속도 (m3-06 QA B1) · `vy = min(지금 vy, Config.Dive.AirMaxUpSpeed)`(기본 16 = UpSpeed). 꼭대기·내려가는 중 다이브는 그대로. QA 테스트 `m3-06-qa` "공중에서 위로 가는 중이면 그 수직 속도를 그대로 둬요"(45 → 45)는 B1의 원인이라 16으로 바꿈. 점프 0.02/0.05/0.1/0.2초 뒤 다이브 반복 시뮬레이션이 모두 걷기보다 느림. **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 잡기 기획 질문 (m3-07 QA G2·G3) · 잡고 있는 사람은 잡힐 수 없음(`GrabLogic.pickTarget`/`begin`, 감속 중첩 방지). 잡는 사람이 다이브하면 클라이언트가 `GrabInput(false)`를 보내 잡기 해제(`GrabController.cancelHold`). 계속 누르고 있어도 다시 눌러야 잡음. `grab.spec` "나간 플레이어…" 테스트는 begin으로 두 역할을 만들 수 없게 돼서 기록을 직접 넣도록 바꿈. **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 이름표 (m3-02 QA B2) · Head 투명 때문에 기본 이름표가 안 보일 위험을 없애려고 클라이언트 `CharacterFxController`가 다른 사람 초밥 Body 위에 이름표(BillboardGui, DisplayName, 거리 100)를 직접 띄우고 기본 휴머노이드 이름표는 로컬에서 끔(`DisplayDistanceType = None`). 탈락 연출로 숨겨진 동안은 이름표도 숨김. **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 외형 숨김 제외 규칙 (m3-02 QA B3) · 캐릭터 아래 BasePart·Decal은 SushiBody 밖이면 숨김. 자신이나 (캐릭터 아래) 조상에 `Attributes.KeepVisible = true`가 있으면 제외. 속성은 Parent를 넣기 전에 달아야 함. 이름 상수는 `SushiBody.MODEL_NAME/JOINT_NAME`로 옮김 (B4, `m3-02-qa` 이름 일치 테스트를 공용 상수 기준으로 바꿈) · developer
+- 2026-10-08 · 클릭음 제외 규칙 (m3-08 QA B1) · `TouchGui`·`ContextActionGui` 아래 버튼과 자신이나 조상에 `Attributes.NoClickSfx = true`가 달린 버튼은 클릭음 없음(누를 때 확인). `DiveGui`·`GrabGui`에 속성을 달았음. `m3-06-qa` "다이브는 … 속성을 만들지 않아요"는 이 UI 전용 속성 한 줄만 빼고 보도록 바꿈. 같은 버튼은 한 번만 연결(B3) · developer
+- 2026-10-08 · 좁은 화면 음소거 버튼 (m3-08 QA B2) · 화면 폭 < `Config.Fx.NarrowScreenWidth`(900px)이면 아이콘만(34×28) 오른쪽 끝에서 4px, y 60. 위 가운데 HUD 패널(420px)·로비 패널 내용(0.92배 폭 + 안쪽 여백 16px)에 닿지 않음 (폭 ≥ 약 530px). **기본값으로 진행, 사용자 수정 가능** · developer
+- 2026-10-08 · 관전 비추기 시간 (m3-01 QA B1) · `EliminationCutscene - Config.Fx.SpectateHoldMargin`(3 - 0.3초). 리셋 탈락 위치(B2): 옛 캐릭터 감시에서 온 리셋은 지금 `player.Character`(리스폰된 새 캐릭터)로 위치를 채우지 않음(서버 두 곳) → 위치 없으면 본인 스탬프만 · developer
+- 2026-10-08 · 손대지 않은 QA 항목 · m3-03 B2(낙하 연출이 코스 20~40 studs 아래에서 재생 — M4 아트 때 보정), m3-04 B2(Survival·Final 플라이스루 끝점), m3-06 B2·B3(공중 다이브 지름길·와사비+다이브 — Studio 체감 후), m3-07 G1(0.1초 안 재누름)·G4(입력 공유), m3-02 B5(문서 문구). 장애물 cue 중 `ChopstickWarn`·`HotTileSizzle`·`ChefHandWarn`은 `SfxLibrary` id가 nil이라 지금은 소리가 안 남(사용자가 id를 넣으면 바로 남) · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-08 — 구현 (developer, 브랜치 main)
+**커밋**: `3926a36` 통합 수정, `f3eebe6` 장애물 소리 (+ 문서 커밋)
+
+**바뀐 파일**
+- 공용: `shared/Config.luau`(`Config.Fx` 새 묶음, `Config.Dive.ProneAngle`·`AirMaxUpSpeed`), `shared/Types.luau`(`EliminationCause`에 `"Timeout"`), `shared/Remotes.luau`(RemoteEvent `MapSfx`), `shared/Attributes.luau`(`KeepVisible`, `NoClickSfx`). `maps/init.luau`·`default.project.json`은 변경 없음.
+- 새 파일: `shared/maps/MapSfx.luau`, `shared/maps/MapSfxLogic.luau`, `tests/map-sfx.spec.luau`(12), `tests/m3-09-integration.spec.luau`(8)
+- 맵(소리 호출만): `RotatingBeltChopstick`(경고 원 → `ChopstickWarn`), `SoySwampHazards`(간장 감속 순간 → `SoySlow`, 와사비 튕김 → `WasabiBoing`), `HotPlate`(달아오르기 시작 → `HotTileSizzle`, 사라짐 → `TileVanish`), `SkewerShowdown`(10·20·…·60초 꼬치 가속 → `SkewerWhoosh`, 조각 경고 시작 → `ChefHandWarn`)
+- 서버: `RoundService`(Timeout cause, 결승 우승 발표 지연, 리셋 위치), `EliminationService`(리셋 위치 대체 안 함), `GrabService`(후보에 `grabbing`), `AppearanceService`(공용 이름 상수, `KeepVisible`)
+- 공용 로직: `EliminationCutsceneLogic`(Timeout, 한도 = `Config.Fx`), `DiveLogic`(공중 vy 상한), `GrabLogic`(잡는 사람은 대상 아님), `SushiBody`(`MODEL_NAME`/`JOINT_NAME`)
+- 클라이언트: `Sfx`(MapSfx 재생, 클릭음 제외 규칙·중복 연결 방지, 좁은 화면 아이콘 음소거, 긴 소리 수명, Config.Fx 값), `CharacterFxController`(Anchored는 넘어짐 아님, 이름표), `IntroController`(소개 중 탈락 시 중단·"출발!" 없음), `HudController`(우승 개인 글씨 생략), `SpectateController`(Timeout 비추기, 비추기 시간), `DiveController`(원래 상태 복원, 기울기 Config, 다이브 시 잡기 해제), `GrabController`(`cancelHold`), `DiveButton`·`GrabButton`(`NoClickSfx`), `EliminationCutsceneController`(주석)
+- 테스트 수정(이유는 결정 기록): `m3-01-qa`(Config.Dive 새 키), `m3-02-qa`(이름 상수), `m3-03-qa`(Timeout), `m3-06-qa`(공중 vy·NoClickSfx 줄 제외·B1 시뮬레이션 4개 추가), `grab.spec`(G2 테스트 추가·기록 직접 넣기), `camera-priority.spec`(Attributes 8개), `lib/FakeSfxEnv`(Config·Attributes·GetAttribute)
+
+**Config로 옮긴 값 (원래 위치)**
+| 값 | 원래 위치 |
+|---|---|
+| `Fx.EliminationMaxConcurrent = 6` | `EliminationCutsceneLogic.MAX_CONCURRENT` 상수 (이제 Config를 읽음) |
+| `Fx.SfxVolume 0.7 / MusicVolume 0.3 / SfxMaxDistance 120 / SfxMaxActive 16` | `client/Sfx.luau` 지역 상수 |
+| `Dive.ProneAngle = 80` | `DiveController.PRONE_PITCH` |
+| 새 값: `Fx.MapSfxMinInterval 0.2`, `Fx.SpectateHoldMargin 0.3`, `Fx.NarrowScreenWidth 900`, `Dive.AirMaxUpSpeed 16` | — |
+
+**검증**: `rojo build` OK, `stylua --check src tests` OK, `selene src` 0 errors/0 warnings, `lune run tests` 463 passed / 0 failed. `Config.DEBUG.forceMapPlan = nil`.
+
+**Studio 확인 (DEV-SETUP M3 절로 옮길 목록)** — 준비: `rojo serve`, 필요하면 로컬에서만 `forceMapPlan`(커밋 금지).
+1. **AC4 장애물 소리** — 간장 늪: 간장 웅덩이에 들어갈 때 "출렁"(수영 소리 낮게), 와사비 패드에서 "뾰잉"(점프 소리 높게). 철판: 타일이 사라질 때 발소리(낮게). 꼬치 쇼다운: 10초(높은 꼬치 등장)·20·30·40·50·60초마다 "휙". 회전 벨트 경고·철판 달아오름·셰프 손 경고는 `SfxLibrary` id가 비어 있어 지금은 무음(정상). 음소거 "🔇 모두 끔"이면 장애물 소리도 안 들림. 다른 방(2000 studs 떨어진 아레나) 소리는 안 들림.
+2. **AC5 회귀** — m2-07 통합 체크리스트의 맵 항목(4개 맵 판정·타이밍)이 그대로.
+3. **Timeout 연출** — Race(회전 벨트)에서 2명 이상이 통과 인원을 채우거나 90초가 지나 남은 사람이 탈락하면 그 사람에게도 젓가락 연출 + "먹혔다!" 스탬프(기존 "🥢 탈락했어요" 글씨 대신).
+4. **AC7 결승 마지막 탈락** — 2명 결승에서 한 명이 떨어지면 셰프 손 연출이 3초 끝까지 보이고(진 사람 화면에 "먹혔다! 2등"), 그 뒤 우승 연출이 시작. 우승자 화면 아래에 "🏆 우승했어요!" 글씨가 연출과 겹쳐 뜨지 않음.
+5. **넘어짐·이름표** — 탈락(낙하) 순간 내 화면·남 화면 모두 "@_@"·Knockdown 소리가 나지 않음. 날치알·꼬치에 맞으면 여전히 "@_@". 2명일 때 서로 초밥 머리 위에 흰 이름이 보이고(거리 100 안), 기본 이름표와 겹쳐 두 개로 보이지 않음. 탈락 연출 동안 그 사람 이름표가 숨겨짐.
+6. **AC8 잡기** — 잡힌 채 젓가락에 들리거나 날치알에 맞으면 풀리고 내려온 뒤 정상 속도. 잡힌 B가 다이브해 멀어지면 풀림. A가 B를 잡고 있을 때 C가 A를 잡으려 해도 안 잡힘. A가 잡은 채 Shift(다이브)하면 바로 풀림.
+7. **다이브** — 점프 직후 Shift 연타가 그냥 달리기보다 빠르지 않음(체감). 다이브 끝나면 캐릭터가 정상적으로 방향을 돌고 점프됨. AC9: 다이브 도중 낙하 탈락 → 인형 연출, 로비 캐릭터 똑바로 섬.
+8. **AC6 소개 중 리셋** — 소개 3초 동안 Esc→R: 탈락 연출로 넘어가고 "출발!"·Go 소리가 뜨지 않으며, 플라이스루 카메라가 다시 잡히지 않음.
+9. **관전 비추기** — 관전 중 보던 사람이 떨어지면 약 2.7초 그 자리를 비춘 뒤 다음 사람으로(로비로 순간이동하는 모습이 안 보임).
+10. **AC12 휴대폰** — 에뮬레이터(iPhone SE 가로 등)에서 음소거 버튼이 아이콘(🔊)만 오른쪽 위 끝에 있고 HUD 위 가운데 패널·로비 패널 내용과 안 겹침. 점프·다이브·잡기 버튼을 눌러도 "딸깍" 클릭음이 안 남(메뉴 버튼은 남).
+11. **AC10·AC11·AC13·AC14** — 스펙 AC 그대로 (연출 중 방 나가기, 외형 한 벌, 8명 성능, 두 판 연속).
+
+**남은 이슈**: 결정 기록 "손대지 않은 QA 항목". 서버 결승 대기 3초 동안 우승자도 맵 위에 그대로 있음(판정 없음).

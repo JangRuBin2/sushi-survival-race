@@ -1,6 +1,13 @@
 # m4-02 art-race-maps — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — 회전 벨트 스폰 버그 수정 (최신)
+- **브랜치**: `m4-02-art-race` (push 완료)
+- **끝난 것**: 회전 벨트 Spawn13~24가 출발 바닥 뒤 허공(z +3, +7)·바깥 열이 바닥 끝(x ±10)에 걸치던 버그를 `RotatingBeltArt.spawnPositions()`(x ±7.5, z -2.5 ~ -11.5)로 고침. 간장 늪 스폰은 원래 정상, 테스트만 추가. 판정 영역은 그대로.
+- **검증**: rojo OK, stylua OK, selene 0/0/0, lune 579 passed / 0 failed (map-art-race 15개).
+- **다음에 할 첫 단계**: QA. Studio에서 다인원 회전 벨트 시작 시 뒤 줄이 떨어지지 않는지.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `m4-02-art-race` (origin/main aa4cc72에서 분기, push 완료)
 - **끝난 것**: 스펙 범위 1~4 전부.
   - 새 순수 모듈 `RotatingBeltArt`, `SoySwampArt` (COLORS · decor · introCamera · courseVolume).
@@ -14,6 +21,6 @@
 - **막힌 점**: 없음.
 - **메모**:
   - `courseVolume()`은 스펙의 `{ min, max }` 하나 대신 구간별 상자 목록 (결정 기록).
-  - 회전 벨트 스폰 13~24번이 출발 바닥 뒤 허공에 있음 (기존 버그, 결정 기록에 보고만 함).
+  - 회전 벨트 스폰 버그는 위 최신 항목에서 고침.
   - 젓가락 끝 `Tip`은 젓가락에 WeldConstraint로 붙여 트윈을 따라감 — Studio에서 눈으로 확인 필요.
   - `SoySwampLayout.luau`는 손대지 않음.

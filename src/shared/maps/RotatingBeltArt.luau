@@ -31,6 +31,27 @@ RotatingBeltArt.SECTIONS = {
 } :: { Section }
 RotatingBeltArt.WALL_HEIGHT = 6
 RotatingBeltArt.FINISH_LINE_Z = -116
+-- 스폰 (6열 × 4줄 = 24). 출발 바닥(z 0 ~ -14, x ±10) 안에 스폰 판(3×3) 가장자리가 1 stud 이상 여유.
+-- M1~M3에서는 z = +3, +7 줄(Spawn13~24)이 출발 바닥 뒤 허공이었고 x ±10 열은 판 절반이 바닥 밖이었어요 (m4-02에서 고침).
+RotatingBeltArt.SPAWN_SIZE = 3
+RotatingBeltArt.SPAWN_COLUMNS = 6
+RotatingBeltArt.SPAWN_ROWS = 4
+RotatingBeltArt.SPAWN_SPACING = 3
+
+function RotatingBeltArt.spawnPositions(): { { x: number, z: number } }
+	local start = RotatingBeltArt.SECTIONS[1]
+	local list = {}
+	for row = 0, RotatingBeltArt.SPAWN_ROWS - 1 do
+		for col = 0, RotatingBeltArt.SPAWN_COLUMNS - 1 do
+			table.insert(list, {
+				x = (col - (RotatingBeltArt.SPAWN_COLUMNS - 1) / 2) * RotatingBeltArt.SPAWN_SPACING,
+				z = start.front - 2.5 - row * RotatingBeltArt.SPAWN_SPACING,
+			})
+		end
+	end
+	return list
+end
+
 RotatingBeltArt.SOY_DISH_X = 4.5 -- 병목 양옆 간장 종지 (판정 파츠) 중심 x
 RotatingBeltArt.SOY_DISH_ZS = { -68, -60, -52 }
 

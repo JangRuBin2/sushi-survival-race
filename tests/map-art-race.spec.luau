@@ -281,6 +281,51 @@ return function(t: Test.Test)
 		t.eq(BeltArt.WALL_HEIGHT, 6)
 	end)
 
+	t.test(
+		"스폰: 두 맵 모두 24개가 출발 바닥 위, 가장자리·뒤 벽에서 1 stud 이상 여유, 겹치지 않음",
+		function()
+			local MAX = 24
+			local cases = {
+				{
+					id = "rotating-belt",
+					positions = BeltArt.spawnPositions(),
+					half = BeltArt.SPAWN_SIZE / 2,
+					minX = -BeltArt.SECTIONS[1].half,
+					maxX = BeltArt.SECTIONS[1].half,
+					front = BeltArt.SECTIONS[1].front, -- 출발 바닥 뒤 끝 (뒤는 허공)
+					back = BeltArt.SECTIONS[1].back,
+				},
+				{
+					id = "soy-swamp",
+					positions = Layout.spawnPositions(),
+					half = 1.5,
+					minX = -Layout.WIDTH / 2,
+					maxX = Layout.WIDTH / 2,
+					front = Layout.START.front, -- StartWall 안쪽 면
+					back = Layout.START.back, -- 간장 늪 시작
+				},
+			}
+			for _, c in cases do
+				t.eq(#c.positions, MAX, `{c.id} spawn count`)
+				local seen = {}
+				for i, pos in c.positions do
+					t.ok(pos.x - c.half >= c.minX + 1 and pos.x + c.half <= c.maxX - 1, `{c.id} spawn {i} x {pos.x}`)
+					t.ok(pos.z + c.half <= c.front - 1 and pos.z - c.half >= c.back + 1, `{c.id} spawn {i} z {pos.z}`)
+					local key = `{pos.x},{pos.z}`
+					t.ok(not seen[key], `{c.id} duplicate spawn {key}`)
+					seen[key] = true
+				end
+			end
+			-- 회전 벨트 build가 이 위치표를 써요 (옛 row * 4 식이 남아 있지 않게)
+			local source = readSource("src/shared/maps/RotatingBelt.luau")
+			t.ok(
+				string.find(functionBody(source, "build"), "Art.spawnPositions()", 1, true) ~= nil,
+				"build uses spawnPositions"
+			)
+			t.ok(string.find(source, "row * 4", 1, true) == nil, "old spawn formula removed")
+		end
+	)
+
 	t.test("AC5: RotatingBelt.start는 Hazards 폴더가 아니라 CollectionService 태그로 찾아요", function()
 		local source = readSource("src/shared/maps/RotatingBelt.luau")
 		local startBody = functionBody(source, "start")

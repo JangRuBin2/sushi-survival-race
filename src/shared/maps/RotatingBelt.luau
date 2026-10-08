@@ -142,24 +142,20 @@ local function build(origin: CFrame): Model
 	local spawns = Instance.new("Folder")
 	spawns.Name = "Spawns"
 	spawns.Parent = model
-	local spawnIndex = 0
-	for row = 0, 3 do
-		for col = 0, 5 do
-			spawnIndex += 1
-			local x = (col - 2.5) * 4
-			local z = startCenter + 2 + row * 4 -- 출발선(z=0)보다 뒤쪽에 줄지어 선다
-			makePart({
-				Name = string.format("Spawn%02d", spawnIndex),
-				Size = Vector3.new(3, 0.2, 3),
-				CFrame = toWorld(CFrame.new(x, 0.1, z)),
-				Color = Color3.fromRGB(246, 196, 70),
-				Transparency = 0.4,
-				CanCollide = false,
-				Parent = spawns,
-			})
-		end
+	-- 스폰 24개는 전부 출발 바닥(z 0 ~ -14, 폭 20) 위에 1 stud 이상 여유를 두고 놓여요 (RotatingBeltArt.spawnPositions).
+	local spawnPositions = Art.spawnPositions()
+	for i, pos in spawnPositions do
+		makePart({
+			Name = string.format("Spawn%02d", i),
+			Size = Vector3.new(Art.SPAWN_SIZE, 0.2, Art.SPAWN_SIZE),
+			CFrame = toWorld(CFrame.new(pos.x, 0.1, pos.z)),
+			Color = Color3.fromRGB(246, 196, 70),
+			Transparency = 0.4,
+			CanCollide = false,
+			Parent = spawns,
+		})
 	end
-	assert(spawnIndex == MAX_PLAYERS, "spawn count must cover the largest room size")
+	assert(#spawnPositions == MAX_PLAYERS, "spawn count must cover the largest room size")
 
 	-- 벨트 A: 진행 반대 방향으로 미는 첫 구간
 	local beltACenter = nextSegment(DEPTH_BELT_A)

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-03 — 맵 아트 패스: 뜨거운 철판 · 회전 꼬치 쇼다운

@@ -1,6 +1,15 @@
 # m4-14 robux shop — 개발 작업 기록
 
-## 2026-10-08 — 구현 완료, in-qa (최신)
+## 2026-10-08 — QA 후 수정 R2~R5, qa-passed 유지 (최신)
+- **브랜치**: `main` (커밋 d2be142 코드·테스트 + 문서 커밋). push는 메인 세션이 함.
+- **끝난 것**: R2 결제 창이 열린 스킨의 코인 해금 거절(`ShopService.setCoinBlocker` ← `RobuxShopService.prompted`, 취소·Granted·120초에 해제, `ShopLogic` 거절 이유 `PurchasePending`), R3 클라이언트 취소 시 pending 해제, R4 fake + persist 같이 켜면 가짜 결제 끔 + 경고(`ShopLogic.fakeRobuxActive`), R5 Remotes 주석. `Config.Shop.PurchasePromptHold = 120` 추가.
+- **테스트**: `tests/m4-14-qa.spec.luau` 가짜 MarketplaceService에 `PromptProductPurchaseFinished` 신호 추가 + 재현 테스트 4개(R2 거절·취소/타임아웃 해제·RecordOnly 경고 유지, R4, R3·R5 소스). `receipt-logic.spec`의 소스 검사를 새 fakeMode 형태로.
+- **검증**: rojo build OK, stylua OK, selene 0/0/0, lune 1016 passed / 0 failed, luau-lsp 에러 0.
+- **남은 것**: 사용자 C3·Studio 확인(QA 리포트 체크리스트). R1(USER-TODO 개인정보 삭제)은 메인 세션.
+- **다음에 할 첫 단계**: docs-writer가 M4 완료 문서 반영. Studio에서 일반 스킨 "R$ 49로 사기" → 창 취소 → 코인 해금이 바로 되는지, 창이 떠 있는 동안 해금이 거절 문구인지.
+- **막힌 점**: 없음. 클라이언트 쪽 PromptProductPurchaseFinished가 실제로 취소 때 오는지는 Studio에서 확인 필요.
+
+## 2026-10-08 — 구현 완료, in-qa
 - **브랜치**: `main` (커밋 4a03333 순수 로직·공용, e5db97f 서버, 7943c94 클라이언트 + 문서 커밋). push는 메인 세션이 함.
 - **끝난 것**: 스펙 범위 1~6, AC1~AC5. m4-13 QA N1(탈락 연출 중 스킨 버튼 숨김)·N3(결제는 grantSkin 결과가 아니라 canPersist + saveNow), m4-12 QA N3(logArenaStats Studio 가드).
   - 순수: `ReceiptLogic` (decide·process·canRequest·message·receipts 목록), `ShopLogic` 로벅스 카드 상태, 프로필 `receipts` 칸.

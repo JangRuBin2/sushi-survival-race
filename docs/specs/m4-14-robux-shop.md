@@ -66,6 +66,7 @@ status: qa-passed
 - 2026-10-08 · `AlreadyRecorded`·`RecordOnly`도 프로필 저장이 성공해야 Granted · 앞선 시도에서 저장이 실패해 메모리에만 스킨이 들어가 있을 수 있음 (그 상태로 Granted면 서버가 꺼질 때 스킨이 사라짐) · developer
 - 2026-10-08 · 일반 스킨은 코인 해금 버튼 아래 "R$ 49로 사기" 버튼이 하나 더 · 결정 기록 2번째 줄 · developer
 - 2026-10-08 · 결제로 받은 스킨이 라운드·연출 잠금 중이면 보유만 하고 장착은 안 함 (`grantSkin` 규칙 그대로) · developer
+- 2026-10-08 · **QA 후 수정** (R2~R5, 커밋 d2be142) · R2: 서버가 플레이어별로 결제 창을 띄운 스킨을 기억(`RobuxShopService.prompted`)하고 그동안 같은 스킨 코인 해금을 "로벅스 결제가 끝날 때까지 기다려 주세요"로 거절 (`ShopService.setCoinBlocker`). 서버 `PromptProductPurchaseFinished` 취소·영수증 Granted·`Config.Shop.PurchasePromptHold`(120초)로 풀림. 그래도 RecordOnly가 되는 경로(다른 서버 등)는 경고 로그 유지. R4: `fakeRobuxInStudio`와 `persistDataInStudio`를 같이 켜면 가짜 결제는 꺼지고 시작 때 경고 (`ShopLogic.fakeRobuxActive`, 서버·클라이언트 공통) → 운영 저장소에 가짜 기록·무료 스킨 없음. R3: 클라이언트가 결제 창 취소 때 `pending`을 지움. R5: Remotes 주석. 재현 테스트는 `tests/m4-14-qa.spec.luau` 끝 4개 · developer
 
 ## 개발 메모
 ### 바뀐 파일

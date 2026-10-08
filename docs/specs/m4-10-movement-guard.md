@@ -1,4 +1,4 @@
-status: in-qa
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-10 — 서버 이동 감시 (순간이동·속도 조작 막기)
@@ -70,3 +70,4 @@ status: in-qa
   - AC8: `game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 120` 후 달리기 → 계속 뒤로 당겨지고 서버 Output에 `[MovementGuard] userId … strikes 3 in this round` 한 줄. 킥 없음.
   - AC9: Test → Clients and Servers 2명 이상, 잡기·넉백으로 부딪히기 → 경고 없음.
 - **남은 이슈**: 캐릭터끼리 물리 충돌로 튕겨 날아가는(fling) 경우는 표시가 없어 위반될 수 있음(되돌리기만, AC9에서 확인). 서 있다가 순간이동하면 86 studs까지는 못 잡음(복제 멈춤 오탐 방지와 맞바꿈).
+- 2026-10-08 · qa · **반려 (in-dev)** — `docs/qa/m4-10-movement-guard.md`. P1 B1: 면제(MoveExemptUntil) 중에는 거리 무관 "exempt"라 벨트·급류 위(계속 면제)·와사비·젓가락·넉백 직후 결승선 순간이동이 통과됨. P1 B2: 소개 중·출발 0.2초 안 순간이동은 Track이 없거나 기준점이 순간이동한 자리라 통과됨. P2 B3: StallGrace로 86 studs 순간이동 허용(짧은 코스). 정상 플레이 오탐 시뮬레이션은 전부 기준 안(리포트 표). QA 테스트 `tests/m4-10-qa.spec.luau` 15개.

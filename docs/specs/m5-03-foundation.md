@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-03 — M5 두 번째 묶음 기반: 공용 파일·프로필 v2·카탈로그·껍데기
@@ -182,6 +182,40 @@ M5 두 번째 묶음(새 맵 3개, 시즌 이벤트, 상품, 연출 팩, 코드,
 - 2026-10-08 · 시즌 무료 스킨 등급·가격 · Rare 색, 이벤트 재화 80개(약 25~30판). 근거: 레어 코인 해금 900코인 ≈ 30판(GDD 9.4)과 비슷한 노력, MM2·Adopt Me의 이벤트 재화 교환 구조 — REFERENCE 8.2·8.6. **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · VIP 상태 저장 · 저장하지 않음(게임 패스는 Roblox가 소유를 기억). 화면 표시용으로 ProfileView에만 넣고 `DataService.setViewExtra`로 m5-08이 채움 · planner
 - 2026-10-08 · 기간 판매 확인 위치 · 결제 창을 **열 때만**(`canRequest`), 영수증 처리 때는 안 봄 — 기간 끝 직전 결제가 늦게 와도 돈만 빠지고 스킨이 안 들어오는 일이 없게(GDD 13 "결제했는데 스킨이 안 들어옴") · planner
+- 2026-10-08 · 코드 목록 위치 (공개 저장소라서) · GitHub 저장소가 공개라서 실제 코드 목록은 **커밋하지 않음**. 서버 전용 로더 `src/server/CodeConfig.luau`(커밋)가 같은 폴더의 로컬 파일 `src/server/CodeList.luau`(`.gitignore`)를 읽고, 없으면 빈 목록 + 경고. 커밋되는 건 빈 예시 `src/server/CodeList.example.luau`뿐. 테스트는 가짜 목록. 키·토큰 같은 비밀 값도 저장소에 넣지 않음(UserId·상품 id·가격은 공개 가능) · developer (메인 세션 지시)
+- 2026-10-08 · 실서버 관리자 테스트 명령 · **사용자 결정: 실서버에는 경제·판정 명령이 없음(설정으로도 못 켬)**. `LiveTestCommands` 같은 설정을 만들지 않음. `AdminLogic.commandTier`·`canRun(tier, isStudio, persistInStudio)`(실서버 = Info만)과 AdminService `AdminCommand` 핸들러 틀(관리자 → 간격 → 등급 → Studio 확인 뒤에만 `runCommand`)을 이 스펙이 만들어 둠 — m5-11은 `runCommand`만 채움 · 사용자 (메인 세션 전달)
+- 2026-10-08 · 할로윈 기간 · 사용자 확정: 10/16 시작 그대로 · 사용자
+- 2026-10-08 · 서버 "지금 시각" · `Seasons.now(isStudio, Config.DEBUG.eventNow, os.time())` 순수 함수로 한 곳에 둠 (RobuxShopService가 쓰고, m5-07·m5-10도 같은 함수를 쓰면 됨) · developer
+- 2026-10-08 · 탈의실의 재화·VIP 스킨 카드 · `ShopLogic.cardState`에 `kind = "Soon"`(비활성 "곧 열려요") 추가 — 로벅스 가격이 없는 미보유 스킨. 진짜 카드는 m5-07·m5-08 · developer
+- 2026-10-08 · 새 테스트 위치 · 스펙이 적은 기존 테스트 파일(profile-logic·maps 등) 대신 새 `tests/m5-03-foundation.spec.luau`에 모음 (단계 1 worktree와 겹치지 않게). `seasons.spec`·`fx-catalog.spec`은 스펙대로 새 파일 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 2026-10-08 — 구현 완료 (main, 커밋 6c7db78 · 222e99e · f53c7c1)
+**검증 5단계 통과**: rojo build OK, stylua --check OK, selene 0 errors / 0 warnings, lune 1133 passed / 0 failed (기존 1090 + 새 43), luau-lsp 타입 검사 오류 0.
+
+**바뀐 파일**
+- 공용: `shared/Config.luau`(Events, Codes, DEBUG.eventNow·fakeVipInStudio), `shared/Remotes.luau`(RemoteFunction 5개 + 머리 주석), `shared/Types.luau`(ProfileView 새 칸, RewardReason Code·MatchPlayed, RewardGrant tokens·tokenTotal·eventId), `shared/Attributes.luau`(Vip, EliminationFx, VictoryFx), `shared/maps/MapTypes.luau`(inPool), `shared/maps/init.luau`(껍데기 3개, infos 필터, allInfos), `server/init.server.luau`, `client/init.client.luau`
+- 서버: `MatchService`(강제 플랜 = allInfos 한 줄), `DataService`(setViewExtra), `RobuxShopService`(canRequest에 now), `AdminService`(AdminCommand 틀 — 사용자 결정, 아래)
+- 공유: `ProfileSchema`(VERSION 2, MAX_REDEEMED_CODES, ViewExtra, toView extra), `ProfileLogic`(v2 정리), `Skins`(season·tokens·vipOnly, 새 5종, 규칙), `SushiBody`(자리 표시 5개), `ShopLogic`(카드 "Soon"), `ReceiptLogic`(OffSale·NotRobux, opts.now), `RewardLogic`(문구), `SfxCues`·`SfxLibrary`(cue 8개, 무음), `AdminLogic`(commandTier·canRun)
+- 새 파일: `shared/Seasons.luau`(+ `Seasons.now`), `shared/FxCatalog.luau`, `client/PriceCache.luau`, `shared/maps/IkuraBombs.luau`·`TempuraPot.luau`·`DessertFridge.luau`, `server/OfferService.luau`·`CodeService.luau`·`CodeConfig.luau`·`CodeList.example.luau`, `client/ui/OfferController.luau`·`CodeController.luau`·`ChatTagController.luau`, `client/input/IceController.luau`
+- 테스트: 새 `tests/m5-03-foundation.spec.luau`·`seasons.spec.luau`·`fx-catalog.spec.luau`, 기대값 갱신 `skins`·`shop-logic`·`m4-foundation`(리모트 26개, VERSION 2)·`m4-14-qa`(Seasons 의존)·`m4-07-data-qa`(미래 버전 표본 2.5)·`camera-priority`(속성 16·cue 41)·`m4-12-hardening`(PriceCache 표는 카탈로그 크기)
+- `.gitignore`: `src/server/CodeList.luau`
+
+**단계 1 스펙이 쓸 인터페이스**
+- 맵: 각 맵 모듈의 `inPool = false` 줄만 지우면 랜덤 풀에. 강제 플랜은 `Maps.allInfos()`.
+- 프로필 v2 칸: `redeemedCodes`, `eventTokens`, `ownedFx`, `equippedFx`, `boughtOffers` (`ProfileSchema.Profile`). 화면용 VIP는 `DataService.setViewExtra(player, { vip = bool })`.
+- `Seasons.get/current/isActive/skinOnSale/daysLeft/now/validate`, `FxCatalog.get/bySlot/isSlot/SLOTS/validate`, `PriceCache.product/pass/changed:Connect`.
+- 리모트 핸들러: `RequestOfferPurchase`·`EquipFx`(OfferService 껍데기, "준비 중이에요"), `RedeemCode`(CodeService 껍데기), `AdminCommand`(AdminService `runCommand`만 채우면 됨), `BuyWithTokens`는 **아직 핸들러 없음**(m5-07 ShopService가 붙임 — 그 전까지 클라이언트가 부르지 않음).
+- 코드 목록: `CodeConfig.load()` → `{ CodeConfig.CodeEntry }` (CodeService.init에서 이미 읽음). 검증은 m5-10 `CodeLogic.validateConfig`.
+
+**Studio 확인 방법**
+- AC11: Play Solo → 로비가 전과 같고 새 버튼 없음. 탈의실에 새 스킨 5개(호박·유령·산타 새우·트리 마키·금박 계란)가 계란초밥 모양 + 토핑 색만 다르게 보임. 유령·트리·금박은 "곧 열려요"(비활성), 호박·산타 새우는 "R$ 99 — 곧 열려요". Output 에러 없음 (`[CodeConfig] no src/server/CodeList.luau ...` 경고 한 줄은 정상 — 목록 파일을 만들면 사라짐).
+- AC12: `Config.DEBUG.forceMapPlan = { "dessert-fridge", "tempura-pot", "ikura-bombs" }` → 혼자 Play: 회색 판 Race(결승선 통과) → Survival(60초 버팀) → Final(90초에 연장전, 20초 뒤 판이 사라져 떨어지고 우승). 확인 뒤 nil.
+- AC13 (선택, 저장 켠 Studio): M4 때 프로필이 코인·스킨 그대로 v2로 저장.
+- 덤: `Config.DEBUG.eventNow = 1792108800` + `fakeRobuxInStudio = true`면 호박 초밥 결제 흐름이 열리고, `eventNow = 1792108799`면 서버가 "판매 기간이 아니에요"(m5-07 전에는 탈의실 버튼이 꺼져 있어 명령줄로만 확인 가능). 확인 뒤 되돌리기.
+
+**남은 이슈**
+- `BuyWithTokens` 핸들러 없음(m5-07). 클라이언트가 지금 부르는 곳 없음.
+- 껍데기 Final의 연장전은 `collapseDuration` 끝에 판을 한 번에 없앰(스펙대로). m5-04가 고리 단위 붕괴로 바꿈.

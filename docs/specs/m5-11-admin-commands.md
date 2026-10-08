@@ -82,6 +82,7 @@ status: ready
 - 2026-10-08 · D2 다른 사람 대상 명령 없음 · 실수·악용 범위를 줄이고, 혼자·친구 테스트에는 필요 없음(친구에게 코인을 주면 공정성 문제). 그룹 랭크 권한은 게임을 그룹으로 옮길 때 · **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · D3 다음 판 맵 고르기 범위 · 한 플레이스 모드(Studio·PlaceId 없음)만. 플레이스 분리 때 매치 서버로 넘기려면 매니페스트(m4-11)에 칸을 더해야 해서 공용 범위가 커짐 → 후속 · planner
 - 2026-10-08 · D4 연출 미리보기를 Info 등급으로 · 스킨 미리보기(m5-02, 실서버에서도 켬)와 같은 성격(겉모습만, 저장 안 함). m5-09 확인에도 필요 · planner
+- 2026-10-08 · **사용자 결정: 실서버 테스트 명령 없음(설정으로도 못 켬)** — D1의 `LiveTestCommands`는 만들지 않음. Test·StudioOnly는 `RunService:IsStudio()`일 때만 처리, 실서버 핸들러는 무조건 거절. 틀(`AdminLogic.commandTier`·`canRun(tier, isStudio, persistInStudio)`, AdminService `onCommand` → `runCommand`)은 m5-03이 만들어 둠 · 사용자
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

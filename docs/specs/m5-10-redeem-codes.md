@@ -87,6 +87,7 @@ return {
 - 2026-10-08 · D2 남용 방지 · 계정당 1번(프로필에 기록, 저장 안 되는 프로필이면 거절 — 다시 받는 것 방지), 2초 간격, 10분에 틀린 코드 8번이면 잠시 막기(무차별 대입 방지), 코드 목록은 서버 전용 모듈(클라이언트가 못 읽음 — m5-02 AdminConfig와 같은 이유). 진짜 코드의 만료·시작 전·이미 받음은 실패로 안 셈(아이가 억울하지 않게) · **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · D3 대소문자 · 무시(어린 이용층 — Arsenal·Tower of Hell은 구분해서 자주 헷갈림). 공백은 앞뒤만 지우고 가운데 공백은 오류 · planner
 - 2026-10-08 · D4 코드를 저장소에 · 지금은 `CodeConfig.luau`에 커밋(간단). 저장소가 공개면 코드가 미리 새므로 사용자에게 확인. 운영 중 퍼블리시 없이 코드를 바꾸는 방식(DataStore)은 후속 · **사용자 확인 필요(기본값으로 진행)** · planner
+- 2026-10-08 · D4 결정 (공개 저장소라서) · 저장소가 GitHub 공개라서 `CodeConfig.luau`에 코드를 넣지 않음. m5-03이 만든 로더 `src/server/CodeConfig.luau`(커밋, `CodeConfig.load()` → `{ CodeEntry }`, 형식 타입 `CodeConfig.CodeEntry`)가 로컬 파일 `src/server/CodeList.luau`(`.gitignore`, 형식은 `CodeList.example.luau`)를 읽음 — 없으면 빈 목록 + 경고. m5-10은 목록을 이 로더로만 받고, 테스트(AC5 "기본 CodeConfig의 두 코드")는 가짜 목록으로 · developer (m5-03)
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m3-01 — M3 기반 작업 (공용 파일 · 카메라 중재 · 연출/입력 껍데기)

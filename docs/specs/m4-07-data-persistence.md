@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-07 — 플레이어 데이터 저장 (DataStore) · 음소거 설정 저장
@@ -61,5 +61,20 @@ status: ready
 - 2026-10-08 · 로드 실패 시 임시 프로필(저장 안 함) · 진짜 데이터를 빈 값으로 덮어쓰지 않는 것이 우선. 임시 프로필에서는 결제를 받지 않음(m4-14) · planner
 - 2026-10-08 · Studio 기본은 메모리 저장(`persistDataInStudio = false`) · 테스트가 실제 데이터를 더럽히지 않게 · planner
 
+- 2026-10-08 · (developer) `ProfileLogic`에 스펙 7번 함수 외에 `readLock`·`claim`·`commit`·`release`·`deepCopy`를 더함 · UpdateAsync 변환 함수 내용을 순수 로직으로 빼서 가짜 저장소로 두 서버 흐름(대기→해제 후 읽기, 잠금 뺏긴 서버는 못 씀)을 lune에서 확인하려고 · developer
+- 2026-10-08 · (developer) `tests/lib/FakeSfxEnv.luau`(QA 테스트 도우미)를 고침 — 스펙 파일 목록 밖 · Sfx가 `script.Parent.ProfileStore`를 require하고 `FireServer`를 부르게 되어 기존 m3-01/m3-08 QA 테스트가 가짜 환경에서 깨짐. 가짜 ProfileStore(`env.pushProfile`)·`env.sent`만 더하고 기존 동작은 그대로 · developer
+- 2026-10-08 · (developer) 음소거 저장은 보내는 간격을 최소 1초로 둠(마지막 누름 0.5초 뒤 + 직전 전송에서 1초) · 서버 `SettingsMinInterval` 0.5초에 네트워크 지연이 겹치면 마지막 값이 조용히 버려질 수 있어서 · developer
+- 2026-10-08 · (developer) Studio에서 `persistDataInStudio = true`인데 DataStore 요청이 에러면 재시도 없이 바로 그 서버 전체를 메모리 모드로 바꿈(경고 한 줄) · AC8 "경고 한 줄만". 라이브 서버는 스펙대로 3번 재시도 후 임시 프로필 · developer
+- 2026-10-08 · (developer) 30분 넘게 바뀐 게 없어도 잠금이 만료되지 않게 자동 저장 때 `SessionLockExpiry / 3`(10분)마다 잠금 시간을 갱신 · 스펙에 없던 빈틈 · developer
+
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 바뀐 파일: `src/server/DataService.luau`(DataStore·세션 잠금·자동 저장·BindToClose·`saveNow`), `src/shared/ProfileLogic.luau`(새), `src/client/Sfx.luau`(음소거 저장·복원), `tests/profile-logic.spec.luau`(새, 28개), `tests/lib/FakeSfxEnv.luau`(가짜 ProfileStore·FireServer).
+- 동작 요약: 로드는 비동기(`PlayerAdded` → UpdateAsync). 다른 서버 잠금이면 2초 간격 5번 기다린 뒤 가져옴. 미래 버전 데이터는 임시 프로필 + 잠금 즉시 해제. 저장은 사람마다 한 번에 하나(세대 번호), 나갈 때·BindToClose는 잠금 해제. 잠금을 뺏기면 쓰지 않고 그 사람은 `persistent = false`로 바뀌어 ProfileUpdated가 다시 감.
+- Studio 확인:
+  - AC8(기본): Play → Output에 DataService 경고/에러 없음. 커맨드 바(클라이언트)에서 `require(game.Players.LocalPlayer.PlayerScripts.Client.ProfileStore).get().persistent` → `false`.
+  - AC6·AC9: 퍼블리시 + Game Settings → Security → Enable Studio Access to API Services, `Config.DEBUG.persistDataInStudio = true`. Play → 서버 커맨드 바에서 `require(game.ServerScriptService.Server.DataService).update(game.Players:GetPlayers()[1], function(p) p.coins = 123 end)` → Stop → 다시 Play → 클라이언트 `ProfileStore.get().coins == 123`, `persistent == true`.
+  - AC7: 음소거 버튼을 🔇까지 누르고 1초 기다린 뒤 Stop → 다시 Play → 버튼이 🔇로 시작.
+  - AC8 두 번째: API 접근을 끈 채 `persistDataInStudio = true` → 경고 한 줄(`DataStore unavailable in Studio, using memory only`)만, 게임은 됨.
+  - AC10: Team Test/실서버 2개(사용자).
+  - 확인 뒤 `persistDataInStudio = false`로 되돌림.
+- 남은 이슈: 로드 중에 BindToClose가 오면 그 사람의 잠금은 해제를 기다리지 않음(다음 서버가 10초 기다린 뒤 가져감). 로드가 이제 비동기라 `DataService.get`이 접속 직후 잠깐 nil일 수 있음 — 다른 스펙은 `waitForProfile`/`onLoaded`를 써야 함(m4-01 API 설명 그대로).

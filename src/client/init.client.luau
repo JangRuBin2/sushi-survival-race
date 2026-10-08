@@ -23,6 +23,7 @@ local CONTROLLERS = {
 	require(script.ui.UiScaleController), -- m4-09
 	require(script.ui.CoinController), -- m4-08
 	require(script.fx.LobbyFxController), -- m4-06
+	require(script.ui.ShopController), -- m4-13
 }
 
 for _, controller in CONTROLLERS do

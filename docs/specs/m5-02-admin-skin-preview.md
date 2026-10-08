@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-02 — 테스트용 관리자 기능: 스킨 무료 착용(미리보기)

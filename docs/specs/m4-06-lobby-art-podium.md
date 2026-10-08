@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-06 — 로비 아트 · 조명 · 우승자 단상
@@ -60,6 +60,24 @@ status: ready
 - 2026-10-08 · 단상 = 이 서버의 가장 최근 우승자 1명 · GDD 8 "방 안 단상"은 방이 3D 공간이 아니라서 로비 중앙 단상으로 대신. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · 레일 접시는 클라이언트 로컬 회전 · 서버 부하·복제 없음 · planner
 - 2026-10-08 · 방 목록 3D 접시 UI는 M5 이후 · 화면 UI가 모바일에서 더 쓰기 쉬움 · **기본값으로 진행, 사용자 수정 가능** · planner
+- 2026-10-08 · 단상 초밥 인형은 **클라이언트(`LobbyFxController`)가 `SushiBody.build`로** 세움. 서버 `LobbyService`는 이름표(BillboardGui)와 `Lobby.Podium` 폴더 속성(`WinnerUserId`·`WinnerAppearanceId`·`WinnerSerial`, 이름은 `LobbyLayout.WINNER_ATTRS`)만 둔다 · m3-02 QA 불변식 "서버에서 SushiBody를 쓰는 곳은 AppearanceService뿐"(`tests/m3-02-qa.spec.luau`)을 지키고, 이 스펙이 고칠 수 있는 파일 안에서 해결. 인형은 서버 Explorer에는 없고 클라이언트에만 보임 · developer
+- 2026-10-08 · "원점 반지름 128"은 수평 유클리드 거리로 해석 → 방 안쪽 벽면을 ±88(벽 바깥 ±90, 모서리 거리 127.3)에 둠. Baseplate(256×256)의 바깥 둘레(벽 밖 38 studs 띠)는 그대로 보임 · **기본값으로 진행, 사용자 수정 가능** · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 브랜치 `m4-06-lobby`. 공용 파일 수정 없음.
+- 바뀐 파일
+  - 새 `src/shared/LobbyLayout.luau`: 건물(`STRUCTURE`, 충돌 있음)·장식(`DECOR`) DecorSpec, 빛 8개(`LIGHTS`), 타원 레일(a 28·b 10, 가운데 (0, ·, -40), 3 studs/초, 접시 16)과 `railLength/period/pointAtArc/plateArc/plateAt/plateParts/platePartsAt`, `allSpecs(t)`, `PODIUM`(가운데 (30,0,0), 윗면 5, 1.5배, 스폰 쪽을 봄), `WINNER_ATTRS`, `CLEAR_ZONES`(스폰 ±10, 통로 x ±5·z -27.5~-10), `LIMITS`, `FLOOR`, `LIGHTING`(Density 0.22).
+  - `src/server/LobbyService.luau`: `init`에서 조명 프리셋(Atmosphere·ColorCorrection·Bloom은 Lighting에 이미 있으면 그걸 고침, Technology 안 건드림). `start`에서 `PlaceService.role() == "Match"`가 아니면 `Workspace.Lobby`(Structure / Decor / Plates / Podium) 생성, Baseplate 색만 바꿈, `MapKit.attachStudioArt(lobby, "lobby", CFrame.identity)`, `MatchEvents.onWinnerShowcase` → 이름표 "🏆 이름" + 칭호 + "N승"(프로필이 있고 1승 이상일 때) + 폴더 속성.
+  - `src/client/fx/LobbyFxController.luau`: 접시 16개를 `GetServerTimeNow()` 기준으로 매 프레임 `BulkMoveTo`(카메라가 레일에서 400 studs 넘게 멀면 쉼), 단상 속성이 바뀌면 인형을 다시 세움.
+  - 새 `tests/lobby-layout.spec.luau` 11개 (AC1~AC4 + 단상).
+- 파츠 수: 건물 81 + 장식 132 + 접시 52 = 265 (예산 800). 빛 8.
+- Studio 확인 (F5, `forceMapPlan`은 nil로 커밋됨)
+  1. AC6·AC7: 스폰 앞 -Z 40에 카운터와 도는 접시, 안쪽 셰프·도마, 뒤 벽 메뉴판 4장과 남색 노렌(주방), 뒤쪽(+Z) 벽 빨간 노렌 입구와 왼쪽 수조, 오른쪽(+X 30) 빨간 3단 단상(금색 테두리) 위 "다음 우승자는 누구?". 스폰에서 바로 앞 카운터까지 걸어갈 수 있는지, 로비 화면 UI가 그대로 보이는지.
+  2. AC8: `Config.DEBUG.forceMapPlan`에 맵 3개를 넣고 혼자 한 판 이긴 뒤, 로비로 오면 단상 가운데 1.5배 계란초밥 인형(스폰 쪽을 봄)과 "🏆 내 이름 / 탈출 초밥 / 1승". 다시 이기면 "2승"으로 바뀌고 인형도 다시 세워짐.
+  3. AC9: Test → Clients and Servers 2명, 두 창에서 같은 접시(예: 금색 첫 접시)의 자리가 거의 같은지. 서버 뷰 Explorer의 `Workspace.Lobby.Plates.Plate01` Position이 바뀌지 않는지.
+  4. AC10·AC11: 아레나에서도 따뜻한 조명, 관전 시 안개로 뿌옇지 않은지, 휴대폰 에뮬레이터 프레임.
+- 남은 이슈 / 확인 필요
+  - 단상 인형은 클라이언트에만 있어서 서버 Explorer에는 안 보임 (결정 기록).
+  - 우승자가 쇼케이스 전에 나가면 칭호·승수 없이 이름만 표시 (프로필이 이미 내려감).
+  - 이름표는 BillboardGui(월드 크기 14×4.5 studs, MaxDistance 160) — 글씨 크기는 Studio에서 확인 필요.

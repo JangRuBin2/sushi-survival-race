@@ -10,6 +10,8 @@
 --   QuickJoin()
 --   LeaveRoom()            방 대기실에서 나가기, 탈락 후 "로비로"
 --   StartRoom()            방장만
+--   EquipSkin(skinId: string)     보유한 스킨 입기 (m4-13, ShopService: 라운드·연출 중 거절, Config.Shop.RequestCooldown)
+--   BuyWithCoins(skinId: string)  일반 스킨 코인 해금 + 자동 장착 (m4-13, ShopService)
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
@@ -29,7 +31,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local FUNCTIONS = { "CreateRoom", "JoinRoom", "JoinByCode", "QuickJoin", "LeaveRoom", "StartRoom" }
+local FUNCTIONS = {
+	"CreateRoom",
+	"JoinRoom",
+	"JoinByCode",
+	"QuickJoin",
+	"LeaveRoom",
+	"StartRoom",
+	"EquipSkin",
+	"BuyWithCoins",
+}
 local EVENTS = {
 	"RoomList",
 	"RoomUpdated",

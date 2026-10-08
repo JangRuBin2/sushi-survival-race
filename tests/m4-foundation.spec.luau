@@ -399,7 +399,7 @@ return function(t: Test.Test)
 	end)
 
 	-- 공용 파일·훅 계약 (다른 m4 스펙이 기대하는 것) -------------------------------------------
-	t.test("Remotes: ProfileUpdated·RewardGranted·SaveSettings가 RemoteEvent, 리모트 17개", function()
+	t.test("Remotes: ProfileUpdated·RewardGranted·SaveSettings가 RemoteEvent, 리모트 19개", function()
 		local src = source("src/shared/Remotes.luau")
 		local events = string.match(src, "local EVENTS = (%b{})") :: string
 		local functions = string.match(src, "local FUNCTIONS = (%b{})") :: string
@@ -409,7 +409,8 @@ return function(t: Test.Test)
 		local _, eventCount = string.gsub(events, '"%w+"', "")
 		local _, functionCount = string.gsub(functions, '"%w+"', "")
 		-- m4-11이 Notice(텔레포트 실패·서버 이동 안내)를 더해 17개
-		t.eq(eventCount + functionCount, 17)
+		-- m4-13이 EquipSkin·BuyWithCoins를 더해 19개
+		t.eq(eventCount + functionCount, 19)
 	end)
 
 	t.test("Types: Settings·ProfileView·RewardReason·RewardGrant", function()

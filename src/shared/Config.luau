@@ -153,6 +153,11 @@ Config.Ui = {
 	MinTouchSize = 44, -- 터치 버튼 최소 크기(px, 스케일 적용 뒤)
 }
 
+-- 스킨 탈의실 (m4-13). 가격·목록은 Shared.Skins
+Config.Shop = {
+	RequestCooldown = 0.3, -- EquipSkin·BuyWithCoins 요청 간격 제한(초, 두 요청이 같이 써요)
+}
+
 -- 서버 이동 감시 (m4-10)
 Config.MovementGuard = {
 	SampleInterval = 0.2,

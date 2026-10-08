@@ -240,6 +240,8 @@ local function characterHider(character: Model?, position: Vector3?): { apply: (
 				(item :: any).LocalTransparencyModifier = value
 			end
 		end
+		-- 스킨 효과(불꽃·반짝이, m4-13)는 투명도로 숨겨지지 않아서 끄고 켜요
+		SushiBody.setEffectsEnabled(target, value < 1)
 	end
 
 	return {

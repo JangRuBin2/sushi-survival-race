@@ -1,8 +1,11 @@
 --!strict
 -- 캐릭터 외형을 입히는 유일한 곳 (CLAUDE.md "applyAppearance").
 --   applyAppearance(character, appearanceId?)  원래 몸·얼굴·액세서리를 숨기고 SushiBody를 HumanoidRootPart에 붙여요.
+--   refresh(player)                            지금 캐릭터에 장착 스킨을 다시 입혀요 (탈의실에서 바꿨을 때·프로필이 늦게 로드됐을 때).
+--   setResolver(fn(player) -> string?)          appearanceId가 nil일 때 플레이어의 장착 스킨을 고르는 함수 (m4-13: ShopService가
+--                                              프로필 equippedSkin을 카탈로그로 검사해서 돌려줘요). 없거나 nil이면 Config.Appearance.Default.
 -- 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음) — 히트박스·물리·맵 판정은 휴머노이드 그대로.
--- 스킨·상점이 붙으면 여기서 플레이어의 스킨 id를 골라요 (지금은 모두 Config.Appearance.Default).
+-- 스킨마다 토핑만 다르고 Body(밥 몸통) 크기·위치는 같아서 이름표·연출 높이도 같아요 (m4-13).
 -- 클라이언트 연출(CharacterFxController)은 Body의 `SushiJoint`(Motor6D).Transform을 로컬로 흔들어요.
 
 local Players = game:GetService("Players")
@@ -81,8 +84,31 @@ local function groundBelowRoot(character: Model, root: BasePart): number
 	return root.Size.Y / 2 + 2 -- R6: 다리 2 studs
 end
 
+local resolver: ((player: Player) -> string?)? = nil
+
+function AppearanceService.setResolver(fn: (player: Player) -> string?)
+	resolver = fn
+end
+
+local function resolve(character: Model): string?
+	local fn = resolver
+	if fn == nil then
+		return nil
+	end
+	local player = Players:GetPlayerFromCharacter(character)
+	if player == nil then
+		return nil
+	end
+	local ok, result = pcall(fn, player)
+	if not ok then
+		warn(`[AppearanceService] resolver failed for {player.Name}: {result}`)
+		return nil
+	end
+	return if type(result) == "string" and result ~= "" then result else nil
+end
+
 function AppearanceService.applyAppearance(character: Model, appearanceId: string?)
-	local id = appearanceId or Config.Appearance.Default
+	local id = appearanceId or resolve(character) or Config.Appearance.Default
 	character:SetAttribute(Attributes.AppearanceId, id)
 
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -112,6 +138,24 @@ function AppearanceService.applyAppearance(character: Model, appearanceId: strin
 	joint.Parent = body
 
 	sushi.Parent = character
+end
+
+-- 지금 캐릭터에 장착 스킨을 다시 입혀요. 이미 같은 스킨이면 그대로 둬요 (force면 항상 다시).
+function AppearanceService.refresh(player: Player, force: boolean?)
+	local character = player.Character
+	if character == nil or character.Parent == nil then
+		return
+	end
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if root == nil then
+		return -- 아직 붙는 중: onCharacterAdded가 입혀요
+	end
+	local id = resolve(character) or Config.Appearance.Default
+	local worn = character:GetAttribute(Attributes.AppearanceId)
+	if not force and worn == id and character:FindFirstChild(AppearanceService.MODEL_NAME) then
+		return
+	end
+	AppearanceService.applyAppearance(character, id)
 end
 
 local function onCharacterAdded(character: Model)

@@ -17,6 +17,7 @@ local SERVICES = {
 	require(script.LobbyService), -- m4-06
 	require(script.RewardService), -- m4-08
 	require(script.MovementGuardService), -- m4-10
+	require(script.ShopService), -- m4-13
 }
 
 for _, service in SERVICES do

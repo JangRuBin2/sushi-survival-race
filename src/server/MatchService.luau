@@ -37,6 +37,9 @@ type MatchContext = {
 	round: RoundService.PreparedRound?, -- 지금 소개/진행 중인 라운드
 	participants: { number }, -- 매치를 시작한 전원 (MatchEvents)
 	endFired: boolean, -- MatchEvents.fireMatchEnd를 이미 보냈는지 (매치당 한 번)
+	-- userId → 마지막으로 본 스킨 id (매치 시작·라운드마다 갱신). 우승자가 단상 쇼케이스 전에 나가도
+	-- 입던 스킨으로 세워요 (m4-06 QA L2, m4-13)
+	appearances: { [number]: string },
 }
 
 -- 방 id → 지금 진행 중인 매치. RoomService.onMemberLeft가 여기서 생존자 집계를 지워요.
@@ -98,6 +101,17 @@ local function fireMatchEnd(ctx: MatchContext, winnerUserId: number?, standings:
 	})
 end
 
+-- 살아 있는 사람이 지금 입은 스킨을 기억해요 (우승자가 쇼케이스 전에 나가도 그 스킨으로, m4-06 QA L2)
+local function rememberAppearances(ctx: MatchContext)
+	for _, player in alivePlayers(ctx) do
+		local character = player.Character
+		local worn = character and character:GetAttribute(Attributes.AppearanceId)
+		if type(worn) == "string" and worn ~= "" then
+			ctx.appearances[player.UserId] = worn
+		end
+	end
+end
+
 -- 로비 단상에 세울 우승자 (MatchEvents.onWinnerShowcase, m4-06). 한 플레이스 모드에서만 여기서 보내요 —
 -- 플레이스 분리 모드는 매치 서버가 MatchResult에 쓰고 로비 서버가 보내요 (m4-11). 돌려주는 값 = 우승자 정보.
 local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number): MatchEvents.WinnerShowcaseInfo
@@ -113,6 +127,8 @@ local function fireWinnerShowcase(ctx: MatchContext, winnerUserId: number): Matc
 	local worn = character and character:GetAttribute(Attributes.AppearanceId)
 	if type(worn) == "string" and worn ~= "" then
 		appearanceId = worn
+	elseif ctx.appearances[winnerUserId] then
+		appearanceId = ctx.appearances[winnerUserId]
 	end
 	local info = { userId = winnerUserId, name = name, appearanceId = appearanceId }
 	if PlaceService.role() == "Single" then
@@ -199,12 +215,14 @@ local function runMatch(room: RoomService.Room, players: { Player })
 		round = nil,
 		participants = {},
 		endFired = false,
+		appearances = {},
 	}
 	for _, player in players do
 		ctx.aliveUserIds[player.UserId] = true
 		table.insert(ctx.participants, player.UserId)
 	end
 	matches[roomId] = ctx
+	rememberAppearances(ctx)
 
 	local startCount = #players
 	broadcast(ctx, { phase = "Starting", endsAt = workspace:GetServerTimeNow() + Config.Match.StartCountdown })
@@ -251,6 +269,7 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	while plan and roundIndex and aliveCount(ctx) >= minAlive do
 		-- 결과 단계 뒤 nextRound가 정한 번호를, 그 사이 이탈까지 반영해서 한 번 더 맞춰요 (GDD 4.1)
 		roundIndex = roundToPlay(roundIndex)
+		rememberAppearances(ctx)
 		local mapInfo = (plan :: { Rules.MapInfo })[roundIndex]
 		local map = Maps.get(mapInfo.id)
 		local timeLimit = Maps.timeLimit(map)
@@ -327,6 +346,7 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	-- 우승자는 Won을 받은 사람뿐이에요 (m2-05 QA F1). 결승 없이 생존자가 1명이 되면(나머지가 리셋·퇴장,
 	-- 소개 중 이탈, 혼자 시작 등) 그 사람이 부전승 — Won을 보낸 뒤 Victory도 같은 사람으로 보내요.
 	-- 생존자가 0명이면 Victory 없이 끝내요.
+	rememberAppearances(ctx)
 	local winnerUserId, needsWon = RoundLogic.decideWinner(ctx.standings, aliveList(ctx))
 	if winnerUserId and needsWon then
 		EliminationService.won(roomId, winnerUserId)

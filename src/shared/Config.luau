@@ -100,6 +100,65 @@ Config.Fx = {
 	NarrowScreenWidth = 900, -- 화면 폭(px)이 이보다 좁으면 음소거 버튼을 아이콘만으로 줄여요
 }
 
+-- 플레이스 분리 (m4-11). 사용자가 Match 플레이스를 만들고 id를 넣기 전까지 nil → 한 플레이스 모드(지금과 같음)
+Config.Places = {
+	LobbyPlaceId = nil :: number?,
+	MatchPlaceId = nil :: number?,
+}
+
+Config.Teleport = {
+	ArrivalTimeout = 20, -- 매치 서버가 멤버 도착을 기다리는 최대 시간(초)
+	RestoreWindow = 30, -- 로비로 돌아온 멤버가 같은 방으로 다시 묶이는 시간(초)
+	DirectoryRefresh = 5, -- 방 목록을 MemoryStore에 다시 올리는 간격(초)
+	DirectoryTtl = 30, -- MemoryStore 방 항목 만료(초)
+	MaxRetries = 3,
+}
+
+-- 저장 (GDD 9.5, m4-07)
+Config.Data = {
+	StoreName = "PlayerData_v1",
+	AutosaveInterval = 60, -- 바뀐 프로필 자동 저장 간격(초)
+	SessionLockExpiry = 1800, -- 다른 서버의 세션 잠금을 무시해도 되는 시간(초)
+	LoadRetries = 5, -- 잠금이 걸려 있을 때 다시 읽는 횟수 (텔레포트 직후 대비)
+	RetryDelay = 2,
+	SettingsMinInterval = 0.5, -- SaveSettings 요청 간격 제한(초)
+}
+
+-- 밥알 코인 (GDD 9.4, m4-08)
+Config.Rewards = {
+	RoundPass = 10,
+	FinalQualify = 30,
+	Win = 100,
+	DailyFirstMatch = 50,
+}
+
+-- 우승 칭호 (GDD 8). 승수 오름차순
+Config.Titles = {
+	{ wins = 1, name = "탈출 초밥" },
+	{ wins = 10, name = "전설의 참치" },
+	{ wins = 100, name = "바다의 왕" },
+} :: { { wins: number, name: string } }
+
+-- 화면 크기 대응 (m4-09)
+Config.Ui = {
+	BaseShortSide = 720, -- 이 짧은 변(px)에서 UIScale 1
+	MinScale = 0.6,
+	MaxScale = 1.25,
+	CompactShortSide = 500, -- 짧은 변이 이하면 휴대폰 배치
+	MinTouchSize = 44, -- 터치 버튼 최소 크기(px, 스케일 적용 뒤)
+}
+
+-- 서버 이동 감시 (m4-10)
+Config.MovementGuard = {
+	SampleInterval = 0.2,
+	MaxHorizontalSpeed = 80, -- 다이브·와사비·벨트 밀기를 합친 여유 상한 (studs/s)
+	MaxRiseSpeed = 140, -- 와사비 튕김 포함 위로 가는 속도 상한
+	Slack = 6, -- 샘플마다 더 허용하는 거리 (studs)
+	ExemptAfterServerMove = 1.0, -- 서버가 옮긴/튕긴 뒤 검사하지 않는 시간(초)
+	PassBlockAfterViolation = 2, -- 위반 뒤 이 시간 동안 결승선 통과를 받지 않음(초)
+	StrikesToLog = 3,
+}
+
 -- 혼자 테스트용 설정. 서버 코드는 RunService:IsStudio()일 때만 이 값을 적용해요.
 Config.DEBUG = {
 	minPlayersToStart = 1,
@@ -107,6 +166,9 @@ Config.DEBUG = {
 	-- 이때는 2명 이하여도 결승으로 건너뛰지 않고, 혼자여도 모든 라운드를 끝까지 돌아요.
 	-- 예: { "soy-swamp", "hot-plate", "rotating-belt", "skewer-showdown" }. 커밋할 때는 nil로.
 	forceMapPlan = nil :: { string }?,
+	-- true면 Studio에서도 진짜 DataStore에 저장해요 (게임 설정에서 API 접근 허용 필요, m4-07).
+	-- false면 Studio에서는 메모리 프로필만 써요 (나가면 사라짐).
+	persistDataInStudio = false,
 }
 
 return Config

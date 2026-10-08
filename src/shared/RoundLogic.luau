@@ -9,7 +9,8 @@
 --   Survival  중간 생존 라운드. (통과 + 남은 인원)이 목표 이하가 되면 끝나고 남은 사람 전원 통과.
 --             시간 종료면 버틴 사람 전원 통과 (목표보다 많아도 잘라내지 않아요, Q1).
 --   Final     마지막 라운드(생존형 결승). 떨어질 때마다 탈락, 1명이 남는 순간 그 사람 우승.
---             같은 묶음(판정 틱)에 떨어져 0명이 되면 그 묶음에서 점수(높이)가 가장 큰 사람이 우승.
+--             같은 묶음(판정 틱)에 떨어져 0명이 되면 그 묶음의 낙하자 중 점수(높이)가 가장 큰 사람이 우승.
+--             리셋·퇴장은 같은 묶음의 낙하보다 더 나쁜 등수예요. 묶음이 전부 리셋·퇴장이면 우승자 없음 (m4-01).
 --             시간 종료면 점수가 가장 큰 사람이 우승. 맵이 pass를 부르면 첫 통과자가 우승(fallback).
 -- 점수(score)는 클수록 잘한 거예요: Race는 진행도, Survival·Final은 높이(HumanoidRootPart Y).
 --
@@ -261,6 +262,28 @@ function RoundLogic.pass(round: Round, userId: number, scoreOf: (number) -> numb
 	return out
 end
 
+-- 결승의 같은 묶음 탈락 순서 (못한 사람부터). 리셋·퇴장(cause "Reset")은 낙하보다 먼저 탈락한 것으로
+-- 봐서 더 나쁜 등수를 받아요 (m4-01, m2-07 I1). 각 무리 안에서는 점수(높이)가 낮은 사람부터.
+function RoundLogic.finalBatchOrder(falls: { Fall }, rng: Rules.Rng?): { Fall }
+	local resets: { Fall } = {}
+	local drops: { Fall } = {}
+	for _, fall in falls do
+		if (fall.cause or "Fall") == "Fall" then
+			table.insert(drops, fall)
+		else
+			table.insert(resets, fall)
+		end
+	end
+	local function scoreOf(f: Fall): number
+		return f.score
+	end
+	local out = rank(resets, scoreOf, true, rng)
+	for _, fall in rank(drops, scoreOf, true, rng) do
+		table.insert(out, fall)
+	end
+	return out
+end
+
 -- 같은 판정 틱(한 프레임)에 들어온 탈락 묶음. 점수가 낮은 사람부터 탈락 처리해서
 -- 묶음 안에서는 더 잘 버틴 사람이 더 좋은 등수를 받아요.
 function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -> number): { Outcome }
@@ -280,15 +303,16 @@ function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -
 		return out
 	end
 
-	local worstFirst = rank(batch, function(f: Fall)
-		return f.score
-	end, true, round.rng)
-
 	if round.mode == "Final" then
+		local worstFirst = RoundLogic.finalBatchOrder(batch, round.rng)
 		local left = RoundLogic.remainingCount(round) - #worstFirst
 		local winner: number? = nil
 		if left == 0 then
-			winner = (table.remove(worstFirst) :: Fall).userId -- 묶음에서 가장 높이 있던 사람
+			-- 묶음에서 가장 높이 버틴 낙하자. 리셋·퇴장만 남았으면 우승자 없이 끝나요 (m4-01, m2-07 I1).
+			local best = worstFirst[#worstFirst]
+			if (best.cause or "Fall") == "Fall" then
+				winner = (table.remove(worstFirst) :: Fall).userId
+			end
 		end
 		for _, fall in worstFirst do
 			addEliminated(round, out, fall.userId)
@@ -298,11 +322,17 @@ function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -
 		end
 		if winner then
 			addWon(round, out, winner)
+		end
+		if winner or left == 0 then
 			round.ended = true
 			round.active = false
 		end
 		return out
 	end
+
+	local worstFirst = rank(batch, function(f: Fall)
+		return f.score
+	end, true, round.rng)
 
 	-- 결승 진출 2명 보장: 이 묶음을 다 빼면 살아남을 사람이 2명 아래인지 봐요.
 	local survivableAfter = round.passedCount + RoundLogic.remainingCount(round) - #worstFirst

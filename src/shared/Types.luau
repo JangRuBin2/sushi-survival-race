@@ -82,7 +82,34 @@ export type PlayerResult = {
 	place: number, -- 통과 순서 또는 최종 등수
 	-- Eliminated일 때만 (Passed·Won은 nil).
 	cause: EliminationCause?,
-	position: Vector3?, -- Eliminated일 때 탈락 순간 HumanoidRootPart 위치 (없으면 nil)
+	-- Eliminated일 때 탈락 위치 (없으면 nil). Fall은 마지막으로 땅을 밟고 있던 위치(m4-01, m3-03 B2),
+	-- 그 밖은 탈락 순간 HumanoidRootPart 위치.
+	position: Vector3?,
+}
+
+-- 플레이어 설정 (m4-01). muteLevel: 1 소리 켬, 2 음악 끔, 3 모두 끔 (m3-08 음소거 단계와 같음)
+export type Settings = {
+	muteLevel: number,
+}
+
+-- 클라이언트에 보내는 내 프로필 (ProfileUpdated, ProfileSchema.toView)
+export type ProfileView = {
+	coins: number,
+	wins: number,
+	title: string?,
+	equippedSkin: string,
+	ownedSkins: { string }, -- 이름순
+	settings: Settings,
+	persistent: boolean, -- false면 저장되지 않는 프로필 (Studio 메모리 모드·로드 실패)
+}
+
+-- 밥알 코인 지급 이유 (GDD 9.4, m4-08)
+export type RewardReason = "RoundPass" | "FinalQualify" | "Win" | "DailyFirstMatch"
+
+export type RewardGrant = {
+	reason: RewardReason,
+	amount: number,
+	total: number, -- 지급 뒤 코인 합계
 }
 
 return {}

@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m4-09 — 모바일 UI (화면 크기 대응 · 터치 버튼 배치 · 안전 영역)
@@ -63,8 +63,12 @@ status: in-dev
 - 2026-10-08 · 잡기 버튼 쿨다운 표시 · 잡기에는 쿨다운 값이 없고 GrabController(이 스펙 밖)가 버튼에 넘기지도 않아서, 지금처럼 잡는 동안 색이 바뀌는 표시만 둠 · 질문: 잡기 쿨다운이 생기면 GrabController 담당이 `setCooldown`을 요청 · developer
 - 2026-10-08 · 음소거 버튼(Sfx.luau, m4-07)은 이 스펙에서 손대지 않음 · 이미 자기 ScreenGui + `TopbarSafeInsets`라 예외 규칙과 맞음 · developer
 - 2026-10-08 · `tests/m3-06-qa.spec.luau` 글자 검사 갱신 · DiveButton 글씨가 "🤸 다이브", 간격 상수가 `UiLayout.TOUCH_GAP_RATIO`로 옮겨져서 · developer
+- 2026-10-08 · QA B1·B4 수정 방법 · `UiScaleController.attach`가 이미 `TopbarSafeInsets`인 gui(위쪽 바: CoinGui 배지·토스트)는 안전 영역을 그대로 두고 UIScale도 붙이지 않음. 음소거 버튼(attach 안 함)과 크기가 같아짐. `attach(gui, { scale = bool })` 옵션도 있음. 기본 동작으로 해결되어 **m4-08 `CoinController.luau`는 수정하지 않음**(코디네이터가 한 줄 수정을 허용했지만 필요 없었음) · developer
+- 2026-10-08 · QA B3 · 큰 화면 기본 점프 버튼은 오른쪽에서 **170**(Roblox TouchJump 1.5 × 120 - 10). 범위 5의 "(180, 210)"은 오기라 코드는 (170, 210) · developer
+- 2026-10-08 · QA B2 · 방 만들기 창 최대 높이를 화면 높이가 아니라 LobbyGui 실제 높이(위쪽 바 뺀 값)로 계산하고, gui 크기가 바뀌면 다시 맞춤 · developer
 
 ## 개발 메모
+- **QA 반려 수정 (2026-10-08)**: B1(P1) CoinGui의 TopbarSafeInsets 유지, B4 위쪽 바 gui에는 배율을 넣지 않음, B2 창 높이를 gui 실제 높이로, B3 JUMP_LARGE.right 170. 바뀐 파일: `UiScaleController.luau`, `LobbyScreen.luau`, `UiLayout.luau`, `tests/ui-layout.spec.luau`. origin/m4-09-qa와 origin/main(m4-05·07·08)을 병합함, 충돌 없음. 검증: lune 672 통과 / 0 실패(QA B1 테스트 포함).
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
 - 브랜치 `m4-09-mobile`. 새 파일 `src/shared/UiLayout.luau`(순수: scaleFor, isCompact, metrics, px/touchSize/textSize/lineHeight/scrollBarThickness, gridRows, defaultJump, touchButtons, spectateArrows), `tests/ui-layout.spec.luau`(9개, AC1·AC2).
 - `UiScaleController`: `attach(gui)`(UIScale 하나 + `ScreenInsets = CoreUISafeInsets`, 두 번 불러도 하나), `metrics()`, `onChanged(fn)`. LobbyController가 LobbyGui를 만들 때 붙이고(`start`도 같은 gui를 다시 붙임, 무해), VictoryCutsceneScreen이 자기 gui를 붙임.

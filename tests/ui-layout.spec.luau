@@ -72,9 +72,9 @@ return function(t: Test.Test)
 		t.eq(select(2, UiLayout.gridRows(0, 100, 10, 2)), 0)
 	end)
 
-	t.test("기본 점프 버튼: 짧은 변 ≤ 500이면 70 (95, 90), 그 밖 120 (180, 210)", function()
+	t.test("기본 점프 버튼: 짧은 변 ≤ 500이면 70 (95, 90), 그 밖 120 (170, 210)", function()
 		t.eq(UiLayout.defaultJump(667, 375), { x = 667 - 95, y = 375 - 90, size = 70 })
-		t.eq(UiLayout.defaultJump(1024, 768), { x = 1024 - 180, y = 768 - 210, size = 120 })
+		t.eq(UiLayout.defaultJump(1024, 768), { x = 1024 - 170, y = 768 - 210, size = 120 })
 	end)
 
 	t.test(

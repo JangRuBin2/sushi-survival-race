@@ -1,5 +1,17 @@
 # m4-09 mobile UI — 개발 작업 기록
 
+## 2026-10-08 — QA 반려 수정, 다시 in-qa (최신)
+- **브랜치**: 로컬 `m4-09-mobile` → `origin/m4-09-qa`에 push. origin/m4-09-qa(d913f64)와 origin/main을 병합함, 충돌 없음.
+- **끝난 것**:
+  - B1(P1): `UiScaleController.attach`가 TopbarSafeInsets gui의 안전 영역을 그대로 둠.
+  - B4: 그 gui에는 UIScale도 붙이지 않음. `attach(gui, { scale })` 옵션 추가. CoinController(m4-08)는 수정할 필요가 없었음.
+  - B2: 방 만들기 창 높이를 LobbyGui 실제 높이 기준으로 계산.
+  - B3: JUMP_LARGE.right 170.
+- **검증**: rojo build OK, stylua OK, selene 0/0/0, lune 672 passed / 0 failed.
+- **남은 것**: 재QA, Studio 확인 AC4~AC8, AC9(사용자).
+- **다음에 할 첫 단계**: QA가 m4-09-qa 브랜치를 재검증.
+- **막힌 점**: 없음.
+
 ## 2026-10-08 — 구현 완료, in-qa (최신)
 - **브랜치**: `m4-09-mobile` (origin/main f33086b 기반), push 완료.
 - **끝난 것**: 스펙 범위 1~5 전부 (6 콘솔은 TextButton 기본 `Selectable = true`라 그대로). 자세한 건 스펙 "개발 메모".

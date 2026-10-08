@@ -397,7 +397,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			return UiLayout.lineHeight(base, m, textBase)
 		end
 		local virtualWidth = if m.width > 0 then m.width / m.scale else 1280
-		local virtualHeight = if m.height > 0 then m.height / m.scale else 720
+		-- 높이는 LobbyGui 실제 높이(CoreUISafeInsets라 위쪽 바를 뺀 값)로 (m4-09 QA B2)
+		local guiHeight = if parent:IsA("GuiBase2d") then parent.AbsoluteSize.Y else 0
+		local realHeight = if guiHeight > 0 then guiHeight else m.height
+		local virtualHeight = if realHeight > 0 then realHeight / m.scale else 720
 		local scrollBar = UiLayout.scrollBarThickness(m)
 
 		-- 로비 패널: compact면 위쪽에 붙여 코드 입력칸이 키보드에 가리지 않게 (높이는 화면 90% 이하)
@@ -503,6 +506,12 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	end)
 
 	UiScaleController.onChanged(applyLayout) -- 바로 한 번 불러서 renderRooms까지 해요
+	if parent:IsA("GuiBase2d") then
+		-- 안전 영역(위쪽 바 높이)이 늦게 정해지거나 바뀌면 창 높이를 다시 맞춰요
+		parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			applyLayout(metrics)
+		end)
+	end
 
 	local screen = {}
 

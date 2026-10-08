@@ -23,7 +23,7 @@ UiLayout.ARROW_MARGIN = 12
 
 -- Roblox 기본 점프 버튼 (PlayerModule TouchJump): 짧은 변 ≤ 500이면 작은 버튼
 UiLayout.JUMP_SMALL = { size = 70, right = 95, bottom = 90 }
-UiLayout.JUMP_LARGE = { size = 120, right = 180, bottom = 210 }
+UiLayout.JUMP_LARGE = { size = 120, right = 170, bottom = 210 } -- 1.5 × 120 - 10 (m4-09 QA B3)
 UiLayout.JUMP_SMALL_SHORT_SIDE = 500
 
 export type Metrics = {

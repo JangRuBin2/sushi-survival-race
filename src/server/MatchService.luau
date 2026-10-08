@@ -123,6 +123,33 @@ end
 
 -- 매치가 끝났어요: 로비 스폰으로 보내고, 매치 서버면 PlaceService가 결과를 쓰고 로비로 텔레포트해요 (m4-11).
 -- 그 밖에는 방을 대기실로 돌려요.
+-- 디버그 (Config.DEBUG.logArenaStats, m4-12): 연속 매치에서 맵·훅이 쌓이지 않는지 한 줄로 찍어요.
+-- 매치 끝 정리(맵 파괴는 라운드 정리에서, 로비 이동은 sendHome)가 끝나도록 잠깐 뒤에 세요.
+local function logArenaStats(roomId: string)
+	if not Config.DEBUG.logArenaStats then
+		return
+	end
+	task.delay(2, function()
+		local children = workspace:GetChildren()
+		local arenas = 0
+		for _, child in children do
+			if child:IsA("Model") and child:GetAttribute(Attributes.RoomId) ~= nil then
+				arenas += 1
+			end
+		end
+		local open = 0
+		for _ in matches do
+			open += 1
+		end
+		local memory = game:GetService("Stats"):GetTotalMemoryUsageMb()
+		print(
+			`[ArenaStats] room {roomId} ended: workspace children {#children}, arena models {arenas}, `
+				.. `open matches {open}, round hooks {RoundService.debugHookCount()}, `
+				.. `instances {#workspace:GetDescendants()}, memory {math.floor(memory)}MB`
+		)
+	end)
+end
+
 local function finish(roomId: string, winner: MatchEvents.WinnerShowcaseInfo?)
 	sendHome(roomId)
 	matches[roomId] = nil
@@ -133,6 +160,7 @@ local function finish(roomId: string, winner: MatchEvents.WinnerShowcaseInfo?)
 	if not (ok and handled) then
 		RoomService.endMatch(roomId)
 	end
+	logArenaStats(roomId)
 end
 
 -- Studio 전용 디버그 강제 플랜 (Config.DEBUG.forceMapPlan). 없거나 잘못됐으면 nil (잘못됐으면 경고).

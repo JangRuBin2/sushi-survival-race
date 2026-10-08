@@ -177,6 +177,9 @@ Config.DEBUG = {
 	-- true면 Studio를 매치 서버처럼 돌려요 (m4-11): 접속한 사람 전원을 매니페스트 멤버로 보고 대기실 없이 바로
 	-- 매치를 시작하고, 끝나면 텔레포트 대신 로그 + 로비 스폰. 커밋할 때는 false로.
 	simulateMatchServer = false,
+	-- true면 매치가 끝날 때마다 서버 Output에 한 줄: Workspace 자식 수, 남은 아레나(맵) Model 수, 진행 중 매치 수,
+	-- 정리 안 된 라운드 훅 수, 서버 메모리(MB). 연속 매치 안정성 확인용 (m4-12). 커밋할 때는 false로.
+	logArenaStats = false,
 }
 
 return Config

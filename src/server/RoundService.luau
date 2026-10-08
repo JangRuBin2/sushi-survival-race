@@ -652,6 +652,21 @@ function RoundService.placedRoomOf(player: Player): string?
 	return nil
 end
 
+-- 디버그 (Config.DEBUG.logArenaStats, m4-12): 아직 정리되지 않은 라운드 훅 수. 다른 방이 매치 중이 아니면 0이어야 해요.
+function RoundService.debugHookCount(): number
+	local n = 0
+	for _ in activeRemovers do
+		n += 1
+	end
+	for _ in activeRacing do
+		n += 1
+	end
+	for _ in placedRacing do
+		n += 1
+	end
+	return n
+end
+
 function RoundService.init()
 	roundProgressEvent = Remotes.event("RoundProgress")
 	-- 장애물 소리는 그 방 사람에게만 (m3-09 QA B2). 맵 파트는 맵 Model의 RoomId로,

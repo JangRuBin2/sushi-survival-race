@@ -100,9 +100,10 @@ return function(t: Test.Test)
 		t.eq(unsaved.coins, 300)
 	end)
 
-	t.test("buyWithCoins: 일반 5종을 모두 사면 1500 코인", function()
-		local p = wallet(1500)
-		for _, skin in Skins.byTier("Common") do
+	t.test("buyWithCoins: 일반 8종(m5-22 포함)을 모두 사면 2400 코인", function()
+		local common = Skins.byTier("Common")
+		local p = wallet(#common * Skins.COMMON_COINS)
+		for _, skin in common do
 			t.eq(ShopLogic.buyWithCoins(p, skin.id).ok, true, skin.id)
 		end
 		t.eq(p.coins, 0)

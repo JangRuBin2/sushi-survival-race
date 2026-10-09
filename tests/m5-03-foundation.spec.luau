@@ -368,8 +368,8 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC5 스킨 카탈로그
-	t.test("AC5: 21종, order 1~21, 새 5종의 얻는 길·시즌", function()
-		t.eq(#Skins.LIST, 21)
+	t.test("AC5: 31종(m5-22 10종 포함), order 1~31 연속, 새 5종의 얻는 길·시즌", function()
+		t.eq(#Skins.LIST, 31)
 		for i, skin in Skins.LIST do
 			t.eq(skin.order, i)
 		end

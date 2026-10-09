@@ -245,7 +245,8 @@ local function newFakeInstance(className: string): any
 		elseif key == "IsA" then
 			return function(s, name)
 				if name == "BasePart" then
-					return s.ClassName == "Part"
+					-- 진짜 Roblox에서 WedgePart도 BasePart예요 (m5-21 Wedge)
+					return s.ClassName == "Part" or s.ClassName == "WedgePart"
 				end
 				return s.ClassName == name
 			end
@@ -665,14 +666,15 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 공정성: 실제 build 결과
 	t.test(
-		"QA 공정성: 16종 build — 모든 파츠 Massless·충돌·쿼리·터치 없음, Body만 앵커, 효과 1개 이하",
+		"QA 공정성: 31종 build — 모든 파츠 Massless·충돌·쿼리·터치 없음, Body만 앵커, 효과는 등급별 예산 이하 (m5-21·m5-22)",
 		function()
 			local SushiBody = loadFakeSushiBody()
 			for _, skin in Skins.LIST do
 				local model = SushiBody.build(skin.id)
 				local parts, effects, bodies = 0, 0, 0
 				for _, inst in model:GetDescendants() do
-					if inst.ClassName == "Part" then
+					-- WedgePart도 Part처럼 BasePart예요 (m5-21 Wedge)
+					if inst.ClassName == "Part" or inst.ClassName == "WedgePart" then
 						parts += 1
 						t.eq(inst.Massless, true, `{skin.id} {inst.Name} Massless`)
 						t.eq(inst.CanCollide, false, `{skin.id} {inst.Name} CanCollide`)
@@ -696,7 +698,8 @@ return function(t: Test.Test)
 				end
 				t.eq(bodies, 1, skin.id)
 				t.eq(parts, #RealSushiBody.layout(skin.id), `{skin.id} part count`)
-				t.ok(effects <= 1, `{skin.id} effects {effects}`)
+				local budget = RealSushiBody.EFFECT_BUDGET[skin.tier] or 1
+				t.ok(effects <= budget, `{skin.id} effects {effects} over budget {budget}`)
 				t.eq(model.PrimaryPart and model.PrimaryPart.Name, "Body", skin.id)
 				-- 효과를 끄면 전부 꺼져요 (탈락 연출이 진짜 캐릭터를 숨길 때)
 				SushiBody.setEffectsEnabled(model, false)
@@ -710,24 +713,21 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA 공정성: 외곽 비율 기록 — 최대 축 비율이 1.15 이하, 모든 스킨 발바닥 높이 같음",
+		"QA 공정성: 외곽 비율 기록 — 최대 축 비율이 등급별 허용치 이하, 모든 스킨 발바닥 높이 같음 (m5-21)",
 		function()
 			local function extents(id: string): { number }
 				local b = RealSushiBody.bounds(RealSushiBody.layout(id))
 				return { b.max[1] - b.min[1], b.max[2] - b.min[2], b.max[3] - b.min[3] }
 			end
 			local base = extents("tamago")
-			local worst, worstId = 0, ""
 			for _, skin in Skins.LIST do
 				local e = extents(skin.id)
+				local tolerance = RealSushiBody.BOUNDS_TOLERANCE[skin.tier] or 0.15
 				for axis = 1, 3 do
 					local r = math.abs(e[axis] / base[axis] - 1)
-					if r > worst then
-						worst, worstId = r, `{skin.id}#{axis}`
-					end
+					t.ok(r <= tolerance + 1e-9, `{skin.id}#{axis} {r} over tolerance {tolerance}`)
 				end
 			end
-			t.ok(worst <= 0.15 + 1e-9, `worst {worstId} {worst}`)
 		end
 	)
 

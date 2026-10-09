@@ -25,6 +25,7 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
+-- cat-cafe-shelves는 m5-17이 실제 맵으로 구현해서 더 이상 껍데기가 아니에요 (map-cat-cafe-shelves.spec.luau 참고).
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
@@ -32,7 +33,6 @@ local SHELLS = {
 	"bouncy-castle-maze",
 	"lantern-bridge",
 	"giant-jenga",
-	"cat-cafe-shelves",
 	"tug-of-war-platform",
 	"claw-machine-prize",
 }
@@ -125,11 +125,6 @@ return function(t: Test.Test)
 				"와르르 나무 블록",
 				"흔들리는 블록탑 위에서 안 떨어지게 버텨요.",
 			},
-			["cat-cafe-shelves"] = {
-				"Survival",
-				"고양이 카페 캣타워",
-				"흔들리는 캣타워 선반 위에서 버텨요.",
-			},
 			["tug-of-war-platform"] = {
 				"Final",
 				"줄다리기 발판",
@@ -161,23 +156,27 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
-		local ids = {}
-		for _, info in Maps.infos() do
-			ids[info.id] = true
+	t.test(
+		"AC2 (+ m5-17): infos()는 7개(cat-cafe-shelves 포함, 다른 껍데기는 없음), allInfos()는 15개",
+		function()
+			local ids = {}
+			for _, info in Maps.infos() do
+				ids[info.id] = true
+			end
+			t.eq(#Maps.infos(), 7)
+			t.ok(ids["cat-cafe-shelves"], "cat-cafe-shelves is in the random pool")
+			for _, id in SHELLS do
+				t.ok(not ids[id], `{id} not in random pool`)
+			end
+			local all = {}
+			for _, info in Maps.allInfos() do
+				all[info.id] = info.kind
+			end
+			for _, id in SHELLS do
+				t.ok(all[id] ~= nil, `{id} in allInfos`)
+			end
 		end
-		t.eq(#Maps.infos(), 6)
-		for _, id in SHELLS do
-			t.ok(not ids[id], `{id} not in random pool`)
-		end
-		local all = {}
-		for _, info in Maps.allInfos() do
-			all[info.id] = info.kind
-		end
-		for _, id in SHELLS do
-			t.ok(all[id] ~= nil, `{id} in allInfos`)
-		end
-	end)
+	)
 
 	t.test("AC2: 강제 플랜은 allInfos로 껍데기도 그 순서대로", function()
 		local plan, problem =

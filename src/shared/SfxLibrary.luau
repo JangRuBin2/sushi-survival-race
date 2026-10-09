@@ -87,6 +87,9 @@ SfxLibrary.Entries = {
 	OilSplash = sfx(nil, 0.7), -- 튀는 기름 (m5-05)
 	FanGust = sfx(nil, 0.6), -- 송풍구 (m5-06)
 	JellyBoing = sfx(nil, 0.8), -- 젤리 (m5-06)
+	CatToyBounce = sfx(nil, 0.7), -- 장난감 공에 맞음 (m5-17)
+	CatPawWarn = sfx(nil, 0.7), -- 고양이 발 경고 (m5-17)
+	CatPawSwipe = sfx(nil, 0.8), -- 고양이 발에 밀림 (m5-17)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

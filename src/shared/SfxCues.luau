@@ -49,6 +49,9 @@ SfxCues.Effects = {
 	"OilSplash", -- 기름 튐 (m5-05)
 	"FanGust", -- 냉장고 송풍구 (m5-06)
 	"JellyBoing", -- 젤리 튕김 (m5-06)
+	"CatToyBounce", -- 장난감 공에 맞음 (m5-17)
+	"CatPawWarn", -- 고양이 발 경고 시작 (m5-17)
+	"CatPawSwipe", -- 고양이 발에 밀리는 순간 (m5-17)
 }
 
 -- 배경음 (Sfx.setMusic)

@@ -318,7 +318,7 @@ return function(t: Test.Test)
 	end)
 
 	-- AC6 ---------------------------------------------------------------------------------
-	t.test("AC6: 맵 풀 Race 3 · Survival 2 · Final 1, 새 stub 2개가 validate 통과", function()
+	t.test("AC6 (+ m5-17): 맵 풀 Race 3 · Survival 3(cat-cafe-shelves 포함) · Final 1", function()
 		local byKind: { [string]: { string } } = { Race = {}, Survival = {}, Final = {} }
 		for _, info in Maps.infos() do
 			table.insert(byKind[info.kind], info.id)
@@ -327,7 +327,7 @@ return function(t: Test.Test)
 			table.sort(list)
 		end
 		t.eq(byKind.Race, { "ramen-rapids", "rotating-belt", "soy-swamp" })
-		t.eq(byKind.Survival, { "chef-board", "hot-plate" })
+		t.eq(byKind.Survival, { "cat-cafe-shelves", "chef-board", "hot-plate" })
 		t.eq(byKind.Final, { "skewer-showdown" })
 
 		local ramen = Maps.get("ramen-rapids")

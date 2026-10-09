@@ -328,7 +328,8 @@ return function(t: Test.Test)
 		end
 		t.eq(byKind.Race, { "ramen-rapids", "rotating-belt", "soy-swamp" })
 		t.eq(byKind.Survival, { "chef-board", "hot-plate" })
-		t.eq(byKind.Final, { "skewer-showdown" })
+		-- m5-19: claw-machine-prize가 랜덤 풀에 합류해서 Final이 2개가 됐어요
+		t.eq(byKind.Final, { "claw-machine-prize", "skewer-showdown" })
 
 		local ramen = Maps.get("ramen-rapids")
 		t.eq(MapTypes.validate(ramen), nil)

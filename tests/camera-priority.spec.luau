@@ -134,6 +134,8 @@ return function(t: Test.Test)
 			"OilSplash",
 			"FanGust",
 			"JellyBoing",
+			-- m5-19
+			"ClawLift",
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

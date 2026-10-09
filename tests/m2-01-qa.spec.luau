@@ -59,14 +59,18 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("실제 맵 풀: 결승은 언제나 skewer-showdown (Final 맵이 하나뿐)", function()
-		for seed = 1, 100 do
-			for _, roundCount in { 3, 4 } do
-				local plan = Rules.buildRoundPlan(roundCount, Maps.infos(), fakeRng(seed))
-				t.eq(plan[roundCount].id, "skewer-showdown", `seed {seed}`)
+	t.test(
+		"실제 맵 풀: 결승은 언제나 등록된 Final 맵 중 하나 (m5-19: claw-machine-prize도 합류)",
+		function()
+			local finals = { ["skewer-showdown"] = true, ["claw-machine-prize"] = true }
+			for seed = 1, 100 do
+				for _, roundCount in { 3, 4 } do
+					local plan = Rules.buildRoundPlan(roundCount, Maps.infos(), fakeRng(seed))
+					t.ok(finals[plan[roundCount].id], `seed {seed}: {plan[roundCount].id}`)
+				end
 			end
 		end
-	end)
+	)
 
 	t.test(
 		"스펙 계약: m2-01~07 Studio 절차의 forceMapPlan 목록이 전부 실제 풀에서 그 순서로 풀려요",

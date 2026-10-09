@@ -25,6 +25,7 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
+-- claw-machine-prize는 m5-19가 실제 맵으로 완성해서 더 이상 껍데기가 아니에요(inPool = true로 랜덤 풀에 합류).
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
@@ -34,7 +35,6 @@ local SHELLS = {
 	"giant-jenga",
 	"cat-cafe-shelves",
 	"tug-of-war-platform",
-	"claw-machine-prize",
 }
 
 local function fakeRng(seed: number)
@@ -93,7 +93,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 9개는 스펙 표 그대로 + inPool = false", function()
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
 		local expected = {
 			["ikura-bombs"] = {
 				"Final",
@@ -135,11 +135,6 @@ return function(t: Test.Test)
 				"줄다리기 발판",
 				"발판이 기울며 한쪽 끝으로 미끄러져요.",
 			},
-			["claw-machine-prize"] = {
-				"Final",
-				"인형뽑기 기계 속",
-				"집게가 훑고 지나가는 유리 상자 안에서 버텨요.",
-			},
 		}
 		t.eq(#Maps.allInfos(), 15)
 		for _, info in Maps.allInfos() do
@@ -161,12 +156,12 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
+	t.test("AC2: infos()는 7개(껍데기 없음, m5-19 합류), allInfos()는 15개", function()
 		local ids = {}
 		for _, info in Maps.infos() do
 			ids[info.id] = true
 		end
-		t.eq(#Maps.infos(), 6)
+		t.eq(#Maps.infos(), 7)
 		for _, id in SHELLS do
 			t.ok(not ids[id], `{id} not in random pool`)
 		end

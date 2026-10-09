@@ -249,16 +249,17 @@ return function(t: Test.Test)
 		return played, RoundLogic.standingsList(standings), winner, rounds
 	end
 
-	-- Studio 연속 5판 확인과 같은 강제 플랜 (6개 맵이 모두 한 번 이상, 마지막은 결승)
+	-- Studio 연속 5판 확인과 같은 강제 플랜 (풀의 맵이 모두 한 번 이상, 마지막은 결승)
+	-- m5-19: claw-machine-prize가 랜덤 풀에 합류해서 마지막 플랜의 결승을 그걸로 바꿨어요.
 	local FORCED_PLANS = {
 		{ "rotating-belt", "hot-plate", "skewer-showdown" },
 		{ "soy-swamp", "chef-board", "skewer-showdown" },
 		{ "ramen-rapids", "hot-plate", "rotating-belt", "skewer-showdown" },
 		{ "soy-swamp", "ramen-rapids", "chef-board", "skewer-showdown" },
-		{ "rotating-belt", "soy-swamp", "skewer-showdown" },
+		{ "rotating-belt", "soy-swamp", "claw-machine-prize" },
 	}
 
-	t.test("연속 5판: 강제 플랜 5개가 유효하고 6개 맵을 모두 한 번 이상 써요", function()
+	t.test("연속 5판: 강제 플랜 5개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()
 		local seen: { [string]: boolean } = {}
 		for n, ids in FORCED_PLANS do
 			local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())

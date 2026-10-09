@@ -49,6 +49,7 @@ SfxCues.Effects = {
 	"OilSplash", -- 기름 튐 (m5-05)
 	"FanGust", -- 냉장고 송풍구 (m5-06)
 	"JellyBoing", -- 젤리 튕김 (m5-06)
+	"ClawLift", -- 집게가 구역을 들어 올림 (m5-19)
 }
 
 -- 배경음 (Sfx.setMusic)

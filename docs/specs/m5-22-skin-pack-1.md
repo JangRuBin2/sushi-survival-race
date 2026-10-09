@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-22 — 스킨 1차 배치 10종
@@ -270,4 +270,19 @@ developer는 이 7종 중 "고양이 초밥"·"로보 롤"처럼 맛 표현이 �
 - 2026-10-09 · "소프트아이스크림 롤·유니콘 롤이 둘 다 비율 1.234로 전설/에픽 허용치(1.25)에 거의 붙어 있는데 괜찮은가" · planner 판단: 설계 의도(박스를 최대한 활용해 수직·비대칭 실루엣을 만드는 것 자체가 이번 배치의 핵심 가치)상 의도적으로 상한에 가깝게 뒀다. developer가 AC2 테스트에서 실패하면 가장 높은 파츠 1~2개의 offset.y만 낮추고 그 외 수치는 그대로 유지할 것.
 
 ## 개발 메모
-<!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- m5-21 의존 가정은 전부 실제 구현과 일치했다(불일치 없음): Wedge는 `Instance.new("WedgePart")` 분기, `bounds()`는 `spec.shape`를 안 보고 `size`+`rotation`만 본다, `EFFECT_BUDGET`(Basic0/Common1/Rare1/Epic2/Legendary2), `BOUNDS_TOLERANCE`(Common·Rare 0.15, Epic·Legendary 0.25) 모두 스펙 가정 그대로. 수치를 다시 맞출 필요가 없었다.
+- 바뀐 파일:
+  - `src/shared/SushiBody.luau` — 색 상수 39개, `LAYOUTS` 10종(`takoyaki`, `egg-toast`, `slider-burger`, `tonkatsu`, `cat-sushi`, `robo-roll`, `galaxy-roll`, `softserve-roll`, `crown-tuna`, `unicorn-roll`) 추가. 스펙 표의 size/offset/rotation/effect를 그대로 옮겼다(고양이 초밥·소프트아이스크림 롤·유니콘 롤의 "여유 빠듯" 수치도 조정 없이 통과했다 — 아래 검산 참고).
+  - `src/shared/Skins.luau` — 카탈로그 10종(order 22~31), `productId`는 전부 `nil`(사용자가 상품을 만든 뒤 채움).
+  - `tests/skins.spec.luau` — `EXPECTED` 표 31종으로, `byTier` 개수(Basic1/Common8/Rare9/Epic7/Legendary6), 효과 테스트를 다중 효과(갤럭시 롤·크라운 참치·유니콘 롤 각 2개) 지원하도록 일반화, Wedge 7파츠(고양이 초밥 4 + 크라운 참치 7 + 유니콘 롤 3 = 14개 전부) 전용 검증 추가.
+  - `tests/m4-13-qa.spec.luau` — **m5-21 때 놓친 버그 발견·수정**: (1) 가짜 `Instance`의 `IsA("BasePart")`가 `ClassName == "Part"`만 인정해서 `WedgePart`는 `build()`의 WeldConstraint 루프(`child:IsA("BasePart")`)에서 빠졌었다 — `WedgePart`도 인정하도록 고침(진짜 Roblox에서는 WedgePart도 BasePart라 프로덕션 버그는 아니고 테스트 하네스만의 문제). (2) 파츠 개수 집계 테스트가 `ClassName == "Part"`만 셌다 — `WedgePart`도 포함. (3) 효과 개수·외곽 비율 두 테스트가 m5-21 이전 숫자(효과 ≤1, 비율 ≤0.15)를 하드코딩해 뒀던 것을 `SushiBody.EFFECT_BUDGET`/`BOUNDS_TOLERANCE`로 교체(이전까지는 2효과·±25% 스킨이 실제로 없어서 드러나지 않았던 문제).
+  - `tests/m5-03-foundation.spec.luau` — 카탈로그 총 개수 21→31.
+  - `tests/shop-logic.spec.luau` — "일반 N종 모두 구매" 테스트가 일반 등급 개수를 하드코딩(5종·1500코인)했던 것을 `Skins.byTier("Common")` 개수 기반으로 일반화(이제 8종·2400코인).
+- 검증 5단계 전부 통과: `rojo build`, `stylua --check`, `selene`(0/0/0), `lune run tests`(**1153 passed, 0 failed** — 기존 전체 테스트 포함, m4-13-qa 2건·m5-03-foundation 1건·shop-logic 1건의 사전 실패를 전부 고쳐서 0 failed로 마무리), `luau-lsp analyze`(exit 0, 에러 없음).
+- Studio 확인 방법 (AC5, 사용자 확인 필요):
+  1. Studio Test 실행 → 탈의실("🍣" 버튼)을 열어 10종 카드가 보이는지, 가격 표시(일반 29R$/300코인, 레어 59R$/900코인, 에픽·전설은 로벅스 버튼만 "곧 열려요")를 확인한다.
+  2. 10종을 차례로 입어 보고 실루엣이 기존 21종과 겹치지 않는지, 특히 고양이 초밥 귀·크라운 참치 왕관·유니콘 롤 뿔이 WedgePart로 실제 쐐기 모양인지(일반 Part 각진 모양이 아닌지) 본다.
+  3. 갤럭시 롤·크라운 참치·유니콘 롤을 입고 효과 2개(Sparkles+Glow)가 동시에 보이는지, 여러 명이 입어도 랙이 없는지 확인한다.
+  4. "여유 빠듯" 3종(고양이 초밥·소프트아이스크림 롤·유니콘 롤)을 계란초밥 등 다른 스킨과 나란히 세워 이름표 높이·크기가 위화감 없는지 본다.
+  5. 비초밥 7종(에그토스트·슬라이더 버거·고양이 초밥·로보 롤·갤럭시 롤·소프트아이스크림 롤·유니콘 롤)을 탈락시켜 `Chopsticks`/`Mouth`/`ChefHand` 세 변형 대사가 어색하지 않은지 듣는다(특히 고양이 초밥 "야옹~ 잡아봐!", 로보 롤 "삐빅, 시스템 가동 완료!"가 젓가락 변형에서 자연스러운지).
+- 남은 이슈: AC5 Studio 확인 항목 전부 **사용자 확인 필요**(이 worktree에는 Studio가 없다). 코드 쪽에서는 남은 이슈 없음 — "여유 빠듯" 3종도 offset 조정 없이 허용치 안에 들어왔다(고양이 초밥 레어 ±15% 안 margin 0.0106 studs, 소프트아이스크림 롤·유니콘 롤 전설/에픽 ±25% 안 ratio 1.234 vs 허용 1.25, 스펙의 사전 계산과 일치).

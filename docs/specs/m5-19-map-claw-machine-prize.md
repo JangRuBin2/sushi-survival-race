@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-19 — 세 번째 결승 맵: 인형뽑기 기계 속 (`claw-machine-prize`)
@@ -91,3 +91,10 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-09 · developer, 자세한 기록은 `docs/developer/m5-19-map-claw-machine-prize.md`.
+- **덮어쓴 파일**: `src/shared/maps/ClawMachinePrize.luau`(`inPool = false` 줄 삭제).
+- **새 파일**: `src/shared/maps/ClawMachinePrizeLayout.luau`·`ClawMachinePrizeLogic.luau`·`ClawMachinePrizeArt.luau`, `tests/map-claw-machine-prize.spec.luau`.
+- **공용 파일 변경 없음** (스펙대로). 다만 `shared/SfxCues.luau`·`SfxLibrary.luau`(공용 파일 목록에 없음)에 `ClawLift` cue를 무음으로 추가했고, 이 맵이 랜덤 풀(inPool)에 들어가면서 깨지는 기존 테스트 5개(`tests/maps.spec.luau`·`m4-foundation.spec.luau`·`m4-12-hardening.spec.luau`·`m5-03-foundation.spec.luau`·`m2-01-qa.spec.luau`)의 하드코딩된 맵 개수·목록을 고쳤어요(자세한 목록은 developer 기록).
+- **검증 5단계 전부 통과**: rojo build, stylua --check, selene(0/0/0), lune run tests(1163 passed), luau-lsp analyze(0 에러).
+- **Studio 확인 방법**: developer 기록의 "Studio 확인 방법" 절(AC9~AC16) 그대로.
+- **남은 이슈**: 없음(결정 기록에 추가 질문 없음). 집게 과녁 선정 주기가 정밀한 절대 시각표가 아니라 "집게가 비는 즉시 다음 interval 대기" 방식이라 표보다 살짝 늘어질 수 있음 — 플레이테스트 체감(AC16)에 따라 `ClawMachinePrize.luau`의 `CLAW_HOVER_TIME`/`CLAW_LIFT_TIME`이나 `Logic.clawWave` 상수 조정 여지.

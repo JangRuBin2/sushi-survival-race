@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-18 — 세 번째 결승 맵: 줄다리기 발판 (`tug-of-war-platform`)
@@ -89,3 +89,26 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 바뀐 파일
+- `src/shared/maps/TugOfWarPlatform.luau` (덮어씀, `inPool = false` 줄 삭제): 발판 1개(`Platform`, 태그 `TugOfWarPlatform`) + 기울 때 같이 움직이는 `PlatformGroup`(발판 파츠 + 무게추 장식), 24개 스폰(왼쪽 12·오른쪽 12), 매 Heartbeat `Logic.tilt`→`Logic.approach`로 서서히 기울기 적용, 연장전은 `Logic.overtimeAngle`로 전환, 낙하 판정은 origin 기준 Y(기울어도 고정 기준)로 `ctx.eliminate`. `MoveExempt.mark` 안 씀(결정 기록 D3, 연속 밀기).
+- `src/shared/maps/TugOfWarPlatformLayout.luau` (새 파일): 치수(길이 70·폭 22·두께 2·CENTER_Z -40), 마찰 0.35, 스폰 24개 격자 생성.
+- `src/shared/maps/TugOfWarPlatformLogic.luau` (새 파일): `Logic.tilt`, `Logic.approach`, `Logic.overtimeAngle` + 상수(`MAX_ANGLE` 30°, `SATURATION_TORQUE` 105, `TILT_RATE` 20°/s, `LETHAL_ANGLE` 90°). Roblox API 없음.
+- `src/shared/maps/TugOfWarPlatformArt.luau` (새 파일): `deckDecor()`(저울 접시 테두리·동아줄·무게추, 발판과 같이 기울어짐), `decor()`(받침대·가게 마당 배경, 고정), `introCamera()`.
+- `tests/map-tug-of-war-platform.spec.luau` (새 파일): AC1~AC7 순수 로직 테스트 (24개 전부 통과).
+- 기존 테스트 갱신(맵 풀이 6→7개로 늘어난 영향, tug-of-war-platform이 껍데기에서 실제 맵으로 바뀐 영향): `tests/maps.spec.luau`, `tests/m4-foundation.spec.luau`, `tests/m4-12-hardening.spec.luau`, `tests/m5-03-foundation.spec.luau`.
+
+### 구현 메모
+- 부호: `Logic.tilt`가 양수를 돌려주면 로컬 +X가 내려가야 하는데, `CFrame.Angles(0,0,z)`는 양수일 때 +X를 올리는 방향이라 `TugOfWarPlatform.luau`의 `TILT_SIGN = -1` 상수로 뒤집어 뒀어요. **AC9에서 반대로 보이면 이 상수 하나만 뒤집으면 돼요.**
+- 발판·장식의 CFrame 갱신은 `SkewerShowdown.luau`의 `moveFood` 패턴과 같아요: build 때 flatPivot(원점 기준 CENTER_Z 지점, 기울지 않은 상태) 기준 오프셋을 한 번만 계산해 두고, 매 틱 `pivotCFrame * offset`을 `workspace:BulkMoveTo`로 적용해요. 넉백·순간이동 없음.
+- 타입 검사에서 두 가지를 고쳤어요(참고용): `CFrame:ToObjectSpace(...)`가 가변 반환(`...CFrame`)이라 `table.insert`의 마지막 인자로 바로 쓰면 인자 수가 흔들려서 괄호로 값 하나만 받게 했고, `table.create(n)`은 요소 타입을 못 정해서 `:: { CFrame }`로 캐스팅했어요(SkewerShowdown과 동일 패턴).
+
+### Studio 확인 (사용자, 아직 안 함 — AC9~AC16)
+`docs/specs/m5-18-map-tug-of-war-platform.md`의 "Studio 확인" 절 그대로. `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "tug-of-war-platform" }`, 빠른 연장전 확인은 `Config.DEBUG.overtimeAt = 15` (확인 뒤 둘 다 nil로 되돌리기). 특히:
+- AC9: 몰린 쪽이 서서히 내려가는지, 부호가 맞는지(반대면 `TILT_SIGN` 뒤집기).
+- AC12: 평평~30도 구간에서 미끄러질 때 Output에 `[MovementGuard]` 류 경고가 안 뜨는지.
+- AC14: ikura-bombs(m5-04)가 아직 `ready`라 지금은 결승 맵이 꼬치 쇼다운 + 줄다리기 발판 2개 중 무작위예요. ikura-bombs가 `done`이 되면 3개 중 무작위가 돼요.
+
+### 남은 이슈
+- 없음(알려진 버그 없음). 수치(`MAX_ANGLE`·`SATURATION_TORQUE`·`TILT_RATE`·마찰 0.35)는 전부 스펙 기본값 그대로이고, Studio 플레이테스트(AC16) 뒤 Layout/Logic 상수만 조정하면 돼요.
+- 클라우드/CI 환경에서 Studio 확인(AC9~AC16)은 수행하지 못했습니다 — 위 절차로 사용자가 직접 확인해야 합니다.

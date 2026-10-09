@@ -33,7 +33,7 @@ local SHELLS = {
 	"lantern-bridge",
 	"giant-jenga",
 	"cat-cafe-shelves",
-	"tug-of-war-platform",
+	-- m5-18: tug-of-war-platform이 껍데기를 벗고 실제 맵이 됐어요 (더 이상 SHELLS에 없어요)
 	"claw-machine-prize",
 }
 
@@ -130,11 +130,7 @@ return function(t: Test.Test)
 				"고양이 카페 캣타워",
 				"흔들리는 캣타워 선반 위에서 버텨요.",
 			},
-			["tug-of-war-platform"] = {
-				"Final",
-				"줄다리기 발판",
-				"발판이 기울며 한쪽 끝으로 미끄러져요.",
-			},
+			-- m5-18: tug-of-war-platform은 껍데기를 벗었어요(진짜 규칙은 map-tug-of-war-platform.spec.luau), 여기서는 아래 else 분기로
 			["claw-machine-prize"] = {
 				"Final",
 				"인형뽑기 기계 속",
@@ -161,12 +157,12 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
+	t.test("AC2: infos()는 7개(껍데기 없음, m5-18 tug-of-war-platform 포함), allInfos()는 15개", function()
 		local ids = {}
 		for _, info in Maps.infos() do
 			ids[info.id] = true
 		end
-		t.eq(#Maps.infos(), 6)
+		t.eq(#Maps.infos(), 7)
 		for _, id in SHELLS do
 			t.ok(not ids[id], `{id} not in random pool`)
 		end

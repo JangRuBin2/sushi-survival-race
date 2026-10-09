@@ -255,7 +255,7 @@ return function(t: Test.Test)
 		{ "soy-swamp", "chef-board", "skewer-showdown" },
 		{ "ramen-rapids", "hot-plate", "rotating-belt", "skewer-showdown" },
 		{ "soy-swamp", "ramen-rapids", "chef-board", "skewer-showdown" },
-		{ "rotating-belt", "soy-swamp", "skewer-showdown" },
+		{ "rotating-belt", "soy-swamp", "tug-of-war-platform" },
 	}
 
 	t.test("연속 5판: 강제 플랜 5개가 유효하고 6개 맵을 모두 한 번 이상 써요", function()

@@ -77,14 +77,17 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(race), "TestMap: overtime must be a function")
 	end)
 
-	t.test("m5-01 AC7: 맵 풀 6개가 모두 validate를 통과해요", function()
-		local count = 0
-		for _, info in Maps.infos() do
-			t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
-			count += 1
+	t.test(
+		"m5-01 AC7: 맵 풀 전부가 validate를 통과해요 (m5-18: tug-of-war-platform 추가로 7개)",
+		function()
+			local count = 0
+			for _, info in Maps.infos() do
+				t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
+				count += 1
+			end
+			t.eq(count, 7)
 		end
-		t.eq(count, 6)
-	end)
+	)
 
 	t.test("RotatingBelt: MapModule 인터페이스를 지키고 Race 맵이에요", function()
 		t.eq(MapTypes.validate(RotatingBelt), nil)

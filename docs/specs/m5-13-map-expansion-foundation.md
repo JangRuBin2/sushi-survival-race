@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-13 — 맵 확장 1차 기반: 신규 맵 6개 껍데기 + 풀 등록
@@ -50,12 +50,12 @@ status: ready
 
 ## 수용 기준
 ### 순수 로직 (lune 테스트로 확인)
-- [ ] AC1: `MapTypes.validate`가 신규 맵 6개 전부에 nil(통과)을 돌려준다. `tug-of-war-platform`·`claw-machine-prize`는 `type(map.overtime) == "function"`.
-- [ ] AC2: `Maps.allInfos()`의 길이가 **15**(기존 9 + 신규 6). `Maps.infos()`의 길이는 **9 그대로**(신규 6개가 전부 `inPool = false`라 랜덤 풀에 안 들어간다 — 기존 3개 껍데기와 같은 상태). `Maps.infos()`를 순회해도 신규 6개 id가 하나도 안 나온다.
-- [ ] AC3: `Maps.get("bouncy-castle-maze")` 등 6개 id 전부 `Maps.get`으로 조회된다(에러 없이 `MapModule`을 돌려준다). 중복 id 없음(`shared/maps/init.luau`의 `assert(not byId[map.id], ...)`가 통과한다는 뜻 — 즉 lune 테스트에서 15개 require가 전부 통과).
-- [ ] AC4: `Rules.resolveForcedPlan({ "lantern-bridge", "giant-jenga", "claw-machine-prize" }, Maps.allInfos())`가 그 순서의 라운드 플랜을 돌려준다(신규 맵도 강제 플랜 대상이 된다는 확인).
-- [ ] AC5: `Rules.buildRoundPlan`을 `Maps.infos()`로 여러 번(예: 1,000회) 돌려도 신규 6개 id가 한 번도 안 나온다(기존 AC2 패턴과 동일).
-- [ ] AC6: 검증 5단계 통과(rojo build, stylua, selene, lune run tests, luau-lsp 타입 검사). 못 돌린 단계는 보고에 적는다.
+- [x] AC1: `MapTypes.validate`가 신규 맵 6개 전부에 nil(통과)을 돌려준다. `tug-of-war-platform`·`claw-machine-prize`는 `type(map.overtime) == "function"`.
+- [x] AC2: `Maps.allInfos()`의 길이가 **15**(기존 9 + 신규 6). `Maps.infos()`의 길이는 **6 그대로**(신규 6개가 전부 `inPool = false`라 랜덤 풀에 안 들어간다 — 기존 3개 껍데기와 같은 상태). `Maps.infos()`를 순회해도 신규 6개 id가 하나도 안 나온다. — 이 줄의 "9 그대로"는 스펙 오타로 보임(44·45·65줄은 6이라고 적음, 실제 코드도 지금까지 쭉 6): 구현·테스트는 6으로 맞춤.
+- [x] AC3: `Maps.get("bouncy-castle-maze")` 등 6개 id 전부 `Maps.get`으로 조회된다(에러 없이 `MapModule`을 돌려준다). 중복 id 없음(`shared/maps/init.luau`의 `assert(not byId[map.id], ...)`가 통과한다는 뜻 — 즉 lune 테스트에서 15개 require가 전부 통과).
+- [x] AC4: `Rules.resolveForcedPlan({ "lantern-bridge", "giant-jenga", "claw-machine-prize" }, Maps.allInfos())`가 그 순서의 라운드 플랜을 돌려준다(신규 맵도 강제 플랜 대상이 된다는 확인).
+- [x] AC5: `Rules.buildRoundPlan`을 `Maps.infos()`로 여러 번(예: 1,000회) 돌려도 신규 6개 id가 한 번도 안 나온다(기존 AC2 패턴과 동일).
+- [x] AC6: 검증 5단계 통과(rojo build, stylua, selene, lune run tests, luau-lsp 타입 검사). 못 돌린 단계는 보고에 적는다.
 
 ### Studio 확인 (사용자 확인 필요)
 - [ ] AC7: `Config.DEBUG.forceMapPlan = { "bouncy-castle-maze", "giant-jenga", "tug-of-war-platform" }`(또는 Race/Survival/Final 조합 아무거나)로 혼자 한 판이 신규 껍데기 3개를 끝까지 돈다. Race는 평평한 바닥을 달려 결승선을 통과, Survival은 60초(또는 `Config.TimeLimit.Survival`)간 평평한 바닥에 서 있으면 생존 통과, Final은 90초에 연장전이 걸리고 `Config.Final.CollapseDuration`초 뒤 바닥이 사라져 떨어지고 그 전까지 버틴(마지막까지 남은) 사람이 우승. Output에 에러 없음. **확인 뒤 `forceMapPlan`을 nil로 되돌린다.**
@@ -73,3 +73,27 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-09 · developer
+- **바뀐 파일**
+  - 새 파일 6개(기존 3개 껍데기 패턴 그대로, 머리 주석에 m5-13 → m5-1X, 원안 번호 명시):
+    - `src/shared/maps/BouncyCastleMaze.luau` (Race, `DessertFridge` 패턴 — 바닥+스폰24+FinishLine)
+    - `src/shared/maps/LanternBridge.luau` (Race, `DessertFridge` 패턴)
+    - `src/shared/maps/GiantJenga.luau` (Survival, `TempuraPot` 패턴 — 바닥+스폰24, 낙하만)
+    - `src/shared/maps/CatCafeShelves.luau` (Survival, `TempuraPot` 패턴)
+    - `src/shared/maps/TugOfWarPlatform.luau` (Final, `IkuraBombs` 패턴 — 접시+스폰24+낙하+overtime)
+    - `src/shared/maps/ClawMachinePrize.luau` (Final, `IkuraBombs` 패턴)
+  - 공용: `src/shared/maps/init.luau` — `ALL`에 6개 `require(script.<모듈>)` 추가(주석 "m5-13 껍데기 → m5-1X", `inPool = false`).
+  - 테스트:
+    - `tests/m5-03-foundation.spec.luau` — `SHELLS` 목록에 신규 6개 추가, AC1 테스트의 `expected` 표·개수(9→15)에 6개 추가하고 `tug-of-war-platform`·`claw-machine-prize`의 `overtime` 함수 단언 추가, AC2 테스트 제목·개수(9→15), `buildRoundPlan` 1,000회 테스트의 하드코딩 `shell` 표를 `SHELLS`에서 생성하도록 바꿈(기존 숫자만 맞추고 m5-03 의도는 그대로).
+    - `tests/maps.spec.luau` — `Rules` require 추가, 신규 테스트 2개: "m5-13 AC3: 신규 맵 6개 전부 Maps.get으로 조회돼요", "m5-13 AC4: resolveForcedPlan이 신규 맵도 그 순서대로". "맵 풀 6개가 모두 validate를 통과해요"는 스펙 지시대로 숫자(6) 그대로 안 건드림.
+  - `docs/specs/m5-13-map-expansion-foundation.md` — status만 in-dev → in-qa (이 메모 포함).
+- **AC 구현 매핑**: AC1(overtime 검사)·AC2(infos 6/allInfos 15)는 `tests/m5-03-foundation.spec.luau`, AC3(Maps.get)·AC4(resolveForcedPlan 순서)는 `tests/maps.spec.luau`에 새로 추가, AC5(buildRoundPlan 1,000회 신규 제외)는 기존 AC2 테스트 재사용(shell 표 확장), AC6은 아래 검증 결과.
+- **검증 5단계** — 전부 통과:
+  1. `rojo build -o build.rbxl` 통과
+  2. `stylua --check src tests` 통과 (최초 `tests/maps.spec.luau` 긴 줄 2곳을 `stylua src tests`로 자동 재포맷 후 통과)
+  3. `selene src` 0 errors / 0 warnings
+  4. `lune run tests` 1135 passed, 0 failed (`maps.spec.luau` 13개, `m5-03-foundation.spec.luau` 31개 포함)
+  5. `luau-lsp analyze` 종료 코드 0
+- **Studio 확인 (AC7·AC8, 사용자용)**: `docs/DEV-SETUP.md`의 디버그 설정 안내를 따라 `Config.DEBUG.forceMapPlan = { "bouncy-castle-maze", "giant-jenga", "tug-of-war-platform" }`로 Play Solo 한 판을 끝까지 돌려서 Race 결승선 통과·Survival 생존 통과·Final 연장전(90초 → `Config.Final.CollapseDuration` 뒤 접시 사라짐 → 버틴 사람 우승)을 확인하고, Output에 에러가 없는지 본 뒤 `forceMapPlan`을 다시 `nil`로 되돌려 주세요. 이어서 Play Solo로 로비에 들어가 평소와 똑같이 보이는지(새 맵 티가 안 남) 확인해 주세요. 이 worktree에서는 Studio를 돌리지 못해 AC7·AC8은 직접 확인하지 못했습니다.
+- **남은 이슈 / 막힌 점**: 없음. 6개 전부 회색 껍데기로 끝까지 한 판이 돌아가는 구조만 갖췄고(기존 3개 껍데기와 동일 보장), 실제 기믹은 각 맵 스펙(m5-14~m5-19)이 전부 덮어쓸 예정이라 치수·외형은 의도적으로 가볍게만 둠.
+- **worktree**: `/Users/rubinjang/sushi/sushi-survival-race/.claude/worktrees/agent-adc34d787c5bacd97` (브랜치 `worktree-agent-adc34d787c5bacd97`). 메인 세션이 머지·push하면 되고, 이 worktree에서 별도로 push할 필요는 없다고 안내받음.

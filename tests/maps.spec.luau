@@ -9,6 +9,7 @@ local Config = RobloxRequire.require(Shared.Config)
 local Maps = RobloxRequire.require(Shared.maps)
 local MapTypes = RobloxRequire.require(Shared.maps.MapTypes)
 local RotatingBelt = RobloxRequire.require(Shared.maps.RotatingBelt)
+local Rules = RobloxRequire.require(Shared.Rules)
 
 local function validMap(): { [string]: any }
 	return {
@@ -150,6 +151,37 @@ return function(t: Test.Test)
 				t.eq(map.displayName, want.displayName, `{want.id} displayName`)
 				t.eq(map.rule, want.rule, `{want.id} rule`)
 			end
+		end
+	)
+
+	t.test("m5-13 AC3: 신규 맵 6개 전부 Maps.get으로 조회돼요(에러 없이 MapModule)", function()
+		for _, id in
+			{
+				"bouncy-castle-maze",
+				"lantern-bridge",
+				"giant-jenga",
+				"cat-cafe-shelves",
+				"tug-of-war-platform",
+				"claw-machine-prize",
+			}
+		do
+			local map = Maps.get(id)
+			t.eq(map.id, id)
+			t.eq(MapTypes.validate(map), nil, id)
+		end
+	end)
+
+	t.test(
+		"m5-13 AC4: resolveForcedPlan이 신규 맵도 그 순서대로 라운드 플랜으로 돌려줘요",
+		function()
+			local plan, problem =
+				Rules.resolveForcedPlan({ "lantern-bridge", "giant-jenga", "claw-machine-prize" }, Maps.allInfos())
+			t.eq(problem, nil)
+			t.eq(plan, {
+				{ id = "lantern-bridge", kind = "Race" },
+				{ id = "giant-jenga", kind = "Survival" },
+				{ id = "claw-machine-prize", kind = "Final" },
+			})
 		end
 	)
 

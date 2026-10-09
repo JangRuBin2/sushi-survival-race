@@ -25,7 +25,17 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
-local SHELLS = { "ikura-bombs", "tempura-pot", "dessert-fridge" }
+local SHELLS = {
+	"ikura-bombs",
+	"tempura-pot",
+	"dessert-fridge",
+	"bouncy-castle-maze",
+	"lantern-bridge",
+	"giant-jenga",
+	"cat-cafe-shelves",
+	"tug-of-war-platform",
+	"claw-machine-prize",
+}
 
 local function fakeRng(seed: number)
 	local state = seed
@@ -83,7 +93,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 9개 전부 validate 통과, 껍데기 3개는 스펙 표 그대로 + inPool = false", function()
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 9개는 스펙 표 그대로 + inPool = false", function()
 		local expected = {
 			["ikura-bombs"] = {
 				"Final",
@@ -100,8 +110,38 @@ return function(t: Test.Test)
 				"디저트 냉장고",
 				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
 			},
+			["bouncy-castle-maze"] = {
+				"Race",
+				"방방 미로",
+				"말랑한 바닥 위를 튕기며 미로를 빠져나가요.",
+			},
+			["lantern-bridge"] = {
+				"Race",
+				"등불 다리 건너기",
+				"흔들리는 다리와 종이 등불 사이를 건너요.",
+			},
+			["giant-jenga"] = {
+				"Survival",
+				"와르르 나무 블록",
+				"흔들리는 블록탑 위에서 안 떨어지게 버텨요.",
+			},
+			["cat-cafe-shelves"] = {
+				"Survival",
+				"고양이 카페 캣타워",
+				"흔들리는 캣타워 선반 위에서 버텨요.",
+			},
+			["tug-of-war-platform"] = {
+				"Final",
+				"줄다리기 발판",
+				"발판이 기울며 한쪽 끝으로 미끄러져요.",
+			},
+			["claw-machine-prize"] = {
+				"Final",
+				"인형뽑기 기계 속",
+				"집게가 훑고 지나가는 유리 상자 안에서 버텨요.",
+			},
 		}
-		t.eq(#Maps.allInfos(), 9)
+		t.eq(#Maps.allInfos(), 15)
 		for _, info in Maps.allInfos() do
 			local map = Maps.get(info.id)
 			t.eq(MapTypes.validate(map), nil, info.id)
@@ -116,10 +156,12 @@ return function(t: Test.Test)
 			end
 		end
 		t.eq(type(Maps.get("ikura-bombs").overtime), "function")
+		t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
+		t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 9개", function()
+	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
 		local ids = {}
 		for _, info in Maps.infos() do
 			ids[info.id] = true
@@ -152,7 +194,10 @@ return function(t: Test.Test)
 	end)
 
 	t.test("AC2: buildRoundPlan을 1,000번 돌려도 껍데기가 안 나와요", function()
-		local shell = { ["ikura-bombs"] = true, ["tempura-pot"] = true, ["dessert-fridge"] = true }
+		local shell = {}
+		for _, id in SHELLS do
+			shell[id] = true
+		end
 		for seed = 1, 1000 do
 			local roundCount = if seed % 2 == 0 then 3 else 4
 			local plan = Rules.buildRoundPlan(roundCount, Maps.infos(), fakeRng(seed))

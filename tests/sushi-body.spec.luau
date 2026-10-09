@@ -1,5 +1,7 @@
 --!strict
--- m3-02 계란초밥 몸 (SushiBody.layout / bounds)
+-- m3-02 계란초밥 몸 (SushiBody.layout / bounds), m5-21: Wedge·효과 예산·박스 허용치 테이블
+
+local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
@@ -93,4 +95,55 @@ return function(t: Test.Test)
 		t.eq(second[1].name, "Body")
 		t.ok(second[1].size[1] ~= 999, "size copied")
 	end)
+
+	---------------------------------------------------------------- m5-21 Wedge
+	t.test(
+		"AC1: Wedge spec의 bounds는 같은 size·offset·rotation의 Block spec과 같아요 (회전 없음 + 90도)",
+		function()
+			local wedge = {
+				name = "W",
+				size = { 1, 2, 3 },
+				color = { 0, 0, 0 },
+				material = "SmoothPlastic",
+				offset = { 0.5, -0.25, 1 },
+				shape = "Wedge",
+			}
+			local block = table.clone(wedge)
+			block.shape = "Block"
+			local bw = SushiBody.bounds({ wedge } :: any)
+			local bb = SushiBody.bounds({ block } :: any)
+			for axis = 1, 3 do
+				t.eq(bw.min[axis], bb.min[axis], `min axis {axis}`)
+				t.eq(bw.max[axis], bb.max[axis], `max axis {axis}`)
+			end
+
+			local wedgeRotated = table.clone(wedge)
+			wedgeRotated.rotation = { 0, 90, 0 }
+			local blockRotated = table.clone(block)
+			blockRotated.rotation = { 0, 90, 0 }
+			local bwr = SushiBody.bounds({ wedgeRotated } :: any)
+			local bbr = SushiBody.bounds({ blockRotated } :: any)
+			for axis = 1, 3 do
+				t.eq(bwr.min[axis], bbr.min[axis], `rotated min axis {axis}`)
+				t.eq(bwr.max[axis], bbr.max[axis], `rotated max axis {axis}`)
+			end
+		end
+	)
+
+	---------------------------------------------------------------- m5-21 효과 예산·박스 허용치 테이블
+	t.test(
+		"AC3: EFFECT_BUDGET·BOUNDS_TOLERANCE 값이 맞고 SushiBody는 아무것도 require하지 않아요",
+		function()
+			t.eq(SushiBody.EFFECT_BUDGET.Common, 1)
+			t.eq(SushiBody.EFFECT_BUDGET.Rare, 1)
+			t.eq(SushiBody.EFFECT_BUDGET.Epic, 2)
+			t.eq(SushiBody.EFFECT_BUDGET.Legendary, 2)
+			t.eq(SushiBody.BOUNDS_TOLERANCE.Common, 0.15)
+			t.eq(SushiBody.BOUNDS_TOLERANCE.Rare, 0.15)
+			t.eq(SushiBody.BOUNDS_TOLERANCE.Epic, 0.25)
+			t.eq(SushiBody.BOUNDS_TOLERANCE.Legendary, 0.25)
+			local source = fs.readFile("src/shared/SushiBody.luau")
+			t.ok(string.find(source, "require(", 1, true) == nil, "SushiBody should not require anything")
+		end
+	)
 end

@@ -155,6 +155,38 @@ return function(t: Test.Test)
 		t.ok(string.find(table.concat(problems2, ";"), "default skin", 1, true) ~= nil)
 	end)
 
+	t.test(
+		"AC6(m5-21): validate가 효과 예산 초과를 잡아요 (실제 레이아웃을 가진 id, tier만 낮춰 예산 초과)",
+		function()
+			local fake: { any } = {}
+			for _, skin in Skins.LIST do
+				table.insert(fake, skin)
+			end
+			local index: number? = nil
+			for i, skin in fake do
+				if skin.id == "aburi-salmon" then
+					index = i
+				end
+			end
+			t.ok(index ~= nil, "aburi-salmon found in catalog")
+			local overridden = table.clone(fake[index :: number])
+			overridden.tier = "Basic" -- EFFECT_BUDGET.Basic == 0, aburi-salmon layout has 1 effect
+			fake[index :: number] = overridden
+			local ok, problems = Skins.validate(fake :: any)
+			t.eq(ok, false)
+			local text = table.concat(problems, "\n")
+			t.ok(string.find(text, "effect budget exceeded", 1, true) ~= nil, text)
+		end
+	)
+
+	t.test(
+		"AC6(m5-21): 실제 카탈로그는 여전히 통과해요 (새 예산·허용치를 전부 지켜요)",
+		function()
+			local ok, problems = Skins.validate(Skins.LIST)
+			t.ok(ok, table.concat(problems, "; "))
+		end
+	)
+
 	t.test("forProduct: 상품 id → 그 스킨, 모르는 id·문자열은 nil (m4-14)", function()
 		t.eq(Skins.forProduct(-1), nil)
 		for _, skin in Skins.LIST do
@@ -197,35 +229,101 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("AC2: 외곽 상자가 계란초밥 외곽의 ±15% 안 (폭·높이·두께)", function()
-		local base = extents(SushiBody.layout("tamago"))
-		for _, skin in Skins.LIST do
-			local size = extents(SushiBody.layout(skin.id))
-			for axis = 1, 3 do
-				local ratio = size[axis] / base[axis]
-				t.ok(
-					ratio >= 1 - TOLERANCE and ratio <= 1 + TOLERANCE,
-					`{skin.id} axis {axis}: {size[axis]} vs {base[axis]} ({ratio})`
-				)
-			end
-		end
-	end)
-
-	t.test("AC2: 효과(불꽃·반짝이)는 스킨당 1개 이하, 계획한 스킨에만", function()
-		local withEffect = { ["aburi-salmon"] = "Fire", ["golden-otoro"] = "Sparkles", ["diamond-uni"] = "Sparkles" }
-		for _, skin in Skins.LIST do
-			local layout = SushiBody.layout(skin.id)
-			local count = SushiBody.effectCount(layout)
-			t.ok(count <= 1, `{skin.id} effects {count}`)
-			local expected = withEffect[skin.id]
-			t.eq(count, if expected then 1 else 0, skin.id)
-			for _, spec in layout do
-				if spec.effect then
-					t.eq(spec.effect, expected, skin.id)
+	t.test(
+		"AC2·AC5(m5-21): 외곽 상자가 등급별 허용치 안 (일반·레어 ±15%, 에픽·전설 ±25%)",
+		function()
+			local base = extents(SushiBody.layout("tamago"))
+			for _, skin in Skins.LIST do
+				local size = extents(SushiBody.layout(skin.id))
+				local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier] or TOLERANCE
+				for axis = 1, 3 do
+					local ratio = size[axis] / base[axis]
+					t.ok(
+						ratio >= 1 - tolerance and ratio <= 1 + tolerance,
+						`{skin.id} axis {axis}: {size[axis]} vs {base[axis]} ({ratio}, tolerance {tolerance})`
+					)
 				end
 			end
 		end
-	end)
+	)
+
+	t.test(
+		"AC5(m5-21): 박스 허용치 - 높이 +20%는 에픽·전설만 통과, 일반·레어는 허용치 초과",
+		function()
+			local base = extents(SushiBody.layout("tamago"))
+			local wideLayout = {
+				{
+					name = "Body",
+					size = { base[1], base[2] * 1.2, base[3] },
+					color = { 0, 0, 0 },
+					material = "SmoothPlastic",
+					offset = { 0, 0, 0 },
+				},
+			}
+			local wideExtents = extents(wideLayout :: any)
+			local ratio = wideExtents[2] / base[2]
+			t.ok(math.abs(ratio - 1.2) < 1e-6, `ratio {ratio}`)
+			for _, tier in { "Epic", "Legendary" } do
+				local tolerance = SushiBody.BOUNDS_TOLERANCE[tier]
+				t.ok(ratio <= 1 + tolerance, `{tier} should allow +20%`)
+			end
+			for _, tier in { "Common", "Rare" } do
+				local tolerance = SushiBody.BOUNDS_TOLERANCE[tier]
+				t.ok(ratio > 1 + tolerance, `{tier} should reject +20%`)
+			end
+		end
+	)
+
+	t.test(
+		"AC2: 효과(불꽃·반짝이)는 등급별 예산 이하, 계획한 스킨에만 (m5-21: 예산표로 확인)",
+		function()
+			local withEffect =
+				{ ["aburi-salmon"] = "Fire", ["golden-otoro"] = "Sparkles", ["diamond-uni"] = "Sparkles" }
+			for _, skin in Skins.LIST do
+				local layout = SushiBody.layout(skin.id)
+				local count = SushiBody.effectCount(layout)
+				local budget = SushiBody.EFFECT_BUDGET[skin.tier]
+				t.ok(budget == nil or count <= budget, `{skin.id} effects {count} over budget {budget}`)
+				local expected = withEffect[skin.id]
+				t.eq(count, if expected then 1 else 0, skin.id)
+				for _, spec in layout do
+					if spec.effect then
+						t.eq(spec.effect, expected, skin.id)
+					end
+				end
+			end
+		end
+	)
+
+	t.test(
+		"AC4(m5-21): 효과 예산 - 에픽·전설 2개 통과, 일반·레어 2개는 budget 초과 (가짜 레이아웃, 실제 카탈로그 그대로)",
+		function()
+			local twoEffects = {
+				{
+					name = "A",
+					size = { 0.2, 0.2, 0.2 },
+					color = { 0, 0, 0 },
+					material = "Neon",
+					offset = { 0, 0, 0 },
+					effect = "Fire",
+				},
+				{
+					name = "B",
+					size = { 0.2, 0.2, 0.2 },
+					color = { 0, 0, 0 },
+					material = "Neon",
+					offset = { 0, 0, 0 },
+					effect = "Sparkles",
+				},
+			}
+			local count = SushiBody.effectCount(twoEffects :: any)
+			t.eq(count, 2)
+			t.ok(count <= SushiBody.EFFECT_BUDGET.Epic, "epic budget allows 2")
+			t.ok(count <= SushiBody.EFFECT_BUDGET.Legendary, "legendary budget allows 2")
+			t.ok(count > SushiBody.EFFECT_BUDGET.Common, "common budget is exceeded by 2")
+			t.ok(count > SushiBody.EFFECT_BUDGET.Rare, "rare budget is exceeded by 2")
+		end
+	)
 
 	t.test(
 		"AC2: 파츠 값이 올바르고(크기 > 0, 색 0~255, Ball은 정육면체) 이름이 겹치지 않아요",
@@ -247,7 +345,11 @@ return function(t: Test.Test)
 						)
 					end
 					t.ok(
-						spec.shape == nil or spec.shape == "Block" or spec.shape == "Ball" or spec.shape == "Cylinder",
+						spec.shape == nil
+							or spec.shape == "Block"
+							or spec.shape == "Ball"
+							or spec.shape == "Cylinder"
+							or spec.shape == "Wedge",
 						`{skin.id} {spec.name} shape`
 					)
 				end

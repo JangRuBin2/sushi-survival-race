@@ -37,6 +37,12 @@ SoySwampArt.COLORS = {
 
 SoySwampArt.SOY_REFLECTANCE = 0.25
 
+-- m5-20 파티클·조명·안개 이름 상수
+SoySwampArt.HILL_RICE = "HillRice"
+SoySwampArt.PUDDLE_BUBBLE = "SoyBubble"
+SoySwampArt.FOG_PANEL = "FogPanel"
+local FOG: RGB = { r = 90, g = 55, b = 30 } -- 간장·나무 톤 갈색-호박색 (m5-20 ③)
+
 local HALF = Layout.WIDTH / 2
 local UP: Vec3 = { x = 0, y = 0, z = 90 } -- Cylinder 축(X)을 세워요
 local WASABI_BUMP = { r = 120, g = 182, b = 56 }
@@ -155,8 +161,38 @@ local function addHills(list: { DecorSpec })
 			)
 		end
 		-- 꼭대기 밥알 눈
-		part(list, "HillRice", "Ball", v(5, 5, 5), WHITE, "Sand", v(side * (HALF + 3.75), 20.5, centerZ))
+		part(list, SoySwampArt.HILL_RICE, "Ball", v(5, 5, 5), WHITE, "Sand", v(side * (HALF + 3.75), 20.5, centerZ))
 	end
+end
+
+-- 간장 웅덩이마다 표면 보글거림 파티클이 붙을 투명 앵커 (m5-20 ①)
+local function addPuddleBubbles(list: { DecorSpec })
+	local top = 0.1 + Layout.PUDDLE_DEPTH
+	for _, box in Layout.PUDDLES do
+		part(
+			list,
+			SoySwampArt.PUDDLE_BUBBLE,
+			"Block",
+			v(0.4, 0.05, 0.4),
+			P.Soy,
+			"SmoothPlastic",
+			v(box.x, top + 0.03, box.z)
+		)
+	end
+end
+
+-- 맵 바깥 멀리 아주 크고 옅은 반투명 색 패널 (m5-20 ③, 코스 공간과 안 겹치는 자리)
+local function addFogPanels(list: { DecorSpec })
+	local centerZ = (Layout.START.front + Layout.FINISH.back) / 2
+	local totalSpan = Layout.totalLength() + 80
+	local function panel(x: number, z: number, sizeX: number, sizeZ: number)
+		part(list, SoySwampArt.FOG_PANEL, "Block", v(sizeX, 170, sizeZ), FOG, "Glass", v(x, 65, z))
+		list[#list].transparency = 0.9
+	end
+	panel(-80, centerZ, 2, totalSpan)
+	panel(80, centerZ, 2, totalSpan)
+	panel(0, 40, 220, 2)
+	panel(0, Layout.FINISH.back - 40, 220, 2)
 end
 
 -- 날치알 그릇: 내리막 꼭대기 옆(오른쪽 벽 바깥)에서 공이 굴러 나오는 것처럼
@@ -269,6 +305,7 @@ end
 function SoySwampArt.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addPuddleRims(list)
+	addPuddleBubbles(list) -- m5-20 ①
 	addWasabiBumps(list)
 	addHills(list)
 	addTobikoBowl(list)
@@ -277,6 +314,7 @@ function SoySwampArt.decor(): { DecorSpec }
 	addGinger(list)
 	addFinishChecker(list)
 	addLanterns(list)
+	addFogPanels(list) -- m5-20 ③
 	return list
 end
 
@@ -284,6 +322,7 @@ function SoySwampArt.introCamera(): { IntroPoint }
 	return {
 		{ pos = v(0, 16, 4), lookAt = v(0, 2, -30) }, -- 출발 위, 간장 늪
 		{ pos = v(-4, 26, -50), lookAt = v(-4, 6, -72) }, -- 와사비 패드 → 절벽
+		{ pos = v(0, 36, -88), lookAt = v(0, 12, -88) }, -- m5-20 ⑤: 와사비 산 정상 위 반전 샷 (내려다봄)
 		{ pos = v(0, 38, -128), lookAt = v(0, 20, -168) }, -- 날치알 내리막 → 결승
 		{ pos = v(0, 12, 10), lookAt = v(0, 4, -30) }, -- 출발선 뒤 (내 자리)
 	}

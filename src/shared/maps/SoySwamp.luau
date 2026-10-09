@@ -252,8 +252,35 @@ local function build(origin: CFrame): Model
 		Parent = model,
 	})
 
-	-- 아트 (m4-02): 장식은 충돌·쿼리·터치 없음, 손으로 짠 소개 카메라, 사용자 Studio 아트 자리
-	MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))
+	-- 아트 (m4-02, m5-20): 장식은 충돌·쿼리·터치 없음, 손으로 짠 소개 카메라, 사용자 Studio 아트 자리
+	for _, part in MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model)) do
+		if part.Name == Art.HILL_RICE then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(150, 230, 70)
+			light.Brightness = 1
+			light.Range = 20
+			light.Parent = part
+		elseif part.Name == Art.PUDDLE_BUBBLE then
+			local bubble = Instance.new("ParticleEmitter")
+			bubble.Name = "SoyBubbleEmitter"
+			bubble.Color = ColorSequence.new(Color3.fromRGB(70, 40, 20))
+			bubble.LightEmission = 0
+			bubble.Rate = 1
+			bubble.Lifetime = NumberRange.new(2, 3)
+			bubble.Speed = NumberRange.new(0.3, 0.6)
+			bubble.SpreadAngle = Vector2.new(5, 5)
+			bubble.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.2),
+				NumberSequenceKeypoint.new(1, 0.5),
+			})
+			bubble.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.3),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			bubble.EmissionDirection = Enum.NormalId.Top
+			bubble.Parent = part
+		end
+	end
 	MapKit.introCamera(model, Art.introCamera(), origin)
 	MapKit.attachStudioArt(model, ID, origin)
 

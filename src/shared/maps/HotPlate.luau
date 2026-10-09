@@ -11,6 +11,7 @@
 -- 타일 크기·위치·층·탈락 높이·달아오름 시간은 그대로이고, 색·재질만 바뀌어요.
 
 local Art = require(script.Parent.HotPlateArt)
+local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
@@ -40,9 +41,13 @@ end
 
 -- 장식·김·후드 조명·소개 카메라·Studio 아트 (판정과 무관)
 local function buildArt(model: Model, origin: CFrame)
+	local CollectionService = game:GetService("CollectionService")
 	local decor = MapKit.decorFolder(model)
 	for _, part in MapKit.buildDecor(Art.decor(), origin, decor) do
 		part.CastShadow = false -- QA B4: 큰 장식(후드·벽) 그림자가 철판 경고 색을 가리지 않게
+		if part.Name == Art.SAUCE_BOTTLE then
+			CollectionService:AddTag(part, MapDecorTags.Wobble) -- m5-20 ④: 클라이언트가 좌우로 흔들어요
+		end
 		if part.Name == Art.STEAM_VENT then
 			local steam = Instance.new("ParticleEmitter")
 			steam.Name = "Steam"

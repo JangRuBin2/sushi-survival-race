@@ -318,32 +318,35 @@ return function(t: Test.Test)
 	end)
 
 	-- AC6 ---------------------------------------------------------------------------------
-	t.test("AC6: 맵 풀 Race 3 · Survival 2 · Final 1, 새 stub 2개가 validate 통과", function()
-		local byKind: { [string]: { string } } = { Race = {}, Survival = {}, Final = {} }
-		for _, info in Maps.infos() do
-			table.insert(byKind[info.kind], info.id)
-		end
-		for _, list in byKind do
-			table.sort(list)
-		end
-		t.eq(byKind.Race, { "ramen-rapids", "rotating-belt", "soy-swamp" })
-		t.eq(byKind.Survival, { "chef-board", "hot-plate" })
-		t.eq(byKind.Final, { "skewer-showdown" })
+	t.test(
+		"AC6: 맵 풀 Race 4(m5-15 lantern-bridge 포함) · Survival 2 · Final 1, 새 stub 2개가 validate 통과",
+		function()
+			local byKind: { [string]: { string } } = { Race = {}, Survival = {}, Final = {} }
+			for _, info in Maps.infos() do
+				table.insert(byKind[info.kind], info.id)
+			end
+			for _, list in byKind do
+				table.sort(list)
+			end
+			t.eq(byKind.Race, { "lantern-bridge", "ramen-rapids", "rotating-belt", "soy-swamp" })
+			t.eq(byKind.Survival, { "chef-board", "hot-plate" })
+			t.eq(byKind.Final, { "skewer-showdown" })
 
-		local ramen = Maps.get("ramen-rapids")
-		t.eq(MapTypes.validate(ramen), nil)
-		t.eq(ramen.kind, "Race")
-		t.eq(ramen.displayName, "라멘 국물 급류")
-		t.eq(ramen.rule, "국물 급류를 타고 차슈·나루토를 밟아 건너, 결승선까지!")
-		local chef = Maps.get("chef-board")
-		t.eq(MapTypes.validate(chef), nil)
-		t.eq(chef.kind, "Survival")
-		t.eq(chef.displayName, "셰프의 도마")
-		t.eq(
-			chef.rule,
-			"칼이 내려치는 줄을 피하고, 잘려 나가는 도마 위에서 끝까지 버티세요!"
-		)
-	end)
+			local ramen = Maps.get("ramen-rapids")
+			t.eq(MapTypes.validate(ramen), nil)
+			t.eq(ramen.kind, "Race")
+			t.eq(ramen.displayName, "라멘 국물 급류")
+			t.eq(ramen.rule, "국물 급류를 타고 차슈·나루토를 밟아 건너, 결승선까지!")
+			local chef = Maps.get("chef-board")
+			t.eq(MapTypes.validate(chef), nil)
+			t.eq(chef.kind, "Survival")
+			t.eq(chef.displayName, "셰프의 도마")
+			t.eq(
+				chef.rule,
+				"칼이 내려치는 줄을 피하고, 잘려 나가는 도마 위에서 끝까지 버티세요!"
+			)
+		end
+	)
 
 	t.test("AC6: 4라운드 구성 시드 1~500 — 중복 0, Survival 1~2번", function()
 		for seed = 1, 500 do

@@ -25,12 +25,12 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
+-- lantern-bridge는 m5-15가 inPool = true로 바꿔서 더 이상 껍데기가 아니에요 (shells 밖에서 검사해요)
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
 	"dessert-fridge",
 	"bouncy-castle-maze",
-	"lantern-bridge",
 	"giant-jenga",
 	"cat-cafe-shelves",
 	"tug-of-war-platform",
@@ -93,7 +93,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 9개는 스펙 표 그대로 + inPool = false", function()
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
 		local expected = {
 			["ikura-bombs"] = {
 				"Final",
@@ -114,11 +114,6 @@ return function(t: Test.Test)
 				"Race",
 				"방방 미로",
 				"말랑한 바닥 위를 튕기며 미로를 빠져나가요.",
-			},
-			["lantern-bridge"] = {
-				"Race",
-				"등불 다리 건너기",
-				"흔들리는 다리와 종이 등불 사이를 건너요.",
 			},
 			["giant-jenga"] = {
 				"Survival",
@@ -161,12 +156,12 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
+	t.test("AC2: infos()는 7개(껍데기 없음, m5-15 lantern-bridge 포함), allInfos()는 15개", function()
 		local ids = {}
 		for _, info in Maps.infos() do
 			ids[info.id] = true
 		end
-		t.eq(#Maps.infos(), 6)
+		t.eq(#Maps.infos(), 7)
 		for _, id in SHELLS do
 			t.ok(not ids[id], `{id} not in random pool`)
 		end

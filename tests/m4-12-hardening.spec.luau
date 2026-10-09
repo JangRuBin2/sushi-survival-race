@@ -257,9 +257,10 @@ return function(t: Test.Test)
 		{ "soy-swamp", "ramen-rapids", "chef-board", "skewer-showdown" },
 		{ "bouncy-castle-maze", "soy-swamp", "skewer-showdown" },
 		{ "lantern-bridge", "rotating-belt", "soy-swamp", "skewer-showdown" }, -- m5-15
+		{ "rotating-belt", "soy-swamp", "tug-of-war-platform" }, -- m5-18
 	}
 
-	t.test("연속 플랜 6개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()
+	t.test("연속 플랜 7개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()
 		local seen: { [string]: boolean } = {}
 		for n, ids in FORCED_PLANS do
 			local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())

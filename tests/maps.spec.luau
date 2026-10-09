@@ -77,13 +77,13 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(race), "TestMap: overtime must be a function")
 	end)
 
-	t.test("m5-01 AC7: 맵 풀 6개가 모두 validate를 통과해요", function()
+	t.test("m5-01 AC7: 맵 풀(m5-14 bouncy-castle-maze 합류 뒤 7개)이 모두 validate를 통과해요", function()
 		local count = 0
 		for _, info in Maps.infos() do
 			t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
 			count += 1
 		end
-		t.eq(count, 6)
+		t.eq(count, 7)
 	end)
 
 	t.test("RotatingBelt: MapModule 인터페이스를 지키고 Race 맵이에요", function()

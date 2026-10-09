@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-14 — 새 Race 맵: 방방 미로 (`bouncy-castle-maze`)
@@ -91,3 +91,35 @@ CLAUDE.md "이동 감시 면제" 기준(연속 밀기엔 안 달고, 순간 튕�
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 바뀐 파일 (2026-10-09, developer)
+- `src/shared/maps/BouncyCastleMaze.luau` — 껍데기를 덮어씀: 바닥 4장(A 일반/B+C BounceFloor 한 장/D 일반/E 일반), 양옆·출발·끝 벽, 칸막이 3개(색 다름), 입구 문(열린 쪽은 생략), 스폰 24개, 결승선, 바운스 레이캐스트 스테퍼(`bounceStepper`), 소개 카메라·Studio 아트 연결. `inPool = false` 줄 삭제(풀에 합류).
+- `src/shared/maps/BouncyCastleMazeLayout.luau` (신규) — 코스 치수(구간 Span 5개), 레인·칸막이·관문·바깥 벽 데이터(`PARTITIONS`·`GATE`·`BOUNDS`), 바운스 상수(`BOUNCE_UP_SPEED` 55·`BOUNCE_HOLD` 0.08·`BOUNCE_COOLDOWN` 0.45·`BOUNCE_EXEMPT` 0.8·`BOUNCE_RAYCAST_LENGTH` 3.5), 스폰 24개 격자.
+- `src/shared/maps/BouncyCastleMazeLogic.luau` (신규) — 순수 계산: `blockedAt`(미로 격자 판정), `bounceProfile`(포물선 apex·flightTime), `fallLineAt`(상수 -40).
+- `src/shared/maps/BouncyCastleMazeArt.luau` (신규) — 판정 파츠 색(COLORS), 장식(체크무늬 바닥·입구 문 줄무늬·풍선·깃발·공기 주입구·유원지 조명 6개·결승 체크무늬), 소개 카메라 4점.
+- `tests/map-bouncy-castle-maze.spec.luau` (신규) — AC1~AC7 순수 테스트(23개 어서션 묶음): 스폰 격자, 구간 순서·진행도·fallLineAt, 1 stud 격자 플러드필(미로 길 연결성 + 가장 좁은 통과 폭 ≥8, 입구 문이 지름길을 막는지), bounceProfile 수치, 쿨다운/면제 부등식, 아트 예산.
+- `src/shared/SfxCues.luau`, `src/shared/SfxLibrary.luau` — 새 cue `BounceBoing` 추가(기본 무음, `sfx(nil, 0.7)`). m5-13이 cue 이름을 미리 확정해 두지 않아서(확인해 보니 실제로는 안 됨) 이 스펙에서 기존 `WasabiBoing` 패턴대로 새로 만듦.
+- 기존 테스트 수정(맵 1개가 풀에 합류하면서 하드코딩된 개수·목록이 달라짐): `tests/maps.spec.luau`(풀 6→7개), `tests/m5-03-foundation.spec.luau`(SHELLS 9→8개, `infos()` 6→7개), `tests/m4-foundation.spec.luau`(Race 3→4개), `tests/m4-12-hardening.spec.luau`(강제 플랜 5개 중 하나에 `bouncy-castle-maze` 포함), `tests/camera-priority.spec.luau`(SfxCues 확정 목록에 `BounceBoing` 추가).
+
+### 결정 기록에 대한 메모
+결정 기록 D1~D4는 전부 "기본값으로 진행"이라 적혀 있어서 그대로 구현했다. 수치(위 속도 55, 쿨다운 0.45, 벽 높이 14 등)는 스펙 그대로 썼다.
+
+### Studio 확인 (AC9~AC16, 사용자용)
+`Config.DEBUG.forceMapPlan = { "rotating-belt", "bouncy-castle-maze", "hot-plate" }`로 Play Solo(또는 Clients and Servers 2명)를 돌려서:
+1. B·C 구간(대기실·미로) 바닥에 서면 멈추지 않고 계속 위아래로 튕기는지, A·D·E 구간에서는 안 튕기는지 (AC9)
+2. 튕기는 동안 WASD로 방향을 바꿔 칸막이 틈으로 들어갈 수 있는지, 칸막이를 점프로 뛰어넘을 수 없는지 (AC10)
+3. 대기실에서 1번 레인(왼쪽)을 거치지 않고 2·3·4번 레인으로 바로 들어갈 수 없는지 — 빨간 줄무늬 문에 막히는지 (AC11)
+4. 미로 바깥(칸막이·벽 너머)으로 떨어지면 1초 안에 탈락 연출이 나오는지 (AC12)
+5. Clients and Servers 2명으로 동시에 튕겨도 서로 어긋나지 않고 Output에 이동 감시(`[MovementGuard]` 등) 로그가 안 생기는지 (AC13)
+6. 휴대폰 에뮬레이터(View > Device Emulation)에서 튕기는 동안 점프·다이브 버튼이 정상 동작하는지 (AC14)
+7. 혼자 60~90초 안에 완주되는지, 체감(AC15, 수치 조정은 Layout·Logic 상수만 고치면 됨)
+8. 이 맵이 끝난 뒤(다음 맵 hot-plate) 이동이 평소와 같은지, 바운스가 안 남는지 (AC16)
+확인 뒤 **`forceMapPlan`을 반드시 `nil`로 되돌린다.**
+이 worktree에서는 Studio를 돌릴 수 없어 AC9~AC16은 직접 확인하지 못했다(순수 로직 테스트 AC1~AC8만 통과 확인).
+
+### 검증 결과
+`rojo build` · `stylua --check` · `selene` · `lune run tests`(1163 passed, 0 failed) · `luau-lsp analyze`(exit 0) 전부 통과.
+
+### 남은 이슈
+- Studio 확인(AC9~AC16) 전체가 사용자 몫 (위 목록).
+- 바운스 효과음(`BounceBoing`)은 아직 무음 — 사용자가 Creator Store에서 id를 고르면 `docs/USER-TODO.md` A2에 추가될 것(이 developer는 `docs/`를 읽기만 함, 추가는 docs-writer 몫).

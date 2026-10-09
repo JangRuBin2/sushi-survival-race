@@ -87,6 +87,7 @@ SfxLibrary.Entries = {
 	OilSplash = sfx(nil, 0.7), -- 튀는 기름 (m5-05)
 	FanGust = sfx(nil, 0.6), -- 송풍구 (m5-06)
 	JellyBoing = sfx(nil, 0.8), -- 젤리 (m5-06)
+	BounceBoing = sfx(nil, 0.7), -- 방방 미로 바운스 (m5-14)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

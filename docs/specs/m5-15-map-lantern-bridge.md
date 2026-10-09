@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-15 — 새 Race 맵: 등불 다리 건너기 (`lantern-bridge`)
@@ -84,6 +84,25 @@ status: ready
 - 2026-10-09 · 다리가 기운 동안의 미는 힘은 `ChefBoard` 기울기와 같은 분류(연속 밀기) → `MoveExempt` 안 닮 · planner
 - 2026-10-09 · 판정 지오메트리는 처지지 않는 평평한 판으로 단순화(처짐은 장식 수준에서도 생략), 장식(등불·난간·도리이)으로 분위기를 냄 · **기본값, 수정 가능** · planner
 - 2026-10-09 · `inPool`을 이 스펙에서 `true`로 전환(m5-13 머지 후 실제 값 확인 필요 — 개발 메모에 기록) · planner
+- 2026-10-09 · `SfxCues`에 다리 흔들림/발소리에 맞는 cue가 없어서(기존 효과음 중 재사용할 만한 것도 없음) 새 cue는 만들지 않고 소리 없이 둠(GDD 범위 밖, 스펙 §4 "결정 기록에 적어 사용자에게 알린다"). 다리 흔들림·건너는 느낌에 맞는 효과음(삐걱임, 발소리 등)이 필요하면 사용자가 알려주면 planner가 `SfxCues`에 cue를 추가하는 별도 스펙으로 처리 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 바뀐 파일
+- `src/shared/maps/LanternBridgeLayout.luau` (새 파일) — 치수 표: 구간(출발·다리4·쉼터3·결승), 다리별 `width`/`halfWidth`/`length`/`maxSwayDeg`/`phase`, 흔들림·미는 힘 상수, 스폰 24개(5x5 격자 중 1칸 버림, 칸 사이 3 studs), `sections()`/`totalLength()`/`finishLineZ()`.
+- `src/shared/maps/LanternBridgeLogic.luau` (새 파일) — `swayAmplitudeDeg`, `swayAngle`, `pushSpeedFor`, `pushDelta`, `isOffPlank`, `fallLineAt`, `progress`/`finishProgress`, `bridgeAt`, `fallRisk`. Roblox API 없음.
+- `src/shared/maps/LanternBridgeArt.luau` (새 파일) — 도리이 입구, 다리별 난간 밧줄 + 종이 등불(왼쪽 3개만 `PointLight` = 다리4 x 3 = 12개, 조명 예산과 정확히 일치), 쉼터 담장 + 석등, 결승 작은 문, 소개 카메라 4점.
+- `src/shared/maps/LanternBridge.luau` (덮어씀) — m5-13 회색 껍데기 → 실제 맵. `build`가 출발/다리4/쉼터3/결승 바닥 + 스폰 + 장식을 짓고, `start`가 Heartbeat마다 (1) 다리별 인원 집계 → (2) `LanternBridgePlank` 태그 파츠 CFrame 갱신(roll) → (3) 결승선 통과/낙하 판정 → (4) 기운 쪽으로 미는 힘(연속 밀기, `MoveExempt` 안 닮) 순서로 처리. `id`/`kind`/`displayName`/`rule`은 m5-13 값 그대로, `inPool`만 `false → true`.
+- `tests/map-lantern-bridge.spec.luau` (새 파일) — AC1~AC10 + `bridgeAt` 경계 검사, 13개 테스트.
+- `tests/maps.spec.luau`, `tests/m4-foundation.spec.luau`, `tests/m4-12-hardening.spec.luau`, `tests/m5-03-foundation.spec.luau` — `lantern-bridge`가 `inPool = true`로 바뀌면서 맵 풀 개수(6→7)·Race 목록·강제 플랜 커버리지를 가정하던 기존 테스트들을 갱신(이 맵이 더 이상 "껍데기"가 아님을 반영). 로직·판정은 안 바꾸고 그 맵이 들어간 걸 반영하는 숫자/목록만 고쳤어요.
+
+### 수치 설계 메모 (AC4 성립 이유)
+다리1~4 `(maxSwayDeg, halfWidth)` = `(8,4) (6,3) (5.5,2) (10,4)`. "위험도" = `진폭/halfWidth`가 포화값 기준 다리3(5.5/2=2.75)이 다리1·2·4(2.0, 2.0, 2.5)보다 항상 커서, 리더 수 0~24 전 구간에서 `fallRisk`가 다리3에서 가장 크다는 걸 수학적으로 확인하고 `tests/map-lantern-bridge.spec.luau` AC4에서 0~24명 전부 반복 검증함.
+
+### Studio 확인 방법
+`Config.DEBUG.forceMapPlan = { "lantern-bridge", "hot-plate", "soy-swamp", "skewer-showdown" }`로 스펙 AC12~AC19 그대로 확인 (혼자 완주, 2인 이상 같은 다리 몰림 vs 다른 다리 분산, 다리3 아슬아슬함 vs 다리4 여유, 다리 밖 낙하·결승 통과, 2개 방 동시 진행, 장식 예산·소개 카메라, 휴대폰 UI, 마지막으로 `forceMapPlan` 없이 방을 여러 번 만들어 이 맵이 로테이션에 실제로 나오는지).
+
+### 남은 이슈
+- 다리 흔들림/건너는 소리에 맞는 cue가 없어서 현재 무음(결정 기록 참고). 사용자가 소리를 고르면 별도 스펙으로 `SfxCues`에 추가.
+- AC14(난이도 체감)는 Studio 플레이테스트로 사용자가 확인 필요 — 수치는 전부 `LanternBridgeLayout` 기본값이라 바꾸기 쉬움.

@@ -249,10 +249,10 @@ return function(t: Test.Test)
 		return played, RoundLogic.standingsList(standings), winner, rounds
 	end
 
-	-- Studio 연속 5판 확인과 같은 강제 플랜 (풀의 맵이 모두 한 번 이상, 마지막은 결승)
+	-- Studio 연속 플랜 확인과 같은 강제 플랜 (풀의 맵이 모두 한 번 이상, 마지막은 결승)
 	local FORCED_PLANS = {
 		{ "rotating-belt", "giant-jenga", "hot-plate", "skewer-showdown" },
-		{ "soy-swamp", "chef-board", "skewer-showdown" },
+		{ "soy-swamp", "cat-cafe-shelves", "chef-board", "skewer-showdown" },
 		{ "ramen-rapids", "hot-plate", "rotating-belt", "skewer-showdown" },
 		{ "soy-swamp", "ramen-rapids", "chef-board", "skewer-showdown" },
 		{ "bouncy-castle-maze", "soy-swamp", "skewer-showdown" },

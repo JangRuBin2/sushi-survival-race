@@ -89,6 +89,9 @@ SfxLibrary.Entries = {
 	JellyBoing = sfx(nil, 0.8), -- 젤리 (m5-06)
 	BounceBoing = sfx(nil, 0.7), -- 방방 미로 바운스 (m5-14)
 	BlockCreak = sfx(nil, 0.7), -- 블록탑 기둥이 뽑히기 직전 삐걱임 (m5-16)
+	CatToyBounce = sfx(nil, 0.7), -- 장난감 공에 맞음 (m5-17)
+	CatPawWarn = sfx(nil, 0.7), -- 고양이 발 경고 (m5-17)
+	CatPawSwipe = sfx(nil, 0.8), -- 고양이 발에 밀림 (m5-17)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

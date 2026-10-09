@@ -25,12 +25,12 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
--- bouncy-castle-maze(m5-14)·lantern-bridge(m5-15)·giant-jenga(m5-16)는 inPool = true로 바뀌어 더 이상 껍데기가 아니에요 (shells 밖에서 검사해요)
+-- bouncy-castle-maze(m5-14)·lantern-bridge(m5-15)·giant-jenga(m5-16)·cat-cafe-shelves(m5-17)는
+-- inPool = true로 바뀌어 더 이상 껍데기가 아니에요 (shells 밖에서 검사해요)
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
 	"dessert-fridge",
-	"cat-cafe-shelves",
 	"tug-of-war-platform",
 	"claw-machine-prize",
 }
@@ -108,12 +108,8 @@ return function(t: Test.Test)
 				"디저트 냉장고",
 				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
 			},
-			-- "bouncy-castle-maze"(m5-14)·"lantern-bridge"(m5-15)·"giant-jenga"(m5-16)는 졸업했어요 (아래 else 분기에서 "풀에 남아 있다"만 확인)
-			["cat-cafe-shelves"] = {
-				"Survival",
-				"고양이 카페 캣타워",
-				"흔들리는 캣타워 선반 위에서 버텨요.",
-			},
+			-- "bouncy-castle-maze"(m5-14)·"lantern-bridge"(m5-15)·"giant-jenga"(m5-16)·"cat-cafe-shelves"(m5-17)는
+			-- 졸업했어요 (아래 else 분기에서 "풀에 남아 있다"만 확인)
 			["tug-of-war-platform"] = {
 				"Final",
 				"줄다리기 발판",
@@ -146,16 +142,17 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 9개(m5-14 bouncy-castle-maze·m5-15 lantern-bridge·m5-16 giant-jenga 합류, 나머지 껍데기 없음), allInfos()는 15개",
+		"AC2: infos()는 10개(m5-14 bouncy-castle-maze·m5-15 lantern-bridge·m5-16 giant-jenga·m5-17 cat-cafe-shelves 합류, 나머지 껍데기 없음), allInfos()는 15개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 9)
+			t.eq(#Maps.infos(), 10)
 			t.ok(ids["bouncy-castle-maze"], "bouncy-castle-maze joined the random pool")
 			t.ok(ids["lantern-bridge"], "lantern-bridge joined the random pool")
 			t.ok(ids["giant-jenga"], "giant-jenga joined the random pool")
+			t.ok(ids["cat-cafe-shelves"], "cat-cafe-shelves is in the random pool")
 			for _, id in SHELLS do
 				t.ok(not ids[id], `{id} not in random pool`)
 			end

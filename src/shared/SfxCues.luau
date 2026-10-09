@@ -51,6 +51,9 @@ SfxCues.Effects = {
 	"JellyBoing", -- 젤리 튕김 (m5-06)
 	"BounceBoing", -- 방방 미로 바운스 (m5-14)
 	"BlockCreak", -- 블록탑 기둥이 뽑히기 직전 삐걱임 (m5-16)
+	"CatToyBounce", -- 장난감 공에 맞음 (m5-17)
+	"CatPawWarn", -- 고양이 발 경고 시작 (m5-17)
+	"CatPawSwipe", -- 고양이 발에 밀리는 순간 (m5-17)
 }
 
 -- 배경음 (Sfx.setMusic)

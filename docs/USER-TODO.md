@@ -45,6 +45,7 @@
 
 - [ ] 배경음 4곡: `Lobby`(로비·대기실), `Round`(라운드), `Final`(결승), `Victory`(우승)
 - [ ] 효과음 9개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고), `Overtime`(결승 연장전 시작 — 경적·징 같은 짧은 소리, m5-01)
+- [ ] 효과음 3개(고양이 카페 캣타워, m5-17): `CatToyBounce`(장난감 공에 맞음), `CatPawWarn`(고양이 발 경고 시작), `CatPawSwipe`(고양이 발에 밀리는 순간)
 - 반복 재생이 자연스러운 곡(루프), 저작권이 Roblox 라이선스인 것만 고르세요.
 
 ### A3. 출시 준비물 (m4-12 체크리스트에 들어갈 것)

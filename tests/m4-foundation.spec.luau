@@ -319,7 +319,7 @@ return function(t: Test.Test)
 
 	-- AC6 ---------------------------------------------------------------------------------
 	t.test(
-		"AC6: 맵 풀 Race 5(m5-14 bouncy-castle-maze·m5-15 lantern-bridge 포함) · Survival 3(m5-16 giant-jenga 포함) · Final 1",
+		"AC6: 맵 풀 Race 5(m5-14 bouncy-castle-maze·m5-15 lantern-bridge 포함) · Survival 4(m5-16 giant-jenga·m5-17 cat-cafe-shelves 포함) · Final 1",
 		function()
 			local byKind: { [string]: { string } } = { Race = {}, Survival = {}, Final = {} }
 			for _, info in Maps.infos() do
@@ -332,7 +332,7 @@ return function(t: Test.Test)
 				byKind.Race,
 				{ "bouncy-castle-maze", "lantern-bridge", "ramen-rapids", "rotating-belt", "soy-swamp" }
 			)
-			t.eq(byKind.Survival, { "chef-board", "giant-jenga", "hot-plate" })
+			t.eq(byKind.Survival, { "cat-cafe-shelves", "chef-board", "giant-jenga", "hot-plate" })
 			t.eq(byKind.Final, { "skewer-showdown" })
 
 			local ramen = Maps.get("ramen-rapids")

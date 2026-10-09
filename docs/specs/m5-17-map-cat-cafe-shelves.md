@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-17 — 새 Survival 맵: 고양이 카페 캣타워 (`cat-cafe-shelves`)
@@ -101,3 +101,29 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-09 · developer
+- **바뀐 파일**
+  - `src/shared/maps/CatCafeShelvesLayout.luau` (신규): 캣타워 3단 치수, `shelves()`(9개), `spawnOffsets()`(24개), `outerSideOf`/`topYOf`.
+  - `src/shared/maps/CatCafeShelvesLogic.luau` (신규): `climbGap`, `ballOffset`(사인파 왕복), `isHit`, `outwardDirection`, `pawInterval`, `pickShelf`(occupant 가중 랜덤 + Top 제외 + 연속 금지).
+  - `src/shared/maps/CatCafeShelvesArt.luau` (신규): 파스텔 카페 장식(벽·창문·기둥·캣방석·바구니·발자국), `introCamera()` 4점, `WINDOW_LIGHT`·`SUNBEAM` 마커.
+  - `src/shared/maps/CatCafeShelves.luau` (덮어씀): 선반·공·스폰 빌드, 장난감 공 왕복·맞음 판정(`MoveExempt` 1.2초), 고양이 발 경고·넉백(`MoveExempt` 1.6초), `inPool = false` 줄 삭제.
+  - `src/shared/SfxCues.luau`·`src/shared/SfxLibrary.luau`: `CatToyBounce`·`CatPawWarn`·`CatPawSwipe` cue 3개 추가(공용 파일 아님, 스펙대로).
+  - `tests/map-cat-cafe-shelves.spec.luau` (신규): AC1~AC10 전부.
+  - `docs/USER-TODO.md`: 새 소리 3개 항목 A2에 추가.
+  - cat-cafe-shelves가 껍데기(inPool=false)에서 실제 맵(랜덤 풀에 들어감)으로 바뀌면서 맵 개수를 하드코딩한 기존 테스트를 맞게 고쳤어요: `tests/camera-priority.spec.luau`(SfxCues 목록에 cue 3개 추가), `tests/maps.spec.luau`(풀 6→7), `tests/m4-foundation.spec.luau`(Survival 2→3, cat-cafe-shelves 포함), `tests/m5-03-foundation.spec.luau`(SHELLS 목록에서 cat-cafe-shelves 제거, infos() 6→7, 기대표에서 cat-cafe-shelves 행 삭제), `tests/m4-12-hardening.spec.luau`(5판 강제 플랜 중 하나에 cat-cafe-shelves 추가해 맵 풀 전체를 덮게 함). GDD는 안 건드렸어요.
+- **구현 메모**
+  - 선반 9개 = "뚫린 사각 테두리"(긴 선반 North/South 바깥 한 변 전체 + 짧은 선반 East/West 겹치지 않는 길이) × 2단 + 3단 꽉 찬 판(Top). `Logic.climbGap`은 Layout의 단 치수를 읽어 안쪽 구멍 반지름 − 다음 단 바깥 반지름으로 계산.
+  - 서 있는 선반 판정은 HotPlate와 같은 패턴(루트에서 아래로 짧은 레이캐스트, 태그 "CatCafeShelf" + Attribute "ShelfKey"만 필터)을 하나의 레이로 사용 — 공 맞음 판정(선반 축 기준 along 차)과 고양이 발 occupant 집계를 같은 틱에서 함께 계산.
+  - 장난감 공은 Anchored 파츠를 매 Heartbeat마다 `Logic.ballOffset`으로 직접 재배치(물리 시뮬 아님, RamenRapids 차슈와 같은 방식) — 네트워크 소유권 문제를 피함.
+  - 넉백은 `SoySwampHazards.launch`와 같은 방식(Attachment + LinearVelocity를 hold초만 걸고 destroy)을 이 파일 안에 그대로 재구현(공용 유틸로 빼지 않음, 다른 맵도 각자 구현하는 기존 관례를 따름).
+  - 고양이 발 경고 시각 효과는 "선반 파츠 색을 주황으로 바꿨다가 되돌리는" 것으로 단순화했어요(스펙의 "주황빛/고양이 발 그림자" 중 전자만 구현, 둘 다는 과한 범위로 판단) — AC14 문구상 둘 중 하나면 충분.
+- **Studio 확인 방법** (AC12~AC18, `docs/DEV-SETUP.md` 패턴 그대로)
+  1. `Config.DEBUG.forceMapPlan = { "rotating-belt", "cat-cafe-shelves", "skewer-showdown" }`로 바꾸고 Studio Play.
+  2. 1단 선반 위에 가만히 서서(AC12) 공·고양이 발을 피해 보고, 공에 맞아 바깥쪽으로 밀리는지/가장자리 근처에서 맞으면 떨어지는지(AC13) 확인.
+  3. 8초가 지난 뒤 선반 하나가 주황으로 변하고 1.1초 뒤 그 위 전원이 크게 밀리는지, 가장자리 근처면 떨어지는지(AC14) 확인.
+  4. 1단→2단→3단(꼭대기)까지 점프로 올라갈 수 있는지(수평 4 + 수직 5 조합), 3단에서는 고양이 발 경고가 안 뜨고 공만 도는지(AC15) 확인.
+  5. 60초가 끝나면 그때 서 있던 사람 전원이 통과하는지, 4명 이상이면 목표 인원만 남는 순간 바로 끝나는지(AC16) 확인.
+  6. 밀린 직후 서버 콘솔에 MovementGuard 로그(되돌림)가 안 찍히는지(AC17, `MoveExempt` 확인) 확인.
+  7. 확인 뒤 `forceMapPlan`을 `nil`로 되돌리는 것 잊지 않기.
+  8. AC18(재미 체감)은 사용자 몫 — 밀리는 세기가 과하거나 약하면 `CatCafeShelvesLogic`의 `BALL_KNOCK_*`/`PAW_KNOCK_*` 상수만 조정.
+- **남은 이슈**: 없음. 소리 3개는 무음 상태(`docs/USER-TODO.md`에 추가), 사용자가 id를 고르면 됨. Studio 확인(AC12~AC18)은 아직 안 함 — QA·사용자 몫.

@@ -23,6 +23,7 @@ local HotPlateArt = {}
 
 HotPlateArt.STEAM_VENT = "SteamVent"
 HotPlateArt.HOOD_LAMP = "HoodLamp"
+HotPlateArt.SAUCE_BOTTLE = "SauceBottle" -- m5-20 ④: 선반 위 병, 클라이언트가 좌우로 흔들어요
 -- 달아오름 진행도(0~1)가 이 이상이면 Neon으로 은은하게 빛나요 (단계·사라지는 시간은 HotPlateLogic 그대로)
 HotPlateArt.GLOW_FROM = 0.6
 -- 시야 상자: 층 윗면 위 이 높이 범위에는 장식을 두지 않아요
@@ -277,9 +278,27 @@ local function addKitchenWall(list: { DecorSpec })
 	part(list, "KitchenWall", "Block", v(150, 140, 2), { r = 232, g = 236, b = 232 }, "CeramicTiles", v(0, -30, wallZ))
 	part(list, "KitchenShelf", "Block", v(60, 1, 5), STAINLESS, "Metal", v(0, 14, wallZ + 3.5))
 	-- 선반 위 소스 병·통
-	part(list, "SauceBottle", "Cylinder", v(7, 3, 3), PALETTE.Soy, "Glass", v(-20, 18, wallZ + 3.5), UPRIGHT)
-	part(list, "SauceBottle", "Cylinder", v(6, 3, 3), PALETTE.Egg, "Glass", v(-15, 17.5, wallZ + 3.5), UPRIGHT)
-	part(list, "SauceBottle", "Cylinder", v(8, 3, 3), PALETTE.Tuna, "Glass", v(18, 18.5, wallZ + 3.5), UPRIGHT)
+	part(list, HotPlateArt.SAUCE_BOTTLE, "Cylinder", v(7, 3, 3), PALETTE.Soy, "Glass", v(-20, 18, wallZ + 3.5), UPRIGHT)
+	part(
+		list,
+		HotPlateArt.SAUCE_BOTTLE,
+		"Cylinder",
+		v(6, 3, 3),
+		PALETTE.Egg,
+		"Glass",
+		v(-15, 17.5, wallZ + 3.5),
+		UPRIGHT
+	)
+	part(
+		list,
+		HotPlateArt.SAUCE_BOTTLE,
+		"Cylinder",
+		v(8, 3, 3),
+		PALETTE.Tuna,
+		"Glass",
+		v(18, 18.5, wallZ + 3.5),
+		UPRIGHT
+	)
 	part(list, "SaltTub", "Cylinder", v(3, 5, 5), PALETTE.Rice, "SmoothPlastic", v(8, 16, wallZ + 3.5), UPRIGHT)
 end
 

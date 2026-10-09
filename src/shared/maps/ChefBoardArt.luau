@@ -42,6 +42,12 @@ Art.KNIFE = {
 	warn = rgb(230, 40, 40),
 }
 
+-- m5-20 파티클·조명·안개 이름 상수
+Art.LAMP_BULB = "LampBulb"
+Art.KNIFE_SPARK = "KnifeSpark"
+Art.FOG_PANEL = "FogPanel"
+local FOG: RGB = { r = 150, g = 170, b = 190 } -- 주방 차가운 청회색 (m5-20 ③)
+
 local GROOVE = rgb(122, 86, 52) -- 칼자국 (진한 나무)
 local GROOVE_WIDTH = 0.35
 local GROOVE_HEIGHT = 0.06
@@ -304,7 +310,7 @@ local function kitchen(specs: { DecorSpec })
 			rotation = v(0, 0, 90),
 		})
 		add(specs, {
-			name = "LampBulb",
+			name = Art.LAMP_BULB,
 			shape = "Ball",
 			size = v(3.5, 3.5, 3.5),
 			color = rgb(255, 232, 170),
@@ -312,6 +318,25 @@ local function kitchen(specs: { DecorSpec })
 			offset = v(x, 41.5, 10),
 		})
 	end
+end
+
+-- 맵 바깥 멀리 아주 크고 옅은 반투명 색 패널 (m5-20 ③, 도마 시야 상자와 안 겹치는 자리)
+local function addFogPanels(specs: { DecorSpec })
+	local function panel(x: number, y: number, z: number, sx: number, sy: number, sz: number)
+		add(specs, {
+			name = Art.FOG_PANEL,
+			shape = "Block",
+			size = v(sx, sy, sz),
+			color = FOG,
+			material = "Glass",
+			offset = v(x, y, z),
+			transparency = 0.92,
+		})
+	end
+	panel(-130, -10, 0, 2, 220, 260)
+	panel(130, -10, 0, 2, 220, 260)
+	panel(0, -10, 150, 260, 220, 2)
+	panel(0, -10, -150, 260, 220, 2)
 end
 
 function Art.decor(): { DecorSpec }
@@ -328,6 +353,7 @@ function Art.decor(): { DecorSpec }
 	customerFace(specs, -24, -43, -28, skins[3])
 	customerFace(specs, 28, -47, -24, skins[4])
 	kitchen(specs)
+	addFogPanels(specs) -- m5-20 ③
 	return specs
 end
 

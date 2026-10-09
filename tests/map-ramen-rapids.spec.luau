@@ -351,4 +351,46 @@ return function(t: Test.Test)
 		t.eq(last.pos.y, 12)
 		t.ok(last.pos.z > Layout.START.front, "last point behind start line")
 	end)
+
+	---------------------------------------------------------------- m5-20 (맵 장식 품질 패스)
+	local function countNamed(specs: { any }, name: string): number
+		local n = 0
+		for _, spec in specs do
+			if spec.name == name then
+				n += 1
+			end
+		end
+		return n
+	end
+
+	t.test("m5-20 AC3: floatingGarnish — 다시마 12 + 통깨 20 + 젓가락 받침 6 = 38, 예산 안", function()
+		local decor = Art.decor()
+		t.eq(countNamed(decor, "Kombu"), 12)
+		t.eq(countNamed(decor, "SesameSeed"), 20)
+		t.eq(countNamed(decor, "ChopstickRest"), 6)
+		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)}`)
+		-- 급류 양옆(|x| >= 30)에만 있어요 (코스 공간과 안 겹침, AC6 테스트가 다시 확인해요)
+		for _, name in { "Kombu", "SesameSeed", "ChopstickRest" } do
+			for _, spec in decor do
+				if spec.name == name then
+					t.ok(math.abs(spec.offset.x) >= 30, `{name} at x={spec.offset.x} too close to the course`)
+				end
+			end
+		end
+	end)
+
+	t.test("m5-20 AC4: 국물 안개 패널이 구간별 시야 상자(courseVolumes)와 안 겹쳐요", function()
+		local volumes = Art.courseVolumes()
+		local fogCount = 0
+		for i, spec in Art.decor() do
+			if spec.name == Art.FOG_PANEL then
+				fogCount += 1
+				local bounds = MapKitLogic.bounds({ spec }) :: any
+				for j, volume in volumes do
+					t.ok(not overlaps(bounds, volume), `fog panel #{i} overlaps course volume {j}`)
+				end
+			end
+		end
+		t.ok(fogCount >= 3 and fogCount <= 4, `fog panel count {fogCount}`)
+	end)
 end

@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-20 — 기존 맵 6개 장식 품질 패스 (판정 불변)
@@ -77,13 +77,13 @@ MapDecorTags.Wobble = "MapDecorWobble"       -- hot-plate 선반 간장병
 ## 수용 기준
 
 ### 순수 로직 (lune 테스트)
-- [ ] AC1: `rotating-belt`·`soy-swamp`·`chef-board`·`ramen-rapids` 4개 맵의 `decor()`가 전부 `MapKitLogic.validate` 통과, `MapKitLogic.count(...) <= DECOR_PART_BUDGET`(600). (`skewer-showdown`·`hot-plate`는 장식 데이터 자체를 바꾸지 않으니 기존 테스트가 그대로 통과하면 됨.)
-- [ ] AC2: 새 이름 상수(`RotatingBeltArt.LANTERN`, soy-swamp·chef-board의 등가 상수)로 `countNamed`(기존 `tests/map-art-arena.spec.luau` 헬퍼와 같은 패턴을 각 맵 테스트 파일에 추가)를 셌을 때: `rotating-belt` 조명 3·파티클 2, `soy-swamp` 조명 2·파티클 3, `chef-board` 조명 3·파티클 1 — 각각 `MapKitLogic.LIGHT_BUDGET`(12)·`PARTICLE_BUDGET`(8) 이하.
-- [ ] AC3: `ramen-rapids`의 새 `floatingGarnish` 추가분(다시마 12 + 통깨 20 + 젓가락 받침 6 = 38)이 `decor()` 목록에 들어 있고, 전체 파츠 수가 여전히 600 이하다.
-- [ ] AC4: 세 맵(`soy-swamp`·`ramen-rapids`·`chef-board`)의 새 안개 상자 파츠(3~4개씩)가 `courseVolume`/`courseVolumes`가 돌려주는 시야 상자들과 겹치지 않는다(기존 `checkNoOverlap`류 헬퍼 재사용).
-- [ ] AC5: `rotating-belt`·`soy-swamp`의 `introCamera()`가 각각 5개 경유점을 돌려준다(기존 4 + 반전 샷 1). 기존 점 4개의 `pos`/`lookAt` 값은 그대로다(새 점은 삽입만, 기존 좌표 수정 아님).
-- [ ] AC6: `MapDecorTags.luau`가 `EyeBlink`·`Wobble` 두 문자열 상수를 내보내고 서로 다르다. Roblox API 없이 require만으로 동작(lune에서 바로 테스트 가능).
-- [ ] AC7: 검증 5단계(`rojo build`, `stylua --check`, `selene`, `lune run tests`, `luau-lsp analyze`) 전부 통과 + 기존 `tests/map-art-race.spec.luau`·`tests/map-art-arena.spec.luau`·`tests/map-chef-board.spec.luau`·`tests/map-ramen-rapids.spec.luau`·`tests/round-logic*.spec.luau`가 전부 그대로(수정 없이) 통과한다 — 판정·스폰·시간 제한이 하나도 안 바뀌었다는 증거.
+- [x] AC1: `rotating-belt`·`soy-swamp`·`chef-board`·`ramen-rapids` 4개 맵의 `decor()`가 전부 `MapKitLogic.validate` 통과, `MapKitLogic.count(...) <= DECOR_PART_BUDGET`(600). (`skewer-showdown`·`hot-plate`는 장식 데이터 자체를 바꾸지 않으니 기존 테스트가 그대로 통과하면 됨.)
+- [x] AC2: 새 이름 상수(`RotatingBeltArt.LANTERN`, soy-swamp·chef-board의 등가 상수)로 `countNamed`(기존 `tests/map-art-arena.spec.luau` 헬퍼와 같은 패턴을 각 맵 테스트 파일에 추가)를 셌을 때: `rotating-belt` 조명 3·파티클 2, `soy-swamp` 조명 2·파티클 3, `chef-board` 조명 3·파티클 1 — 각각 `MapKitLogic.LIGHT_BUDGET`(12)·`PARTICLE_BUDGET`(8) 이하. (chef-board 파티클 1은 `countNamed`로 못 셈 — 개발 메모 참고.)
+- [x] AC3: `ramen-rapids`의 새 `floatingGarnish` 추가분(다시마 12 + 통깨 20 + 젓가락 받침 6 = 38)이 `decor()` 목록에 들어 있고, 전체 파츠 수가 여전히 600 이하다.
+- [x] AC4: 세 맵(`soy-swamp`·`ramen-rapids`·`chef-board`)의 새 안개 상자 파츠(3~4개씩)가 `courseVolume`/`courseVolumes`가 돌려주는 시야 상자들과 겹치지 않는다(기존 `checkNoOverlap`류 헬퍼 재사용).
+- [x] AC5: `rotating-belt`·`soy-swamp`의 `introCamera()`가 각각 5개 경유점을 돌려준다(기존 4 + 반전 샷 1). 기존 점 4개의 `pos`/`lookAt` 값은 그대로다(새 점은 삽입만, 기존 좌표 수정 아님).
+- [x] AC6: `MapDecorTags.luau`가 `EyeBlink`·`Wobble` 두 문자열 상수를 내보내고 서로 다르다. Roblox API 없이 require만으로 동작(lune에서 바로 테스트 가능).
+- [x] AC7: 검증 5단계(`rojo build`, `stylua --check`, `selene`, `lune run tests`, `luau-lsp analyze`) 전부 통과 + 기존 `tests/map-art-race.spec.luau`·`tests/map-art-arena.spec.luau`·`tests/map-chef-board.spec.luau`·`tests/map-ramen-rapids.spec.luau`·`tests/round-logic*.spec.luau`가 전부 그대로(수정 없이) 통과한다 — 판정·스폰·시간 제한이 하나도 안 바뀌었다는 증거.
 
 ### Studio 확인
 - [ ] AC8: `forceMapPlan = { "rotating-belt", "soy-swamp", "chef-board", "ramen-rapids", "hot-plate" }`로 다섯 라운드를 혼자(Play Solo) 돌며 맵마다: 등불·와사비 산 꼭대기·도마 머리 위 등이 실제로 빛나 보인다(파츠 색만이 아니라 주변 바닥에 빛이 번짐), 간장 웅덩이·병목 간장 종지에서 작은 파티클이 보인다, 칼이 내려찍는 순간 불꽃이 한 번 튄다.
@@ -110,3 +110,33 @@ MapDecorTags.Wobble = "MapDecorWobble"       -- hot-plate 선반 간장병
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 바뀐 파일
+- 새 파일: `src/shared/maps/MapDecorTags.luau`(태그 상수), `src/client/fx/MapDecorFxController.luau`(로컬 애니메이션 컨트롤러), `tests/map-decor-tags.spec.luau`.
+- `src/client/init.client.luau`: `CONTROLLERS`에 `MapDecorFxController` 한 줄 추가(스펙대로 이 스펙 담당 공용 파일 변경).
+- `rotating-belt`: `RotatingBeltArt.luau`(`LANTERN`·`FACE_EYE`·`SOY_GLINT` 상수, `addSoyGlints`, `introCamera()` 5번째 점), `RotatingBelt.luau`(`build()`에서 `MapKit.buildDecor` 반환 파츠를 돌며 Lantern에 `PointLight`, SoyGlint에 `ParticleEmitter`, FaceEye에 `MapDecorTags.EyeBlink` 태그).
+- `soy-swamp`: `SoySwampArt.luau`(`HILL_RICE`·`PUDDLE_BUBBLE`·`FOG_PANEL` 상수, `addPuddleBubbles`, `addFogPanels`, `introCamera()` 5번째 점), `SoySwamp.luau`(HillRice에 `PointLight`, SoyBubble에 `ParticleEmitter`).
+- `chef-board`: `ChefBoardArt.luau`(`LAMP_BULB`·`KNIFE_SPARK`·`FOG_PANEL` 상수, `addFogPanels`), `ChefBoard.luau`(`buildKnife`가 Blade에 `ParticleEmitter`를 미리 만들어 두고(`Enabled=false`,`Rate=0`), `strike()`가 칼이 `KNIFE_STRIKE_HEIGHT`에 닿는 순간 `spark:Emit(10~15)`, `build()`가 LampBulb에 `PointLight`(가운데 Range 30·양옆 Range 18)).
+- `ramen-rapids`: `RamenRapidsArt.luau`(`floatingGarnish`로 Kombu 12·SesameSeed 20·ChopstickRest 6 추가, `addFogPanels`로 안개 패널 3곳). 판정 파일(`RamenRapids.luau`·`RamenRapidsLayout.luau`·`RamenRapidsLogic.luau`)은 손대지 않음.
+- `hot-plate`: `HotPlateArt.luau`(`SAUCE_BOTTLE` 상수로 기존 리터럴 치환), `HotPlate.luau`(`buildArt`가 SauceBottle에 `MapDecorTags.Wobble` 태그만 추가, 파티클·조명은 이미 있어서 안 건드림).
+- 테스트: `tests/map-art-race.spec.luau`·`tests/map-chef-board.spec.luau`·`tests/map-ramen-rapids.spec.luau`에 m5-20 전용 `t.test` 블록을 **추가만** 했다(기존 블록은 한 글자도 안 고침 — AC7 "그대로 통과" 확인). `tests/m4-05-qa.spec.luau`는 AC7 보호 목록 밖이라, m4-05 때 "조명·파티클이 전혀 없어야 한다"고 고정해 둔 낡은 단언을 이번 스펙 취지에 맞게 교체했다(없음→있음, 개수·예산 확인으로).
+
+### 결정/구현 메모
+- **D2(파티클·조명은 `<Map>.luau`에서 붙임) 재확인**: `buildArt`를 별도 지역 함수로 분리했더니 `tests/map-art-race.spec.luau`의 "build: ... 물리는 M3 그대로" 테스트(소스 텍스트에서 `build()` 함수 본문만 추출해 `MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))` 리터럴을 찾음)가 깨졌다 — 이 테스트는 AC7 보호 대상이라 수정 불가. `rotating-belt`·`soy-swamp` 둘 다 데코 생성·조명/파티클 부착 루프를 `build()` 함수 안에 **그대로 인라인**해서 리터럴 문자열이 유지되게 했다(변수에 중간 저장하지 않고 `MapKit.buildDecor(...)`를 직접 `for`에 썼다).
+- **반전 샷(⑤) 카메라 경로 — 등불과 충돌 주의**: `rotating-belt`의 새 5번째 점을 스펙 제안 그대로(`y≈32`, `z≈-60`) 넣었더니 `tests/m4-02-qa.spec.luau`·`tests/m4-12-hardening.spec.luau`의 "경유점 **사이** 경로도 장식을 지나가지 않는다"(직선 보간 전체를 촘촘히 샘플링) 테스트가 깨졌다 — 높은 점에서 다음 점(결승 노렌, z=-96)으로 내려오는 구간이 하필 z=-90 등불의 높이·z대를 스치고 지나갔다. `(0, 26, -62)`로 높이·z를 살짝 낮추고 당겨서 등불 세 개(z=-24/-60/-90) 전부와 충분한 여유(각 1.6·3.1 studs 이상)를 두도록 계산해 고쳤다. **Studio 확인(AC12) 때 이 여유가 체감상 부족하면(카메라가 등불을 스치듯 지나가 보이면) `(0,26,-62)`의 y·z를 조금 더 낮추거나 당겨도 됨 — 다만 바꿀 때마다 `lune run tests`로 두 QA 테스트가 다시 통과하는지 꼭 확인.**
+- **chef-board 파티클(AC2 "파티클 1")은 `countNamed`로 못 셈**: 스펙 설계대로 칼날(`Blade`, `ChefBoard.luau`의 `buildKnife`가 직접 만드는 파츠)에 `ParticleEmitter`를 붙였는데, `Blade`는 `DecorSpec`이 아니라 `Art.decor()` 목록에 없어서 `countNamed(Art.decor(), 이름)` 패턴을 그대로 쓸 수 없었다. 대신 `tests/map-chef-board.spec.luau`·`tests/m4-05-qa.spec.luau`에 소스 텍스트 검사(파티클 존재, `Enabled=false`·`Rate=0`로 상시 아님, `:Emit(` 호출로 한 번만 터짐)를 추가해 같은 의도를 확인했다. 조명(`LampBulb` 3개)은 `Art.decor()`에 그대로 있어서 `countNamed`가 된다.
+- **간장 종지 파티클 이름을 새로 만듦**: `RotatingBeltArt.SOY_DISH_X`/`SOY_DISH_ZS`로 만드는 "SoyDishSauce"는 병목 세 자리(좌우 합쳐 6개)에 전부 쓰여서, 반짝임 파티클을 붙일 "맨 앞 2곳"만 구분할 수 없었다. 이름을 재사용하는 대신 투명 앵커 파츠(`SoyGlint`, 간장 색과 같지만 크기 0.4라 거의 안 보임)를 맨 앞(z=-52, `SOY_GLINT_Z`) 좌우에 새로 추가하고 거기에만 `ParticleEmitter`를 달았다.
+- **안개 패널**: 세 맵 다 `Glass` 재질 + `Transparency` 0.88~0.92로 만들었고, 각 맵의 `courseVolume()`/`courseVolumes()`(이미 있던 "장식이 들어가면 안 되는 시야 상자") 바깥, 기존 장식(간장병·강판·주방 벽 등)보다 더 멀리 뒀다. `ramen-rapids`는 거대한 그릇(`BOWL_RADIUS` 178) **안쪽**이지만 좁은 코스(±20 studs 폭)보다 훨씬 바깥(x=±130)이라 시야 상자와는 안 겹친다.
+- **클라이언트 애니메이션 식별**: `MapDecorFxController`는 `CollectionService` 태그로 파츠를 추적하고, 파츠마다 `math.random()`으로 한 번 뽑은 위상(phase)을 저장해 전부 같이 움직이지 않게 했다(처음엔 `Instance:GetDebugId()`로 결정적 해시를 쓰려 했는데 `types/globalTypes.None.d.luau`에 선언돼 있지 않아 `luau-lsp analyze`가 실패해서 뺐다).
+
+### Studio 확인 방법 (AC8~AC14)
+1. `Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "chef-board", "ramen-rapids", "hot-plate" }`로 바꾸고 Play Solo (`docs/DEV-SETUP.md` 3-9 "디버그 설정" 참고, 커밋 전에 되돌릴 것).
+2. 라운드마다 소개 플라이스루를 끝까지 보고(AC12), 맵 안에서 등불·파티클·안개·흔들림을 확인(AC8~AC11).
+3. 여러 창(Test → Clients and Servers 2+)으로 접속해 `hot-plate` 간장병 흔들림·`rotating-belt` 눈 깜빡임이 보이는 동안 서버 Output에 복제 경고가 없는지 확인(AC11 후반).
+4. Output 창에서 `[MapKit] decor has` 경고가 안 뜨는지 확인(AC13).
+5. 다섯 맵 전부 평소처럼 낙하·결승선·탈락 판정이 되는지 플레이로 확인(AC14) — 장식만 바뀌었으니 체감이 거의 똑같아야 정상.
+
+### 남은 이슈
+- Studio 체감 확인(AC8~AC14)은 아직 안 함 — 색·밝기·반짝임 속도가 과하거나 약하면 "기본값, 플레이테스트 후 조정"으로 보고.
+- `RotatingBeltArt`의 반전 샷 좌표(`(0,26,-62)`)는 등불 충돌을 피하려고 스펙 제안치(`y≈32`)보다 낮췄다 — Studio에서 "충분히 높은 느낌"인지 확인 필요.
+- 안개 패널 색·투명도는 전부 "기본값" — 세 맵이 실제로 구분돼 보이는지, 너무 튀거나 안 보이는지는 Studio에서만 확인 가능.

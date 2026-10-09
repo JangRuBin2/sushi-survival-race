@@ -10,6 +10,7 @@
 local Config = require(script.Parent.Parent.Config)
 local Art = require(script.Parent.RotatingBeltArt)
 local Chopstick = require(script.Parent.RotatingBeltChopstick)
+local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapTypes = require(script.Parent.MapTypes)
@@ -257,8 +258,37 @@ local function build(origin: CFrame): Model
 		Parent = model,
 	})
 
-	-- 아트 (m4-02): 장식은 충돌·쿼리·터치 없음, 손으로 짠 소개 카메라, 사용자 Studio 아트 자리
-	MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))
+	-- 아트 (m4-02, m5-20): 장식은 충돌·쿼리·터치 없음, 손으로 짠 소개 카메라, 사용자 Studio 아트 자리
+	for _, part in MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model)) do
+		if part.Name == Art.LANTERN then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 170, 120)
+			light.Brightness = 1.2
+			light.Range = 25
+			light.Parent = part
+		elseif part.Name == Art.SOY_GLINT then
+			local glint = Instance.new("ParticleEmitter")
+			glint.Name = "SoyGlintEmitter"
+			glint.Color = ColorSequence.new(Color3.fromRGB(255, 221, 150))
+			glint.LightEmission = 0.6
+			glint.Rate = 1.5
+			glint.Lifetime = NumberRange.new(1.5, 2.5)
+			glint.Speed = NumberRange.new(0.1, 0.3)
+			glint.SpreadAngle = Vector2.new(10, 10)
+			glint.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.15),
+				NumberSequenceKeypoint.new(1, 0.4),
+			})
+			glint.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.5),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			glint.EmissionDirection = Enum.NormalId.Top
+			glint.Parent = part
+		elseif part.Name == Art.FACE_EYE then
+			CollectionService:AddTag(part, MapDecorTags.EyeBlink) -- m5-20 ④: 클라이언트가 이따금 깜빡여요
+		end
+	end
 	MapKit.introCamera(model, Art.introCamera(), origin)
 	MapKit.attachStudioArt(model, ID, origin)
 

@@ -55,6 +55,13 @@ end
 RotatingBeltArt.SOY_DISH_X = 4.5 -- 병목 양옆 간장 종지 (판정 파츠) 중심 x
 RotatingBeltArt.SOY_DISH_ZS = { -68, -60, -52 }
 
+-- m5-20 파티클·조명·애니메이션 이름 상수
+RotatingBeltArt.LANTERN = "Lantern"
+RotatingBeltArt.FACE_EYE = "FaceEye"
+RotatingBeltArt.SOY_GLINT = "SoyGlint"
+-- 병목 맨 앞(출발에 가장 가까운) 간장 종지 위치. 좌우 2곳에 반짝이는 파티클이 붙어요.
+RotatingBeltArt.SOY_GLINT_Z = -52
+
 -- 판정 파츠 색 (크기·위치·충돌은 RotatingBelt가 그대로 둬요)
 RotatingBeltArt.COLORS = {
 	woodFloor = { r = 168, g = 126, b = 84 }, -- 출발·결승 나무 바닥 (채도 낮춤)
@@ -236,7 +243,15 @@ local function addFace(list: { DecorSpec }, x: number, z: number)
 	part(list, "FaceHead", "Ball", v(20, 20, 20), SKIN, "SmoothPlastic", v(x, cy, z))
 	part(list, "FaceHair", "Block", v(16, 4, 18), BLACK, "Fabric", v(x - d * 1, cy + 9, z))
 	for _, s in { -1, 1 } do
-		part(list, "FaceEye", "Ball", v(2.4, 2.4, 2.4), BLACK, "SmoothPlastic", v(x + d * 8.6, cy + 3, z + s * 3.5))
+		part(
+			list,
+			RotatingBeltArt.FACE_EYE,
+			"Ball",
+			v(2.4, 2.4, 2.4),
+			BLACK,
+			"SmoothPlastic",
+			v(x + d * 8.6, cy + 3, z + s * 3.5)
+		)
 		part(
 			list,
 			"FaceEyeShine",
@@ -311,8 +326,24 @@ end
 -- 머리 위 종이 등 (바닥 위 20 이상)
 local function addLanterns(list: { DecorSpec })
 	for _, z in { -24, -60, -90 } do
-		part(list, "Lantern", "Ball", v(3, 3, 3), P.Lacquer, "Fabric", v(0, 22, z))
+		part(list, RotatingBeltArt.LANTERN, "Ball", v(3, 3, 3), P.Lacquer, "Fabric", v(0, 22, z))
 		disc(list, "LanternCap", 0.4, 1.6, BLACK, "SmoothPlastic", 0, 23.4, z)
+	end
+end
+
+-- 병목 맨 앞 간장 종지 위, 좌우 2곳에 반짝이는 파티클이 붙을 투명 앵커 (m5-20 ①)
+-- SoyDishSauce는 병목 세 자리 전부에 쓰여서(겹쳐서) 새 이름을 써요.
+local function addSoyGlints(list: { DecorSpec })
+	for _, side in { -1, 1 } do
+		part(
+			list,
+			RotatingBeltArt.SOY_GLINT,
+			"Block",
+			v(0.4, 0.1, 0.4),
+			P.Soy,
+			"SmoothPlastic",
+			v(side * RotatingBeltArt.SOY_DISH_X, 2.05, RotatingBeltArt.SOY_GLINT_Z)
+		)
 	end
 end
 
@@ -327,6 +358,7 @@ function RotatingBeltArt.decor(): { DecorSpec }
 		itemIndex = addCounters(list, section, itemIndex)
 	end
 	addNarrow(list)
+	addSoyGlints(list) -- m5-20 ①
 	addFinish(list)
 	addLanterns(list)
 	addFace(list, -32, -30)
@@ -339,6 +371,7 @@ function RotatingBeltArt.introCamera(): { IntroPoint }
 	return {
 		{ pos = v(0, 14, 6), lookAt = v(0, 2, -24) }, -- 출발 위
 		{ pos = v(0, 17, -66), lookAt = v(0, 2, -88) }, -- 병목 → 젓가락 구간
+		{ pos = v(0, 26, -62), lookAt = v(0, 1, -68) }, -- m5-20 ⑤: 병목 바로 위 반전 샷 (내려다봄, 등 사이로 지나가요)
 		{ pos = v(0, 18, -96), lookAt = v(0, 3, -118) }, -- 결승 노렌
 		{ pos = v(0, 12, 10), lookAt = v(0, 3, -20) }, -- 출발선 뒤 (내 자리)
 	}

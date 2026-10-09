@@ -17,8 +17,14 @@ local PALETTE = MapKitLogic.PALETTE
 local BROTH: RGB = { r = 214, g = 140, b = 64 } -- 주황 갈색 국물
 local SCALLION: RGB = { r = 96, g = 170, b = 72 }
 local YOLK: RGB = { r = 250, g = 170, b = 40 }
+local KELP: RGB = { r = 48, g = 96, b = 58 } -- 다시마: 김과 다른 짙은 녹색 (m5-20 ②)
+local SESAME: RGB = { r = 36, g = 30, b = 26 } -- 통깨 (m5-20 ②)
+local FOG: RGB = { r = 200, g = 140, b = 60 } -- 국물 금빛 안개 (m5-20 ③)
 
 local Art = {}
+
+-- m5-20 안개 패널 이름 상수
+Art.FOG_PANEL = "FogPanel"
 
 -- 그릇: 코스 가운데(z -150)를 중심으로 하는 큰 원
 Art.BOWL_CENTER_Z = (Layout.START.front + Layout.FINISH.back) / 2
@@ -175,6 +181,75 @@ local function floatingToppings(list: { DecorSpec })
 	end
 end
 
+-- 급류 양옆(|x| >= 30, 기존 floatingToppings과 같은 대역)에 다시마·통깨·젓가락 받침을 더해요
+-- (m5-20 ②, 제안서 §2-2: 가장 단조로운 맵이라 작은 소품을 반복해 밀도를 보강).
+local function floatingGarnish(list: { DecorSpec })
+	local surface = Layout.BROTH_Y
+	-- 다시마 12개: 김과 다른 짙은 녹색 띠
+	for i = 1, 12 do
+		local side = if i % 2 == 0 then 1 else -1
+		local x = side * (34 + (i % 4) * 9)
+		local z = -128 - i * 13
+		add(list, {
+			name = "Kombu",
+			shape = "Block",
+			size = v(9, 0.3, 3.5),
+			color = KELP,
+			material = "SmoothPlastic",
+			offset = v(x, surface + 0.15, z),
+			rotation = v(0, i * 31, 0),
+		})
+	end
+	-- 통깨 20개: 작은 검은 공 (초저비용, 지름 0.3)
+	for i = 1, 20 do
+		local side = if i % 2 == 0 then 1 else -1
+		local x = side * (32 + (i % 5) * 7)
+		local z = -122 - i * 8
+		add(list, {
+			name = "SesameSeed",
+			shape = "Ball",
+			size = v(0.3, 0.3, 0.3),
+			color = SESAME,
+			material = "SmoothPlastic",
+			offset = v(x, surface + 0.3, z),
+		})
+	end
+	-- 젓가락 받침 6개: 작은 도자기 조각
+	for i = 1, 6 do
+		local side = if i % 2 == 0 then 1 else -1
+		local x = side * (38 + i * 4)
+		local z = -140 - i * 24
+		add(list, {
+			name = "ChopstickRest",
+			shape = "Block",
+			size = v(3, 0.8, 1.4),
+			color = PALETTE.Porcelain,
+			material = "SmoothPlastic",
+			offset = v(x, surface + 0.4, z),
+			rotation = v(0, i * 17, 0),
+		})
+	end
+end
+
+-- 맵 바깥(그릇 안쪽 멀리) 아주 크고 옅은 반투명 색 패널 (m5-20 ③, 구간별 시야 상자와 안 겹치는 자리)
+local function addFogPanels(list: { DecorSpec })
+	local centerZ = Art.BOWL_CENTER_Z
+	local function panel(x: number, z: number, sx: number, sz: number)
+		add(list, {
+			name = Art.FOG_PANEL,
+			shape = "Block",
+			size = v(sx, 200, sz),
+			color = FOG,
+			material = "Glass",
+			offset = v(x, 40, z),
+			transparency = 0.88,
+		})
+	end
+	panel(-130, centerZ, 2, 320)
+	panel(130, centerZ, 2, 320)
+	panel(0, Layout.FINISH.back - 40, 260, 2)
+end
+
 -- 그릇 위를 가로지르는 거대한 젓가락 한 쌍 (머리 위 20 이상)
 local function giantChopsticks(list: { DecorSpec })
 	for i, at in { { -4, 34 }, { 4, 37 } } do
@@ -235,8 +310,10 @@ function Art.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	bowl(list)
 	floatingToppings(list)
+	floatingGarnish(list) -- m5-20 ②
 	giantChopsticks(list)
 	spoonExit(list)
+	addFogPanels(list) -- m5-20 ③
 	return list
 end
 

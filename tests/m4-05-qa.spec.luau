@@ -195,13 +195,31 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- 예산
-	t.test("QA AC6: 장식 전체(칸 장식 + 배경)가 예산 안, 아트에 조명·파티클 없음", function()
+	t.test("QA AC6: 장식 전체(칸 장식 + 배경)가 예산 안", function()
 		local total = MapKitLogic.count(Art.decor()) + MapKitLogic.count(Art.allCellDecor())
 		t.ok(total <= MapKitLogic.DECOR_PART_BUDGET, `decor {total}`)
-		local source = fs.readFile(SOURCE_PATH) .. fs.readFile("src/shared/maps/ChefBoardArt.luau")
-		t.eq(string.find(source, "ParticleEmitter", 1, true), nil)
-		t.eq(string.find(source, "PointLight", 1, true), nil)
-		t.eq(string.find(source, "SpotLight", 1, true), nil)
+	end)
+
+	-- m5-20: 등 3개(가운데 넓게·양옆 좁게)와 칼이 닿는 순간 한 번 터지는 불꽃 1개를 추가했어요.
+	-- SpotLight는 안 써요(PointLight만), 예산(조명 12·파티클 8) 안.
+	t.test("m5-20: 조명·파티클은 LampBulb 3개·칼날 불꽃 1개뿐, 예산 안", function()
+		local source = fs.readFile(SOURCE_PATH)
+		t.eq(countMatches(source, 'Instance%.new%("PointLight"%)'), 1) -- 램프마다 새로 안 만들고 한 곳에서만 만들어요
+		t.ok(string.find(source, "SpotLight", 1, true) == nil, "no spotlight")
+		local lampCount = 0
+		for _, spec in Art.decor() do
+			if spec.name == Art.LAMP_BULB then
+				lampCount += 1
+			end
+		end
+		t.eq(lampCount, 3)
+		t.ok(lampCount <= MapKitLogic.LIGHT_BUDGET, "lights within budget")
+		t.ok(string.find(source, "spark.Name = Art.KNIFE_SPARK", 1, true) ~= nil, "knife spark emitter")
+		t.ok(string.find(source, "ParticleEmitter", 1, true) ~= nil, "blade has a particle emitter")
+		t.ok(string.find(source, "spark.Enabled = false", 1, true) ~= nil, "spark starts disabled (one-shot)")
+		t.ok(string.find(source, "spark.Rate = 0", 1, true) ~= nil, "spark has no ambient rate")
+		t.ok(string.find(source, "spark:Emit(", 1, true) ~= nil, "spark emits once on strike")
+		t.ok(1 <= MapKitLogic.PARTICLE_BUDGET, "one-shot particle well within budget")
 	end)
 
 	---------------------------------------------------------------- 소스 점검

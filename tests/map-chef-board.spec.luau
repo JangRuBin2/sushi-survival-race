@@ -1,6 +1,8 @@
 --!strict
 -- m4-05 Survival 맵 "셰프의 도마": 칸 격자, 칼 일정, 줄 고르기, 잘려 나가는 칸, 기울기, 넉백 방향, 아트 데이터
 
+local fs = require("@lune/fs")
+
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -356,5 +358,38 @@ return function(t: Test.Test)
 			distinct += 1
 		end
 		t.ok(distinct >= 3, "edge pieces vary")
+	end)
+
+	---------------------------------------------------------------- m5-20 (맵 장식 품질 패스)
+	t.test("m5-20 AC2: 도마 머리 위 등 3개(LampBulb), 예산 안", function()
+		local lampCount = 0
+		for _, spec in Art.decor() do
+			if spec.name == Art.LAMP_BULB then
+				lampCount += 1
+			end
+		end
+		t.eq(lampCount, 3)
+		t.ok(lampCount <= MapKitLogic.LIGHT_BUDGET, "lamp light budget")
+	end)
+
+	t.test("m5-20: 칼이 내려치는 순간 한 번 튀는 불꽃(Blade 파티클, 상시 아님)", function()
+		local source = fs.readFile("src/shared/maps/ChefBoard.luau")
+		t.ok(string.find(source, "ParticleEmitter", 1, true) ~= nil, "blade has a particle emitter")
+		t.ok(string.find(source, "spark.Enabled = false", 1, true) ~= nil, "starts disabled")
+		t.ok(string.find(source, "spark.Rate = 0", 1, true) ~= nil, "no ambient rate")
+		t.ok(string.find(source, "spark:Emit(", 1, true) ~= nil, "emits once on strike")
+	end)
+
+	t.test("m5-20 AC4: 도마 안개 패널이 시야 상자(Art.courseVolume)와 안 겹쳐요", function()
+		local volume = Art.courseVolume()
+		local fogCount = 0
+		for i, spec in Art.decor() do
+			if spec.name == Art.FOG_PANEL then
+				fogCount += 1
+				local box = MapKitLogic.bounds({ spec }) :: any
+				t.ok(not boxesOverlap(box, volume), `fog panel #{i} blocks the view`)
+			end
+		end
+		t.ok(fogCount >= 3 and fogCount <= 4, `fog panel count {fogCount}`)
 	end)
 end

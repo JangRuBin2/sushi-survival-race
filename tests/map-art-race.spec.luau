@@ -456,4 +456,91 @@ return function(t: Test.Test)
 			t.ok(saturation(BeltArt.COLORS[key]) < 0.6, `rotating-belt {key} not vivid`)
 		end
 	end)
+
+	---------------------------------------------------------------- m5-20 (맵 장식 품질 패스)
+	local function countNamed(specs: { any }, name: string): number
+		local n = 0
+		for _, spec in specs do
+			if spec.name == name then
+				n += 1
+			end
+		end
+		return n
+	end
+
+	t.test("m5-20 AC2: 회전 벨트 조명 3(Lantern)·파티클 2(SoyGlint), 예산 안", function()
+		local decor = BeltArt.decor()
+		t.eq(countNamed(decor, BeltArt.LANTERN), 3)
+		t.eq(countNamed(decor, BeltArt.SOY_GLINT), 2)
+		t.ok(countNamed(decor, BeltArt.LANTERN) <= MapKitLogic.LIGHT_BUDGET, "lantern light budget")
+		t.ok(countNamed(decor, BeltArt.SOY_GLINT) <= MapKitLogic.PARTICLE_BUDGET, "soy glint particle budget")
+		t.eq(countNamed(decor, BeltArt.FACE_EYE), 6, "3 faces x 2 eyes")
+	end)
+
+	t.test("m5-20 AC2: 간장 늪 조명 2(HillRice)·파티클 3(SoyBubble), 예산 안", function()
+		local decor = SwampArt.decor()
+		t.eq(countNamed(decor, SwampArt.HILL_RICE), 2)
+		t.eq(countNamed(decor, SwampArt.PUDDLE_BUBBLE), 3)
+		t.ok(countNamed(decor, SwampArt.HILL_RICE) <= MapKitLogic.LIGHT_BUDGET, "hill rice light budget")
+		t.ok(countNamed(decor, SwampArt.PUDDLE_BUBBLE) <= MapKitLogic.PARTICLE_BUDGET, "puddle bubble particle budget")
+	end)
+
+	t.test("m5-20 AC4: 간장 늪 안개 패널이 코스 공간(courseVolume)과 안 겹쳐요", function()
+		local volumes = SwampArt.courseVolume()
+		local fogCount = 0
+		for i, spec in SwampArt.decor() do
+			if spec.name == SwampArt.FOG_PANEL then
+				fogCount += 1
+				local b = MapKitLogic.bounds({ spec }) :: MapKitLogic.Bounds
+				for j, volume in volumes do
+					t.ok(not overlaps(b, volume), `fog panel #{i} overlaps course volume #{j}`)
+				end
+			end
+		end
+		t.ok(fogCount >= 3 and fogCount <= 4, `fog panel count {fogCount}`)
+	end)
+
+	t.test(
+		"m5-20 AC5: 회전 벨트·간장 늪 introCamera()가 5개 경유점을 돌려주고, 기존 4개 좌표는 그대로예요",
+		function()
+			local function pt(x: number, y: number, z: number, lx: number, ly: number, lz: number)
+				return { pos = { x = x, y = y, z = z }, lookAt = { x = lx, y = ly, z = lz } }
+			end
+			local function keepsOld(points: { any }, old: { any }, label: string)
+				t.eq(#points, 5, `{label} has 5 points`)
+				local remaining = table.clone(points)
+				for _, want in old do
+					local found = false
+					for i, got in remaining do
+						if
+							got.pos.x == want.pos.x
+							and got.pos.y == want.pos.y
+							and got.pos.z == want.pos.z
+							and got.lookAt.x == want.lookAt.x
+							and got.lookAt.y == want.lookAt.y
+							and got.lookAt.z == want.lookAt.z
+						then
+							found = true
+							table.remove(remaining, i)
+							break
+						end
+					end
+					t.ok(found, `{label} keeps point {want.pos.x},{want.pos.y},{want.pos.z}`)
+				end
+				t.eq(#remaining, 1, `{label} has exactly one new point`)
+			end
+			keepsOld(BeltArt.introCamera(), {
+				pt(0, 14, 6, 0, 2, -24),
+				pt(0, 17, -66, 0, 2, -88),
+				pt(0, 18, -96, 0, 3, -118),
+				pt(0, 12, 10, 0, 3, -20),
+			}, "rotating-belt")
+			keepsOld(SwampArt.introCamera(), {
+				pt(0, 16, 4, 0, 2, -30),
+				pt(-4, 26, -50, -4, 6, -72),
+				pt(0, 38, -128, 0, 20, -168),
+				pt(0, 12, 10, 0, 4, -30),
+			}, "soy-swamp")
+		end
+	)
 end

@@ -30,6 +30,7 @@ local CONTROLLERS = {
 	require(script.ui.CodeController), -- m5-10 "🎟 코드"
 	require(script.ui.ChatTagController), -- m5-08 [VIP] 채팅 태그
 	require(script.input.IceController), -- m5-06 얼음 관성
+	require(script.fx.MapDecorFxController), -- m5-20 맵 장식 로컬 애니메이션
 }
 
 for _, controller in CONTROLLERS do

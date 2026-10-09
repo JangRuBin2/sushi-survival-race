@@ -90,7 +90,7 @@ local function buildKnife(model: Model, origin: CFrame)
 	local pivot = origin * CFrame.new(0, KNIFE_REST_HEIGHT, 0)
 	local half = Logic.KNIFE_LENGTH / 2
 	local colors = Art.KNIFE
-	makePart({
+	local blade = makePart({
 		Name = "Blade",
 		Size = Vector3.new(Logic.KNIFE_LENGTH, 10, 0.6),
 		CFrame = pivot * CFrame.new(0, 5, 0),
@@ -99,6 +99,25 @@ local function buildKnife(model: Model, origin: CFrame)
 		Reflectance = 0.15,
 		Parent = knife,
 	})
+	-- m5-20 ①: 내려칠 때 한 번만 튀는 불꽃 (상시 파티클 아님, 예산에 거의 영향 없음)
+	local spark = Instance.new("ParticleEmitter")
+	spark.Name = Art.KNIFE_SPARK
+	spark.Color = ColorSequence.new(Color3.fromRGB(255, 220, 120))
+	spark.LightEmission = 1
+	spark.Rate = 0
+	spark.Enabled = false
+	spark.Lifetime = NumberRange.new(0.15, 0.3)
+	spark.Speed = NumberRange.new(8, 18)
+	spark.SpreadAngle = Vector2.new(35, 35)
+	spark.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.35),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	spark.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	spark.Parent = blade
 	makePart({
 		Name = "Edge",
 		Size = Vector3.new(Logic.KNIFE_LENGTH, 1, 0.7),
@@ -205,7 +224,17 @@ local function build(origin: CFrame): Model
 	end
 	spawns.Parent = model
 
-	MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))
+	for _, part in MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model)) do
+		if part.Name == Art.LAMP_BULB then
+			-- m5-20 ①: 가운데(도마 중앙 조명)는 더 넓게, 양옆은 좁게
+			local isCenter = math.abs(origin:PointToObjectSpace(part.Position).X) < 1
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 232, 170)
+			light.Brightness = 1
+			light.Range = if isCenter then 30 else 18
+			light.Parent = part
+		end
+	end
 	MapKit.introCamera(model, Art.introCamera(), origin)
 	MapKit.attachStudioArt(model, ID, origin)
 
@@ -465,6 +494,11 @@ local function start(ctx: MapTypes.RoundContext)
 			movePivot(knife, function(): CFrame
 				return origin * currentTilt * lineRel * CFrame.new(0, KNIFE_STRIKE_HEIGHT, 0)
 			end, KNIFE_SLAM_TIME, true)
+			-- m5-20 ①: 칼이 닿는 순간 한 번만 튀는 불꽃
+			local spark = blade and blade:FindFirstChild(Art.KNIFE_SPARK)
+			if spark and spark:IsA("ParticleEmitter") then
+				spark:Emit(ctx.rng:NextInteger(10, 15))
+			end
 		end
 		if not ctx.isActive() then
 			followers[stripe] = nil

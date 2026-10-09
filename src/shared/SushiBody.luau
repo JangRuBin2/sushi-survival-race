@@ -3,9 +3,12 @@
 --   layout(appearanceId)  파츠 목록 (순수 함수, lune 테스트 가능). 모르는 id면 기본(tamago).
 --   hasLayout(id)         그 id 전용 레이아웃이 있는지 (스킨 카탈로그 Shared.Skins와 맞추는 테스트용)
 --   bounds(layout)        파츠 목록 전체 외곽 (순수 함수, Body 중심 기준 min/max, 회전 반영)
---   effectCount(layout)   효과(불꽃·반짝이) 개수
--- 스킨(m4-13): 모든 스킨이 같은 밥 몸통(Body)·눈·입·발을 쓰고 위 토핑만 달라요 (GDD 6). 외곽 상자는 계란초밥의
--- ±15% 안이라 이름표·연출 높이가 같아요 (tests/skins.spec.luau). 판정은 휴머노이드라 스킨과 무관해요.
+--   effectCount(layout)   효과(불꽃·반짝이·연기·빛) 개수
+--   EFFECT_BUDGET[tier]   등급별 효과 개수 상한 (m5-21). 상한 강제는 호출부(Skins.validate, 테스트)의 몫.
+--   BOUNDS_TOLERANCE[tier]  등급별 외곽 상자 허용 비율 (m5-21). 비교도 호출부의 몫 — bounds() 자체는 그대로.
+-- 스킨(m4-13): 모든 스킨이 같은 밥 몸통(Body)·눈·입·발을 쓰고 위 토핑만 달라요 (GDD 6). 외곽 상자는 등급별
+-- 허용치 안(일반·레어 ±15%, 에픽·전설 ±25%, m5-21)이라 이름표·연출 높이가 같아요 (tests/skins.spec.luau).
+-- 판정은 휴머노이드라 스킨과 무관해요.
 --   build(appearanceId)   파츠를 만들고 Body에 용접한 Model. PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
@@ -18,8 +21,8 @@ local SushiBody = {}
 SushiBody.MODEL_NAME = "SushiBody"
 SushiBody.JOINT_NAME = "SushiJoint"
 
-export type Shape = "Block" | "Ball" | "Cylinder"
-export type Effect = "Fire" | "Sparkles"
+export type Shape = "Block" | "Ball" | "Cylinder" | "Wedge"
+export type Effect = "Fire" | "Sparkles" | "Smoke" | "Glow"
 
 -- 파츠 하나. Roblox 자료형 대신 숫자 배열을 써요 (lune 테스트용).
 export type PartSpec = {
@@ -28,9 +31,9 @@ export type PartSpec = {
 	color: { number }, -- {r, g, b} 0~255
 	material: string, -- Enum.Material 이름
 	offset: { number }, -- Body 중심 기준 위치 {x, y, z}
-	shape: Shape?, -- 없으면 Block. Ball은 크기 세 값이 같아야 해요, Cylinder는 X축 방향 (m4-13)
+	shape: Shape?, -- 없으면 Block. Ball은 크기 세 값이 같아야 해요, Cylinder는 X축 방향, Wedge는 쐐기 (m4-13, Wedge는 m5-21)
 	rotation: { number }?, -- 도 단위 {x, y, z}, CFrame.Angles 순서 (m4-13)
-	effect: Effect?, -- 이 파츠에 붙는 효과 (스킨당 1개 이하, m4-13)
+	effect: Effect?, -- 이 파츠에 붙는 효과 (등급별 예산 이하, m4-13·m5-21)
 	effectColor: { number }?, -- 효과 색 {r, g, b}
 }
 
@@ -433,6 +436,25 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 -- Body 중심에서 발바닥까지 (TAMAGO 바닥 y = -2.3)
 SushiBody.GROUND_OFFSET = 2.3
 
+-- 등급별 효과(이펙트) 개수 상한 (m5-21). 문자열 키라 Skins.Tier 타입을 몰라도 돼요.
+-- 강제는 여기서 안 해요 — effectCount(layout) vs 이 테이블을 비교하는 쪽(Skins.validate, 테스트)의 몫.
+SushiBody.EFFECT_BUDGET = {
+	Basic = 0,
+	Common = 1,
+	Rare = 1,
+	Epic = 2,
+	Legendary = 2,
+} :: { [string]: number }
+
+-- 등급별 외곽 상자 허용 비율 (m5-21). bounds() 결과(extents)와 비교하는 쪽의 몫.
+SushiBody.BOUNDS_TOLERANCE = {
+	Basic = 0,
+	Common = 0.15,
+	Rare = 0.15,
+	Epic = 0.25,
+	Legendary = 0.25,
+} :: { [string]: number }
+
 local function copyList(value: { number }?): { number }?
 	return if value then table.clone(value) else nil
 end
@@ -517,7 +539,7 @@ local function rgb(v: { number }): Color3
 	return Color3.fromRGB(v[1], v[2], v[3])
 end
 
--- 효과 하나 (스킨당 1개 이하). 작게, 모바일 부담이 적게.
+-- 효과 하나 (등급별 예산 이하, m5-21). 작게, 모바일 부담이 적게.
 local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 	if effect == "Sparkles" then
 		local sparkles = Instance.new("Sparkles")
@@ -539,6 +561,29 @@ local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 		emitter.SpreadAngle = Vector2.new(15, 15)
 		emitter.EmissionDirection = Enum.NormalId.Top
 		emitter.Parent = target
+	elseif effect == "Smoke" then
+		-- 작은 연기: Smoke 오브젝트는 최소 크기가 커서 Fire처럼 파티클로 만들어요 (m5-21)
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Name = "SkinEffect"
+		emitter.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		emitter.Color = ColorSequence.new(rgb(color or { 200, 200, 200 }))
+		emitter.LightEmission = 0
+		emitter.Size = NumberSequence.new(0.6, 1.4)
+		emitter.Transparency = NumberSequence.new(0.4, 1)
+		emitter.Lifetime = NumberRange.new(0.6, 1.0)
+		emitter.Rate = 10
+		emitter.Speed = NumberRange.new(0.8, 1.4)
+		emitter.SpreadAngle = Vector2.new(10, 10)
+		emitter.EmissionDirection = Enum.NormalId.Top
+		emitter.Parent = target
+	elseif effect == "Glow" then
+		-- 은은한 빛만 (펄스 같은 애니메이션은 인프라 밖, m5-21 설계 메모)
+		local light = Instance.new("PointLight")
+		light.Name = "SkinEffect"
+		light.Color = rgb(color or { 255, 255, 255 })
+		light.Range = 8
+		light.Brightness = 2
+		light.Parent = target
 	end
 end
 
@@ -548,13 +593,21 @@ function SushiBody.build(appearanceId: string): Model
 
 	local body: BasePart? = nil
 	for _, spec in SushiBody.layout(appearanceId) do
-		local part = Instance.new("Part")
-		part.Name = spec.name
-		if spec.shape == "Ball" then
-			part.Shape = Enum.PartType.Ball
-		elseif spec.shape == "Cylinder" then
-			part.Shape = Enum.PartType.Cylinder
+		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만
+		-- Enum.PartType .Shape 속성을 설정해요 (m5-21 — WedgePart에는 .Shape가 없어요)
+		local part: BasePart
+		if spec.shape == "Wedge" then
+			part = Instance.new("WedgePart")
+		else
+			local basePart = Instance.new("Part")
+			if spec.shape == "Ball" then
+				basePart.Shape = Enum.PartType.Ball
+			elseif spec.shape == "Cylinder" then
+				basePart.Shape = Enum.PartType.Cylinder
+			end
+			part = basePart
 		end
+		part.Name = spec.name
 		part.Size = vec(spec.size)
 		part.Color = rgb(spec.color)
 		part.Material = (Enum.Material :: any)[spec.material] :: Enum.Material
@@ -599,7 +652,7 @@ end
 -- 효과(불꽃·반짝이)를 켜고 꺼요. 탈락 연출이 진짜 캐릭터를 로컬로 숨길 때 효과도 같이 숨겨요 (m4-13).
 function SushiBody.setEffectsEnabled(root: Instance, enabled: boolean)
 	for _, item in root:GetDescendants() do
-		if item:IsA("ParticleEmitter") or item:IsA("Sparkles") or item:IsA("Fire") then
+		if item:IsA("ParticleEmitter") or item:IsA("Sparkles") or item:IsA("Fire") or item:IsA("PointLight") then
 			(item :: any).Enabled = enabled
 		end
 	end

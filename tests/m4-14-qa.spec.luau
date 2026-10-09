@@ -16,6 +16,7 @@ local ProfileLogic = RobloxRequire.require(Shared.ProfileLogic)
 local ProfileSchema = RobloxRequire.require(Shared.ProfileSchema)
 local ShopLogic = RobloxRequire.require(Shared.ShopLogic)
 local Types = RobloxRequire.require(Shared.Types)
+local SushiBody = RobloxRequire.require(Shared.SushiBody) -- m5-21: Skins가 등급별 효과 예산·박스 허용치 검사에 써요
 
 local GRANTED = "Enum.ProductPurchaseDecision.PurchaseGranted"
 local NOT_YET = "Enum.ProductPurchaseDecision.NotProcessedYet"
@@ -43,7 +44,7 @@ end
 
 local function patchedCatalog(): (any, any)
 	local Seasons = loadSharedFresh("Seasons", {}) -- m5-03: Skins·ReceiptLogic이 시즌 카탈로그를 봐요
-	local Skins = loadSharedFresh("Skins", { Config = Config, Seasons = Seasons })
+	local Skins = loadSharedFresh("Skins", { Config = Config, Seasons = Seasons, SushiBody = SushiBody })
 	for i, skin in Skins.LIST do
 		if skin.robux ~= nil then
 			skin.productId = 5000 + i

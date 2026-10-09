@@ -37,6 +37,7 @@ export type TierInfo = {
 
 local Config = require(script.Parent.Config)
 local Seasons = require(script.Parent.Seasons)
+local SushiBody = require(script.Parent.SushiBody)
 
 local Skins = {}
 
@@ -284,13 +285,22 @@ local function isPrice(value: unknown): boolean
 	return type(value) == "number" and value == value and value > 0 and value % 1 == 0 and value < math.huge
 end
 
--- 카탈로그 규칙: id·순서 겹침 없음, 등급 유효, 기본 스킨은 무료, 코인은 일반·레어 등급만, 대사 1~2줄
+-- 카탈로그 규칙: id·순서 겹침 없음, 등급 유효, 기본 스킨은 무료, 코인은 일반·레어 등급만, 대사 1~2줄,
+-- 전용 레이아웃이 있는 스킨은 등급별 효과 예산(SushiBody.EFFECT_BUDGET)·박스 허용치(SushiBody.BOUNDS_TOLERANCE)
+-- 를 지켜요 (m5-21). 레이아웃이 없는(SushiBody.hasLayout == false) 가짜 id는 이 기하 검사를 건너뛰어요 —
+-- "validate가 잘못된 카탈로그를 잡아요" 같은 테스트가 가짜 id를 쓰기 때문.
 function Skins.validate(list: { Skin }): (boolean, { string })
 	local problems: { string } = {}
 	local ids: { [string]: boolean } = {}
 	local orders: { [number]: boolean } = {}
 	local products: { [number]: boolean } = {}
 	local hasDefault = false
+	local baseBounds = SushiBody.bounds(SushiBody.layout(Skins.DEFAULT_ID))
+	local baseExtents = {
+		baseBounds.max[1] - baseBounds.min[1],
+		baseBounds.max[2] - baseBounds.min[2],
+		baseBounds.max[3] - baseBounds.min[3],
+	}
 	for index, skin in list do
 		local where = `#{index} {tostring(skin.id)}`
 		if type(skin.id) ~= "string" or skin.id == "" then
@@ -372,6 +382,34 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 				table.insert(problems, `{where}: duplicate productId`)
 			else
 				products[skin.productId] = true
+			end
+		end
+		if SushiBody.hasLayout(skin.id) then
+			local layout = SushiBody.layout(skin.id)
+			local budget = SushiBody.EFFECT_BUDGET[skin.tier]
+			if budget ~= nil then
+				local count = SushiBody.effectCount(layout)
+				if count > budget then
+					table.insert(
+						problems,
+						`{where}: effect budget exceeded ({count} > {budget} for tier {tostring(skin.tier)})`
+					)
+				end
+			end
+			local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier]
+			if tolerance ~= nil then
+				local bounds = SushiBody.bounds(layout)
+				for axis = 1, 3 do
+					local size = bounds.max[axis] - bounds.min[axis]
+					local ratio = size / baseExtents[axis]
+					if ratio < 1 - tolerance or ratio > 1 + tolerance then
+						local tierName = tostring(skin.tier)
+						table.insert(
+							problems,
+							`{where}: bounds axis {axis} outside tolerance (ratio {ratio} vs tier {tierName} tolerance {tolerance})`
+						)
+					end
+				end
 			end
 		end
 		local speech = skin.speech

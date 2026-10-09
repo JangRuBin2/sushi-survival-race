@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-21 — 스킨 기반 v2 (Wedge · 효과 예산 · 박스 허용치 등급별 분기)
@@ -85,3 +85,36 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 바뀐 파일
+- `src/shared/SushiBody.luau`:
+  - `Shape`에 `"Wedge"` 추가. `build()`의 파츠 생성 분기를 "어떤 클래스를 `Instance.new`할지"(Wedge → `WedgePart`, 나머지 → `Part`)로 먼저 나누고, 그다음 `Ball`/`Cylinder`만 `Part.Shape`를 설정하도록 바꿨다(`WedgePart`에는 `.Shape` 속성이 없음).
+  - `Effect`에 `"Smoke"`·`"Glow"` 추가. `addEffect()`에 두 분기 구현 — `Smoke`는 Fire와 같은 이유(네이티브 `Smoke` 최소 크기 문제)로 `ParticleEmitter`(연기 텍스처), `Glow`는 `PointLight`(Range 8, Brightness 2, 펄스 없음).
+  - `SushiBody.EFFECT_BUDGET`(`{ Basic=0, Common=1, Rare=1, Epic=2, Legendary=2 }`)과 `SushiBody.BOUNDS_TOLERANCE`(`{ Basic=0, Common=0.15, Rare=0.15, Epic=0.25, Legendary=0.25 }`) 테이블 추가 — 둘 다 문자열 키, 어떤 모듈도 require하지 않음(테스트로 확인).
+  - `bounds()`는 그대로(설계 메모대로 Wedge도 Block과 같은 회전 전 외곽 상자 공식을 씀 — 테스트로 확인, AC1).
+  - `setEffectsEnabled()`가 `PointLight`도 토글하도록 확장(탈락 연출이 Glow도 같이 숨길 수 있게).
+- `src/shared/Skins.luau`: `SushiBody`를 require(순환 없음). `Skins.validate(list)`에 `SushiBody.hasLayout(skin.id)`가 참인 스킨만 효과 예산(`EFFECT_BUDGET[tier]` 초과 시 "effect budget exceeded" 문제)과 박스 허용치(`BOUNDS_TOLERANCE[tier]`, 기준은 `SushiBody.layout(Skins.DEFAULT_ID)`의 extents — 초과 시 "bounds axis N outside tolerance" 문제)를 검사하도록 확장. 함수 시그니처(`(boolean, {string})`)는 그대로라 `ShopService.luau:237` 등 호출부는 수정 불필요.
+- `tests/sushi-body.spec.luau`: Wedge bounds == Block bounds 테스트(회전 없음 + 90도, AC1), `EFFECT_BUDGET`·`BOUNDS_TOLERANCE` 값과 "SushiBody가 아무것도 require 안 함"(소스에 `require(` 없음) 테스트(AC3) 추가.
+- `tests/skins.spec.luau`:
+  - "외곽 상자 ±15%" 테스트를 등급별 허용치(`SushiBody.BOUNDS_TOLERANCE[skin.tier]`)로 바꾸고(AC5), 기존 21종 전부 그대로 통과 확인. ±20% 가짜 레이아웃으로 에픽·전설 통과/일반·레어 실패를 보여주는 테스트 추가(AC5).
+  - "효과는 스킨당 1개 이하" 테스트를 "등급별 예산 이하"로 바꾸고(AC4, 기존 21종 전부 그대로 통과), 2이펙트 가짜 레이아웃으로 에픽·전설 통과/일반·레어 실패를 보여주는 테스트 추가(AC4).
+  - "파츠 값이 올바르고" 테스트의 shape 허용 목록에 `"Wedge"` 추가(AC2).
+  - `Skins.validate(Skins.LIST)`가 여전히 `(true, {})`인 걸 확인하는 테스트 추가(AC6 — 기존 AC1 테스트에도 있지만 이름 붙여 명시), 효과 예산 초과를 잡는 새 테스트 추가(AC6 — `aburi-salmon`의 실제 레이아웃을 재사용하되 복사본의 `tier`만 `"Basic"`(budget 0)으로 낮춰 effectCount(1) > budget(0)을 만들고, 문제 목록에 "effect budget exceeded"가 있는지 확인). 기존 "validate가 잘못된 카탈로그를 잡아요"(가짜 id `x`/`z`, `hasLayout` false) 테스트는 그대로 통과(AC7). 기존 AC1·AC2(히트박스 동일)·AC4(대사) 테스트는 손대지 않음(AC8).
+- `tests/m4-14-qa.spec.luau`: `Skins.luau`가 이제 `SushiBody`도 require하므로, 이 파일의 가짜 의존성 주입 하네스(`loadSharedFresh`)에 `SushiBody = RobloxRequire.require(Shared.SushiBody)`를 deps로 추가(안 그러면 "missing dep SushiBody"로 25개 테스트 실패 — 다른 Skins 관련 코드 변경 없음, 순수하게 테스트 하네스 보강).
+
+### 검증 결과
+5단계 전부 통과:
+1. `rojo build -o build.rbxl` — 통과
+2. `stylua --check src tests` — 통과
+3. `selene src` — 0 errors / 0 warnings
+4. `lune run tests` — **1139 passed, 0 failed** (기존 1090개 + 이번 스펙이 추가한 테스트들. 기존 21종 스킨 테스트 `tests/skins.spec.luau`·`tests/sushi-body.spec.luau`는 수정판이 전부 통과, `tests/m4-14-qa.spec.luau`도 하네스 보강 후 26/26 통과)
+5. `luau-lsp analyze ...` — 종료 코드 0, 에러 없음
+
+### Studio 확인 (AC9~AC12, 사용자가 손으로 확인)
+- **AC9**: Studio에서 Part를 하나 만들고 ClassName을 `WedgePart`로 바꿔 보거나(또는 `Instance.new("WedgePart")`를 Command bar에서 실행), `rotation`을 안 줬을 때(기본값) 경사면이 어느 방향(기본은 +Y쪽이 깎여 로컬 +Z 방향이 낮아짐)을 보는지 확인하고 90도 단위로 돌려 원하는 방향(귀·스파이크 등)을 만들 수 있는지 확인해 주세요. 이 스펙은 인프라만이라 실제로 Wedge를 쓰는 스킨은 `m5-22`가 만듭니다 — 지금은 SushiBody 코드 자체가 Wedge 분기를 올바르게 처리하는지만 확인하면 됩니다(예: `SushiBody.build`를 테스트용 레이아웃에 `shape="Wedge"` 파츠를 임시로 추가해 Command bar에서 호출).
+- **AC10**: 관리자 미리보기 패널("🛠", m5-02)로 기존 스킨을 입은 채로, Command bar나 임시 스크립트로 `SushiBody.build`가 만드는 모델에 Smoke+Glow 또는 Fire+Sparkles 효과가 있는 테스트 레이아웃을 넣어 겹쳤을 때 과하게 산만하지 않은지 확인해 주세요(현재 카탈로그엔 2이펙트 스킨이 없음 — `m5-22`가 실제로 추가하면 그때 다시 확인).
+- **AC11**: 코드 리뷰 기준 수치 — Fire/Smoke 에미터는 `Rate 10~12`, `Lifetime 0.3~1.0s`로 기존 Fire와 비슷한 비용이고, Glow는 애니메이션 없는 `PointLight`(Range 8, Brightness 2) 하나뿐이라 파티클 비용이 없습니다. 에픽·전설이 2개를 다 쓰면 캐릭터당 에미터 2개(또는 에미터 1개+라이트 1개)로, 기존 1개 대비 늘어나지만 `MapKit`의 "맵당 파티클 8개" 예산과 비교하면 작은 수치입니다. 실제 다수 동시 착용 프레임 확인은 `m5-22`가 2이펙트 스킨을 만든 뒤 Studio Test(Clients and Servers)에서 해 주세요.
+- **AC12**: 서버 시작 시 `Skins.validate(Skins.LIST)`를 호출하는 지점(`ShopService.luau`)에서 콘솔에 에러가 없는지 Studio Test로 확인해 주세요. lune 테스트에서 이미 `(true, {})`를 확인했으니 코드상 문제는 없을 것으로 예상됩니다.
+
+### 남은 이슈
+- 없음. 신규 스킨 콘텐츠(10종)는 이 스펙 범위 밖이며 `m5-22`가 담당.

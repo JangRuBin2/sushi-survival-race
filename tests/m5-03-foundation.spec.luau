@@ -25,13 +25,13 @@ local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
+-- giant-jenga는 m5-16이 끝내 실제 맵이 됐어요 (더 이상 껍데기 아님, 랜덤 풀에 들어가요).
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
 	"dessert-fridge",
 	"bouncy-castle-maze",
 	"lantern-bridge",
-	"giant-jenga",
 	"cat-cafe-shelves",
 	"tug-of-war-platform",
 	"claw-machine-prize",
@@ -93,7 +93,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 9개는 스펙 표 그대로 + inPool = false", function()
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
 		local expected = {
 			["ikura-bombs"] = {
 				"Final",
@@ -119,11 +119,6 @@ return function(t: Test.Test)
 				"Race",
 				"등불 다리 건너기",
 				"흔들리는 다리와 종이 등불 사이를 건너요.",
-			},
-			["giant-jenga"] = {
-				"Survival",
-				"와르르 나무 블록",
-				"흔들리는 블록탑 위에서 안 떨어지게 버텨요.",
 			},
 			["cat-cafe-shelves"] = {
 				"Survival",
@@ -161,12 +156,13 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
+	t.test("AC2: infos()는 7개(giant-jenga 포함, 남은 껍데기는 없음), allInfos()는 15개", function()
 		local ids = {}
 		for _, info in Maps.infos() do
 			ids[info.id] = true
 		end
-		t.eq(#Maps.infos(), 6)
+		t.eq(#Maps.infos(), 7)
+		t.ok(ids["giant-jenga"], "giant-jenga joined the random pool (m5-16)")
 		for _, id in SHELLS do
 			t.ok(not ids[id], `{id} not in random pool`)
 		end

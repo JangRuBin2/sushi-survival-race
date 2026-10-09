@@ -49,6 +49,7 @@ SfxCues.Effects = {
 	"OilSplash", -- 기름 튐 (m5-05)
 	"FanGust", -- 냉장고 송풍구 (m5-06)
 	"JellyBoing", -- 젤리 튕김 (m5-06)
+	"BounceBoing", -- 방방 미로 바운스 (m5-14)
 }
 
 -- 배경음 (Sfx.setMusic)

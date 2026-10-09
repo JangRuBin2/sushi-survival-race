@@ -29,7 +29,7 @@ local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
 	"dessert-fridge",
-	"bouncy-castle-maze",
+	-- "bouncy-castle-maze"는 m5-14가 끝나서 졸업했어요(inPool = false 줄 삭제, 풀에 합류)
 	"lantern-bridge",
 	"giant-jenga",
 	"cat-cafe-shelves",
@@ -93,7 +93,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 9개는 스펙 표 그대로 + inPool = false", function()
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
 		local expected = {
 			["ikura-bombs"] = {
 				"Final",
@@ -110,11 +110,7 @@ return function(t: Test.Test)
 				"디저트 냉장고",
 				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
 			},
-			["bouncy-castle-maze"] = {
-				"Race",
-				"방방 미로",
-				"말랑한 바닥 위를 튕기며 미로를 빠져나가요.",
-			},
+			-- "bouncy-castle-maze"는 m5-14가 끝나서 졸업했어요 (아래 else 분기에서 "풀에 남아 있다"만 확인)
 			["lantern-bridge"] = {
 				"Race",
 				"등불 다리 건너기",
@@ -161,23 +157,27 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
-	t.test("AC2: infos()는 6개(껍데기 없음), allInfos()는 15개", function()
-		local ids = {}
-		for _, info in Maps.infos() do
-			ids[info.id] = true
+	t.test(
+		"AC2: infos()는 7개(m5-14 bouncy-castle-maze 합류, 나머지 껍데기 없음), allInfos()는 15개",
+		function()
+			local ids = {}
+			for _, info in Maps.infos() do
+				ids[info.id] = true
+			end
+			t.eq(#Maps.infos(), 7)
+			t.ok(ids["bouncy-castle-maze"], "bouncy-castle-maze joined the random pool")
+			for _, id in SHELLS do
+				t.ok(not ids[id], `{id} not in random pool`)
+			end
+			local all = {}
+			for _, info in Maps.allInfos() do
+				all[info.id] = info.kind
+			end
+			for _, id in SHELLS do
+				t.ok(all[id] ~= nil, `{id} in allInfos`)
+			end
 		end
-		t.eq(#Maps.infos(), 6)
-		for _, id in SHELLS do
-			t.ok(not ids[id], `{id} not in random pool`)
-		end
-		local all = {}
-		for _, info in Maps.allInfos() do
-			all[info.id] = info.kind
-		end
-		for _, id in SHELLS do
-			t.ok(all[id] ~= nil, `{id} in allInfos`)
-		end
-	end)
+	)
 
 	t.test("AC2: 강제 플랜은 allInfos로 껍데기도 그 순서대로", function()
 		local plan, problem =

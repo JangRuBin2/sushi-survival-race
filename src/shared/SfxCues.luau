@@ -54,6 +54,7 @@ SfxCues.Effects = {
 	"CatToyBounce", -- 장난감 공에 맞음 (m5-17)
 	"CatPawWarn", -- 고양이 발 경고 시작 (m5-17)
 	"CatPawSwipe", -- 고양이 발에 밀리는 순간 (m5-17)
+	"ClawLift", -- 집게가 구역을 들어 올림 (m5-19)
 }
 
 -- 배경음 (Sfx.setMusic)

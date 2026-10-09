@@ -92,6 +92,7 @@ SfxLibrary.Entries = {
 	CatToyBounce = sfx(nil, 0.7), -- 장난감 공에 맞음 (m5-17)
 	CatPawWarn = sfx(nil, 0.7), -- 고양이 발 경고 (m5-17)
 	CatPawSwipe = sfx(nil, 0.8), -- 고양이 발에 밀림 (m5-17)
+	ClawLift = sfx(nil, 0.8), -- 집게가 구역을 들어 올림 (m5-19)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

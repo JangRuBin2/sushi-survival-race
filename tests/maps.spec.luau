@@ -78,14 +78,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"m5-01·m5-14·m5-15·m5-16·m5-17·m5-18 AC7·AC11: 맵 풀 11개(기존 6 + bouncy-castle-maze + lantern-bridge + giant-jenga + cat-cafe-shelves + tug-of-war-platform)가 모두 validate를 통과해요",
+		"m5-01·m5-14~19 AC7·AC11: 맵 풀 12개(기존 6 + bouncy-castle-maze + lantern-bridge + giant-jenga + cat-cafe-shelves + tug-of-war-platform + claw-machine-prize)가 모두 validate를 통과해요",
 		function()
 			local count = 0
 			for _, info in Maps.infos() do
 				t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
 				count += 1
 			end
-			t.eq(count, 11)
+			t.eq(count, 12)
 		end
 	)
 

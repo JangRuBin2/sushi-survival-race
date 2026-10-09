@@ -16,6 +16,12 @@ local ALL: { MapTypes.MapModule } = {
 	require(script.IkuraBombs), -- m5-03 껍데기 → m5-04 (inPool = false)
 	require(script.TempuraPot), -- m5-03 껍데기 → m5-05 (inPool = false)
 	require(script.DessertFridge), -- m5-03 껍데기 → m5-06 (inPool = false)
+	require(script.BouncyCastleMaze), -- m5-13 껍데기 → m5-14 (inPool = false)
+	require(script.LanternBridge), -- m5-13 껍데기 → m5-15 (inPool = false)
+	require(script.GiantJenga), -- m5-13 껍데기 → m5-16 (inPool = false)
+	require(script.CatCafeShelves), -- m5-13 껍데기 → m5-17 (inPool = false)
+	require(script.TugOfWarPlatform), -- m5-13 껍데기 → m5-18 (inPool = false)
+	require(script.ClawMachinePrize), -- m5-13 껍데기 → m5-19 (inPool = false)
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

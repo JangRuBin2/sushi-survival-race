@@ -50,6 +50,7 @@ SfxCues.Effects = {
 	"FanGust", -- 냉장고 송풍구 (m5-06)
 	"JellyBoing", -- 젤리 튕김 (m5-06)
 	"BounceBoing", -- 방방 미로 바운스 (m5-14)
+	"BlockCreak", -- 블록탑 기둥이 뽑히기 직전 삐걱임 (m5-16)
 }
 
 -- 배경음 (Sfx.setMusic)

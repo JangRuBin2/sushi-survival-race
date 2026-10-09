@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-16 — 새 Survival 맵: 와르르 나무 블록 (`giant-jenga`)
@@ -77,3 +77,25 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- **바뀐 파일**
+  - `src/shared/maps/GiantJengaLayout.luau` (새 파일): 격자 치수 — `columns()`(25칸), `isProtected`, `spawnOffsets()`(24곳), `neighborsOf`, `key`. `LEVEL_MAX`(3)·`LEVEL_DROP`(4)·`FALL_DEPTH`(30)·`CELL_SIZE`(10).
+  - `src/shared/maps/GiantJengaLogic.luau` (새 파일): 보드 상태(`newBoard`), 제거 일정(`removalWave`/`removalTimes`, 스펙 표 그대로), 고르기·적용(`pickColumns`/`applyRemoval`), 국소 기울기(`tiltFor`, `DEG_PER_UNIT` 6도·`MAX_TILT_DEG` 18도), 높이(`heightOf`).
+  - `src/shared/maps/GiantJengaArt.luau` (새 파일): 블록 색(`blockColor`)·받침대 색, 공사장/목공소 배경 장식(손님 얼굴 3개, 상자·톱밥·줄자·작업등), `introCamera`(3점: 탑 전체 → 바깥 테두리 → 가운데), `courseVolume`.
+  - `src/shared/maps/GiantJenga.luau` (덮어씀): `inPool = false` 줄 삭제(랜덤 Survival 풀에 들어감). 칸마다 Top 판정 타일(`GiantJengaColumn` 태그) + 바깥 칸은 블록 3단(`Block1~3`, 하나씩 투명해져 빠짐), 보호 칸은 받침대 하나. 매 프레임 `Logic.tiltFor`로 칸마다 독립적으로 기울이고, 그 칸 위 플레이어를 낮은 쪽으로 최고 6 studs/s로 밂(연속 밀기라 `MoveExempt` 없음). 블록 제거: 0.8초 삐걱임(`BlockCreak`) → 레벨 -1 → 레벨 > 0이면 0.3초로 부드럽게 가라앉고, 레벨 0이면 추가 0.5초 흔들린 뒤 `TileVanish`로 사라짐.
+  - `src/shared/SfxCues.luau`: `Effects`에 `"BlockCreak"` 한 줄 추가.
+  - `src/shared/SfxLibrary.luau`: `BlockCreak` 항목 추가 (id는 사용자가 고를 때까지 무음 — `docs/USER-TODO.md`에 추가 필요, docs-writer 단계에서 반영 요청).
+  - `tests/map-giant-jenga.spec.luau` (새 파일): AC1~AC8 전부 커버 (22개 테스트).
+  - **기존 테스트 업데이트** (giant-jenga가 "m5-13 껍데기"에서 "실제 랜덤 풀 맵"으로 바뀌며 깨진 것들 — 내가 처음으로 m5-13 껍데기 하나를 졸업시켰어요):
+    - `tests/sfx-library.spec.luau`, `tests/camera-priority.spec.luau`: cue 개수 갱신 (BlockCreak 추가).
+    - `tests/m4-foundation.spec.luau` (AC6), `tests/maps.spec.luau` (m5-01 AC7): 맵 풀 개수/목록이 Survival 2→3, 전체 6→7로 늘어난 것 반영.
+    - `tests/m5-03-foundation.spec.luau`: `SHELLS` 목록·`expected` 표에서 giant-jenga 제거(더는 껍데기 아님), `infos()` 6→7개로 갱신.
+    - `tests/m4-12-hardening.spec.luau`: 강제 플랜 하나에 `giant-jenga`를 넣어서 "풀의 맵을 모두 한 번 이상 써요" 조건을 다시 만족시킴.
+- **결정/설계 메모** (스펙에 수치가 명시 안 된 부분, 스펙 "기본값, 사용자 수정 가능" 방침을 따름):
+  - `tiltFor`의 "가라앉은 정도" 차이 계산은 칸 자신의 레벨(sunk)을 기준으로 이웃과의 차이를 벡터로 더하는 방식 (뚫린 이웃은 `LEVEL_MAX + 1`로 쳐서 레벨 2 이웃보다 더 크게 기울게 함). AC6 그대로 테스트로 확인.
+  - 기울기 밀기 가속도(`TILT_PUSH_ACCEL = 18`)는 수치 명시가 없어 `ChefBoardLogic`과 같은 값을 재사용.
+  - 블록 3단은 바깥 칸마다 실제 Part 3개(`Block1~3`)로 만들고, 레벨이 줄 때마다 위에서부터 하나씩 투명해지고 충돌을 끔 — "블록 하나가 빠지는 것처럼" 보이게 함. 보호 칸은 블록 구분 없이 두껍고 짙은 받침대 하나.
+  - 판정은 ChefBoard와 같은 패턴으로 origin 기준 Y만 봄 (칸마다 다른 "가라앉은 자리" 기준으로 따로 30을 빼지 않음) — 가장 많이 가라앉아도 -8이라 30 studs 여유 안에서 결과가 같음.
+- **Studio 확인 방법** (`docs/DEV-SETUP.md` 패턴): `Config.DEBUG.forceMapPlan = { "rotating-belt", "giant-jenga", "soy-swamp", "skewer-showdown" }`로 설정하고 Studio Test 실행. AC10~AC16은 사용자 확인 필요 (코드 쪽에서는 손 댈 게 없음) — 특히 AC11(국소 기울기가 셰프의 도마와 다르게 느껴지는지)·AC16(재미·난이도)은 반드시 플레이테스트로.
+- **검증**: `rojo build`·`stylua --check`·`selene`·`lune run tests`(1174 passed, 0 failed)·`luau-lsp analyze`(exit 0) 전부 통과.
+- **남은 이슈**: 없음 (코드 레벨). Studio 확인(AC10~16)은 QA·사용자 몫.
+- **worktree**: `/Users/rubinjang/sushi/sushi-survival-race/.claude/worktrees/agent-a3228e567e64d1418`, 브랜치 `worktree-agent-a3228e567e64d1418`. 메인 세션이 머지.

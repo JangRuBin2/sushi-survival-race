@@ -135,6 +135,7 @@ return function(t: Test.Test)
 			"FanGust",
 			"JellyBoing",
 			"BounceBoing", -- m5-14
+			"BlockCreak", -- m5-16
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

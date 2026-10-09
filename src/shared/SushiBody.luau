@@ -127,6 +127,49 @@ local DRAGON_DARK = { 35, 100, 50 }
 local DRAGON_HORN = { 240, 220, 150 }
 local DRAGON_EYE = { 255, 220, 60 }
 
+-- m5-22: 스킨 1차 배치 10종
+local TAKOYAKI_BROWN = { 196, 140, 92 }
+local TAKOYAKI_DARK = { 150, 100, 60 }
+local BONITO_GREEN = { 140, 170, 90 }
+local MAYO_WHITE = { 255, 250, 235 }
+local EGGTOAST_BREAD = { 235, 205, 150 }
+local EGGTOAST_CRUST = { 200, 150, 90 }
+local YOLK_YELLOW = { 255, 200, 60 }
+local YOLK_SHADE = { 235, 170, 40 }
+local SLIDER_BUN = { 210, 150, 90 }
+local PATTY_BROWN = { 110, 70, 45 }
+local LETTUCE_GREEN = { 95, 165, 70 }
+local SESAME_WHITE = { 250, 245, 230 }
+local TONKATSU_GOLD = { 215, 165, 70 }
+local TONKATSU_RIDGE = { 180, 130, 50 }
+local CABBAGE_GREEN = { 150, 210, 120 }
+local SAUCE_BROWN = { 90, 55, 30 }
+local CAT_CREAM = { 250, 240, 225 }
+local CAT_EAR_PINK = { 255, 160, 190 }
+local CAT_EAR_INNER = { 255, 200, 215 }
+local CAT_NOSE = { 255, 120, 160 }
+local WHISKER_WHITE = { 255, 255, 255 }
+local ROBO_GRAY = { 150, 155, 165 }
+local ROBO_DARK = { 90, 95, 105 }
+local VISOR_NEON = { 60, 220, 255 }
+local ANTENNA_TIP = { 255, 60, 90 }
+local GALAXY_NAVY = { 30, 25, 70 }
+local GALAXY_STAR_WHITE = { 245, 245, 255 }
+local GALAXY_STAR_TEAL = { 90, 220, 210 }
+local SOFTSERVE_CREAM = { 255, 248, 235 }
+local SOFTSERVE_SHADE = { 240, 225, 200 }
+local CHERRY_RED = { 200, 30, 40 }
+local CONE_TAN = { 210, 160, 90 }
+local CROWN_TUNA_RED = { 150, 25, 40 }
+local CROWN_GOLD = { 255, 205, 70 }
+local CAPE_VELVET = { 90, 20, 60 }
+local UNICORN_WHITE = { 255, 250, 250 }
+local MANE_PINK = { 255, 170, 210 }
+local MANE_LILAC = { 200, 170, 255 }
+local MANE_MINT = { 160, 230, 210 }
+local HORN_GOLD = { 255, 215, 120 }
+local HORN_GOLD_LIGHT = { 255, 235, 180 }
+
 type Extra = {
 	shape: Shape?,
 	rotation: { number }?,
@@ -431,6 +474,253 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 	["santa-shrimp"] = withBase(join(slab({ 220, 40, 40 }), { noriBelt() })),
 	["tree-maki"] = withBase(join(slab({ 40, 150, 70 }), { noriBelt() })),
 	["vip-gold-tamago"] = withBase(join(slab(GOLD, "Foil"), { noriBelt() })),
+
+	-- 스킨 1차 배치 10종 (m5-22). 일반 3 (타코야키·에그토스트·슬라이더 버거)
+	takoyaki = withBase({
+		piece("DomeBack", { 2.6, 1.4, 0.3 }, TAKOYAKI_DARK, { 0, 0.9, 1.0 }),
+		piece("Dome1", { 1.1, 1.1, 1.1 }, TAKOYAKI_BROWN, { -0.55, 2.05, -0.25 }, nil, { shape = "Ball" }),
+		piece("Dome2", { 1.1, 1.1, 1.1 }, TAKOYAKI_BROWN, { 0.55, 2.05, -0.25 }, nil, { shape = "Ball" }),
+		piece("Dome3", { 1.15, 1.15, 1.15 }, TAKOYAKI_BROWN, { 0, 2.1, 0.35 }, nil, { shape = "Ball" }),
+		piece("BonitoWave1", { 1.6, 0.05, 0.35 }, BONITO_GREEN, { -0.3, 2.62, 0.0 }, nil, { rotation = { 0, 15, 0 } }),
+		piece("BonitoWave2", { 1.5, 0.05, 0.35 }, BONITO_GREEN, { 0.35, 2.58, 0.2 }, nil, { rotation = { 0, -10, 0 } }),
+		piece("MayoZig1", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { -0.4, 2.65, -0.4 }, nil, { rotation = { 0, 25, 0 } }),
+		piece("MayoZig2", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { 0.3, 2.6, 0.1 }, nil, { rotation = { 0, -20, 0 } }),
+		piece("MayoZig3", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { -0.1, 2.63, 0.55 }, nil, { rotation = { 0, 15, 0 } }),
+	}),
+	["egg-toast"] = withBase(join(slab(EGGTOAST_BREAD), {
+		piece("CrustEdge", { 2.82, 0.15, 2.22 }, EGGTOAST_CRUST, { 0, 2.42, 0.2 }),
+		piece("Yolk", { 0.8, 0.8, 0.8 }, YOLK_YELLOW, { 0.55, 2.5, 0.35 }, nil, { shape = "Ball" }),
+		piece("YolkShade", { 0.3, 0.3, 0.3 }, YOLK_SHADE, { 0.7, 2.65, 0.5 }, nil, { shape = "Ball" }),
+	})),
+	["slider-burger"] = withBase(join(slab(SLIDER_BUN), {
+		piece("PattyBand", { 2.82, 0.18, 2.22 }, PATTY_BROWN, { 0, 2.38, 0.2 }),
+		piece("LettuceZig1", { 2.84, 0.08, 0.4 }, LETTUCE_GREEN, { 0, 2.47, -0.75 }, nil, { rotation = { 0, 0, 8 } }),
+		piece("LettuceZig2", { 2.84, 0.08, 0.4 }, LETTUCE_GREEN, { 0, 2.44, 1.05 }, nil, { rotation = { 0, 0, -8 } }),
+		piece("Sesame1", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { -0.6, 2.47, -0.1 }, nil, { shape = "Ball" }),
+		piece("Sesame2", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { 0.5, 2.46, 0.3 }, nil, { shape = "Ball" }),
+		piece("Sesame3", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { -0.2, 2.48, 0.6 }, nil, { shape = "Ball" }),
+		piece("Sesame4", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { 0.3, 2.45, -0.5 }, nil, { shape = "Ball" }),
+	})),
+
+	-- 레어 3 (돈가스·고양이 초밥·로보 롤)
+	tonkatsu = withBase(join(slab(TONKATSU_GOLD), stripes(TONKATSU_RIDGE, 20), {
+		piece(
+			"CabbageCurl1",
+			{ 0.12, 0.5, 0.5 },
+			CABBAGE_GREEN,
+			{ -0.5, 0.98, 1.15 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece(
+			"CabbageCurl2",
+			{ 0.12, 0.5, 0.5 },
+			CABBAGE_GREEN,
+			{ 0, 1.0, 1.2 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece(
+			"CabbageCurl3",
+			{ 0.12, 0.5, 0.5 },
+			CABBAGE_GREEN,
+			{ 0.5, 0.98, 1.15 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece("SauceDrip", { 2.4, 0.05, 0.3 }, SAUCE_BROWN, { 0, 2.43, -0.9 }),
+	})),
+	["cat-sushi"] = withBase(join(slab(CAT_CREAM), {
+		piece(
+			"EarLeft",
+			{ 0.5, 0.7, 0.35 },
+			CAT_EAR_PINK,
+			{ -0.65, 2.68, -0.45 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, 20 } }
+		),
+		piece(
+			"EarRight",
+			{ 0.5, 0.7, 0.35 },
+			CAT_EAR_PINK,
+			{ 0.65, 2.68, -0.45 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, -20 } }
+		),
+		piece(
+			"EarInnerLeft",
+			{ 0.25, 0.4, 0.15 },
+			CAT_EAR_INNER,
+			{ -0.65, 2.65, -0.5 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, 20 } }
+		),
+		piece(
+			"EarInnerRight",
+			{ 0.25, 0.4, 0.15 },
+			CAT_EAR_INNER,
+			{ 0.65, 2.65, -0.5 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, -20 } }
+		),
+		piece("Nose", { 0.25, 0.25, 0.25 }, CAT_NOSE, { 0, 0.8, -0.95 }, nil, { shape = "Ball" }),
+		piece(
+			"WhiskerLeft1",
+			{ 0.03, 0.03, 0.9 },
+			WHISKER_WHITE,
+			{ -1.0, 0.75, -0.85 },
+			nil,
+			{ shape = "Cylinder", rotation = { 0, 10, 0 } }
+		),
+		piece(
+			"WhiskerRight1",
+			{ 0.03, 0.03, 0.9 },
+			WHISKER_WHITE,
+			{ 1.0, 0.75, -0.85 },
+			nil,
+			{ shape = "Cylinder", rotation = { 0, -10, 0 } }
+		),
+	})),
+	["robo-roll"] = withBase({
+		piece("Topping", { 2.8, 0.8, 2.2 }, ROBO_GRAY, { 0, 2.0, 0.2 }),
+		piece("ToppingBack", { 2.6, 1.6, 0.3 }, ROBO_DARK, { 0, 0.9, 1.05 }),
+		piece("VisorBand", { 2.84, 0.22, 0.12 }, VISOR_NEON, { 0, 1.05, -0.97 }, "Neon"),
+		piece(
+			"AntennaRod",
+			{ 0.6, 0.08, 0.08 },
+			ROBO_DARK,
+			{ 0, 2.65, 1.0 },
+			nil,
+			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
+		),
+		piece("AntennaTip", { 0.22, 0.22, 0.22 }, ANTENNA_TIP, { 0, 2.95, 1.0 }, nil, {
+			shape = "Ball",
+			effect = "Glow",
+			effectColor = { 255, 60, 90 },
+		}),
+	}),
+
+	-- 에픽 2 (갤럭시 롤·소프트아이스크림 롤)
+	["galaxy-roll"] = withBase(join(slab(GALAXY_NAVY), {
+		piece("Star1", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { -0.8, 2.46, -0.3 }, nil, { shape = "Ball" }),
+		piece("Star2", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { 0.6, 2.47, 0.1 }, nil, { shape = "Ball" }),
+		piece("Star3", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { -0.3, 2.45, 0.6 }, nil, { shape = "Ball" }),
+		piece("Star4", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { 0.4, 2.48, -0.7 }, nil, { shape = "Ball" }),
+		piece("Star5", { 0.12, 0.12, 0.12 }, GALAXY_STAR_TEAL, { -0.5, 2.47, 0.9 }, nil, { shape = "Ball" }),
+		piece("SparkleCore", { 0.15, 0.15, 0.15 }, GALAXY_STAR_TEAL, { 0, 2.5, 0.2 }, nil, {
+			shape = "Ball",
+			effect = "Sparkles",
+			effectColor = { 120, 230, 220 },
+		}),
+		piece("GlowCore", { 0.2, 0.2, 0.2 }, GALAXY_STAR_WHITE, { 0, 0.9, 1.15 }, nil, {
+			shape = "Ball",
+			effect = "Glow",
+			effectColor = { 200, 200, 255 },
+		}),
+	})),
+	["softserve-roll"] = withBase({
+		piece("ConeBand", { 2.6, 1.0, 0.3 }, CONE_TAN, { 0, 1.0, 1.05 }),
+		piece(
+			"Swirl1",
+			{ 0.45, 2.6, 2.6 },
+			SOFTSERVE_CREAM,
+			{ 0, 1.95, 0.2 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece(
+			"Swirl2",
+			{ 0.4, 2.0, 2.0 },
+			SOFTSERVE_SHADE,
+			{ 0, 2.3, 0.2 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece(
+			"Swirl3",
+			{ 0.35, 1.4, 1.4 },
+			SOFTSERVE_CREAM,
+			{ 0, 2.65, 0.2 },
+			nil,
+			{ shape = "Cylinder", rotation = DISC }
+		),
+		piece("SwirlTip", { 0.5, 0.5, 0.5 }, SOFTSERVE_SHADE, { 0, 2.95, 0.2 }, nil, { shape = "Ball" }),
+		piece("Cherry", { 0.3, 0.3, 0.3 }, CHERRY_RED, { 0, 3.35, 0.2 }, nil, { shape = "Ball" }),
+	}),
+
+	-- 전설 2 (크라운 참치·유니콘 롤)
+	["crown-tuna"] = withBase(join(slab(CROWN_TUNA_RED), {
+		piece("CrownBase", { 2.2, 0.3, 1.8 }, CROWN_GOLD, { 0, 2.55, 0.2 }),
+		piece("CrownSpike1", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { -0.8, 2.95, 0.2 }, nil, { shape = "Wedge" }),
+		piece("CrownSpike2", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { -0.4, 3.0, 0.2 }, nil, { shape = "Wedge" }),
+		piece("CrownSpike3", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0, 3.05, 0.2 }, nil, {
+			shape = "Wedge",
+			effect = "Sparkles",
+			effectColor = { 255, 225, 140 },
+		}),
+		piece("CrownSpike4", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0.4, 3.0, 0.2 }, nil, { shape = "Wedge" }),
+		piece("CrownSpike5", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0.8, 2.95, 0.2 }, nil, { shape = "Wedge" }),
+		piece("CapeLeft", { 1.0, 1.8, 0.1 }, CAPE_VELVET, { -0.7, 0.6, 1.25 }, nil, {
+			shape = "Wedge",
+			rotation = { 10, 0, 15 },
+			effect = "Glow",
+			effectColor = { 160, 60, 120 },
+		}),
+		piece(
+			"CapeRight",
+			{ 1.0, 1.8, 0.1 },
+			CAPE_VELVET,
+			{ 0.7, 0.6, 1.25 },
+			nil,
+			{ shape = "Wedge", rotation = { 10, 0, -15 } }
+		),
+	})),
+	["unicorn-roll"] = withBase(join(slab(UNICORN_WHITE), {
+		piece(
+			"HornBase",
+			{ 0.5, 0.35, 0.35 },
+			HORN_GOLD,
+			{ 0, 2.65, -0.3 },
+			nil,
+			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
+		),
+		piece(
+			"HornMid",
+			{ 0.4, 0.22, 0.22 },
+			HORN_GOLD,
+			{ 0, 3.05, -0.35 },
+			nil,
+			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
+		),
+		piece("HornTip", { 0.3, 0.1, 0.1 }, HORN_GOLD_LIGHT, { 0, 3.35, -0.4 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 0, 90 },
+			effect = "Sparkles",
+			effectColor = { 255, 210, 245 },
+		}),
+		piece("Mane1", { 0.25, 1.0, 0.6 }, MANE_PINK, { -1.1, 1.6, 0.6 }, nil, {
+			shape = "Wedge",
+			rotation = { 0, 0, 25 },
+			effect = "Glow",
+			effectColor = { 200, 170, 255 },
+		}),
+		piece(
+			"Mane2",
+			{ 0.22, 0.9, 0.55 },
+			MANE_LILAC,
+			{ -1.15, 1.0, 0.9 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, 30 } }
+		),
+		piece(
+			"Mane3",
+			{ 0.2, 0.8, 0.5 },
+			MANE_MINT,
+			{ -1.1, 0.4, 1.1 },
+			nil,
+			{ shape = "Wedge", rotation = { 0, 0, 20 } }
+		),
+	})),
 }
 
 -- Body 중심에서 발바닥까지 (TAMAGO 바닥 y = -2.3)

@@ -36,6 +36,17 @@ local EXPECTED = {
 	{ "santa-shrimp", "산타 새우", "Epic", 99, nil },
 	{ "tree-maki", "트리 마키", "Rare", nil, nil },
 	{ "vip-gold-tamago", "금박 계란초밥", "Legendary", nil, nil },
+	-- m5-22: 스킨 1차 배치 10종
+	{ "takoyaki", "타코야키", "Common", 29, 300 },
+	{ "egg-toast", "에그토스트", "Common", 29, 300 },
+	{ "slider-burger", "슬라이더 버거", "Common", 29, 300 },
+	{ "tonkatsu", "돈가스", "Rare", 59, 900 },
+	{ "cat-sushi", "고양이 초밥", "Rare", 59, 900 },
+	{ "robo-roll", "로보 롤", "Rare", 59, 900 },
+	{ "galaxy-roll", "갤럭시 롤", "Epic", 99, nil },
+	{ "softserve-roll", "소프트아이스크림 롤", "Epic", 99, nil },
+	{ "crown-tuna", "크라운 참치", "Legendary", 199, nil },
+	{ "unicorn-roll", "유니콘 롤", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -56,7 +67,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 카탈로그 21종이 표와 같아요 (m5-03이 5종 추가) (순서·이름·등급·로벅스·코인)",
+		"AC1: 카탈로그 31종이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
 		function()
 			t.eq(#Skins.LIST, #EXPECTED)
 			for i, row in EXPECTED do
@@ -120,14 +131,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"byTier: 등급별 개수 (기본 1, 일반 5, 레어 6, 에픽 5, 전설 4 — m5-03 포함), nil이면 전체",
+		"byTier: 등급별 개수 (기본 1, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
 		function()
 			t.eq(#Skins.byTier("Basic"), 1)
-			t.eq(#Skins.byTier("Common"), 5)
-			t.eq(#Skins.byTier("Rare"), 6)
-			t.eq(#Skins.byTier("Epic"), 5)
-			t.eq(#Skins.byTier("Legendary"), 4)
-			t.eq(#Skins.byTier(nil), 21)
+			t.eq(#Skins.byTier("Common"), 8)
+			t.eq(#Skins.byTier("Rare"), 9)
+			t.eq(#Skins.byTier("Epic"), 7)
+			t.eq(#Skins.byTier("Legendary"), 6)
+			t.eq(#Skins.byTier(nil), 31)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -198,7 +209,7 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2 생김새
-	t.test("AC2: 16종 모두 전용 레이아웃이 있고 Body를 가져요", function()
+	t.test("AC2: 31종 모두 전용 레이아웃이 있고 Body를 가져요", function()
 		for _, skin in Skins.LIST do
 			t.ok(SushiBody.hasLayout(skin.id), `{skin.id} layout`)
 			local names = byName(SushiBody.layout(skin.id))
@@ -275,21 +286,39 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"AC2: 효과(불꽃·반짝이)는 등급별 예산 이하, 계획한 스킨에만 (m5-21: 예산표로 확인)",
+		"AC2: 효과(불꽃·반짝이)는 등급별 예산 이하, 계획한 스킨에만 (m5-21·m5-22: 예산표·효과 목록으로 확인)",
 		function()
-			local withEffect =
-				{ ["aburi-salmon"] = "Fire", ["golden-otoro"] = "Sparkles", ["diamond-uni"] = "Sparkles" }
+			-- id → 기대하는 효과 종류 목록(순서 무관). 없으면 효과 0개.
+			local withEffect: { [string]: { string } } = {
+				["aburi-salmon"] = { "Fire" },
+				["golden-otoro"] = { "Sparkles" },
+				["diamond-uni"] = { "Sparkles" },
+				["robo-roll"] = { "Glow" },
+				["galaxy-roll"] = { "Sparkles", "Glow" },
+				["crown-tuna"] = { "Sparkles", "Glow" },
+				["unicorn-roll"] = { "Sparkles", "Glow" },
+			}
+			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do
 				local layout = SushiBody.layout(skin.id)
 				local count = SushiBody.effectCount(layout)
 				local budget = SushiBody.EFFECT_BUDGET[skin.tier]
 				t.ok(budget == nil or count <= budget, `{skin.id} effects {count} over budget {budget}`)
-				local expected = withEffect[skin.id]
-				t.eq(count, if expected then 1 else 0, skin.id)
+				local expected = withEffect[skin.id] or {}
+				t.eq(count, #expected, skin.id)
+				local actual: { string } = {}
 				for _, spec in layout do
 					if spec.effect then
-						t.eq(spec.effect, expected, skin.id)
+						t.ok(VALID_EFFECTS[spec.effect], `{skin.id} {spec.name} unknown effect {spec.effect}`)
+						table.insert(actual, spec.effect)
 					end
+				end
+				table.sort(actual)
+				local expectedSorted = table.clone(expected)
+				table.sort(expectedSorted)
+				t.eq(#actual, #expectedSorted, skin.id)
+				for i, name in actual do
+					t.eq(name, expectedSorted[i], `{skin.id} effect #{i}`)
 				end
 			end
 		end
@@ -356,6 +385,36 @@ return function(t: Test.Test)
 			end
 		end
 	)
+
+	t.test("AC2(m5-22): Wedge를 쓰는 7개 파츠가 shape == 'Wedge'이고 size 각 축이 양수예요", function()
+		local wedgeParts: { [string]: { string } } = {
+			["cat-sushi"] = { "EarLeft", "EarRight", "EarInnerLeft", "EarInnerRight" },
+			["crown-tuna"] = {
+				"CrownSpike1",
+				"CrownSpike2",
+				"CrownSpike3",
+				"CrownSpike4",
+				"CrownSpike5",
+				"CapeLeft",
+				"CapeRight",
+			},
+			["unicorn-roll"] = { "Mane1", "Mane2", "Mane3" },
+		}
+		local total = 0
+		for skinId, names in wedgeParts do
+			local parts = byName(SushiBody.layout(skinId))
+			for _, name in names do
+				local spec = parts[name]
+				t.ok(spec ~= nil, `{skinId} {name} exists`)
+				t.eq(spec.shape, "Wedge", `{skinId} {name} shape`)
+				for axis = 1, 3 do
+					t.ok(spec.size[axis] > 0, `{skinId} {name} size axis {axis}`)
+				end
+				total += 1
+			end
+		end
+		t.eq(total, 4 + 7 + 3)
+	end)
 
 	t.test("AC2: 모르는 id는 계란초밥 (hasLayout false)", function()
 		t.eq(SushiBody.hasLayout("no-such-skin"), false)

@@ -1,5 +1,5 @@
 --!strict
--- 로벅스 스킨 결제 판단 (m4-14, GDD 9.5·13). 순수 로직이라 Roblox API를 쓰지 않아요 (tests/receipt-logic.spec.luau).
+-- 로벅스 결제 판단 (m4-14 스킨, m5-08 상품으로 넓힘, GDD 9.5·13). 순수 로직이라 Roblox API를 쓰지 않아요 (tests/receipt-logic.spec.luau).
 -- 원칙: 저장이 실제로 성공한 뒤에만 PurchaseGranted. 그 밖에는 전부 NotProcessedYet → Roblox가 나중에 다시 불러요.
 --
 --   ReceiptLogic.decide(state) -> Verdict
@@ -23,12 +23,17 @@ local Skins = require(script.Parent.Skins)
 export type Verdict = "NotProcessedYet" | "GrantAndRecord" | "AlreadyRecorded" | "RecordOnly"
 export type Result = "PurchaseGranted" | "NotProcessedYet"
 
+-- 영수증이 주는 것 (m5-08): 스킨 하나 또는 상품(묶음·연출, Shared.Offers). 상품의 내용은 port가 알아요 —
+-- 이 모듈은 Offers를 require하지 않아요 (결제 처리는 대상에 대해 일반적으로, 상품별 처리는 port).
+export type TargetKind = "Skin" | "Offer"
+export type Target = { kind: TargetKind, id: string }
+
 export type State = {
 	playerPresent: boolean,
-	skinId: string?, -- 상품 → 스킨 (nil이면 모르는 상품)
+	skinId: string?, -- 상품 → 대상 id (nil이면 모르는 상품). 이름은 m4-14 호환 (상품이면 offer id)
 	profileReady: boolean, -- 프로필 로드됨 + 저장 가능(Studio 가짜 결제면 메모리 허용) + 서버 종료 중 아님
 	recorded: boolean?, -- 구매 기록에 이 PurchaseId가 있는가 (nil이면 읽지 못함)
-	owned: boolean?, -- 프로필에 그 스킨이 이미 있는가
+	owned: boolean?, -- 프로필에 그 대상이 이미 있는가 (상품이면 port.owns가 정해요: 묶음은 산 기록, 연출은 보유)
 }
 
 -- MarketplaceService.ProcessReceipt가 넘기는 영수증에서 쓰는 칸
@@ -38,24 +43,32 @@ export type Receipt = {
 	PurchaseId: string,
 }
 
--- 구매 기록 한 줄 (DataStore Purchases_v1, 키 = PurchaseId)
+-- 구매 기록 한 줄 (DataStore Purchases_v1, 키 = PurchaseId). 스킨이면 skinId, 상품이면 offerId (m5-08)
 export type Record = {
 	userId: number,
 	productId: number,
-	skinId: string,
+	skinId: string?,
+	offerId: string?,
 	at: number, -- os.time()
 }
 
 export type HistoryEntry = { id: string, at: number }
 
+-- 저장소 연결. 대상은 두 방식 중 하나로 알려 줘요:
+--   targetFor() -> Target?   (m5-08) owns·grant·ownedParts는 Target을 받아요
+--   skinFor() -> string?     (m4-14 호환) owns·grant는 스킨 id를 받아요
 export type Port = {
 	hasPlayer: () -> boolean,
-	skinFor: () -> string?, -- 이 영수증의 스킨 id (모르면 nil)
+	targetFor: (() -> Target?)?,
+	skinFor: (() -> string?)?,
 	profileReady: () -> boolean,
-	owns: (skinId: string) -> boolean,
+	owns: (target: any) -> boolean,
+	-- 대상의 일부를 이미 가졌으면 그 id들 (묶음을 결제 창 중에 코인으로 해금한 경우 등, 로그 note용). 선택
+	ownedParts: ((target: any) -> { string })?,
 	hasReceipt: (purchaseId: string) -> boolean, -- 프로필의 처리한 결제 id 목록에 있는가
 	lookupRecord: (purchaseId: string) -> boolean?, -- 구매 기록에 있는가 (nil = 읽기 실패)
-	grant: (skinId: string, equip: boolean) -> boolean, -- 프로필에 스킨 추가 (+장착). 프로필이 없으면 false
+	-- 프로필에 대상 추가 (equip: 스킨은 장착, 연출은 그 칸 장착, 묶음은 port가 장착하지 않아요). 프로필이 없으면 false
+	grant: (target: any, equip: boolean) -> boolean,
 	rememberReceipt: (purchaseId: string) -> boolean, -- 프로필의 처리한 결제 id 목록에 추가
 	save: () -> boolean, -- 프로필을 지금 저장 (실제로 썼을 때만 true)
 	writeRecord: (purchaseId: string, record: Record) -> boolean,
@@ -65,9 +78,11 @@ export type Port = {
 export type Outcome = {
 	result: Result,
 	verdict: Verdict,
-	skinId: string?,
+	target: Target?, -- 이 영수증의 대상 (모르면 nil)
+	skinId: string?, -- 대상이 스킨일 때만
+	offerId: string?, -- 대상이 상품일 때만 (m5-08)
 	note: string, -- 로그용 한 줄 (영어)
-	granted: boolean, -- 이번에 스킨을 새로 넣었는가 (화면 안내용)
+	granted: boolean, -- 이번에 새로 넣었는가 (화면 안내용)
 }
 
 export type RequestReason =
@@ -112,12 +127,48 @@ function ReceiptLogic.decide(state: State): Verdict
 	return "GrantAndRecord"
 end
 
-local function outcome(result: Result, verdict: Verdict, skinId: string?, note: string, granted: boolean?): Outcome
-	return { result = result, verdict = verdict, skinId = skinId, note = note, granted = granted == true }
+local function outcome(result: Result, verdict: Verdict, target: Target?, note: string, granted: boolean?): Outcome
+	return {
+		result = result,
+		verdict = verdict,
+		target = target,
+		skinId = if target and target.kind == "Skin" then target.id else nil,
+		offerId = if target and target.kind == "Offer" then target.id else nil,
+		note = note,
+		granted = granted == true,
+	}
 end
 
-local function notYet(verdict: Verdict, skinId: string?, note: string): Outcome
-	return outcome("NotProcessedYet", verdict, skinId, note)
+local function notYet(verdict: Verdict, target: Target?, note: string): Outcome
+	return outcome("NotProcessedYet", verdict, target, note)
+end
+
+-- port가 받는 키: 새 방식(targetFor)이면 Target, 예전 방식(skinFor)이면 스킨 id
+local function resolveTarget(port: Port): (Target?, any)
+	local targetFor = port.targetFor
+	if targetFor ~= nil then
+		local target = targetFor()
+		return target, target
+	end
+	local skinFor = port.skinFor
+	local skinId = if skinFor then skinFor() else nil
+	if skinId == nil then
+		return nil, nil
+	end
+	return { kind = "Skin", id = skinId }, skinId
+end
+
+-- 대상 일부를 이미 가졌으면 note에 붙일 글씨 (" (already owned: salmon, gave the rest)")
+local function partsNote(port: Port, key: any): string
+	local ownedParts = port.ownedParts
+	if ownedParts == nil then
+		return ""
+	end
+	local parts = ownedParts(key)
+	if #parts == 0 then
+		return ""
+	end
+	return ` (already owned: {table.concat(parts, ", ")}, gave the rest)`
 end
 
 function ReceiptLogic.process(receipt: Receipt, port: Port): Outcome
@@ -125,12 +176,13 @@ function ReceiptLogic.process(receipt: Receipt, port: Port): Outcome
 	if not port.hasPlayer() then
 		return notYet("NotProcessedYet", nil, "player not in this server")
 	end
-	local skinId = port.skinFor()
-	if skinId == nil then
+	local target, key = resolveTarget(port)
+	if target == nil then
 		return notYet("NotProcessedYet", nil, `unknown product {receipt.ProductId}`)
 	end
+	local what = if target.kind == "Skin" then "skin" else "offer"
 	if not port.profileReady() then
-		return notYet("NotProcessedYet", skinId, "profile not ready (loading, cannot save, or server closing)")
+		return notYet("NotProcessedYet", target, "profile not ready (loading, cannot save, or server closing)")
 	end
 	local recorded = port.lookupRecord(purchaseId)
 	-- 기록을 읽는 동안(yield) 나갔거나 저장할 수 없게 됐을 수 있어요
@@ -138,24 +190,24 @@ function ReceiptLogic.process(receipt: Receipt, port: Port): Outcome
 	local ready = present and port.profileReady()
 	local verdict = ReceiptLogic.decide({
 		playerPresent = present,
-		skinId = skinId,
+		skinId = target.id,
 		profileReady = ready,
 		recorded = recorded,
-		owned = ready and port.owns(skinId),
+		owned = ready and port.owns(key),
 	})
 
 	if verdict == "NotProcessedYet" then
 		local why = if recorded == nil then "purchase log read failed" else "player left or profile not ready"
-		return notYet(verdict, skinId, why)
+		return notYet(verdict, target, why)
 	end
 
 	if verdict == "AlreadyRecorded" then
 		-- 기록은 있는데 프로필에 없으면(프로필이 되돌려진 경우 등) 다시 넣어요. 메모리에만 들어간 상태일 수도 있어서
 		-- (앞선 시도의 저장 실패) 있든 없든 저장이 돼야 완료예요.
 		local restored = false
-		if not port.owns(skinId) then
-			if not port.grant(skinId, false) then
-				return notYet(verdict, skinId, "already recorded, re-grant failed")
+		if not port.owns(key) then
+			if not port.grant(key, false) then
+				return notYet(verdict, target, "already recorded, re-grant failed")
 			end
 			restored = true
 		end
@@ -163,16 +215,18 @@ function ReceiptLogic.process(receipt: Receipt, port: Port): Outcome
 			port.rememberReceipt(purchaseId)
 		end
 		if not port.save() then
-			return notYet(verdict, skinId, "already recorded, profile save failed")
+			return notYet(verdict, target, "already recorded, profile save failed")
 		end
-		local note = if restored then "already recorded, skin restored" else "already recorded"
-		return outcome("PurchaseGranted", verdict, skinId, note, restored)
+		local note = if restored then `already recorded, {what} restored` else "already recorded"
+		return outcome("PurchaseGranted", verdict, target, note, restored)
 	end
 
 	local granted = false
+	local extra = ""
 	if verdict == "GrantAndRecord" then
-		if not port.grant(skinId, true) then
-			return notYet(verdict, skinId, "grant failed (no profile)")
+		extra = partsNote(port, key) -- 지급 전에 봐요 (지급하면 전부 가진 상태)
+		if not port.grant(key, true) then
+			return notYet(verdict, target, "grant failed (no profile)")
 		end
 		granted = true
 	end
@@ -181,22 +235,23 @@ function ReceiptLogic.process(receipt: Receipt, port: Port): Outcome
 		port.rememberReceipt(purchaseId)
 	end
 	if not port.save() then
-		return notYet(verdict, skinId, "profile save failed")
+		return notYet(verdict, target, "profile save failed")
 	end
 	local record: Record = {
 		userId = receipt.PlayerId,
 		productId = receipt.ProductId,
-		skinId = skinId,
+		skinId = if target.kind == "Skin" then target.id else nil,
+		offerId = if target.kind == "Offer" then target.id else nil,
 		at = port.now(),
 	}
 	if not port.writeRecord(purchaseId, record) then
-		return notYet(verdict, skinId, "purchase log write failed")
+		return notYet(verdict, target, "purchase log write failed")
 	end
 	local note = if verdict == "GrantAndRecord"
-		then "granted"
-		elseif retried then "retry, skin already granted"
-		else "skin was already owned (bought again, refund is an operator decision)"
-	return outcome("PurchaseGranted", verdict, skinId, note, granted)
+		then `granted{extra}`
+		elseif retried then `retry, {what} already granted`
+		else `{what} was already owned (bought again, refund is an operator decision)`
+	return outcome("PurchaseGranted", verdict, target, note, granted)
 end
 
 ---------------------------------------------------------------- 구매 요청 검사

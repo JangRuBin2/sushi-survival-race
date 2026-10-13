@@ -69,7 +69,7 @@ SoySwampArt.COLORS = {
 	wasabi = { r = 150, g = 230, b = 70 }, -- 와사비 패드 (밝은 연두, Neon)
 	ramp = P.Wood, -- 경사로 나무
 	slope = { r = 214, g = 150, b = 104 }, -- 날치알 내리막 (따뜻한 주황 나무)
-	wall = { r = 226, g = 232, b = 238 },
+	wall = { r = 206, g = 214, b = 220 }, -- m5-24 반복 3: 유리벽 색만 조금 어둡게 (투명도·크기는 그대로)
 	spawn = { r = 246, g = 196, b = 70 },
 	finish = { r = 255, g = 196, b = 40 },
 	tobiko = { r = 255, g = 112, b = 28 }, -- 날치알 공
@@ -373,11 +373,12 @@ local function addSoyBottle(list: { DecorSpec })
 	part(list, "SoyBottleLabelInk", "Block", v(0.7, 5, 1.2), BLACK, "SmoothPlastic", v(x + 11.3, base + 36, z))
 
 	-- 쓰러진 병: 바닥은 호수에, 입구는 코스 왼쪽 벽 쪽으로 들려 있고 간장이 쏟아져요
-	local angle = 25
+	-- m5-24 반복 3: eye 뷰 왼쪽 아래를 덜 가리게 더 바깥·뒤로 옮기고 조금 작게
+	local angle = 22
 	local rad = math.rad(angle)
 	local dx, dy = math.cos(rad), math.sin(rad)
-	local cx, cy, cz = -88, -36, -66
-	local len, dia = 60, 24
+	local cx, cy, cz = -112, -38, -84
+	local len, dia = 54, 22
 	local rot = v(0, 0, angle)
 	local function along(t: number): Vec3
 		return v(cx + dx * t, cy + dy * t, cz)
@@ -409,7 +410,7 @@ local function addSoyBottle(list: { DecorSpec })
 		rot
 	)
 	-- 빠진 빨간 뚜껑 (호수 위에 떠 있음)
-	disc(list, "ToppledBottleCap", 3, 9, P.Lacquer, "SmoothPlastic", -34, LAKE_Y - 0.5, -30)
+	disc(list, "ToppledBottleCap", 3, 9, P.Lacquer, "SmoothPlastic", -58, LAKE_Y - 0.5, -44)
 	-- 쏟아지는 간장 줄기 (작은 반투명 — 큰 판 아님)
 	local mouth = along(len / 2 + 25)
 	local streamTop = mouth.y - 2

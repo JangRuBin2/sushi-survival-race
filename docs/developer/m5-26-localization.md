@@ -1,6 +1,29 @@
 # m5-26 현지화 개발 작업 기록 (developer)
 
-## 2026-10-13 — 1단계 완료, in-qa (최신)
+## 2026-10-13 — QA 수정(B1~B5) + 2단계 완료, in-qa (최신)
+
+**브랜치**: 원격 `m5-26-i18n-p2` (= `m5-26-i18n` + 2단계, origin/main 3ed86cb와 이미 같은 기준 — 병합할 것 없었음)
+
+### 끝난 것
+- B1(P1): `RoomService.restoreRoom`이 복귀 티켓의 `nameIsDefault`를 믿지 않음 — 방장이 있으면 방장 DisplayName, 없으면 필터해서 안 바뀐 기본 이름만 유지, 쓴 이름은 항상 필터. 앞 세션의 wip(방장 없으면 돌아온 사람 이름으로 덮음)는 정상 기본 이름 방이 이름을 잃어서 다시 짰어요.
+- B2: QA 영어 다듬기 10줄. B3: `Loc.tPlace`(영어만 서수, 폴백 영어도 서수). B4: 늦은 번역기면 PlayerGui의 같은 글씨 다시 쓰기 + `Loc.onChanged`.
+- 2단계: 단상(`PodiumLogic` + 속성 `WinnerName`·`WinnerWins`), 와사비 "매워!!"(`WorldText.mark` + `WorldTextController`, 키 `map.soy-swamp.spicy`), 칭호 속성 = 기준 승수 숫자.
+- 사용자 규칙(숫자 + 단위 = 한 키) 테스트, AC11을 `src` 전체로(허용 줄 1개: Studio "Studio 매치"), `forceStart` 한국어 → `AdminCommands`.
+- 검증 5단계 통과: rojo build · stylua · selene 0/0 · lune 1828 passed 0 failed · luau-lsp 끝 코드 0.
+- 스펙 `in-qa`, 개발 메모 "QA 수정"·"2단계", 결정 기록 5줄.
+
+### 남은 것
+- 재QA(B1 + 2단계 AC25·AC26 + 전체). 사용자 Studio 확인(QA 체크리스트 + 스펙 개발 메모 "2단계" Studio 확인 1~5).
+- docs-writer: CLAUDE.md 규칙(숫자 + 단위 한 키, 서버 월드 글씨는 `WorldText.mark`, Attributes 3개, Title = 숫자), DEV-SETUP, USER-TODO(CSV 업로드).
+- 선택: `ProfileView.title`·MatchPhase `mapName`·`rule`(서버가 보내는 한국어, 화면엔 안 씀) 정리.
+
+### 다음에 할 첫 단계
+- QA 리포트가 오면 그 버그부터. `lune run tests`에서 `m5-26-qa`·`m5-26-phase2`·`localization` 확인.
+
+### 막힌 점
+- 없음. B4는 클라우드 업로드 뒤 느린 번역기에서만 생겨 Studio 재현이 어려워요(순수 테스트 + 코드 읽기).
+
+## 2026-10-13 — 1단계 완료, in-qa
 
 **브랜치**: worktree 브랜치 → 원격 `m5-26-i18n` (main c65266a = m5-25 머지까지 병합함)
 

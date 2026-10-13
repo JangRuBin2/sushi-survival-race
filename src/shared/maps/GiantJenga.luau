@@ -374,6 +374,7 @@ local GiantJenga: MapTypes.MapModule = {
 	rule = "블록이 빠진 쪽으로 바닥이 기울어요. 떨어지지 말고 끝까지 버텨요!",
 	build = build,
 	start = start,
+	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (저녁 목공소)
 }
 
 return GiantJenga

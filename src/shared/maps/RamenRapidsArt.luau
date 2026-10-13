@@ -51,17 +51,17 @@ Art.LIGHTING = {
 	OutdoorAmbient = { r = 160, g = 146, b = 120 },
 	EnvironmentSpecularScale = 0.8,
 	Atmosphere = {
-		Density = 0.2,
+		Density = 0.16,
 		Offset = 0.15,
-		Color = { r = 255, g = 236, b = 196 },
-		Decay = { r = 170, g = 136, b = 96 },
+		Color = { r = 228, g = 196, b = 150 },
+		Decay = { r = 150, g = 110, b = 70 },
 		Glare = 0.1,
-		Haze = 1,
+		Haze = 0.6,
 	},
 	ColorCorrection = {
 		Brightness = 0.02,
-		Contrast = 0.08,
-		Saturation = 0.08,
+		Contrast = 0.12,
+		Saturation = 0.1,
 		TintColor = { r = 255, g = 248, b = 232 },
 	},
 	Bloom = { Intensity = 0.4, Size = 26, Threshold = 1.3 },
@@ -294,12 +294,12 @@ local function floatingToppings(list: { DecorSpec })
 	end
 	-- 김: 국물에 비스듬히 꽂힌 검은 판
 	local noris = { { -42, -132, 20 }, { 48, -190, -15 }, { -52, -240, 10 }, { 56, -262, -25 }, { -60, -170, 5 } }
-	for _, at in noris do
+	for i, at in noris do
 		add(list, {
 			name = "Nori",
 			shape = "Block",
 			size = v(10, 14, 0.4),
-			color = PALETTE.Nori,
+			color = MapKitLogic.shade(PALETTE.Nori, if i % 2 == 0 then 1.35 else 1.15),
 			material = "Fabric",
 			offset = v(at[1], surface + 5, at[2]),
 			rotation = v(-15, at[3], 0),

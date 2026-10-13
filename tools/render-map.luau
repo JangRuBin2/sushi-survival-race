@@ -195,9 +195,6 @@ local function makeViews(map: any, model: any, scene: Scene.Scene, origin: any):
 	end
 	local cx, cy, cz = (fb[1] + fb[4]) / 2, (fb[2] + fb[5]) / 2, (fb[3] + fb[6]) / 2
 	local sx, sy, sz = fb[4] - fb[1], fb[5] - fb[2], fb[6] - fb[3]
-	local radius = 0.5 * math.sqrt(sx * sx + sy * sy + sz * sz)
-	local fov = 55
-	local dist = radius / math.sin(math.rad(fov) / 2) * 1.02
 	local elevation, azimuth = math.rad(35), math.rad(40)
 	-- 출발 쪽(+Z, origin 뒤)에서 왼쪽(-X)으로 40° 돌아 위 35°
 	local back = origin.LookVector * -1
@@ -205,6 +202,20 @@ local function makeViews(map: any, model: any, scene: Scene.Scene, origin: any):
 	local hx = back.X * math.cos(azimuth) + left.X * math.sin(azimuth)
 	local hz = back.Z * math.cos(azimuth) + left.Z * math.sin(azimuth)
 	local dx, dy, dz = hx * math.cos(elevation), math.sin(elevation), hz * math.cos(elevation)
+	-- 상자 꼭짓점 8개가 화면에 다 들어오는 가장 가까운 거리 (카메라 축으로 투영해서 정확히)
+	local fov = 55
+	local probe = Raster.perspective(v3(cx + dx, cy + dy, cz + dz), v3(cx, cy, cz), fov, aspect)
+	local dist = 1
+	for k = 0, 7 do
+		local ox = (if k % 2 == 0 then -sx else sx) / 2
+		local oy = (if math.floor(k / 2) % 2 == 0 then -sy else sy) / 2
+		local oz = (if math.floor(k / 4) % 2 == 0 then -sz else sz) / 2
+		local rx = ox * probe.rx + oy * probe.ry + oz * probe.rz
+		local uy = ox * probe.ux + oy * probe.uy + oz * probe.uz
+		local fz = ox * probe.fx + oy * probe.fy + oz * probe.fz
+		dist = math.max(dist, math.abs(rx) / probe.sx - fz, math.abs(uy) / probe.sy - fz)
+	end
+	dist *= 1.06
 	table.insert(views, {
 		name = "overview",
 		camera = Raster.perspective(v3(cx + dx * dist, cy + dy * dist, cz + dz * dist), v3(cx, cy, cz), fov, aspect),

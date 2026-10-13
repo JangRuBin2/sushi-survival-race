@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-23 — 맵 비주얼 키트 + 미리보기 렌더러
@@ -145,3 +145,36 @@ lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|all] [--siz
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-13 developer — 구현 완료 (코드 `3b20944`, main). 인계 메모: `docs/developer/m5-23-map-visual-kit.md`.
+
+**바뀐 파일**
+- 렌더러: `tools/render-map.luau`, `tools/render/{Shims,Scene,Raster,Materials,Png}.luau`. 사용법·한계는 `docs/DEV-SETUP.md` 2-1(이번에 바로 넣음 — docs-writer는 다듬기만).
+- 공유: `MapKitLogic`(새 필드·BUDGETS·count*·checkBudget·resolveCastShadow·팔레트·shade/shades/mix), `MapKit`(buildDecor 새 필드, `makeEmitter`·`makeLight`, 런타임 경고는 Extended 기준, **함수 모양 그대로**), 새 `MapFxPresets`·`MapKitShapes`·`MapDecorAnimLogic`·`MapLighting`·`MapLightingLogic`, `MapDecorTags`(Anim·Arena + Anim 속성 이름), `MapTypes`(lighting + validate), 기존 맵 6개 `lighting = MapLighting.PRESETS[ID]`, `LobbyLayout` 주석.
+- 서버: `RoundService`(맵 Model에 `MapDecorTags.Arena` 태그 한 줄 — `Attributes.MapId`는 이미 있어서 `Attributes.luau`는 안 고침).
+- 클라이언트: 새 `fx/MapLightingController.luau`(init.client 등록), `fx/MapDecorFxController.luau`(Anim 태그).
+- `default.project.json` Lighting: `Technology = Future`, `LightingStyle = Realistic`, `PrioritizeLightingQuality = true` (Rojo 7.7.1이 받음 — build.rbxl을 Lune으로 열어 Future 확인). `.gitignore`에 `build/`.
+- 테스트: `tests/m5-23-visual-kit.spec.luau` (AC1~AC9). 기존 테스트 파일은 수정 없음.
+
+**검증**: rojo build OK · `stylua --check src tests tools` OK · `selene src` 0/0/0 · `lune run tests` 1247 passed / 0 failed · `luau-lsp analyze` 끝 코드 0 · `lune run tools/render-map all` 15개 전부 성공(high, 약 3분 25초).
+
+**AC12 렌더 (개발자 확인)**
+- `build/renders/rotating-belt/overview.png` — 벨트 두 줄·카운터·빨간 등·손님 얼굴·결승 노렌이 다 보임 (저녁 프리셋).
+- `build/renders/rotating-belt/eye.png` — 출발점 뒤 시점, 계란초밥 인형 3개로 크기 비교, 벨트가 결승 문까지 이어짐.
+- `build/renders/skewer-showdown/intro-02.png` — 팔각 무대·꼬치·기둥과 옆 가게 문·빨간 등롱 빛 (해질녘).
+- `build/renders/hot-plate/overview.png` — 철판 3층 구조·기둥·후드·손님 얼굴.
+AC13: rotating-belt lights 3·particles 2, soy-swamp lights 2·particles 3 (stats 줄 = m5-20 값).
+
+**스펙과 다르게 한 작은 것 (질문 아님, 확인용)**
+- eye 뷰: Race는 코스 앞(-Z), Survival·Final은 스폰에서 플레이 영역 가운데 쪽을 봐요(원형 결승 맵에서 -Z면 허공을 봐서). 흰 캡슐 대신 계란초밥 근사 인형(밥·계란·김 띠).
+- overview: 모델 경계 상자가 플레이 영역의 3배를 넘으면(먼 배경판) 플레이 영역 기준 2배 상자로 잡아요. 상자 꼭짓점이 화면에 다 들어오는 거리로 정확히 맞춰요.
+- `void%`는 화면 전체 중 "수평선 아래 허공" 픽셀 비율. overview·top은 떠 있는 아레나라 원래 높으니 intro·eye 값으로 판단.
+- `--quality` 기본은 high(속도가 충분히 빨라서). Ball 분할은 반지름과 상관없이 16×10, Cylinder 16분할.
+- Shim의 `RunService:IsStudio()`는 true. `--lobby-light` 옵션을 더했어요(맵 조명과 비교용).
+- `particle`은 스펙대로 이름 문자열 + `particleRate`만. 색 바꾸기는 `MapKit.makeEmitter`로 만든 뒤 `Color`를 덮어쓰면 돼요.
+
+**Studio 확인**: `docs/DEV-SETUP.md` 3-11 (Future·조명 전환·방 2개·anim·CornerWedge 방향·휴대폰).
+
+**남은 이슈**
+- R1 CornerWedge 꼭대기 방향(로컬 +X·위·-Z)은 가정이에요 — 렌더러와 `MapKitShapes.bevelBox` 귀퉁이가 같은 가정이라 서로는 맞지만, Studio와 다르면 `Scene.cornerWedge`·`CORNER_YAW` 두 곳을 고쳐야 해요(3-11의 5번).
+- R2 렌더러는 근사 — Studio와 밝기·재질감·그림자 부드러움이 달라요. 특히 밤 프리셋(hot-plate)은 렌더가 실제보다 어두울 수 있어요.
+- R3 `castShadow` nil → 가장 긴 변 < 3이면 그림자 끔이 기존 맵 장식에도 적용돼요(의도, 작은 소품 그림자가 사라짐).

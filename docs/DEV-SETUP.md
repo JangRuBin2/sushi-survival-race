@@ -44,7 +44,7 @@ rojo plugin install
 저장소 루트에서 5단계 (PowerShell·bash 공통):
 ```bash
 rojo build -o build.rbxl     # 1. Rojo 프로젝트 구조가 맞는지 (build.rbxl은 커밋 안 함, .gitignore에 있음)
-stylua --check src tests     # 2. 포맷 검사. 고칠 때는: stylua src tests
+stylua --check src tests tools   # 2. 포맷 검사. 고칠 때는: stylua src tests tools
 selene src                   # 3. 린트
 lune run tests               # 4. 순수 로직 테스트 (라운드 규칙·판정·순위, 방·맵·연출·입력·저장·보상·결제 로직)
 rojo sourcemap default.project.json -o sourcemap.json
@@ -54,6 +54,23 @@ luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@ro
 - 5단계(타입 검사)는 에러가 없으면 끝 코드 0이고 `[INFO] Loading definitions…`·`[WARN] … didChangeWatchedFiles` 같은 줄만 나와요. 에러가 있으면 `파일(줄,칸): TypeError …`와 끝 코드 1. `sourcemap.json`은 커밋 안 함(.gitignore). 정의 파일·검사기 선택 이유는 `types/README.md`.
 - 도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 적어요.
 - `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요.
+
+### 2-1. 맵 미리보기 렌더러 (m5-23, Studio 없이 맵 모습 보기)
+맵 모듈의 `build(origin)`을 Lune에서 진짜로 돌려(`@lune/roblox` 인스턴스) 순수 Luau 소프트웨어 렌더러로 PNG를 그려요. 에이전트·개발자가 Studio 없이 구도·실루엣·빈 공중·색 비율·밀도·조명 분위기를 확인하는 도구예요.
+```bash
+lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all] [--size 960x540]
+                         [--quality fast|high] [--out build/renders] [--studio-art] [--lobby-light]
+# 예) lune run tools/render-map hot-plate
+#     lune run tools/render-map all --quality fast
+```
+- 결과: `build/renders/<mapId>/<뷰>.png` + `stats.txt` (`build/`는 커밋 안 함). 맵 스펙이 요구하는 최종 PNG만 `docs/renders/<mapId>/`에 복사해 커밋해요.
+  - `intro-01…` 맵 `IntroCamera` 경유점 그대로(라운드 소개 카메라) · `overview` 위 35°·옆 40° 전체 · `eye` 1번 스폰 캐릭터 뒤 12·위 4(Roblox 기본 카메라 근사, 스폰 1~3에 계란초밥 크기 인형) · `top` 위에서 직교(플레이 영역보다 높은 지붕은 빼요) · `mobile` eye를 480×270으로.
+- 콘솔 한 줄: `decor=<n>/<예산> lights=<n>/<예산> (shadowed n/m) particles anim tris void=<뷰별 %> time`. 예산은 그 맵 `<Map>Art.BUDGET`("Extended"면 1500·24·16) 기준. `void%`는 화면 중 **수평선 아래인데 아무것도 없는 허공** 비율 — intro·eye 뷰에서 높으면 "빈 공중이 보인다"는 뜻이에요(overview·top은 떠 있는 아레나라 원래 높아요).
+- 조명: 맵의 `lighting`(`MapLighting.PRESETS` 등)으로 해 방향·Ambient·안개·블룸·색 보정을 맞춰요. `--lobby-light`면 로비 조명으로 비교.
+- 속도: 맵 하나 전체 뷰가 `high`(2×2 슈퍼샘플·그림자 2048)로 보통 5~35초. 같은 입력이면 같은 PNG 바이트예요.
+- `--studio-art`: `assets/map-art/<id>.rbxm`이 있으면 읽어서 붙여요.
+- **실제 Roblox 렌더와 다른 점(근사)**: 재질은 텍스처 대신 밝기·하이라이트·약한 무늬만, 그림자는 해 하나(점광 그림자 없음), 하늘 가림은 위에서 본 깊이 지도로 흉내, 파티클은 한 순간의 점 구름, 반투명은 삼각형 단위 정렬, 빛 번짐·안개·톤매핑·색 보정 수치는 "비슷해 보이게" 맞춘 값, 스카이박스·SurfaceGui·Decal·Texture·MeshPart 모양·Beam 곡선은 안 그려요(MeshPart·Union은 상자). Ball은 가장 짧은 변 지름, Cylinder 축은 로컬 X(Roblox와 같음). **CornerWedge 꼭대기 방향(로컬 +X·위·-Z 모서리)은 Studio에서 한 번 확인 필요**. 최종 판단은 Studio.
+- 맵이 shim에 없는 Roblox API를 쓰면 그 API 이름(예: `X is not a valid member of Model`)이 찍히고 그 맵만 실패해요 → `tools/render/Shims.luau`에 가짜를 보태요.
 
 ## 3. Studio에서 게임 테스트
 
@@ -653,6 +670,14 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
    - [ ] 끄기(또는 1시간 뒤) 다음 접속은 내 장착 스킨.
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
+
+### 3-11. M5 맵 비주얼 키트 확인 (m5-23: Future 조명 · 맵별 조명 분위기 · 움직이는 장식)
+1. **Future 조명**: Rojo 연결 뒤 Explorer → `Lighting` → Properties의 `Technology`가 `Future`인지 봐요(`LightingStyle` Realistic, `PrioritizeLightingQuality` 켬). 아니면 직접 Future로 바꾸고 플레이스를 저장해요. 로비가 너무 어둡거나 하얗게 날아가지 않는지, 회전 접시·우승자 단상에 그림자가 생기는지 봐요.
+2. **맵별 조명**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`(확인 뒤 nil로)으로 혼자 Play → 라운드 소개가 시작되면 1~2초 안에 조명이 부드럽게 바뀌어요(회전 벨트 = 저녁 노을빛, 철판 = 밤·주황 열기, 꼬치 = 축제 해질녘). 라운드가 끝나 대기석(로비)으로 오면 로비 조명으로 돌아와요. 번쩍임·깜빡임이 없어야 해요.
+3. **방 2개 동시**: Test → Clients and Servers 2명, 서로 다른 방에서 다른 맵을 돌려요 → 각 화면이 **자기 아레나** 조명이에요. 탈락 뒤 관전으로 다른 사람을 비출 때도 그 아레나 조명이에요.
+4. **움직이는 장식(anim)**: m5-24 등에서 `anim`을 단 장식이 생기면 — 제자리에서 돌거나(Spin)·오르내리거나(Bob)·흔들리거나(Sway)·숨 쉬듯 커졌다 작아지는지(Pulse), 서버 Output에 복제 경고가 없는지, 2명이 같은 장식을 같은 순간 같은 모습으로 보는지 봐요.
+5. **CornerWedge 방향**: 렌더러는 CornerWedge 꼭대기를 로컬 (+X, 위, -Z) 모서리로 그려요. `MapKitShapes.bevelBox`(깎은 상자)를 처음 쓰는 맵에서 Studio로 귀퉁이 네 개가 매끈하게 맞물리는지 한 번 봐요(어긋나면 developer에게 — `CORNER_YAW` 표만 고치면 돼요).
+6. **휴대폰 성능**: 가장 무거운 맵 소개·달리기 중 30fps 이상인지(`View → Stats`/MicroProfiler 기록). Future를 지원 안 하는 기기는 자동으로 단순한 조명으로 내려가요.
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |

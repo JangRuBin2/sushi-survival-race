@@ -209,7 +209,10 @@ return function(t: Test.Test)
 					"src/server/RoundService.luau",
 				}
 			do
-				t.eq(string.find(fs.readFile(path), "MapDecorTags", 1, true), nil, path)
+				-- m5-23: RoundService는 아레나 모델에 MapDecorTags.Arena(조명 전환용)만 달아요. 애니메이션 태그는 몰라요
+				local src = fs.readFile(path)
+				t.eq(string.find(src, "MapDecorTags.EyeBlink", 1, true), nil, path)
+				t.eq(string.find(src, "MapDecorTags.Wobble", 1, true), nil, path)
 			end
 		end
 	)
@@ -218,10 +221,14 @@ return function(t: Test.Test)
 		"QA AC11: MapDecorFxController는 로컬 표시만 — 리모트·Size·Destroy 없음, 눈은 Transparency·병은 CFrame만",
 		function()
 			local src = stripComments(fs.readFile("src/client/fx/MapDecorFxController.luau"))
-			for _, banned in
-				{ "FireServer", "InvokeServer", "Remotes", ".Size =", ":Destroy(", "CanCollide", "Anchored =" }
-			do
+			for _, banned in { "FireServer", "InvokeServer", "Remotes", ":Destroy(", "CanCollide", "Anchored =" } do
 				t.eq(string.find(src, banned, 1, true), nil, banned)
+			end
+			-- m5-23 Pulse: 크기는 원래 크기 기준으로만 바꿔요 (누적 없음, 클라이언트 로컬)
+			for line in string.gmatch(src, "[^\n]+") do
+				if string.find(line, ".Size =", 1, true) then
+					t.ok(string.find(line, "baseSize", 1, true) ~= nil, "Size only from baseSize: " .. line)
+				end
 			end
 			t.ok(string.find(src, "GetInstanceRemovedSignal", 1, true) ~= nil, "untracks removed parts")
 			t.ok(string.find(src, "part.Parent == nil", 1, true) ~= nil, "drops destroyed parts")

@@ -8,10 +8,14 @@
 --   AdminPreviewSkin(skinId?)  관리자 표 → 요청 간격(Config.Shop.RequestCooldown) → AdminLogic.checkPreview
 --                              (카탈로그·타입·ShopService.isLocked). 성공하면 ShopService.setPreview로 바로 다시 입혀요.
 --                              nil·""는 미리보기 끄기. 프로필·코인·결제 기록·보상·DataStore에는 쓰지 않아요.
---   AdminCommand(command, args?)  (m5-03 틀, 명령 실행은 m5-11) 관리자 표 → 요청 간격 → 명령 등급(AdminLogic.commandTier)
---                              → AdminLogic.canRun. 실서버는 Info 명령만 — Test·StudioOnly는 RunService:IsStudio()가
---                              아니면 무조건 거절해요 (사용자 결정 2026-10-08: 실서버 테스트 명령 없음, 설정으로도 못 켬).
---                              지금은 통과해도 "준비 중이에요" — m5-11이 runCommand를 채워요.
+--   AdminCommand(command, args?)  (m5-03 틀, m5-11 명령) 관리자 표 → 요청 간격 → 모르는 명령 → 인자 모양
+--                              (AdminLogic.parse) → AdminLogic.canRun. 실서버는 Info 명령(info·fx)만 — Test·StudioOnly는
+--                              RunService:IsStudio()가 아니면 무조건 거절해요 (사용자 결정 2026-10-08: 실서버 테스트 명령
+--                              없음, 설정으로도 못 켬). 통과하면 AdminCommands.run이 부른 관리자 본인에게만 실행해요.
+--                              결과 문구는 서버가 만들어 돌려줘요 (ok, text). 모든 명령을 서버 Output에
+--                              "[Admin] 이름(UserId) <command> <args> -> ok|<reason>"으로 남겨요.
+--                              AdminCommands는 처음 명령을 실행할 때 require해요 — 미리보기 경로(이 파일)는
+--                              프로필·경제 모듈을 모르게 둬요 (m5-02 원칙).
 --
 -- 서버 간 유지 (로비 ↔ 매치, m4-11): 실서버에서 미리보기가 바뀌면 MemoryStore HashMap AdminPreview_v1,
 -- 키 u_<UserId>에 { skinId, at }(끄면 skinId = false)를 1시간 TTL로 써요. 관리자가 어느 서버에 접속하든
@@ -180,14 +184,23 @@ local function onPreview(player: Player, skinId: unknown): (boolean, string?)
 	return true, nil
 end
 
--- 명령 실행 (m5-11이 채워요). 여기 오기 전에 관리자·간격·등급(Studio 전용 포함) 검사를 마쳤어요.
-local function runCommand(
-	_player: Player,
-	_command: string,
-	_tier: AdminLogic.CommandTier,
-	_args: unknown
-): (boolean, string?)
-	return false, AdminLogic.message("NotReady")
+-- 명령 실행 (m5-11). 여기 오기 전에 관리자·간격·인자·등급(Studio 전용 포함) 검사를 마쳤어요.
+-- 실행 모듈(AdminCommands)은 처음 쓸 때 불러와요 (프로필·방·매치 서비스를 미리보기 경로에서 떼어 두려고).
+local commandRunner: ((player: Player, parsed: AdminLogic.Parsed) -> (boolean, string?))? = nil
+
+local function runCommand(player: Player, parsed: AdminLogic.Parsed): (boolean, string?)
+	local runner = commandRunner
+	if runner == nil then
+		local AdminCommands = require(script.Parent.AdminCommands)
+		runner = AdminCommands.run
+		commandRunner = runner
+	end
+	return (runner :: (Player, AdminLogic.Parsed) -> (boolean, string?))(player, parsed)
+end
+
+-- (테스트) 명령 실행기 바꾸기
+function AdminService.setCommandRunner(fn: ((player: Player, parsed: AdminLogic.Parsed) -> (boolean, string?))?)
+	commandRunner = fn
 end
 
 local function onCommand(player: Player, command: unknown, args: unknown): (boolean, string?)
@@ -204,17 +217,24 @@ local function onCommand(player: Player, command: unknown, args: unknown): (bool
 	end
 	local tier = AdminLogic.commandTier(command)
 	if tier == nil then
+		print(`[Admin] {player.Name}({userId}) {tostring(command)} -> UnknownCommand`)
 		return false, AdminLogic.message("UnknownCommand")
 	end
+	local name = command :: string
+	local parsed, parseReason = AdminLogic.parse(name, args)
+	if parsed == nil then
+		print(`[Admin] {player.Name}({userId}) {name} ? -> {parseReason}`)
+		return false, AdminLogic.message(parseReason :: AdminLogic.Reason)
+	end
+	local described = AdminLogic.describe(parsed)
 	-- 실서버에서는 Test·StudioOnly 명령을 처리하지 않아요 (켜는 설정 없음)
 	local allowed, reason = AdminLogic.canRun(tier, isStudio(), Config.DEBUG.persistDataInStudio)
-	local name = command :: string
 	if not allowed then
-		print(`[Admin] {player.Name}({userId}) {name} -> {reason}`)
+		print(`[Admin] {player.Name}({userId}) {name} {described} -> {reason}`)
 		return false, AdminLogic.message(reason :: AdminLogic.Reason)
 	end
-	local ok, result = runCommand(player, name, tier, args)
-	print(`[Admin] {player.Name}({userId}) {name} -> {if ok then "ok" else tostring(result)}`)
+	local ok, result = runCommand(player, parsed)
+	print(`[Admin] {player.Name}({userId}) {name} {described} -> {if ok then "ok" else tostring(result)}`)
 	return ok, result
 end
 

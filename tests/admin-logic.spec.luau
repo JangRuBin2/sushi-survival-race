@@ -10,6 +10,8 @@ local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
 local AdminLogic = RobloxRequire.require(Shared.AdminLogic)
+local Maps = RobloxRequire.require(Shared.maps)
+local Seasons = RobloxRequire.require(Shared.Seasons)
 local Skins = RobloxRequire.require(Shared.Skins)
 
 local OWNER = 11402290839
@@ -286,6 +288,162 @@ local function snapshot(profile: any): string
 	return `{profile.coins}|{profile.equippedSkin}|{table.concat(owned, ",")}`
 end
 
+---------------------------------------------------------------- m5-11 AdminCommands (가짜 서버 모듈)
+local HALLOWEEN_NOW = 1792108800 + 3600 -- halloween-2026 진행 중
+
+local function loadCommands(options: { [string]: any }?): any
+	local opts = options or {}
+	local env: any = {
+		role = opts.role or "Single",
+		locked = false,
+		persist = false,
+		now = opts.now or 1700000000,
+		profile = {
+			coins = 100,
+			wins = 3,
+			ownedSkins = { tamago = true, salmon = true },
+			equippedSkin = "salmon",
+			eventTokens = {},
+			ownedFx = { ["cat-customer"] = true },
+			equippedFx = { Elimination = "cat-customer" },
+			redeemedCodes = { ABC = 1 },
+		},
+		roomId = "7",
+		room = { id = "7", state = "Waiting" },
+		forceStarts = {},
+		nextPlans = {},
+		saves = 0,
+		previews = {},
+	}
+	local attributes: { [string]: any } = {}
+	local player = {
+		UserId = 1,
+		Name = "Admin",
+		SetAttribute = function(_, key, value)
+			attributes[key] = value
+		end,
+		GetAttribute = function(_, key)
+			return attributes[key]
+		end,
+	}
+	env.player = player
+	env.attributes = attributes
+	local serverModules: { [string]: any } = {
+		DataService = {
+			get = function()
+				return env.profile
+			end,
+			update = function(_, fn)
+				if env.profile == nil then
+					return false
+				end
+				fn(env.profile)
+				return true
+			end,
+			saveNow = function()
+				env.saves += 1
+				return false
+			end,
+			canPersist = function()
+				return env.persist
+			end,
+		},
+		MatchService = {
+			setNextPlan = function(roomId, plan)
+				env.nextPlans[roomId] = plan
+			end,
+		},
+		PlaceService = {
+			role = function()
+				return env.role
+			end,
+		},
+		RoomService = {
+			getRoomIdOf = function()
+				return env.roomId
+			end,
+			getRoom = function()
+				return env.room
+			end,
+			listRooms = function()
+				return { env.room }
+			end,
+			forceStart = function(roomId)
+				table.insert(env.forceStarts, roomId)
+				return true, nil
+			end,
+		},
+		ShopService = {
+			isLocked = function()
+				return env.locked
+			end,
+			setPreview = function(_, skinId)
+				table.insert(env.previews, skinId or "off")
+				return true
+			end,
+		},
+	}
+	local services: { [string]: any } = {
+		Players = {
+			GetPlayers = function()
+				return { player }
+			end,
+		},
+		ReplicatedStorage = {
+			Shared = setmetatable({}, {
+				__index = function(_, name: string)
+					return { __shared = name }
+				end,
+			}),
+		},
+		RunService = {
+			IsStudio = function()
+				return true
+			end,
+		},
+	}
+	env.AdminCommands = luau.load(fs.readFile("src/server/AdminCommands.luau"), {
+		debugName = "AdminCommands",
+		environment = {
+			game = {
+				GetService = function(_, name: string)
+					return assert(services[name], name)
+				end,
+				JobId = "abcdef0123456789",
+			},
+			script = {
+				Parent = setmetatable({}, {
+					__index = function(_, name: string)
+						return { __server = name }
+					end,
+				}),
+			},
+			require = function(target: any)
+				if target.__shared then
+					return RobloxRequire.require((Shared :: any)[target.__shared])
+				end
+				return assert(serverModules[target.__server], target.__server)
+			end,
+			task = {
+				spawn = function(fn, ...)
+					fn(...)
+				end,
+			},
+			os = {
+				time = function()
+					return env.now
+				end,
+				clock = os.clock,
+			},
+		},
+	})()
+	function env.run(command: string, args: any): (boolean, string?)
+		local parsed = assert(AdminLogic.parse(command, args))
+		return env.AdminCommands.run(player, parsed)
+	end
+	return env
+end
+
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1·AC2 isAdmin
 	t.test("AC1: Studio + studioAllAdmins → negative test account is admin", function()
@@ -543,5 +701,403 @@ return function(t: Test.Test)
 		t.ok(fs.isFile("src/server/AdminConfig.luau"), "AdminConfig exists")
 		t.eq(string.find(fs.readFile("src/shared/Config.luau"), "11402290839", 1, true), nil)
 		t.eq(string.find(fs.readFile("src/shared/AdminLogic.luau"), "11402290839", 1, true), nil)
+	end)
+
+	---------------------------------------------------------------- m5-11 관리자 명령: 순수 로직
+	t.test("m5-11 AC1: commandTier for all 7 commands, unknown nil", function()
+		for _, name in { "info", "fx" } do
+			t.eq(AdminLogic.commandTier(name), "Info", name)
+		end
+		for _, name in { "start", "plan", "coins", "tokens" } do
+			t.eq(AdminLogic.commandTier(name), "Test", name)
+		end
+		t.eq(AdminLogic.commandTier("resetprofile"), "StudioOnly")
+		for _, bad in { "kick", "give", "", "INFO", 1, true, {} } :: { any } do
+			t.eq(AdminLogic.commandTier(bad), nil)
+		end
+		t.eq(AdminLogic.commandTier(nil), nil)
+	end)
+
+	t.test("m5-11 AC2: canRun 3 tiers x 3 environments (live server has no switch)", function()
+		-- 환경: Studio(저장 끔) / Studio(저장 켬) / 실서버
+		local expected: { [string]: { boolean } } = {
+			Info = { true, true, true },
+			Test = { true, true, false },
+			StudioOnly = { true, false, false },
+		}
+		for tier, row in expected do
+			local tierName = tier :: any
+			t.eq(AdminLogic.canRun(tierName, true, false), row[1], `{tier} studio`)
+			t.eq(AdminLogic.canRun(tierName, true, true), row[2], `{tier} studio persist`)
+			t.eq(AdminLogic.canRun(tierName, false, false), row[3], `{tier} live`)
+			t.eq(AdminLogic.canRun(tierName, false, true), row[3], `{tier} live persist`)
+		end
+		t.eq(select(2, AdminLogic.canRun("Test", false, false)), "StudioOnly")
+		t.eq(select(2, AdminLogic.canRun("StudioOnly", true, true)), "PersistOn")
+		t.eq(AdminLogic.message("PersistOn"), "저장을 켠 Studio에서는 쓸 수 없어요")
+	end)
+
+	t.test("m5-11 AC3: parse coins/tokens accepts only integers in range", function()
+		t.eq((AdminLogic.parse("coins", 1000) :: any).amount, 1000)
+		t.eq((AdminLogic.parse("coins", -10000) :: any).amount, -10000)
+		t.eq((AdminLogic.parse("coins", 10000) :: any).amount, 10000)
+		for _, bad in { 10001, -10001, 1.5, "100", 0 / 0, math.huge, -math.huge, {} } :: { any } do
+			local parsed, reason = AdminLogic.parse("coins", bad)
+			t.eq(parsed, nil, tostring(bad))
+			t.eq(reason, "BadCommandArgs", tostring(bad))
+		end
+		t.eq(AdminLogic.parse("coins", nil), nil)
+		t.eq((AdminLogic.parse("tokens", 500) :: any).amount, 500)
+		t.eq((AdminLogic.parse("tokens", -500) :: any).amount, -500)
+		t.eq(AdminLogic.parse("tokens", 501), nil)
+		t.eq(AdminLogic.parse("tokens", 80.5), nil)
+		t.eq(AdminLogic.parse("tokens", "80"), nil)
+	end)
+
+	t.test("m5-11 AC3: parse plan takes a list of 3-4 strings only", function()
+		t.eq((AdminLogic.parse("plan", { "a", "b", "c" }) :: any).ids, { "a", "b", "c" })
+		t.eq((AdminLogic.parse("plan", { "a", "b", "c", "d" }) :: any).ids, { "a", "b", "c", "d" })
+		for _, bad in
+			{
+				{ "a", "b" },
+				{ "a", "b", "c", "d", "e" },
+				{ "a", 2, "c" },
+				{ "a", "", "c" },
+				{ a = "x", b = "y", c = "z" },
+				{ "a", "b", "c", extra = "d" },
+				{ "a", "b", string.rep("x", 65) },
+				"a,b,c",
+			} :: { any }
+		do
+			t.eq(AdminLogic.parse("plan", bad), nil)
+		end
+		t.eq(AdminLogic.parse("plan", nil), nil)
+	end)
+
+	t.test("m5-11 AC3: parse fx takes slot + nil/off/FxCatalog id of that slot", function()
+		local parsed = AdminLogic.parse("fx", { "Elimination", "cat-customer" }) :: any
+		t.eq(parsed.slot, "Elimination")
+		t.eq(parsed.fxId, "cat-customer")
+		t.eq((AdminLogic.parse("fx", { "Victory", "fireworks" }) :: any).fxId, "fireworks")
+		local off = AdminLogic.parse("fx", { "Victory", "off" }) :: any
+		t.eq(off.slot, "Victory")
+		t.eq(off.fxId, nil)
+		t.eq((AdminLogic.parse("fx", { "Victory" }) :: any).fxId, nil)
+		for _, bad in
+			{
+				{ "Victory", "cat-customer" }, -- 다른 칸 연출
+				{ "Elimination", "nope" },
+				{ "Spawn", "off" },
+				{ "Elimination", 3 },
+				"Elimination",
+			} :: { any }
+		do
+			t.eq(AdminLogic.parse("fx", bad), nil)
+		end
+		t.eq(AdminLogic.parse("fx", nil), nil)
+	end)
+
+	t.test("m5-11: parse rejects unknown commands, no-arg commands ignore args", function()
+		t.eq(select(2, AdminLogic.parse("kick", 1)), "UnknownCommand")
+		t.eq((AdminLogic.parse("info", nil) :: any).command, "info")
+		t.eq((AdminLogic.parse("start", { "x" }) :: any).command, "start")
+		t.eq((AdminLogic.parse("resetprofile", nil) :: any).command, "resetprofile")
+	end)
+
+	t.test("m5-11 AC4: applyCoins/applyTokens never go below 0", function()
+		t.eq(AdminLogic.applyCoins(100, -1000), 0)
+		t.eq(AdminLogic.applyCoins(100, 1000), 1100)
+		t.eq(AdminLogic.applyCoins(0, 0), 0)
+		t.eq(AdminLogic.applyTokens(nil, 80), 80)
+		t.eq(AdminLogic.applyTokens(5, -500), 0)
+	end)
+
+	t.test("m5-11: resolvePlan accepts any pool id (incl. inPool = false) and warns on non-Final last", function()
+		local pool = Maps.allInfos()
+		local inRandom: { [string]: boolean } = {}
+		for _, info in Maps.infos() do
+			inRandom[info.id] = true
+		end
+		local hidden: string? = nil
+		for _, info in pool do
+			if not inRandom[info.id] then
+				hidden = info.id
+			end
+		end
+		local plan, text = AdminLogic.resolvePlan({ "rotating-belt", "hot-plate", "skewer-showdown" }, pool)
+		t.ok(plan ~= nil and #plan == 3)
+		t.eq(text, "다음 판: rotating-belt → hot-plate → skewer-showdown")
+		if hidden then
+			local hiddenPlan = AdminLogic.resolvePlan({ hidden, "hot-plate", "skewer-showdown" }, pool)
+			t.ok(hiddenPlan ~= nil, `forced-only map {hidden} accepted`)
+		end
+		local warnPlan, warnText = AdminLogic.resolvePlan({ "skewer-showdown", "hot-plate", "rotating-belt" }, pool)
+		t.ok(warnPlan ~= nil)
+		t.ok(string.find(warnText, "주의", 1, true) ~= nil, warnText)
+		local bad, badText = AdminLogic.resolvePlan({ "rotating-belt", "nope", "skewer-showdown" }, pool)
+		t.eq(bad, nil)
+		t.ok(string.find(badText, "nope", 1, true) ~= nil)
+	end)
+
+	t.test("m5-11: equippedFx returns owned catalog fx of that slot only", function()
+		local owned = { ["cat-customer"] = true }
+		t.eq(AdminLogic.equippedFx({ Elimination = "cat-customer" }, owned, "Elimination"), "cat-customer")
+		t.eq(AdminLogic.equippedFx({ Elimination = "cat-customer" }, {}, "Elimination"), nil)
+		t.eq(AdminLogic.equippedFx({ Victory = "cat-customer" }, owned, "Victory"), nil)
+		t.eq(AdminLogic.equippedFx(nil, owned, "Victory"), nil)
+	end)
+
+	t.test("m5-11: infoLine and describe", function()
+		local line = AdminLogic.infoLine({
+			role = "Single",
+			jobId = "abcdef0123456789",
+			rooms = 0,
+			players = 1,
+			coins = 50,
+		})
+		t.eq(line, "Single · 서버 abcdef01 · 방 0 · 플레이어 1 · 내 방 없음 · 코인 50")
+		local withRoom = AdminLogic.infoLine({
+			role = "Lobby",
+			jobId = "",
+			rooms = 2,
+			players = 3,
+			roomId = "4",
+			roomState = "Waiting",
+			eventName = "할로윈",
+			tokenIcon = "🍬",
+			tokens = 7,
+		})
+		t.eq(
+			withRoom,
+			"Lobby · 서버 - · 방 2 · 플레이어 3 · 내 방 4(Waiting) · 코인 ? · 할로윈 🍬7"
+		)
+		t.eq(AdminLogic.describe(AdminLogic.parse("coins", -5) :: any), "-5")
+		t.eq(AdminLogic.describe(AdminLogic.parse("plan", { "a", "b", "c" }) :: any), "a,b,c")
+		t.eq(AdminLogic.describe(AdminLogic.parse("fx", { "Victory" }) :: any), "Victory off")
+		t.eq(AdminLogic.describe(AdminLogic.parse("info", nil) :: any), "-")
+	end)
+
+	---------------------------------------------------------------- m5-11 AdminService.AdminCommand 권한 (가짜 Roblox)
+	local function commandEnv(studio: boolean): (any, { any })
+		local env = loadEnv({ studio = studio })
+		local ran: { any } = {}
+		env.AdminService.setCommandRunner(function(player, parsed)
+			table.insert(ran, { player = player, parsed = parsed })
+			return true, "ran"
+		end)
+		return env, ran
+	end
+	local function command(env: any, player: any, name: any, args: any): (boolean, string?)
+		env.clock += 1
+		return env.remotes.AdminCommand.OnServerInvoke(player, name, args)
+	end
+
+	t.test("m5-11 AC13: non-admin is refused for every command (client IsAdmin ignored), warn once", function()
+		local env, ran = commandEnv(false)
+		local p = env.join(123, { IsAdmin = true })
+		for _, name in { "info", "fx", "start", "plan", "coins", "tokens", "resetprofile" } do
+			local ok, err = command(env, p, name, nil)
+			t.eq(ok, false, name)
+			t.eq(err, "권한이 없어요", name)
+		end
+		t.eq(#ran, 0)
+		t.eq(#env.warnings, 1)
+	end)
+
+	t.test("m5-11 AC14: live admin runs Info commands only; Test/StudioOnly refused before running", function()
+		local env, ran = commandEnv(false)
+		local p = env.join(OWNER)
+		t.eq(command(env, p, "info", nil), true)
+		t.eq(command(env, p, "fx", { "Elimination", "cat-customer" }), true)
+		local cases: { { name: string, args: any } } = {
+			{ name = "start", args = nil },
+			{ name = "plan", args = { "a", "b", "c" } },
+			{ name = "coins", args = 1000 },
+			{ name = "tokens", args = 80 },
+			{ name = "resetprofile", args = nil },
+		}
+		for _, case in cases do
+			local ok, err = command(env, p, case.name, case.args)
+			t.eq(ok, false, case.name)
+			t.eq(err, "Studio에서만 쓸 수 있는 명령이에요", case.name)
+		end
+		t.eq(#ran, 2)
+		t.eq(ran[1].parsed.command, "info")
+		t.eq(ran[2].parsed.fxId, "cat-customer")
+	end)
+
+	t.test("m5-11: Studio admin runs every command; bad args and unknown command never run", function()
+		local env, ran = commandEnv(true)
+		local p = env.join(-1)
+		local cases: { { name: string, args: any } } = {
+			{ name = "info", args = nil },
+			{ name = "start", args = nil },
+			{ name = "plan", args = { "a", "b", "c" } },
+			{ name = "coins", args = 100 },
+			{ name = "tokens", args = 10 },
+			{ name = "fx", args = { "Victory", "off" } },
+			{ name = "resetprofile", args = nil },
+		}
+		for _, case in cases do
+			t.eq(command(env, p, case.name, case.args), true, case.name)
+		end
+		t.eq(#ran, 7)
+		local ok, err = command(env, p, "coins", 99999)
+		t.eq(ok, false)
+		t.eq(err, "명령 값이 잘못됐어요")
+		ok, err = command(env, p, "kick", nil)
+		t.eq(ok, false)
+		t.eq(err, "모르는 명령이에요")
+		_, err = command(env, p, 42, nil)
+		t.eq(err, "모르는 명령이에요")
+		t.eq(#ran, 7)
+		-- 결과 문구는 실행기가 돌려준 그대로
+		t.eq(select(2, command(env, p, "info", nil)), "ran")
+	end)
+
+	t.test("m5-11: AdminCommand is rate-limited like the preview", function()
+		local env, ran = commandEnv(true)
+		local p = env.join(-1)
+		command(env, p, "info", nil)
+		local ok, err = env.remotes.AdminCommand.OnServerInvoke(p, "info", nil) -- 같은 시각
+		t.eq(ok, false)
+		t.eq(err, "잠시 뒤에 다시 해 주세요")
+		t.eq(#ran, 1)
+	end)
+
+	t.test("source: AdminService checks admin, parse and canRun before runCommand", function()
+		local src = fs.readFile("src/server/AdminService.luau")
+		local body = string.match(src, "local function onCommand.-\nend") :: string
+		t.ok(body ~= nil)
+		local adminAt = string.find(body, "if not admins[userId] then", 1, true)
+		local parseAt = string.find(body, "AdminLogic.parse(name, args)", 1, true)
+		local canRunAt =
+			string.find(body, "AdminLogic.canRun(tier, isStudio(), Config.DEBUG.persistDataInStudio)", 1, true)
+		local runAt = string.find(body, "local ok, result = runCommand(player, parsed)", 1, true)
+		t.ok(adminAt and parseAt and canRunAt and runAt)
+		t.ok(adminAt < parseAt and parseAt < canRunAt and canRunAt < runAt)
+		t.ok(string.find(src, "require(script.Parent.AdminCommands)", 1, true) ~= nil)
+	end)
+
+	---------------------------------------------------------------- m5-11 AdminCommands 실행 (가짜 서버 모듈)
+	t.test("m5-11 AC10: coins adds to my profile, floors at 0, requests a save", function()
+		local env = loadCommands()
+		local ok, text = env.run("coins", 1000)
+		t.eq(ok, true)
+		t.eq(env.profile.coins, 1100)
+		t.eq(text, "코인 +1000 → 1100")
+		ok = env.run("coins", -10000)
+		t.eq(ok, true)
+		t.eq(env.profile.coins, 0)
+		t.eq(env.saves, 2)
+		t.eq(env.profile.wins, 3) -- 다른 칸은 그대로
+		env.profile = nil
+		local failed, reason = env.run("coins", 1)
+		t.eq(failed, false)
+		t.eq(reason, "프로필을 아직 불러오지 못했어요")
+	end)
+
+	t.test("m5-11 AC10: tokens need a running event and go to that event id", function()
+		local env = loadCommands()
+		local ok, err = env.run("tokens", 80)
+		t.eq(ok, false)
+		t.eq(err, "진행 중인 이벤트가 없어요")
+		local live = loadCommands({ now = HALLOWEEN_NOW })
+		t.eq((Seasons.current(HALLOWEEN_NOW) :: any).id, "halloween-2026")
+		ok = live.run("tokens", 80)
+		t.eq(ok, true)
+		t.eq(live.profile.eventTokens["halloween-2026"], 80)
+		live.run("tokens", -500)
+		t.eq(live.profile.eventTokens["halloween-2026"], 0)
+	end)
+
+	t.test("m5-11 AC11: fx preview only sets the attribute, off restores the equipped fx, locked refuses", function()
+		local env = loadCommands()
+		local ok = env.run("fx", { "Victory", "fireworks" })
+		t.eq(ok, true)
+		t.eq(env.attributes.VictoryFx, "fireworks")
+		t.eq(env.profile.ownedFx.fireworks, nil) -- 소유·장착은 그대로
+		t.eq(env.profile.equippedFx.Victory, nil)
+		env.run("fx", { "Victory", "off" })
+		t.eq(env.attributes.VictoryFx, nil)
+		env.run("fx", { "Elimination", "off" })
+		t.eq(env.attributes.EliminationFx, "cat-customer") -- 프로필 장착값으로
+		env.locked = true
+		local refused, err = env.run("fx", { "Victory", "fireworks" })
+		t.eq(refused, false)
+		t.eq(err, "라운드 중에는 바꿀 수 없어요")
+		t.eq(env.attributes.VictoryFx, nil)
+	end)
+
+	t.test("m5-11 AC8: start force-starts my room; not in a room is refused", function()
+		local env = loadCommands()
+		t.eq(env.run("start", nil), true)
+		t.eq(env.forceStarts, { "7" })
+		env.roomId = nil
+		local ok, err = env.run("start", nil)
+		t.eq(ok, false)
+		t.eq(err, "방에 들어가 있지 않아요")
+	end)
+
+	t.test("m5-11 AC9: plan sets my room's next plan in single-place mode only", function()
+		local env = loadCommands()
+		local ok, text = env.run("plan", { "rotating-belt", "hot-plate", "skewer-showdown" })
+		t.eq(ok, true)
+		t.eq(text, "다음 판: rotating-belt → hot-plate → skewer-showdown")
+		local plan = env.nextPlans["7"]
+		t.eq(#plan, 3)
+		t.eq(plan[3].kind, "Final")
+		local bad, badText = env.run("plan", { "rotating-belt", "nope", "skewer-showdown" })
+		t.eq(bad, false)
+		t.ok(string.find(badText, "nope", 1, true) ~= nil)
+		local lobby = loadCommands({ role = "Lobby" })
+		local refused, err = lobby.run("plan", { "rotating-belt", "hot-plate", "skewer-showdown" })
+		t.eq(refused, false)
+		t.eq(err, "한 플레이스 모드에서만 돼요")
+		t.eq(lobby.nextPlans["7"], nil)
+	end)
+
+	t.test("m5-11 AC12: resetprofile replaces my memory profile; persisted profile is refused", function()
+		local env = loadCommands()
+		env.attributes.EliminationFx = "cat-customer"
+		local ok = env.run("resetprofile", nil)
+		t.eq(ok, true)
+		t.eq(env.profile.coins, 0)
+		t.eq(env.profile.wins, 0)
+		t.eq(env.profile.equippedSkin, "tamago")
+		t.eq(env.profile.ownedSkins, { tamago = true })
+		t.eq(env.profile.redeemedCodes, {})
+		t.eq(env.profile.equippedFx, {})
+		t.eq(env.attributes.EliminationFx, nil)
+		t.eq(env.previews, { "off" }) -- 스킨 미리보기 끄고 다시 입혀요
+		local saved = loadCommands()
+		saved.persist = true
+		local refused, err = saved.run("resetprofile", nil)
+		t.eq(refused, false)
+		t.eq(err, "저장을 켠 Studio에서는 쓸 수 없어요")
+		t.eq(saved.profile.coins, 100)
+	end)
+
+	t.test("m5-11: info shows role, job, rooms, players, my room, coins and event tokens", function()
+		local env = loadCommands({ now = HALLOWEEN_NOW })
+		env.profile.eventTokens["halloween-2026"] = 12
+		local ok, text = env.run("info", nil)
+		t.eq(ok, true)
+		t.eq(
+			text,
+			"Single · 서버 abcdef01 · 방 1 · 플레이어 1 · 내 방 7(Waiting) · 코인 100 · 할로윈 초밥 축제 🍬12"
+		)
+	end)
+
+	t.test("source: MatchService uses the admin plan once, before DEBUG.forceMapPlan", function()
+		local src = fs.readFile("src/server/MatchService.luau")
+		t.ok(string.find(src, "nextPlans[roomId] = nil", 1, true) ~= nil, "consumed once")
+		t.ok(string.find(src, "local forced = adminPlan or forcedPlan(roomId)", 1, true) ~= nil, "admin plan first")
+		local room = fs.readFile("src/server/RoomService.luau")
+		local body = string.match(room, "function RoomService.forceStart.-\nend") :: string
+		t.ok(body ~= nil)
+		t.ok(string.find(body, "beginMatch(room)", 1, true) ~= nil, "same start path")
+		t.eq(string.find(body, "minPlayersToStart", 1, true), nil, "no minimum player check")
+		t.ok(string.find(body, "autoStartAt", 1, true) ~= nil, "refuses during auto-start countdown")
 	end)
 end

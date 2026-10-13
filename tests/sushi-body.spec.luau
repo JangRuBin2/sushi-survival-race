@@ -146,4 +146,82 @@ return function(t: Test.Test)
 			t.ok(string.find(source, "require(", 1, true) == nil, "SushiBody should not require anything")
 		end
 	)
+
+	---------------------------------------------------------------- m5-07 시즌 한정·VIP 생김새
+	local SEASON_SKINS = {
+		["pumpkin-sushi"] = { "Pumpkin", "JackEyeLeft", "JackEyeRight", "JackMouth", "Stem" },
+		["ghost-tamago"] = { "SheetTop", "GhostEyeLeft", "GhostEyeRight" },
+		["santa-shrimp"] = { "HatBrim", "HatBase", "HatPompom", "TailLeft" },
+		["tree-maki"] = { "TreeLayer1", "TreeLayer2", "TreeLayer3", "StarA" },
+		["vip-gold-tamago"] = { "GoldLeaf1", "GoldTrim" },
+	}
+
+	t.test(
+		"m5-07 AC6: 새 스킨 5종은 자리 표시가 아니고(계란초밥과 다름) 이름이 겹치지 않아요",
+		function()
+			local tamago = SushiBody.layout("tamago")
+			for id, signature in SEASON_SKINS do
+				t.ok(SushiBody.hasLayout(id), id)
+				local layout = SushiBody.layout(id)
+				local parts = byName(layout)
+				local seen = 0
+				for _ in parts do
+					seen += 1
+				end
+				t.eq(seen, #layout, `{id} duplicate part names`)
+				for _, name in signature do
+					t.ok(parts[name] ~= nil, `{id} missing {name}`)
+				end
+				local tamagoNames = byName(tamago)
+				local extra = 0
+				for name in parts do
+					if tamagoNames[name] == nil then
+						extra += 1
+					end
+				end
+				t.ok(extra >= 2, `{id} differs from tamago`)
+				-- 밥 몸통·얼굴·발은 같아요
+				for _, name in { "Body", "EyeLeft", "EyeRight", "Mouth", "FootLeft", "FootRight" } do
+					t.ok(parts[name] ~= nil, `{id} keeps {name}`)
+				end
+			end
+		end
+	)
+
+	t.test("m5-07 AC6: 외곽 상자는 계란초밥 ±15% 안, 효과 1개 이하", function()
+		local base = SushiBody.bounds(SushiBody.layout("tamago"))
+		for id in SEASON_SKINS do
+			local layout = SushiBody.layout(id)
+			local b = SushiBody.bounds(layout)
+			for axis = 1, 3 do
+				local ratio = (b.max[axis] - b.min[axis]) / (base.max[axis] - base.min[axis])
+				t.ok(ratio >= 0.85 and ratio <= 1.15, `{id} axis {axis} ratio {ratio}`)
+			end
+			t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-6, `{id} feet on the ground`)
+			t.ok(SushiBody.effectCount(layout) <= 1, `{id} effects`)
+		end
+	end)
+
+	t.test("m5-07: 유령 천은 반투명(0.25)이고 빛 효과, 나머지 파츠는 불투명", function()
+		local parts = byName(SushiBody.layout("ghost-tamago"))
+		t.eq(parts.SheetTop.transparency, 0.25)
+		t.eq(parts.SheetTop.effect, "Glow")
+		t.eq(parts.Body.transparency, nil)
+		local tree = byName(SushiBody.layout("tree-maki"))
+		t.eq(tree.StarA.effect, "Sparkles")
+		local gold = byName(SushiBody.layout("vip-gold-tamago"))
+		t.eq(gold.GoldLeaf1.effect, "Sparkles")
+		t.eq(gold.GoldLeaf1.material, "Foil")
+		-- 투명도도 복사본이에요
+		local copy = SushiBody.layout("ghost-tamago")
+		for _, spec in copy do
+			spec.transparency = 1
+		end
+		t.eq(byName(SushiBody.layout("ghost-tamago")).SheetTop.transparency, 0.25)
+		local source = fs.readFile("src/shared/SushiBody.luau")
+		t.ok(
+			string.find(source, "part.Transparency = spec.transparency or 0", 1, true) ~= nil,
+			"build sets Transparency"
+		)
+	end)
 end

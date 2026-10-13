@@ -447,4 +447,223 @@ return function(t: Test.Test)
 			t.eq(total, 1, "no other ProcessReceipt in src")
 		end
 	)
+	---------------------------------------------------------------- m5-08 상품 영수증 (Target 방식 port)
+	-- 가짜 서버 OfferService: 상품 id 2001 = 스타터 팩, 2002 = 고양이 손님 연출, 2003 = 에픽 세트
+	local Offers = RobloxRequire.require(Shared.Offers)
+	local OfferLogic = RobloxRequire.require(Shared.OfferLogic)
+	local OFFER_OF: { [number]: string } = { [2001] = "starter-pack", [2002] = "fx-cat-customer", [2003] = "epic-set" }
+
+	local function offerPortFor(w: World, r: any): any
+		local port = portFor(w, r)
+		port.skinFor = nil
+		port.targetFor = function()
+			local skinId = w.skinOf[r.ProductId]
+			if skinId then
+				return { kind = "Skin", id = skinId }
+			end
+			local offerId = OFFER_OF[r.ProductId]
+			return if offerId then { kind = "Offer", id = offerId } else nil
+		end
+		port.owns = function(target: any)
+			if target.kind == "Skin" then
+				return w.profile.ownedSkins[target.id] == true
+			end
+			return OfferLogic.delivered(Offers.get(target.id), w.profile)
+		end
+		port.ownedParts = function(target: any)
+			if target.kind == "Skin" then
+				return {}
+			end
+			return OfferLogic.ownedParts(Offers.get(target.id), w.profile)
+		end
+		port.grant = function(target: any, equip: boolean)
+			if target.kind == "Skin" then
+				ShopLogic.grantSkin(w.profile, target.id, equip)
+			else
+				local grants = OfferLogic.applyGrant(w.profile, Offers.get(target.id), equip, 500)
+				w.grants += #grants.skins + #grants.fx
+			end
+			return true
+		end
+		return port
+	end
+
+	local function runOffer(w: World, r: any): any
+		return ReceiptLogic.process(r, offerPortFor(w, r))
+	end
+
+	t.test(
+		"m5-08 AC5: 스타터 팩 영수증 → 스킨 4개 + boughtOffers + 저장 + 기록, 장착은 그대로",
+		function()
+			local w = newWorld()
+			local out = runOffer(w, receipt("o1", 2001))
+			t.eq(out.result, "PurchaseGranted")
+			t.eq(out.verdict, "GrantAndRecord")
+			t.eq(out.granted, true)
+			t.eq(out.offerId, "starter-pack")
+			t.eq(out.skinId, nil)
+			t.eq(out.target, { kind = "Offer", id = "starter-pack" })
+			for _, id in { "salmon", "tuna", "shrimp", "eel" } do
+				t.eq(w.saved.ownedSkins[id], true, `saved owns {id}`)
+			end
+			t.eq(w.saved.boughtOffers["starter-pack"], 500, "bought time saved")
+			t.eq(w.saved.equippedSkin, "tamago", "bundle is not worn")
+			t.eq(ReceiptLogic.hasReceipt(w.saved.receipts, "o1"), true)
+			t.eq(w.log.o1, { userId = 7, productId = 2001, offerId = "starter-pack", at = 12345 })
+			t.eq(w.log.o1.skinId, nil, "offer record has no skinId")
+			t.eq(w.grants, 4)
+		end
+	)
+
+	t.test("m5-08 AC5: 같은 PurchaseId 두 번째는 AlreadyRecorded, 중복 지급 없음", function()
+		local w = newWorld()
+		t.eq(runOffer(w, receipt("o1", 2001)).result, "PurchaseGranted")
+		local saves = w.saves
+		local again = runOffer(w, receipt("o1", 2001))
+		t.eq(again.result, "PurchaseGranted")
+		t.eq(again.verdict, "AlreadyRecorded")
+		t.eq(again.granted, false)
+		t.eq(w.grants, 4, "nothing granted twice")
+		t.eq(w.saves, saves + 1, "saved again (memory may be ahead)")
+	end)
+
+	t.test(
+		"m5-08 AC5: 저장이 실패하면 NotProcessedYet, 기록 없음 → 다시 오면 한 번만 지급",
+		function()
+			local w = newWorld()
+			w.failSave = true
+			local first = runOffer(w, receipt("o1", 2001))
+			t.eq(first.result, "NotProcessedYet")
+			t.eq(first.offerId, "starter-pack")
+			t.eq(w.log.o1, nil, "no record when save failed")
+			t.eq(w.saved.ownedSkins.salmon, nil, "store untouched")
+			w.failSave = false
+			local second = runOffer(w, receipt("o1", 2001))
+			t.eq(second.result, "PurchaseGranted")
+			-- 메모리 프로필에는 이미 boughtOffers가 있어서 RecordOnly(재시도)로 기록만
+			t.eq(second.verdict, "RecordOnly")
+			t.ok(string.find(second.note, "retry", 1, true) ~= nil, second.note)
+			t.eq(w.grants, 4, "skins once")
+			t.eq(w.saved.boughtOffers["starter-pack"], 500)
+			t.ok(w.log.o1 ~= nil)
+		end
+	)
+
+	t.test("m5-08: 기록 쓰기 실패 → NotProcessedYet, 다시 오면 기록만 (지급 한 번)", function()
+		local w = newWorld()
+		w.failRecord = true
+		t.eq(runOffer(w, receipt("o1", 2001)).result, "NotProcessedYet")
+		t.eq(w.saved.boughtOffers["starter-pack"], 500, "profile already saved")
+		w.failRecord = false
+		local again = runOffer(w, receipt("o1", 2001))
+		t.eq(again.result, "PurchaseGranted")
+		t.eq(again.verdict, "RecordOnly")
+		t.eq(w.grants, 4)
+		t.ok(w.log.o1 ~= nil)
+	end)
+
+	t.test(
+		"m5-08: 기록은 있는데 프로필이 되돌려졌으면(boughtOffers 없음) 다시 넣고 장착은 안 해요",
+		function()
+			local w = newWorld()
+			w.log.o1 = { userId = 7, productId = 2001, offerId = "starter-pack", at = 1 }
+			local out = runOffer(w, receipt("o1", 2001))
+			t.eq(out.verdict, "AlreadyRecorded")
+			t.eq(out.result, "PurchaseGranted")
+			t.eq(out.granted, true)
+			t.ok(string.find(out.note, "offer restored", 1, true) ~= nil, out.note)
+			t.eq(w.saved.boughtOffers["starter-pack"], 500)
+			t.eq(w.saved.ownedSkins.eel, true)
+			t.eq(w.saved.equippedSkin, "tamago")
+		end
+	)
+
+	t.test("m5-08 AC5: 연출 영수증 → ownedFx + equippedFx 그 칸 장착", function()
+		local w = newWorld()
+		local out = runOffer(w, receipt("f1", 2002))
+		t.eq(out.result, "PurchaseGranted")
+		t.eq(out.offerId, "fx-cat-customer")
+		t.eq(w.saved.ownedFx["cat-customer"], true)
+		t.eq(w.saved.equippedFx.Elimination, "cat-customer")
+		t.eq(w.saved.equippedFx.Victory, nil)
+		t.eq(w.saved.boughtOffers["fx-cat-customer"], nil, "fx is not a once-per-account bundle record")
+		t.eq(w.log.f1.offerId, "fx-cat-customer")
+		-- 같은 연출을 다른 결제로 또 산 경우: RecordOnly + warn note
+		local again = runOffer(w, receipt("f2", 2002))
+		t.eq(again.verdict, "RecordOnly")
+		t.eq(again.result, "PurchaseGranted")
+		t.ok(string.find(again.note, "already owned", 1, true) ~= nil, again.note)
+		t.eq(w.grants, 1)
+	end)
+
+	t.test(
+		"m5-08 AC6: 묶음 영수증 때 1개를 이미 가졌으면(창 중 코인 해금) 나머지만 지급, note에 already owned",
+		function()
+			local w = newWorld()
+			w.profile.ownedSkins.salmon = true -- 결제 창을 연 뒤 코인으로 해금
+			w.profile.equippedSkin = "salmon"
+			local out = runOffer(w, receipt("o5", 2001))
+			t.eq(out.result, "PurchaseGranted")
+			t.eq(out.verdict, "GrantAndRecord")
+			t.ok(string.find(out.note, "already owned", 1, true) ~= nil, out.note)
+			t.ok(string.find(out.note, "salmon", 1, true) ~= nil, "names the skin")
+			t.eq(w.grants, 3, "only the other 3")
+			t.eq(w.saved.ownedSkins.tuna, true)
+			t.eq(w.saved.boughtOffers["starter-pack"], 500)
+			t.eq(w.saved.equippedSkin, "salmon", "still wearing the coin skin")
+		end
+	)
+
+	t.test(
+		"m5-08: 묶음 스킨을 전부 이미 가졌어도 기록 + boughtOffers, 지급 0 (note already owned)",
+		function()
+			local w = newWorld()
+			for _, id in { "rainbow-roll", "aburi-salmon", "california-roll" } do
+				w.profile.ownedSkins[id] = true
+			end
+			local out = runOffer(w, receipt("e1", 2003))
+			t.eq(out.result, "PurchaseGranted")
+			t.eq(w.grants, 0)
+			t.ok(string.find(out.note, "already owned", 1, true) ~= nil, out.note)
+			t.eq(w.saved.boughtOffers["epic-set"], 500)
+		end
+	)
+
+	t.test(
+		"m5-08: 상품 영수증도 플레이어 없음·준비 안 됨·기록 읽기 실패면 NotProcessedYet, 변화 없음",
+		function()
+			local w = newWorld()
+			w.present = false
+			t.eq(runOffer(w, receipt("o1", 2001)).result, "NotProcessedYet")
+			w.present = true
+			w.ready = false
+			local notReady = runOffer(w, receipt("o1", 2001))
+			t.eq(notReady.result, "NotProcessedYet")
+			t.eq(notReady.offerId, "starter-pack")
+			w.ready = true
+			w.failLookup = true
+			t.eq(runOffer(w, receipt("o1", 2001)).result, "NotProcessedYet")
+			t.eq(w.grants, 0)
+			t.eq(countKeys(w.log), 0)
+			t.eq(w.profile.boughtOffers["starter-pack"], nil)
+			-- 모르는 상품 id
+			w.failLookup = false
+			local unknown = runOffer(w, receipt("x1", 9999))
+			t.eq(unknown.result, "NotProcessedYet")
+			t.eq(unknown.target, nil)
+		end
+	)
+
+	t.test(
+		"m5-08: Target 방식 port로 스킨 영수증도 예전과 같아요 (지급 + 장착 + skinId 기록)",
+		function()
+			local w = newWorld()
+			local out = runOffer(w, receipt("s1", 1001))
+			t.eq(out.result, "PurchaseGranted")
+			t.eq(out.skinId, "uni")
+			t.eq(out.offerId, nil)
+			t.eq(w.saved.equippedSkin, "uni")
+			t.eq(w.log.s1, { userId = 7, productId = 1001, skinId = "uni", at = 12345 })
+		end
+	)
 end

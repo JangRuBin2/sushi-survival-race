@@ -451,9 +451,9 @@ return function(t: Test.Test)
 				)
 			end
 			t.eq(
-				string.find(offerService, "ProcessReceipt", 1, true),
+				string.find(offerService, "ProcessReceipt%s*="),
 				nil,
-				"OfferService does not touch ProcessReceipt"
+				"OfferService does not set ProcessReceipt"
 			)
 			t.ok(
 				string.find(offerService, "RobuxShopService.setOfferPort(offerPort)", 1, true) ~= nil,

@@ -70,7 +70,7 @@ local PORCELAIN = PAL.Porcelain
 local PAPER = c(246, 240, 226)
 
 Art.COLORS = {
-	pot = IRON,
+	pot = c(84, 80, 78), -- 밝은 무쇠 (반사 하이라이트가 읽히게)
 	oil = c(240, 182, 52),
 	oilDeep = c(176, 104, 24),
 	basket = c(206, 190, 150), -- 놋쇠빛 철망 바구니
@@ -105,12 +105,12 @@ Art.OIL_GLOW_LIGHT = { kind = "Point", color = c(255, 150, 50), brightness = 2.2
 -- 맵 조명: 밤 21시, 낮은 청색 Ambient, 따뜻한 연기빛 Atmosphere, 기름·불꽃이 Bloom으로 번지게
 Art.LIGHTING = {
 	ClockTime = 21,
-	Brightness = 1.6,
-	Ambient = c(74, 68, 82),
-	OutdoorAmbient = c(80, 84, 110),
+	Brightness = 2.2,
+	Ambient = c(104, 92, 92),
+	OutdoorAmbient = c(108, 108, 132),
 	EnvironmentDiffuseScale = 0.6,
 	EnvironmentSpecularScale = 0.9,
-	ExposureCompensation = 0.65,
+	ExposureCompensation = 0.95,
 	Atmosphere = {
 		Density = 0.35,
 		Offset = 0.05,
@@ -271,6 +271,24 @@ local function addPot(list: { DecorSpec })
 			P(0, Layout.POT_FLOOR_Y - 2.6, 0)
 		)
 	)
+	-- 냄비 밑 달아오른 열기 고리 (불꽃 위 바닥 테두리) — 주황 빛이 냄비 옆면을 타고 올라가요
+	local heat = MapKitShapes.ring(
+		"PotHeatGlow",
+		R - 1,
+		1.2,
+		0.8,
+		16,
+		c(255, 132, 48),
+		"Neon",
+		P(0, Layout.POT_FLOOR_Y - 2.4, 0)
+	)
+	for k, spec in heat do
+		spec.castShadow = false
+		if k % 4 == 1 then
+			spec.light = { kind = "Point", color = c(255, 150, 70), brightness = 3.5, range = 48 }
+		end
+		table.insert(list, spec)
+	end
 	-- 귀 손잡이 2개 (좌우): 무쇠 받침 + 나무 손잡이
 	for _, side in { -1, 1 } do
 		local x = side * (R + WALL_T + 5)
@@ -309,7 +327,7 @@ local function addPot(list: { DecorSpec })
 		)
 	end
 	-- 튀김 온도계: 림에 꽂힌 집게 + 기름 속으로 내려가는 막대 + 둥근 눈금판 (앞 오른쪽, 바깥 줄 발판이 없는 각도)
-	local ta = -62
+	local ta = -112
 	local tx, tz = pol(ta, R - 1.5)
 	local ox, oz = pol(ta, R + WALL_T + 1)
 	add(list, "ThermoClip", "Block", v(3, 4, 4.5), STEEL, "Metal", P((tx + ox) / 2, RIM_Y + 1, (tz + oz) / 2), {
@@ -1538,7 +1556,7 @@ end
 function Art.introCamera(): { IntroPoint }
 	local topX, topZ = Layout.polar(Layout.TOP_ANGLE, Layout.TOP_RING_RADIUS)
 	return {
-		{ pos = P(62, -4, 74), lookAt = P(0, 10, 0) },
+		{ pos = P(48, 74, 64), lookAt = P(0, 6, -8) },
 		{ pos = v(topX + 12, 40, topZ + 14), lookAt = v(topX, 30, topZ) },
 		{ pos = v(topX + 2, 38, topZ + 3), lookAt = P(0, Layout.BASKET_TOP_Y, -4) },
 		{ pos = P(0, Layout.BASKET_TOP_Y + 10, 24), lookAt = P(0, Layout.BASKET_TOP_Y + 2, -8) },

@@ -138,7 +138,7 @@ local function buildPot(model: Model, origin: CFrame)
 				* CFrame.Angles(0, math.rad(angle + 90), 0),
 			Color = color3(Art.COLORS.pot),
 			Material = Enum.Material.Metal,
-			Reflectance = 0.15, -- 무쇠 안쪽 반사 (보여 주기만)
+			Reflectance = 0.25, -- 무쇠 반사 하이라이트 (보여 주기만)
 			Parent = folder,
 		})
 	end

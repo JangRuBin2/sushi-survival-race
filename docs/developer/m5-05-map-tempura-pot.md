@@ -5,10 +5,15 @@
 - **끝난 것**: `TempuraPotArt.luau` 전면 작성("밤의 주방, 불 위의 무쇠 튀김 냄비"), `TempuraPot.luau` 아트 부착(기름 따라 올라가는 짙은 기름 층·주황 빛 3·김 2·거품 2, 벽 반사, 층별 튀김옷 밝기, `lighting = Art.LIGHTING`). 판정 파츠 크기·위치·CanCollide·수치는 그대로.
 - **테스트**: `map-tempura-pot.spec` AC8·AC16(Extended 예산, 배경 바닥 깊이, 발판 장식이 윗면보다 낮음, IntroCamera가 판정 경계 + 40 안). `m5-23-qa.spec`의 "모든 맵 Standard 조명·파티클" 검사를 맵의 예산 단계 기준으로 바꿈(tempura-pot = Extended) — QA 확인 부탁. `m5-03-qa.spec`의 껍데기 build/start 검사에서 tempura-pot을 뺌(실제 맵이 됨).
 - **검증**: rojo build OK, stylua OK, selene 0/0, lune 1592 passed / 0 failed, luau-lsp exit 0.
-- **최종 렌더**: `docs/renders/tempura-pot/after-{overview,eye,intro-01,intro-02,intro-04,top,mobile}.png`, 통계 `after-stats.txt` — decor 1479/1500, lights 14/24 (shadowed 1/2), particles 6/16, anim 53/80, void 0% (모든 뷰). 전: `before-*.png`.
+- **최종 렌더**: `docs/renders/tempura-pot/after-{overview,eye,intro-01,intro-02,intro-04,top,mobile}.png`, 통계 `after-stats.txt` — decor 1495/1500, lights 18/24 (shadowed 1/2), particles 6/16, anim 53/80, void 0% (모든 뷰). 반복 5회. 전: `before-*.png`.
 - **남은 것**: Studio AC10~AC15·AC17 (사용자/QA). 렌더러는 근사 — 특히 후드 SpotLight·기름 빛 세기와 밤 조명 밝기는 Studio에서 확인.
 - **다음에 할 첫 단계**: QA 리포트 받기. 밝기 조정은 `Art.LIGHTING`(Brightness·ExposureCompensation·Ambient)과 `HoodLamp` brightness만.
 - **막힌 점**: 없음. (참고) 처음엔 렌더러 `CFrame.lookAt`이 뒤집혀 있어 로컬에서 고쳐 확인했고, 머지 전에 내 tools/ 수정은 버리고 main의 수정(e07e08d)을 받음.
+
+### 반복 5 (메인 세션 리뷰 반영, 최종)
+- 리뷰: intro-01·overview가 너무 어둡고, 냄비가 특징 없는 검은 덩어리이고, 카운터 높이 intro에서 금빛 기름·튀김이 안 보임.
+- 고침: Brightness 2.2·Exposure 0.95·Ambient 따뜻하게(104,92,92), 냄비 벽 색을 밝은 무쇠(84,80,78) + Reflectance 0.25, 냄비 바닥 테두리에 달아오른 열기 고리(주황 Neon, PointLight 4개 range 48 — 불 기운이 냄비 옆면을 타고 올라감), intro-01을 림 위(y 74)로 올려 기름·발판이 림 너머로 보이게, 온도계를 카메라 반대쪽(−112°)으로.
+- 결과: intro-01에서 냄비 실루엣·띠·손잡이·림이 읽히고 안에 금빛 기름과 튀김 발판이 보임. overview는 밤 분위기를 유지한 채 나무 바닥·카운터·타일이 보일 만큼 밝음. 예산 decor 1495/1500, lights 18/24 (shadowed 1/2), particles 6/16, anim 53/80, void 0%. 체크리스트 18개 전부 예 (반복 4 판단 유지, 6·10 더 좋아짐).
 
 ### 반복 1 (첫 키트 적용)
 - 렌더: 주방·레인지·후드·창문·카운터 다 들어감, void 0%(intro-01 16% → 카메라 위치 문제), 장식 1612 > 1500(예산 초과).

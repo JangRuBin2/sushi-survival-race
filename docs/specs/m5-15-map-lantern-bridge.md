@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-15 — 새 Race 맵: 등불 다리 건너기 (`lantern-bridge`)

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-28 — 콘셉트 몸 스킨 4종 추가 (참치·새우·계란·연어알 군함, 무료 테스트)

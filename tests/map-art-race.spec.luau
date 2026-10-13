@@ -117,7 +117,8 @@ return function(t: Test.Test)
 			t.eq(MapKitLogic.validate(specs), nil, `{entry.id} decor valid`)
 			local count = MapKitLogic.count(specs)
 			t.ok(count > 0, `{entry.id} has decor`)
-			t.ok(count <= MapKitLogic.DECOR_PART_BUDGET, `{entry.id} decor {count} parts over budget`)
+			local tier = (entry.art :: any).BUDGET -- m5-24: Extended 예산을 쓰는 맵은 그 단계로
+			t.eq(MapKitLogic.checkBudget(specs, tier), nil, `{entry.id} decor {count} parts over budget`)
 		end
 	end)
 

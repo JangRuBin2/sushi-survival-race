@@ -224,7 +224,9 @@ return function(t: Test.Test)
 			t.eq(MapTypes.validate(map), nil, id)
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
-			t.ok(Maps.get(id).lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			-- m5-24 D4: 프리셋 초안을 Art.LIGHTING으로 옮겨 다듬은 맵도 있어요 (둘 중 하나, 검사 통과)
+			local lighting = Maps.get(id).lighting
+			t.ok(lighting ~= nil and MapLighting.validate(lighting) == nil, `{id} uses PRESETS or Art.LIGHTING`)
 		end
 	end)
 
@@ -444,17 +446,28 @@ return function(t: Test.Test)
 				end
 				return lights, particles
 			end
+			-- m5-24 D2: 회전 벨트는 아트 패스로 DecorSpec 조명·파티클이 늘었어요 → 렌더러 수 = 장식 목록 수 + 코드가 붙인
+			-- m5-20 Lantern 조명 3·SoyGlint 파티클 2 (렌더러 통계 = lune 카운트라는 원래 뜻은 그대로)
+			local beltArt = RobloxRequire.require(Shared.maps.RotatingBeltArt)
+			local beltDecor = beltArt.decor()
 			local l1, p1 = count(buildAt("rotating-belt", 1).model)
-			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
+			t.eq(
+				{ l1, p1 },
+				{ MapKitLogic.countLights(beltDecor) + 3, MapKitLogic.countParticles(beltDecor) + 2 },
+				"rotating-belt lights/particles"
+			)
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
 			t.eq({ l2, p2 }, { 2, 3 }, "soy-swamp lights/particles")
-			-- 모든 맵이 Standard 조명·파티클 예산 안 (Instance.new 포함 실제 수)
+			-- 모든 맵이 자기 예산 단계(Art.BUDGET, 없으면 Standard)의 조명·파티클 안 (Instance.new 포함 실제 수, m5-24 D2)
 			for _, id in allIds() do
 				local l, p = count(buildAt(id, 1).model)
-				t.ok(
-					l <= MapKitLogic.LIGHT_BUDGET and p <= MapKitLogic.PARTICLE_BUDGET,
-					`{id}: {l} lights {p} particles`
-				)
+				local artName = (string.gsub("-" .. id, "%-(%w)", string.upper)) .. "Art"
+				local found, artNode = pcall(function()
+					return (Shared.maps :: any)[artName]
+				end)
+				local tier = if found then RobloxRequire.require(artNode).BUDGET or "Standard" else "Standard"
+				local budget = MapKitLogic.budget(tier)
+				t.ok(l <= budget.lights and p <= budget.particles, `{id}: {l} lights {p} particles`)
 			end
 		end
 	)

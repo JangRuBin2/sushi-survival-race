@@ -167,4 +167,103 @@ return function(t: Test.Test)
 		t.ok(origin[2] > Config.Arena.BaseHeight + 500, "아레나보다 훨씬 위")
 		t.ok(math.abs(origin[3]) >= 2000, "로비에서 멀리")
 	end)
+
+	-- m5-09 불꽃놀이 ---------------------------------------------------------
+
+	t.test("m5-09 AC1: extraFor — 불꽃놀이만 Fireworks", function()
+		t.eq(Logic.extraFor("fireworks"), "Fireworks")
+		t.eq(Logic.extraFor(nil), "None")
+		t.eq(Logic.extraFor("cat-customer"), "None", "탈락 slot 연출")
+		t.eq(Logic.extraFor("x"), "None")
+		t.eq(Logic.extraFor(true), "None")
+	end)
+
+	t.test("m5-09 AC4: fireworksTimeline(6) — 6개, 풍덩~5.7, 간격 0.4 이상, 오름차순", function()
+		local list = Logic.fireworksTimeline(6)
+		t.eq(#list, 6)
+		local splash = Logic.splashTime(6)
+		for i, at in list do
+			t.ok(at >= splash and at <= 5.7, `#{i} {at}`)
+			if i > 1 then
+				t.ok(at - list[i - 1] >= 0.4, `#{i} 간격 {at - list[i - 1]}`)
+			end
+		end
+		-- 설정 길이도 같은 규칙
+		local duration = Config.Match.VictoryCutscene
+		local configured = Logic.fireworksTimeline(duration)
+		t.eq(#configured, 6)
+		t.ok(configured[1] >= Logic.splashTime(duration), "설정 길이: 풍덩 뒤")
+		t.ok(configured[6] <= duration - 0.3, "설정 길이: 끝 0.3초 전")
+	end)
+
+	t.test("m5-09: 불꽃 색 5가지가 돌아가고, 마지막(6번째)은 첫 색", function()
+		local list = Logic.fireworks(6)
+		t.eq(#list, 6)
+		local seen = {}
+		for i, firework in list do
+			t.eq(firework.at, Logic.fireworksTimeline(6)[i])
+			t.eq(firework.color, (i - 1) % 5 + 1)
+			seen[firework.color] = true
+			local rgb = Logic.fireworkColor(firework.color)
+			t.eq(#rgb, 3)
+		end
+		for c = 1, 5 do
+			t.ok(seen[c], `색 {c}`)
+		end
+		t.eq(list[6].color, list[1].color)
+		t.ok(list[6].radius >= list[5].radius, "마지막이 가장 커요")
+	end)
+
+	t.test("m5-09: 불꽃은 박수 장면 카메라 화면 안, 수면 위, 인형을 가리지 않아요", function()
+		local pose = Logic.cameraPose(6, 6)
+		local eye, target = pose.eye, pose.target
+		local fx, fy, fz = target[1] - eye[1], target[2] - eye[2], target[3] - eye[3]
+		local flen = math.sqrt(fx * fx + fy * fy + fz * fz)
+		fx, fy, fz = fx / flen, fy / flen, fz / flen
+		-- 카메라 오른쪽·위 축 (오른쪽 = 앞 × 월드 위, 위 = 오른쪽 × 앞)
+		local rx, rz = -fz, fx
+		local rlen = math.sqrt(rx * rx + rz * rz)
+		rx, rz = rx / rlen, rz / rlen
+		local ux, uy, uz = -fy * rz, rz * fx - rx * fz, fy * rx
+		local tanV = math.tan(math.rad(30)) -- 우승 연출 FOV 60 (세로)
+		local tanH = tanV * 4 / 3 -- 가장 좁은 화면 비율(4:3)로 확인
+		-- 장면 로컬 점 → 화면 좌표 (-1~1, 위 = +), 깊이
+		local function screen(p: { number }): (number, number, number)
+			local dx, dy, dz = p[1] - eye[1], p[2] - eye[2], p[3] - eye[3]
+			local depth = dx * fx + dy * fy + dz * fz
+			return (dx * rx + dz * rz) / depth / tanH, (dx * ux + dy * uy + dz * uz) / depth / tanV, depth
+		end
+		local final = Logic.dollPose(6, 6).position
+		local _, dollY = screen({ final[1], final[2] + 3, final[3] })
+		for i, firework in Logic.fireworks(6) do
+			local p = firework.position
+			local sx, sy, depth = screen(p)
+			local r = firework.radius / depth / tanV
+			t.ok(depth > 15, `#{i} 카메라 앞`)
+			t.ok(math.abs(sx) <= 0.85, `#{i} 가로 화면 안 {sx}`)
+			t.ok(sy <= 0.85, `#{i} 가운데가 화면 안 {sy}`)
+			if not firework.big then
+				t.ok(sy + r <= 1.02, `#{i} 위까지 거의 다 보여요 {sy + r}`)
+			end
+			t.ok(sy - r > dollY + 0.15, `#{i} 인형 머리보다 위 {sy - r} / {dollY}`)
+			t.ok(p[2] >= Logic.Layout.WaterY + 2.4, `#{i} 수면 위`)
+			t.ok(p[3] < Logic.Layout.DiveLandZ - 15, `#{i} 인형 뒤 바다`)
+		end
+	end)
+
+	t.test("m5-09: 로켓은 풍덩 전에 쏘지 않고, 섬광은 0.3초", function()
+		local splash = Logic.splashTime(6)
+		local list = Logic.fireworksTimeline(6)
+		t.eq(Logic.rocketAlpha(splash - 0.01, list[1], splash), nil, "풍덩 전")
+		t.eq(Logic.rocketAlpha(list[2] - 0.5, list[2], splash), nil, "로켓 시간 전")
+		local mid = Logic.rocketAlpha(list[2] - 0.2, list[2], splash) :: number
+		t.ok(mid > 0 and mid < 1, "올라가는 중")
+		t.eq(Logic.rocketAlpha(list[2], list[2], splash), nil, "터진 뒤")
+		local size, light = Logic.flash(0.06)
+		t.ok(size > 0.99 and light > 0.5, "확 커짐")
+		local _, late = Logic.flash(0.29)
+		t.ok(late < 0.05, "사그라듦")
+		t.eq(select(2, Logic.flash(0.3)), 0)
+		t.eq(select(1, Logic.flash(-0.1)), 0)
+	end)
 end

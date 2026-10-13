@@ -7,6 +7,9 @@
 --     SpectateController의 Victory(로비의 우승자 비추기)로 돌아가요.
 --   - 끝나거나, 방이 대기실로 돌아오거나(RoomUpdated state ≠ InMatch), 새 Starting이 오면 모두 정리해요.
 -- 순위표·"🏆 우승!" 배너는 HudScreen이 연출 길이만큼 기다렸다 띄워요.
+-- 연출 팩 (m5-09): 우승자의 Player 속성 VictoryFx가 불꽃놀이면(VictoryCutsceneLogic.extraFor) 풍덩부터
+--   바다 위 하늘에 불꽃 6번 (박자·자리·색은 VictoryCutsceneLogic.fireworks, 소품은 VictoryProps.buildFireworks).
+--   장면·박자·카메라는 그대로라 방 전원이 같은 박자로 같은 불꽃을 봐요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -74,6 +77,16 @@ local function buildDoll(appearanceId: string): Model?
 	return doll
 end
 
+-- 우승자가 입은 우승 연출 (나갔으면 기본)
+local function extraOf(winnerUserId: number): VictoryCutsceneLogic.Extra
+	local winner = Players:GetPlayerByUserId(winnerUserId)
+	return VictoryCutsceneLogic.extraFor(winner and winner:GetAttribute(Attributes.VictoryFx))
+end
+
+local function rgb(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
+
 local function nameOf(userId: number): string
 	local other = Players:GetPlayerByUserId(userId)
 	return if other then other.DisplayName else `#{userId}`
@@ -117,6 +130,74 @@ function VictoryCutsceneController.start(gui: Instance)
 		if doll then
 			doll.Parent = props.model
 		end
+		-- 불꽃놀이 (m5-09): 소품은 미리 지어 두고 박자에 맞춰 터뜨려요
+		local fireworks = if extraOf(winnerUserId) == "Fireworks" then VictoryProps.buildFireworks(props) else nil
+		local fireworkList = VictoryCutsceneLogic.fireworks(duration)
+		local fired: { [number]: boolean } = {}
+		local launched: { [number]: boolean } = {}
+		local glowAt = origin:PointToWorldSpace(
+			Vector3.new(0, VictoryCutsceneLogic.Layout.WaterY + 7, VictoryCutsceneLogic.Layout.DiveLandZ - 6)
+		)
+
+		local function updateFireworks(fw: VictoryProps.Fireworks, t: number)
+			local latest: number? = nil
+			local rocketShown: { [number]: boolean } = {}
+			local glowShown: { [number]: boolean } = {}
+			for index, firework in fireworkList do
+				local color = rgb(VictoryCutsceneLogic.fireworkColor(firework.color))
+				local at = origin:PointToWorldSpace(toVector(firework.position))
+				-- 로켓: 수면에서 감속하며 솟아올라요 (살짝 흔들리며)
+				local rise = VictoryCutsceneLogic.rocketAlpha(t, firework.at, splashAt)
+				local rocketSlot = (index - 1) % 2 + 1
+				if rise then
+					local from = origin:PointToWorldSpace(
+						Vector3.new(firework.position[1], VictoryCutsceneLogic.Layout.WaterY, firework.position[3])
+					)
+					local sway = Vector3.new(math.sin(rise * 9 + index) * 0.4, 0, 0)
+					VictoryProps.poseRocket(fw, rocketSlot, from:Lerp(at, rise) + sway, color, not launched[index])
+					launched[index] = true
+					rocketShown[rocketSlot] = true
+				end
+				if not fired[index] and t >= firework.at then
+					fired[index] = true
+					VictoryProps.burstFirework(fw, index, at, color, firework.radius, firework.big)
+					Sfx.play("Fireworks")
+				end
+				local since = t - firework.at
+				if fired[index] and since < VictoryCutsceneLogic.FLASH_TIME then
+					latest = index
+					local _, light = VictoryCutsceneLogic.flash(since)
+					local glowSlot = (index - 1) % 2 + 1
+					-- 빛은 불꽃 쪽에서 인형 쪽으로 끌어와 물·인형·물고기를 물들여요 (Range 안)
+					VictoryProps.poseGlow(fw, glowSlot, glowAt:Lerp(at, 0.25), color, light)
+					glowShown[glowSlot] = true
+				end
+			end
+			for slot = 1, 2 do
+				if not rocketShown[slot] then
+					VictoryProps.poseRocket(fw, slot, nil, Color3.new(1, 1, 1), false)
+				end
+				if not glowShown[slot] then
+					VictoryProps.poseGlow(fw, slot, glowAt, Color3.new(1, 1, 1), 0)
+				end
+			end
+			local index = latest
+			if index then
+				local firework = fireworkList[index]
+				local size, light = VictoryCutsceneLogic.flash(t - firework.at)
+				VictoryProps.poseFlash(
+					fw,
+					origin:PointToWorldSpace(toVector(firework.position)),
+					rgb(VictoryCutsceneLogic.fireworkColor(firework.color)),
+					firework.radius,
+					size,
+					light
+				)
+			else
+				VictoryProps.poseFlash(fw, glowAt, Color3.new(1, 1, 1), 1, 0, 0)
+			end
+		end
+
 		local fishRing = VictoryCutsceneLogic.fishRing(#props.fish, VictoryCutsceneLogic.Layout.FishRadius)
 		local lift = groundOffset()
 
@@ -259,6 +340,9 @@ function VictoryCutsceneController.start(gui: Instance)
 
 			render(t)
 			updateDebris(dt)
+			if fireworks then
+				updateFireworks(fireworks, t)
+			end
 		end))
 	end
 

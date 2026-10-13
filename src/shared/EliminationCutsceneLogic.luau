@@ -3,17 +3,22 @@
 --   shouldPlay(cause)                     낙하·리셋·시간 종료(Timeout)면 연출, 퇴장·nil이면 연출 없음
 --   isFinalRound(roundIndex, roundCount)  마지막 라운드(결승)인지 (값이 없으면 false)
 --   variantFor(mapKind, isFinal, cause)   연출 종류: 결승 = ChefHand, Survival 낙하 = Mouth, 그 밖 = Chopsticks
---   linesFor / pickLine                   말풍선 대사 (공통 + 스킨 전용 + 결승 전용)
+--   skinFor(fxId)                         탈락 연출 팩(m5-09): 고양이 손님이면 "Cat", 그 밖은 "Default"
+--   linesFor / pickLine                   말풍선 대사 (공통 + 스킨 전용 + 결승 전용, 고양이면 고양이 대사만)
 --   canStartWorld(activeCount)            동시 월드 연출 한도(MAX_CONCURRENT) 확인. 본인 연출은 한도와 무관
---   timeline(variant, duration)           효과음·말풍선 박자 (초). 길이에 맞춰 늘이고 줄여요
+--   timeline(variant, duration, fxSkin)   효과음·말풍선 박자 (초). 길이에 맞춰 늘이고 줄여요. 고양이면 CatMeow 하나 더
 --   alpha(t, from, to)                    구간 진행도 0~1 (from 전 0, to 뒤 1)
 
 local Config = require(script.Parent.Config)
+local FxCatalog = require(script.Parent.FxCatalog)
 local Skins = require(script.Parent.Skins)
 
 local EliminationCutsceneLogic = {}
 
 export type Variant = "Chopsticks" | "Mouth" | "ChefHand"
+
+-- 먹는 쪽 모습 (m5-09 연출 팩). 흐름·박자·길이는 Variant가 정하고, 이건 겉모습만 바꿔요.
+export type FxSkin = "Default" | "Cat"
 
 export type Rng = {
 	NextInteger: (self: any, min: number, max: number) -> number,
@@ -49,6 +54,26 @@ EliminationCutsceneLogic.SKIN_LINES = skinLineTable
 EliminationCutsceneLogic.FINAL_LINES = {
 	"오늘의 마지막 접시!",
 	"이건 내가 먹어야지~",
+}
+
+-- 고양이 손님 (m5-09) 대사. 먹는 쪽이 고양이라 스킨·결승 대사 대신 이것만 써요 (결정 D3).
+EliminationCutsceneLogic.CAT_LINES = {
+	"냥~ 신선하다냥!",
+	"생선은 역시 최고냥",
+	"한 접시 더 달라냥!",
+}
+
+-- 고양이 "냥!"은 이 박자(먹는 순간, 결승은 앞발이 나타나는 순간) 바로 뒤에 한 번
+local CAT_MEOW_AFTER: { [Variant]: string } = {
+	Chopsticks = "Chomp",
+	Mouth = "Chomp",
+	ChefHand = "ChefHand",
+}
+local CAT_MEOW_DELAY = 0.12 -- 3초 기준 초
+
+-- FxCatalog 연출 id → 먹는 쪽 모습 (탈락 slot만)
+local FX_SKINS: { [string]: FxSkin } = {
+	["cat-customer"] = "Cat",
 }
 
 -- 3초 기준 박자. 각 연출 흐름은 스펙 m3-03 범위 3 표 그대로예요.
@@ -89,8 +114,23 @@ function EliminationCutsceneLogic.variantFor(mapKind: string?, isFinal: boolean,
 	return "Chopsticks"
 end
 
--- 이 스킨·연출에서 나올 수 있는 대사 전부 (공통 → 스킨 전용 → 결승 전용)
-function EliminationCutsceneLogic.linesFor(appearanceId: string?, variant: Variant): { string }
+-- 탈락한 사람이 입은 연출(Player 속성 EliminationFx) → 모습. 카탈로그에 없거나 slot이 다르면 기본.
+function EliminationCutsceneLogic.skinFor(fxId: any): FxSkin
+	if type(fxId) ~= "string" then
+		return "Default"
+	end
+	local fx = FxCatalog.get(fxId)
+	if fx == nil or fx.slot ~= "Elimination" then
+		return "Default"
+	end
+	return FX_SKINS[fxId] or "Default"
+end
+
+-- 이 스킨·연출에서 나올 수 있는 대사 전부 (공통 → 스킨 전용 → 결승 전용). 고양이면 고양이 대사만.
+function EliminationCutsceneLogic.linesFor(appearanceId: string?, variant: Variant, fxSkin: FxSkin?): { string }
+	if fxSkin == "Cat" then
+		return table.clone(EliminationCutsceneLogic.CAT_LINES)
+	end
 	local lines = table.clone(EliminationCutsceneLogic.COMMON_LINES)
 	local skinLines = if appearanceId then EliminationCutsceneLogic.SKIN_LINES[appearanceId] else nil
 	if skinLines then
@@ -103,8 +143,8 @@ function EliminationCutsceneLogic.linesFor(appearanceId: string?, variant: Varia
 	return lines
 end
 
-function EliminationCutsceneLogic.pickLine(appearanceId: string?, variant: Variant, rng: Rng): string
-	local lines = EliminationCutsceneLogic.linesFor(appearanceId, variant)
+function EliminationCutsceneLogic.pickLine(appearanceId: string?, variant: Variant, rng: Rng, fxSkin: FxSkin?): string
+	local lines = EliminationCutsceneLogic.linesFor(appearanceId, variant, fxSkin)
 	return lines[rng:NextInteger(1, #lines)]
 end
 
@@ -113,11 +153,27 @@ function EliminationCutsceneLogic.canStartWorld(activeCount: number): boolean
 end
 
 -- 박자 목록 (at 오름차순). duration이 3초가 아니면 비율대로 늘이고 줄여요.
-function EliminationCutsceneLogic.timeline(variant: Variant, duration: number?): { Beat }
+-- 고양이면 기본 박자는 그대로 두고, 먹는 박자 바로 뒤에 CatMeow 하나만 끼워 넣어요.
+function EliminationCutsceneLogic.timeline(variant: Variant, duration: number?, fxSkin: FxSkin?): { Beat }
 	local scale = (duration or BASE_DURATION) / BASE_DURATION
 	local beats: { Beat } = {}
+	local meowAt: number? = nil
 	for _, beat in TIMELINES[variant] do
 		table.insert(beats, { at = beat.at * scale, cue = beat.cue })
+		if fxSkin == "Cat" and meowAt == nil and beat.cue == CAT_MEOW_AFTER[variant] then
+			meowAt = (beat.at + CAT_MEOW_DELAY) * scale
+		end
+	end
+	local at = meowAt
+	if at then
+		local index = #beats + 1
+		for i, beat in beats do
+			if beat.at > at then
+				index = i
+				break
+			end
+		end
+		table.insert(beats, index, { at = at, cue = "CatMeow" })
 	end
 	return beats
 end

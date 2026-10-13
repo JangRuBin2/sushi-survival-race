@@ -1,0 +1,3 @@
+[render] tempura-pot decor=1495/1500 lights=18/24 (shadowed 1/2) particles=6/16 anim=53/80 tris=113144 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,overview:0%,eye:0%,mobile:0%,top:0% time=34.2s
+[render]   Survival · budget Extended · parts 1581 (judgment 86, decor 1495, hidden 5) · beams 0 · lighting map preset
+[render]   bounds all 680x384x530 · play area 76x52x76 · out build/renders/tempura-pot/

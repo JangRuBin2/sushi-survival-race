@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-22 — 스킨 1차 배치 10종
@@ -251,7 +251,7 @@ developer는 이 7종 중 "고양이 초밥"·"로보 롤"처럼 맛 표현이 �
 - [ ] AC2: 10종 전부 `SushiBody.hasLayout(id)`가 true, `layout(id)`의 Body·EyeLeft·EyeRight·Mouth·FootLeft·FootRight가 계란초밥과 완전히 같다(크기·위치·회전 없음).
 - [ ] AC2: 10종 전부 외곽 상자가 **등급별 허용치** 안 — Common·Rare는 계란초밥 ±15%, Epic·Legendary는 ±25%(m5-21이 분기한 TOLERANCE 사용). 위 "여유 빠듯" 3종(고양이 초밥, 소프트아이스크림 롤, 유니콘 롤)을 먼저 확인한다.
 - [ ] AC2: 10종 전부 효과 개수가 등급별 예산 안 — Common·Rare ≤1(돈가스·타코야키·에그토스트·슬라이더 버거·고양이 초밥은 0개, 로보 롤은 1개), Epic·Legendary ≤2(갤럭시 롤·크라운 참치·유니콘 롤은 2개, 소프트아이스크림 롤은 0개). 효과 종류가 이 스펙에 적은 Fire/Sparkles/Smoke/Glow 중 하나와 일치한다.
-- [ ] AC2: Wedge를 쓰는 7개 파츠(고양이 초밥 EarLeft/Right/Inner×2, 크라운 참치 CrownSpike×5·Cape×2, 유니콘 롤 Mane×3)가 `shape == "Wedge"`로 저장되고 size 각 축이 모두 양수.
+- [ ] AC2: Wedge를 쓰는 14개 파츠(고양이 초밥 EarLeft/Right/Inner×2 = 4, 크라운 참치 CrownSpike×5·Cape×2 = 7, 유니콘 롤 Mane×3 = 3)가 `shape == "Wedge"`로 저장되고 size 각 축이 모두 양수.
 - [ ] AC4: 10종 전부 `speech`가 1~2줄, `Cutscene.linesFor(id, variant)`에 세 변형(`Chopsticks`/`Mouth`/`ChefHand`) 모두 그 대사가 섞여 나온다. `Cutscene.SKIN_LINES.tamago`는 그대로.
 
 ### Studio 확인
@@ -268,6 +268,7 @@ developer는 이 7종 중 "고양이 초밥"·"로보 롤"처럼 맛 표현이 �
 ## 결정 기록
 - 2026-10-09 · "m5-21이 머지 전인데 Wedge API를 가정해도 되는가" · planner가 제안서 §4-A 기준 가정(WedgePart 분기, bounds() 무변경)으로 작성 — developer가 머지 후 실제 시그니처와 다르면 여기 적고 수치만 재사용.
 - 2026-10-09 · "소프트아이스크림 롤·유니콘 롤이 둘 다 비율 1.234로 전설/에픽 허용치(1.25)에 거의 붙어 있는데 괜찮은가" · planner 판단: 설계 의도(박스를 최대한 활용해 수직·비대칭 실루엣을 만드는 것 자체가 이번 배치의 핵심 가치)상 의도적으로 상한에 가깝게 뒀다. developer가 AC2 테스트에서 실패하면 가장 높은 파츠 1~2개의 offset.y만 낮추고 그 외 수치는 그대로 유지할 것.
+- 2026-10-13 · 문서 정합 · AC2 "Wedge 7개 파츠" → 14개(4 + 7 + 3, 테스트가 확인하는 수)로 고침 · planner
 
 ## 개발 메모
 - m5-21 의존 가정은 전부 실제 구현과 일치했다(불일치 없음): Wedge는 `Instance.new("WedgePart")` 분기, `bounds()`는 `spec.shape`를 안 보고 `size`+`rotation`만 본다, `EFFECT_BUDGET`(Basic0/Common1/Rare1/Epic2/Legendary2), `BOUNDS_TOLERANCE`(Common·Rare 0.15, Epic·Legendary 0.25) 모두 스펙 가정 그대로. 수치를 다시 맞출 필요가 없었다.

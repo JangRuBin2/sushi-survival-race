@@ -186,6 +186,18 @@ local function start(ctx: MapTypes.RoundContext)
 		workspace:BulkMoveTo(movingParts, targets, Enum.BulkMoveMode.FireCFrameChanged)
 	end
 
+	-- 연장전 collapseDuration 뒤: 발판(과 같이 기우는 파츠 전부)의 충돌·터치·쿼리를 꺼요. 수직(90°)이 된
+	-- 발판 끝면이 수평 턱으로 남지 않게 — 설 곳이 하나도 없어요 (QA B1).
+	local platformDisabled = false
+	local function disablePlatform()
+		platformDisabled = true
+		for _, p in movingParts do
+			p.CanCollide = false
+			p.CanTouch = false
+			p.CanQuery = false
+		end
+	end
+
 	ctx.cleanup:add(RunService.Heartbeat:Connect(function(dt: number)
 		if not ctx.isActive() then
 			return
@@ -209,16 +221,19 @@ local function start(ctx: MapTypes.RoundContext)
 				end
 				continue
 			end
-			table.insert(positions, relative.X)
+			local riderX = Logic.riderX(relative.X, Layout.HALF_LENGTH)
+			if riderX ~= nil then
+				table.insert(positions, riderX)
+			end
 		end
 
 		if state.overtimeAt ~= nil then
 			local sinceOvertime = elapsed - state.overtimeAt
-			state.angle = Logic.overtimeAngle(
-				sinceOvertime,
-				state.collapseDuration or Config.Final.CollapseDuration,
-				state.overtimeStartAngle
-			)
+			local collapseDuration = state.collapseDuration or Config.Final.CollapseDuration
+			state.angle = Logic.overtimeAngle(sinceOvertime, collapseDuration, state.overtimeStartAngle)
+			if not platformDisabled and not Logic.platformSolid(sinceOvertime, collapseDuration) then
+				disablePlatform()
+			end
 		else
 			local target = Logic.tilt(positions)
 			state.angle = Logic.approach(state.angle, target, Logic.TILT_RATE * dt)

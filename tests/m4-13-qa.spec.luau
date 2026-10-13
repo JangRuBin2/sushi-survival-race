@@ -721,6 +721,9 @@ return function(t: Test.Test)
 			end
 			local base = extents("tamago")
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local e = extents(skin.id)
 				local tolerance = RealSushiBody.BOUNDS_TOLERANCE[skin.tier] or 0.15
 				for axis = 1, 3 do

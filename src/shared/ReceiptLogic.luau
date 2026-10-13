@@ -265,7 +265,7 @@ function ReceiptLogic.canRequest(
 	if skin == nil then
 		return false, "UnknownSkin"
 	end
-	if skin.id == Skins.DEFAULT_ID or (ownedSkins ~= nil and ownedSkins[skin.id] == true) then
+	if Skins.isFree(skin.id) or (ownedSkins ~= nil and ownedSkins[skin.id] == true) then
 		return false, "AlreadyOwned"
 	end
 	if skin.robux == nil then

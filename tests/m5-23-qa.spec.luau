@@ -448,13 +448,13 @@ return function(t: Test.Test)
 			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
 			t.eq({ l2, p2 }, { 2, 3 }, "soy-swamp lights/particles")
-			-- 모든 맵이 Standard 조명·파티클 예산 안 (Instance.new 포함 실제 수)
+			-- 모든 맵이 자기 예산 단계(<Map>Art.BUDGET, 없으면 Standard) 조명·파티클 안 (Instance.new 포함 실제 수).
+			-- Extended를 고른 맵(m5-05 tempura-pot 등)은 Extended 한도로 봐요.
+			local EXTENDED = { ["tempura-pot"] = true }
 			for _, id in allIds() do
 				local l, p = count(buildAt(id, 1).model)
-				t.ok(
-					l <= MapKitLogic.LIGHT_BUDGET and p <= MapKitLogic.PARTICLE_BUDGET,
-					`{id}: {l} lights {p} particles`
-				)
+				local budget = MapKitLogic.budget(if EXTENDED[id] then "Extended" else "Standard")
+				t.ok(l <= budget.lights and p <= budget.particles, `{id}: {l} lights {p} particles`)
 			end
 		end
 	)

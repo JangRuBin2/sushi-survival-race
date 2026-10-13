@@ -2,7 +2,7 @@
 -- 로벅스 스킨 결제 (m4-14, GDD 9.1·9.5·13). 스킨(겉모습)만 팔아요 — 속도·판정에 영향 주는 상품·랜덤 상품 없음.
 -- 탈의실(장착·코인 해금)은 ShopService, 여기는 개발자 상품 결제만. 지급은 ShopService.grantSkin.
 --
--- 리모트 (RemoteFunction, 반환 ok: boolean, err: string?):
+-- 리모트 (RemoteFunction, 반환 ok: boolean, err: LocText?):
 --   RequestRobuxPurchase(skinId)  ReceiptLogic.canRequest (카탈로그·미보유·상품 id·저장 가능) +
 --                         Config.Shop.PurchaseRequestCooldown → MarketplaceService:PromptProductPurchase만 불러요.
 -- MarketplaceService.ProcessReceipt (서버에 이것 하나): 판단·순서는 Shared.ReceiptLogic.process.
@@ -29,11 +29,13 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local ReceiptLogic = require(ReplicatedStorage.Shared.ReceiptLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local DataService = require(script.Parent.DataService)
 local PurchaseLog = require(script.Parent.PurchaseLog)
@@ -279,7 +281,7 @@ function RobuxShopService.fakeOfferReceipt(player: Player, offerId: string): Rec
 	return runFakeReceipt(player, { kind = "Offer", id = offerId }, nil)
 end
 
-local function onRequestRobux(player: Player, skinId: unknown): (boolean, string?)
+local function onRequestRobux(player: Player, skinId: unknown): (boolean, Types.LocText?)
 	local now = os.clock()
 	local last = lastPurchaseAt[player]
 	if last and now - last < Config.Shop.PurchaseRequestCooldown then
@@ -335,11 +337,14 @@ local function createDebugHook()
 end
 
 function RobuxShopService.init()
-	Remotes.fn("RequestRobuxPurchase").OnServerInvoke = function(player: Player, skinId: unknown): (boolean, string?)
+	Remotes.fn("RequestRobuxPurchase").OnServerInvoke = function(
+		player: Player,
+		skinId: unknown
+	): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onRequestRobux, player, skinId)
 		if not ok then
 			warn(`[Shop] RequestRobuxPurchase failed for {player.Name}: {success}`)
-			return false, "다시 해 주세요"
+			return false, LocalizeLogic.text("common.err.retry")
 		end
 		return success, err
 	end

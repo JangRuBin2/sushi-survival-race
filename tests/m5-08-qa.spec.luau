@@ -9,9 +9,15 @@ local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
+-- m5-26: 문구 모듈은 공유 캐시 그대로 써요
+local LOC_DEPS = {
+	LocalizeLogic = RobloxRequire.require(Shared.LocalizeLogic),
+	Types = RobloxRequire.require(Shared.Types),
+}
 local Config = RobloxRequire.require(Shared.Config)
 local FxCatalog = RobloxRequire.require(Shared.FxCatalog)
 local ProfileLogic = RobloxRequire.require(Shared.ProfileLogic)
@@ -51,7 +57,7 @@ local function loadSharedFresh(name: string, deps: { [string]: any }): any
 		environment = {
 			script = { Parent = parent },
 			require = function(target: any)
-				return assert(deps[target.__dep], `missing dep {target.__dep}`)
+				return assert(deps[target.__dep] or LOC_DEPS[target.__dep], `missing dep {target.__dep}`)
 			end,
 		},
 	})()
@@ -387,7 +393,7 @@ local function loadServer(opts: Options?): any
 	})
 	local function req(target: any): any
 		if target.__shared then
-			return assert((sharedMods :: any)[target.__shared], target.__shared)
+			return assert((sharedMods :: any)[target.__shared] or LOC_DEPS[target.__shared], target.__shared)
 		end
 		return assert(serverMods[target.__server], target.__server)
 	end
@@ -579,8 +585,8 @@ return function(t: Test.Test)
 				end
 			end
 			-- A안: 일반 29 / 레어 59 / 에픽 99 / 전설 199 → 146 / 297 / 597
-			t.eq(RealOfferLogic.valueText(RealOffers.get("epic-set")), "따로 사면 R$ 297")
-			t.eq(RealOfferLogic.valueText(RealOffers.get("legendary-set")), "따로 사면 R$ 597")
+			t.eq(LocTest.ko(RealOfferLogic.valueText(RealOffers.get("epic-set"))), "따로 사면 R$ 297")
+			t.eq(LocTest.ko(RealOfferLogic.valueText(RealOffers.get("legendary-set"))), "따로 사면 R$ 597")
 			t.eq(RealOfferLogic.valueText(RealOffers.get("vip")), nil)
 			t.eq(RealOfferLogic.valueText(RealOffers.get("fx-fireworks")), nil)
 			-- 커밋 값: 상품 id·패스 id 비어 있음 (사용자가 채움)
@@ -799,7 +805,7 @@ return function(t: Test.Test)
 			-- 커밋 값(상품 id 없음, 가짜 결제 꺼짐) → 전부 "곧 열려요"
 			for _, e in RealOfferLogic.screenList(view(), {}) do
 				t.eq(e.state.kind, "Soon", e.offer.id)
-				t.eq(RealOfferLogic.buttonText(e.state, e.offer.robux), "곧 열려요")
+				t.eq(LocTest.ko(RealOfferLogic.buttonText(e.state, e.offer.robux)), "곧 열려요")
 			end
 		end
 	)
@@ -827,7 +833,7 @@ return function(t: Test.Test)
 			t.eq(env.purchases.userIds["pid-s1"], { 1 })
 			env.run(5)
 			t.eq(#env.notices, 1)
-			t.eq(env.notices[1].message, BUNDLE_NOTICE)
+			t.eq(LocTest.ko(env.notices[1].message), BUNDLE_NOTICE)
 			t.ok(
 				string.find(env.lastReceiptLine(), "offer starter-pack -> PurchaseGranted", 1, true) ~= nil,
 				env.lastReceiptLine()
@@ -846,7 +852,7 @@ return function(t: Test.Test)
 			-- 그 뒤 결제 창 요청은 거절
 			local ok, err = env.invoke("RequestOfferPurchase", p, "starter-pack")
 			t.eq(ok, false)
-			t.eq(err, "이미 샀어요")
+			t.eq(LocTest.ko(err), "이미 샀어요")
 		end
 	)
 
@@ -941,7 +947,7 @@ return function(t: Test.Test)
 			t.eq(p:GetAttribute("EliminationFx"), "cat-customer")
 			t.eq(p:GetAttribute("VictoryFx"), nil)
 			env.run(5)
-			t.eq(env.notices[1].message, "🎉 탈락 연출: 고양이 손님 획득!")
+			t.eq(LocTest.ko(env.notices[1].message), "🎉 탈락 연출: 고양이 손님 획득!")
 
 			env.locked[p] = true
 			t.eq(env.receipt(6, PRODUCT["fx-fireworks"], "pid-f2"), GRANTED)
@@ -998,7 +1004,7 @@ return function(t: Test.Test)
 			for _, junk in { 5, {}, "", "nope", string.rep("A", 10000) } do
 				local ok, err = env.invoke("RequestOfferPurchase", p, junk)
 				t.eq(ok, false)
-				t.eq(err, "없는 상품이에요")
+				t.eq(LocTest.ko(err), "없는 상품이에요")
 				env.run(12)
 			end
 			t.eq(#env.productPrompts, 0)
@@ -1006,7 +1012,7 @@ return function(t: Test.Test)
 			t.eq(ok1, true)
 			local ok2, err2 = env.invoke("RequestOfferPurchase", p, "fx-fireworks")
 			t.eq(ok2, false)
-			t.eq(err2, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(err2), "잠시 뒤에 다시 해 주세요")
 			t.eq(#env.productPrompts, 1)
 			env.run(12)
 			env.DataService.update(p, function(pr)
@@ -1014,18 +1020,18 @@ return function(t: Test.Test)
 			end)
 			local ok3, err3 = env.invoke("RequestOfferPurchase", p, "legendary-set")
 			t.eq(ok3, false)
-			t.eq(err3, "이미 가진 스킨이 있어서 따로 사야 해요")
+			t.eq(LocTest.ko(err3), "이미 가진 스킨이 있어서 따로 사야 해요")
 
 			local env2 = loadServer({ withIds = false })
 			local q = env2.join(10)
 			env2.run(5)
 			local ok4, err4 = env2.invoke("RequestOfferPurchase", q, "starter-pack")
 			t.eq(ok4, false)
-			t.eq(err4, "준비 중이에요")
+			t.eq(LocTest.ko(err4), "준비 중이에요")
 			env2.run(12)
 			local ok5, err5 = env2.invoke("RequestOfferPurchase", q, "vip")
 			t.eq(ok5, false)
-			t.eq(err5, "준비 중이에요")
+			t.eq(LocTest.ko(err5), "준비 중이에요")
 			t.eq(#env2.productPrompts + #env2.passPrompts, 0)
 		end
 	)
@@ -1056,7 +1062,7 @@ return function(t: Test.Test)
 			t.eq(p:GetAttribute("EliminationFx"), nil)
 			local okL, errL = env.invoke("EquipFx", p, "Elimination", "cat-customer")
 			t.eq(okL, false)
-			t.eq(errL, "매치가 끝나면 바꿀 수 있어요")
+			t.eq(LocTest.ko(errL), "매치가 끝나면 바꿀 수 있어요")
 			env.locked[p] = nil
 			env.run(5)
 			local equip = env.functions.EquipFx.OnServerInvoke
@@ -1065,7 +1071,7 @@ return function(t: Test.Test)
 			t.eq(env.DataService.get(p).equippedFx.Elimination, "cat-customer")
 			local okT, errT = equip(p, "Elimination", nil) -- 같은 시각 (간격 0.3초 안)
 			t.eq(okT, false, "within cooldown")
-			t.eq(errT, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(errT), "잠시 뒤에 다시 해 주세요")
 			env.run(5)
 			t.eq(env.invoke("EquipFx", p, "Elimination", ""), true)
 			t.eq(p:GetAttribute("EliminationFx"), nil, "attribute removed when unequipped")
@@ -1107,7 +1113,7 @@ return function(t: Test.Test)
 			t.eq(env.saved(13).ownedSkins["vip-gold-tamago"], true, "saved")
 			local ok, err = env.invoke("RequestOfferPurchase", p, "vip")
 			t.eq(ok, false)
-			t.eq(err, "이미 VIP예요")
+			t.eq(LocTest.ko(err), "이미 VIP예요")
 			t.eq(#env.passPrompts, 0)
 		end
 	)

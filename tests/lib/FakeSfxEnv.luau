@@ -5,6 +5,7 @@
 -- m4-07: 클라이언트 ProfileStore(script.Parent.ProfileStore)도 흉내 내요 — env.pushProfile(view)로 프로필을 보내고,
 -- 클라이언트가 FireServer로 보낸 것은 env.sent에 { name, args }로 쌓여요.
 
+local LocTest = require("./LocTest")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 
@@ -284,6 +285,15 @@ function FakeSfxEnv.load(sfxCues: any, sfxLibrary: any): Env
 	}
 	local profileChanged = newSignal()
 	local clientModules = {
+		-- m5-26: 문구는 카탈로그 한국어로 (번역기 없음)
+		Loc = {
+			t = function(key: string, args: any?): string
+				return LocTest.ko({ key = key, args = args })
+			end,
+			text = function(value: any): string
+				return if type(value) == "string" then value else LocTest.ko(value)
+			end,
+		},
 		ProfileStore = {
 			get = function()
 				return env.profileView

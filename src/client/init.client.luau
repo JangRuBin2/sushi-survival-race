@@ -7,6 +7,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- 서버가 리모트를 만들 때까지 기다려요
 require(ReplicatedStorage.Shared.Remotes)
 
+-- 맨 먼저: 화면 문구는 모두 Loc을 거쳐요 (m5-26). 번역기를 최대 3초 기다리고, 못 받으면 내장 카탈로그로
+require(script.Loc).init()
+
 local gui = require(script.ui.LobbyController).start()
 
 local CONTROLLERS = {

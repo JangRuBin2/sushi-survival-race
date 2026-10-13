@@ -3,7 +3,10 @@
 -- 서버가 처음 require할 때 만들고, 클라이언트는 만들어질 때까지 기다려요.
 -- 데이터 모양은 Types.luau 참고. 클라이언트가 보낸 인자는 서버에서 항상 검증해요.
 --
--- 클라이언트 → 서버 요청 (RemoteFunction, 반환: ok: boolean, err: string?)
+-- 화면 문구는 문장이 아니라 LocText { key, args }로 보내요 (m5-26, 클라이언트가 Loc.text로 그 사람 언어로 만들어요).
+-- 예외: AdminPreviewSkin·AdminCommand는 관리자 전용이라 한국어 문자열 그대로예요.
+--
+-- 클라이언트 → 서버 요청 (RemoteFunction, 반환: ok: boolean, err: LocText?)
 --   CreateRoom(settings: RoomSettings)
 --   JoinRoom(roomId: string)
 --   JoinByCode(code: string)
@@ -19,20 +22,20 @@
 --   BuyWithTokens(skinId: string)          이벤트 재화로 시즌 무료 스킨 교환 (m5-07, ShopService)
 --   RequestOfferPurchase(offerId: string)  상품(묶음·연출) 결제 창 열기 (m5-08, OfferService)
 --   EquipFx(slot: string, fxId: string?)   연출 입기 — slot "Elimination"|"Victory", nil·""면 벗기 (m5-08, OfferService)
---   RedeemCode(code: string)               코드 보상 받기 (m5-10, CodeService. 목록은 서버 전용)
---   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증)
+--   RedeemCode(code: string)               코드 보상 받기 (m5-10, CodeService. 목록은 서버 전용). 반환 (ok, message: LocText)
+--   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증). 반환 문구는 한국어 문자열
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
 --   RoomUpdated(room: RoomSnapshot?)         내 방 상태 (nil이면 방에서 나감)
---   MatchPhase(phase: MatchPhaseInfo)        매치 상태 머신 단계가 바뀔 때
+--   MatchPhase(phase: MatchPhaseInfo)        매치 상태 머신 단계가 바뀔 때 (mapName·rule은 한국어 폴백, 클라이언트는 mapId로 Loc.mapName/mapRule)
 --   RoundProgress(progress: RoundProgress)   통과 인원 / 목표 인원 바
 --   PlayerResult(result: PlayerResult)       누군가 통과/탈락/우승했을 때
 --   MapSfx(cue: string, part: BasePart?, position: Vector3)  장애물 소리 (m3-09, 그 방 사람에게만 — 방을 모르면 모든 클라이언트. 소리는 클라이언트 Sfx가 내요)
 --   ProfileUpdated(view: ProfileView)        내 프로필이 로드되거나 바뀔 때, 본인에게만 (m4-01, DataService)
 --   RewardGranted(grant: RewardGrant)        코인을 받을 때, 본인에게만 (m4-08, RewardService)
---   Notice(message: string, kind: ("success" | "info" | "error")?)  짧은 안내 한 줄, 본인에게만 (m4-11: 텔레포트 실패·서버 이동 중 등).
---                                            kind가 없으면 예전처럼 문구로 색을 정해요 (m5-08 QA B2)
+--   Notice(message: LocText, kind: NoticeKind)  짧은 안내 한 줄, 본인에게만 (m4-11: 텔레포트 실패·서버 이동 중 등).
+--                                            kind는 항상 보내요 (m5-26, 문구로 색 고르기 폐지)
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)

@@ -38,7 +38,7 @@ return function(t: Test.Test)
 		for i, maxPlayers in { 0, 3, 5, 25, -4, 12.5, nan, math.huge, -math.huge } do
 			local settings, err = RoomLogic.validateSettings({ maxPlayers = maxPlayers, isPrivate = false })
 			t.eq(settings, nil, `case {i} ({maxPlayers})`)
-			t.ok(type(err) == "string", `case {i} has a reason`)
+			t.ok(type(err) == "table" and type(err.key) == "string", `case {i} has a reason (m5-26: LocText)`)
 		end
 	end)
 

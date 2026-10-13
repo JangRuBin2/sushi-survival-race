@@ -159,7 +159,7 @@ return function(t: Test.Test)
 
 	t.test("QA: every reason has toast text", function()
 		for _, reason in { "RoundPass", "FinalQualify", "Win", "DailyFirstMatch" } do
-			t.ok(RewardLogic.REASON_TEXT[reason] ~= nil, reason)
+			t.ok(table.find(RewardLogic.REASONS, reason) ~= nil, reason) -- m5-26: 글씨는 reward.reason.<이유> 키
 		end
 	end)
 end

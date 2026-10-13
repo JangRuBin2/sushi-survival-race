@@ -5,13 +5,16 @@
 --   variantFor(mapKind, isFinal, cause)   연출 종류: 결승 = ChefHand, Survival 낙하 = Mouth, 그 밖 = Chopsticks
 --   skinFor(fxId)                         탈락 연출 팩(m5-09): 고양이 손님이면 "Cat", 그 밖은 "Default"
 --   linesFor / pickLine                   말풍선 대사 (공통 + 스킨 전용 + 결승 전용, 고양이면 고양이 대사만)
+--   lineTextsFor / pickLineText           같은 목록·같은 고르기를 화면용 키(LocText)로 (m5-26, 클라이언트는 이걸 써요)
 --   canStartWorld(activeCount)            동시 월드 연출 한도(MAX_CONCURRENT) 확인. 본인 연출은 한도와 무관
 --   timeline(variant, duration, fxSkin)   효과음·말풍선 박자 (초). 길이에 맞춰 늘이고 줄여요. 고양이면 CatMeow 하나 더
 --   alpha(t, from, to)                    구간 진행도 0~1 (from 전 0, to 뒤 1)
 
 local Config = require(script.Parent.Config)
 local FxCatalog = require(script.Parent.FxCatalog)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Skins = require(script.Parent.Skins)
+local Types = require(script.Parent.Types)
 
 local EliminationCutsceneLogic = {}
 
@@ -145,6 +148,47 @@ end
 
 function EliminationCutsceneLogic.pickLine(appearanceId: string?, variant: Variant, rng: Rng, fxSkin: FxSkin?): string
 	local lines = EliminationCutsceneLogic.linesFor(appearanceId, variant, fxSkin)
+	return lines[rng:NextInteger(1, #lines)]
+end
+
+-- linesFor와 같은 순서의 화면용 키 (m5-26): 공통 cutscene.line.common.<n> → 스킨 skin.<id>.speech.<n>
+-- → 결승 cutscene.line.final.<n>, 고양이면 cutscene.line.cat.<n>만
+function EliminationCutsceneLogic.lineTextsFor(
+	appearanceId: string?,
+	variant: Variant,
+	fxSkin: FxSkin?
+): { Types.LocText }
+	local result: { Types.LocText } = {}
+	local function addGroup(group: string, lines: { string })
+		for index in lines do
+			table.insert(result, LocalizeLogic.text(LocalizeLogic.cutsceneLineKey(group, index)))
+		end
+	end
+	if fxSkin == "Cat" then
+		addGroup("cat", EliminationCutsceneLogic.CAT_LINES)
+		return result
+	end
+	addGroup("common", EliminationCutsceneLogic.COMMON_LINES)
+	local skinLines = if appearanceId then EliminationCutsceneLogic.SKIN_LINES[appearanceId] else nil
+	if skinLines and appearanceId then
+		for index in skinLines do
+			table.insert(result, LocalizeLogic.text(LocalizeLogic.skinSpeechKey(appearanceId, index)))
+		end
+	end
+	if variant == "ChefHand" then
+		addGroup("final", EliminationCutsceneLogic.FINAL_LINES)
+	end
+	return result
+end
+
+-- pickLine과 같은 고르기 (rng를 똑같이 한 번 써요)
+function EliminationCutsceneLogic.pickLineText(
+	appearanceId: string?,
+	variant: Variant,
+	rng: Rng,
+	fxSkin: FxSkin?
+): Types.LocText
+	local lines = EliminationCutsceneLogic.lineTextsFor(appearanceId, variant, fxSkin)
 	return lines[rng:NextInteger(1, #lines)]
 end
 

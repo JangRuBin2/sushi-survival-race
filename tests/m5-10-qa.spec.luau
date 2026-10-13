@@ -9,6 +9,7 @@ local luau = require("@lune/luau")
 local process = require("@lune/process")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -234,11 +235,11 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		local nilOk, nilText = env.redeem(p, nil)
 		t.eq(nilOk, false)
-		t.eq(nilText, "없는 코드예요")
+		t.eq(LocTest.ko(nilText), "없는 코드예요")
 		for _, raw in { 123, true, { "QAFAKE2026" }, { code = "QAFAKE2026" }, 0 / 0 } :: { any } do
 			local ok, text = env.redeem(p, raw)
 			t.eq(ok, false)
-			t.eq(text, "없는 코드예요")
+			t.eq(LocTest.ko(text), "없는 코드예요")
 		end
 		t.eq(env.profiles[1].coins, 0)
 		t.eq(env.updates, 0)
@@ -247,7 +248,7 @@ return function(t: Test.Test)
 		env.redeem(p, "NOPE2")
 		local ok, text = env.redeem(p, "QAFAKE2026")
 		t.eq(ok, false)
-		t.eq(text, "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(text), "잠시 뒤에 다시 해 주세요")
 		t.eq(env.profiles[1].coins, 0)
 	end)
 
@@ -276,7 +277,7 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		local ok, text = env.redeem(p, "\t qafake2026 \n")
 		t.eq(ok, true)
-		t.eq(text, "🍚 200 받았어요!")
+		t.eq(LocTest.ko(text), "🍚 200 받았어요!")
 		t.eq(env.profiles[1].coins, 200)
 		t.eq(env.profiles[1].redeemedCodes, { QAFAKE2026 = REAL_NOW })
 	end)
@@ -289,7 +290,7 @@ return function(t: Test.Test)
 		for _ = 1, 50 do
 			local ok, text = env.redeem(p, "NOPE2", 0.01)
 			t.eq(ok, false)
-			t.eq(text, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(text), "잠시 뒤에 다시 해 주세요")
 		end
 		-- 스팸 50번은 실패로 안 셌어요: 2초 뒤 진짜 코드는 받아요
 		local ok = env.redeem(p, "QAFAKE2026", 2.5)
@@ -301,7 +302,7 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		env.redeem(p, "NOPE1")
 		local ok, text = env.redeem(p, "NOPE2", 1.999)
-		t.eq(text, "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(text), "잠시 뒤에 다시 해 주세요")
 		t.eq(ok, false)
 		-- 1.999초에 거절됐지만 lastAt은 갱신되지 않아야 해요 (거절 요청이 간격을 늘리지 않음)
 		ok = env.redeem(p, "QAFAKE2026", 0.001)
@@ -313,18 +314,18 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		for i = 1, 7 do
 			local _, text = env.redeem(p, `SECRETGUESS{i}`)
-			t.eq(text, "없는 코드예요")
+			t.eq(LocTest.ko(text), "없는 코드예요")
 		end
 		t.eq(#env.prints, 0)
 		local _, text = env.redeem(p, "SECRETGUESS8")
-		t.eq(text, "없는 코드예요") -- 8번째 자체는 "없는 코드"
+		t.eq(LocTest.ko(text), "없는 코드예요") -- 8번째 자체는 "없는 코드"
 		t.eq(#env.prints, 1)
 		t.eq(env.prints[1], "[Code] P1(1) locked after 8 failures")
 		-- 잠긴 뒤: 진짜 코드도 거절, 잠금 로그는 다시 안 찍힘
 		for _ = 1, 5 do
 			local ok, locked = env.redeem(p, "QAFAKE2026")
 			t.eq(ok, false)
-			t.eq(locked, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(locked), "잠시 뒤에 다시 해 주세요")
 		end
 		t.eq(#env.prints, 1)
 		t.ok(not string.find(allLogs(env), "SECRETGUESS", 1, true), "failure logs must not contain the guessed code")
@@ -343,31 +344,32 @@ return function(t: Test.Test)
 			end
 			env.time = first + 599
 			local _, text = env.redeem(p, "QAFAKE2026")
-			t.eq(text, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(text), "잠시 뒤에 다시 해 주세요")
 			env.time = first + 600 -- 첫 실패가 창 밖 → 7번
 			local ok = env.redeem(p, "QAFAKE2026")
 			t.eq(ok, true)
 			local _, again = env.redeem(p, "BAD9") -- 7 + 1 = 8 → 다시 잠금
-			t.eq(again, "없는 코드예요")
+			t.eq(LocTest.ko(again), "없는 코드예요")
 			local _, locked = env.redeem(p, "QAFAKESPOOKY")
-			t.eq(locked, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(locked), "잠시 뒤에 다시 해 주세요")
 		end
 	)
 
 	t.test("QA lockout: real-code outcomes (NotStarted/Expired/AlreadyRedeemed) never count", function()
 		local env = loadEnv({ time = HALLOWEEN_START - 10 })
 		local p = env.join(1)
-		t.eq(select(2, env.redeem(p, "QAFAKE2026")), "🍚 200 받았어요!")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKE2026"))), "🍚 200 받았어요!")
 		for _ = 1, 10 do
-			t.eq(select(2, env.redeem(p, "QAFAKE2026")), "이미 받은 코드예요")
-			t.eq(select(2, env.redeem(p, "QAFAKESPOOKY")), "아직 쓸 수 없는 코드예요")
+			t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKE2026"))), "이미 받은 코드예요")
+			t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKESPOOKY"))), "아직 쓸 수 없는 코드예요")
 		end
 		env.time = NEW_YEAR
 		for _ = 1, 10 do
-			t.eq(select(2, env.redeem(p, "qafakespooky")), "기간이 끝난 코드예요")
+			t.eq(LocTest.ko(select(2, env.redeem(p, "qafakespooky"))), "기간이 끝난 코드예요")
 		end
+		t.eq((select(2, env.redeem(p, "qafakespooky")) :: any).key, "code.err.Expired") -- m5-26 AC14: 키로 비교
 		-- 30번 넘게 거절됐지만 잠금 아님: 틀린 코드는 아직 "없는 코드예요"
-		t.eq(select(2, env.redeem(p, "NOPE")), "없는 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "NOPE"))), "없는 코드예요")
 		t.eq(#env.prints, 1) -- 성공 로그 하나뿐
 	end)
 
@@ -378,7 +380,7 @@ return function(t: Test.Test)
 		for i = 1, 8 do
 			env.redeem(a, `BAD{i}`)
 		end
-		t.eq(select(2, env.redeem(a, "QAFAKE2026")), "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(select(2, env.redeem(a, "QAFAKE2026"))), "잠시 뒤에 다시 해 주세요")
 		t.eq(select(1, env.redeem(b, "QAFAKE2026")), true)
 	end)
 
@@ -392,7 +394,7 @@ return function(t: Test.Test)
 			end
 			env.leave(a)
 			local again = env.join(1, env.profiles[1])
-			t.eq(select(2, env.redeem(again, "NOPE")), "없는 코드예요") -- 리포트 P3 R1 참고
+			t.eq(LocTest.ko(select(2, env.redeem(again, "NOPE"))), "없는 코드예요") -- 리포트 P3 R1 참고
 		end
 	)
 
@@ -401,8 +403,8 @@ return function(t: Test.Test)
 		local env = loadEnv()
 		local p = env.join(1)
 		t.eq(select(1, env.redeem(p, "QAFAKE2026")), true)
-		t.eq(select(2, env.redeem(p, "qafake2026")), "이미 받은 코드예요")
-		t.eq(select(2, env.redeem(p, " QAFAKE2026 ")), "이미 받은 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "qafake2026"))), "이미 받은 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, " QAFAKE2026 "))), "이미 받은 코드예요")
 		t.eq(env.profiles[1].coins, 200)
 		t.eq(env.updates, 1)
 	end)
@@ -415,7 +417,7 @@ return function(t: Test.Test)
 		end
 		local ok, text = env.redeem(p, "QAFAKE2026")
 		t.eq(ok, false)
-		t.eq(text, "이미 받은 코드예요")
+		t.eq(LocTest.ko(text), "이미 받은 코드예요")
 		t.eq(env.profiles[1].coins, 0)
 		t.eq(#env.fired, 0)
 		t.eq(env.saves, 0)
@@ -429,7 +431,7 @@ return function(t: Test.Test)
 		local saved = ProfileLogic.migrate(first.profiles[1])
 		local second = loadEnv()
 		local q = second.join(1, saved)
-		t.eq(select(2, second.redeem(q, "QAFAKE2026")), "이미 받은 코드예요")
+		t.eq(LocTest.ko(select(2, second.redeem(q, "QAFAKE2026"))), "이미 받은 코드예요")
 		t.eq(saved.coins, 200)
 	end)
 
@@ -438,7 +440,7 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		local ok, text = env.redeem(p, "QAFAKESPOOKY")
 		t.eq(ok, true)
-		t.eq(text, "🍚 100 + 🍬 10 받았어요!")
+		t.eq(LocTest.ko(text), "🍚 100 + 🍬 10 받았어요!")
 		t.eq(env.updates, 1)
 		t.eq(env.saves, 1)
 		t.eq(env.profiles[1].coins, 100)
@@ -472,7 +474,7 @@ return function(t: Test.Test)
 		local p = env.join(1)
 		local ok, text = env.redeem(p, "QAFAKE2026")
 		t.eq(ok, false)
-		t.eq(text, "저장이 안 되는 상태라 지금은 쓸 수 없어요")
+		t.eq(LocTest.ko(text), "저장이 안 되는 상태라 지금은 쓸 수 없어요")
 		t.eq(env.profiles[1].coins, 0)
 		t.eq(env.updates, 0)
 	end)
@@ -488,7 +490,7 @@ return function(t: Test.Test)
 		local env = loadEnv()
 		local p = { UserId = 9, Name = "P9", Parent = {} }
 		for _ = 1, 10 do
-			t.eq(select(2, env.redeem(p, "QAFAKE2026")), "프로필을 불러오는 중이에요")
+			t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKE2026"))), "프로필을 불러오는 중이에요")
 		end
 		env.profiles[9] = { coins = 0, redeemedCodes = {}, eventTokens = {} }
 		t.eq(select(1, env.redeem(p, "QAFAKE2026")), true)
@@ -521,14 +523,14 @@ return function(t: Test.Test)
 	t.test("QA event: tokens only while the event runs (start inclusive, end exclusive)", function()
 		local env = loadEnv({ time = HALLOWEEN_START - 1 })
 		local a = env.join(1)
-		t.eq(select(2, env.redeem(a, "QALONGEVENT")), "🍚 50 받았어요!")
+		t.eq(LocTest.ko(select(2, env.redeem(a, "QALONGEVENT"))), "🍚 50 받았어요!")
 		t.eq(env.profiles[1].eventTokens, {})
 		env.time = HALLOWEEN_START
 		local b = env.join(2)
-		t.eq(select(2, env.redeem(b, "QALONGEVENT")), "🍚 50 + 🍬 5 받았어요!")
+		t.eq(LocTest.ko(select(2, env.redeem(b, "QALONGEVENT"))), "🍚 50 + 🍬 5 받았어요!")
 		env.time = HALLOWEEN_END
 		local c = env.join(3)
-		t.eq(select(2, env.redeem(c, "QALONGEVENT")), "🍚 50 받았어요!")
+		t.eq(LocTest.ko(select(2, env.redeem(c, "QALONGEVENT"))), "🍚 50 받았어요!")
 		t.eq(env.profiles[3].eventTokens, {})
 		t.eq(env.fired[3].payload.tokens, nil)
 	end)
@@ -536,14 +538,14 @@ return function(t: Test.Test)
 	t.test("QA event: Config.DEBUG.eventNow is ignored on a live server", function()
 		local env = loadEnv({ time = REAL_NOW, eventNow = HALLOWEEN_START + 1, studio = false })
 		local p = env.join(1)
-		t.eq(select(2, env.redeem(p, "QAFAKESPOOKY")), "아직 쓸 수 없는 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKESPOOKY"))), "아직 쓸 수 없는 코드예요")
 		env.done()
 	end)
 
 	t.test("QA event: Studio uses DEBUG.eventNow for code period, real time for redeemedCodes", function()
 		local env = loadEnv({ time = REAL_NOW, eventNow = HALLOWEEN_START + 1, studio = true })
 		local p = env.join(1)
-		t.eq(select(2, env.redeem(p, "QAFAKESPOOKY")), "🍚 100 + 🍬 10 받았어요!")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKESPOOKY"))), "🍚 100 + 🍬 10 받았어요!")
 		t.eq(env.profiles[1].redeemedCodes.QAFAKESPOOKY, REAL_NOW)
 		env.done()
 	end)
@@ -563,14 +565,14 @@ return function(t: Test.Test)
 		t.eq(env.Service.count(), 1)
 		t.eq(#env.warnings, 5)
 		local p = env.join(1)
-		t.eq(select(2, env.redeem(p, "TOOMUCH")), "없는 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "TOOMUCH"))), "없는 코드예요")
 		t.eq(select(1, env.redeem(p, "goodone")), true)
 	end)
 
 	t.test("QA config: empty list (no CodeList.luau) → every code is 'unknown'", function()
 		local env = loadEnv({ codes = {} })
 		local p = env.join(1)
-		t.eq(select(2, env.redeem(p, "QAFAKE2026")), "없는 코드예요")
+		t.eq(LocTest.ko(select(2, env.redeem(p, "QAFAKE2026"))), "없는 코드예요")
 	end)
 
 	t.test("QA config: a handler error returns the generic message and does not leak to the client", function()
@@ -581,7 +583,7 @@ return function(t: Test.Test)
 		end
 		local ok, text = env.redeem(p, "QAFAKE2026")
 		t.eq(ok, false)
-		t.eq(text, "다시 해 주세요")
+		t.eq(LocTest.ko(text), "다시 해 주세요")
 		t.eq(#env.warnings, 1)
 	end)
 

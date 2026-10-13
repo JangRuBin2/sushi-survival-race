@@ -17,6 +17,7 @@ local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -78,7 +79,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Parent = playerGui,
 	}) :: ScreenGui
 
-	local openButton = Kit.button("🍣 스킨", Color.Salmon, {
+	local openButton = Kit.button(Loc.t("shop.open.btn"), Color.Salmon, {
 		Name = "SkinButton",
 		Parent = gui,
 		Position = UDim2.fromOffset(12, 10),
@@ -121,7 +122,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	})
 	local titleLabel = Kit.label({
 		Parent = header,
-		Text = "🍣 탈의실",
+		Text = Loc.t("shop.title"),
 		TextSize = 24,
 		Size = UDim2.fromScale(0.5, 1),
 	})
@@ -158,7 +159,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	local function buildTabs(tabs: { ShopLogic.Tab })
 		local key = ""
 		for _, tab in tabs do
-			key ..= `{tab.id}={tab.label};`
+			key ..= `{tab.id}={Loc.text(tab.label)};`
 		end
 		if key == tabKey then
 			return
@@ -170,7 +171,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		table.clear(tabButtons)
 		for i, tab in tabs do
 			local color = if tab.eventId then EVENT_COLOR elseif tab.tier then tierColor(tab.tier) else Color.Salmon
-			local button = Kit.button(tab.label, color, {
+			local button = Kit.button(Loc.text(tab.label), color, {
 				Parent = tabRow,
 				LayoutOrder = i,
 				Size = UDim2.new(1 / #tabs, -6, 1, 0),
@@ -204,7 +205,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Parent = eventBar,
 		Position = UDim2.fromScale(0, 0.58),
 		Size = UDim2.fromScale(1, 0.42),
-		Text = ShopLogic.EVENT_NOTE,
+		Text = Loc.text(ShopLogic.EVENT_NOTE),
 		TextSize = 12,
 		TextColor3 = Color.SubText,
 	})
@@ -257,7 +258,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Text = "",
 		Size = UDim2.new(1, 0, 0, 36),
 	})
-	local actionButton = Kit.button("입기", Color.Salmon, {
+	local actionButton = Kit.button(Loc.t("shop.btn.wear"), Color.Salmon, {
 		Name = "Action",
 		Parent = infoBox,
 		LayoutOrder = 4,
@@ -321,7 +322,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		}) :: UIStroke
 		local name = Kit.label({
 			Parent = button,
-			Text = skin.displayName,
+			Text = Loc.skinName(skin.id),
 			TextSize = 16,
 			Size = UDim2.fromScale(1, 0.55),
 			TextScaled = false,
@@ -340,7 +341,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, 2, 0, -2),
 			Size = UDim2.fromOffset(34, 16),
-			Text = "한정",
+			Text = Loc.t("shop.limited"),
 			TextSize = 11,
 			TextColor3 = Color.White,
 			TextXAlignment = Enum.TextXAlignment.Center,
@@ -420,12 +421,12 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		if state == nil then
 			return
 		end
-		actionButton.Text = ShopLogic.cardButtonText(state)
+		actionButton.Text = Loc.text(ShopLogic.cardButtonText(state))
 		Kit.setEnabled(actionButton, state.enabled and not busy)
 		local robuxText = ShopLogic.robuxButtonText(state)
 		robuxButton.Visible = robuxText ~= nil
 		if robuxText then
-			robuxButton.Text = robuxText
+			robuxButton.Text = Loc.text(robuxText)
 			Kit.setEnabled(robuxButton, state.robuxEnabled == true and not busy)
 		end
 	end
@@ -464,7 +465,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		local selected = state.selected
 		local robux = state.robux
 		local now = state.now
-		coinLabel.Text = `🍚 {view.coins}`
+		coinLabel.Text = `🍚 {Loc.number(view.coins)}`
 		buildTabs(state.tabs)
 		for _, tab in tabButtons do
 			Kit.setSelected(tab.button, tab.id == state.tab.id)
@@ -480,7 +481,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			local card = cards[skin.id]
 			card.button.Visible = visible[skin.id] == true
 			local cardState = ShopLogic.cardState(skin, view, robux, now)
-			card.status.Text = ShopLogic.cardButtonText(cardState)
+			card.status.Text = Loc.text(ShopLogic.cardButtonText(cardState))
 			card.status.TextColor3 = if cardState.kind == "Equipped" then Color.Salmon else Color.SubText
 			card.limited.Visible = cardState.limited == true
 			card.button.BackgroundColor3 = if skin.id == selected then Color.Row else Color.White
@@ -490,15 +491,15 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		local skin = Skins.get(selected) or Skins.get(Skins.DEFAULT_ID) :: Skins.Skin
 		if selectedId ~= skin.id then
 			-- 다른 카드를 고르면 대사를 새로 뽑고 결과 글씨를 지워요
-			speechLabel.Text = `💬 "{skin.speech[math.random(1, #skin.speech)]}"`
+			speechLabel.Text = `💬 "{Loc.skinSpeech(skin.id, math.random(1, #skin.speech))}"`
 			resultLabel.Text = ""
 		elseif speechLabel.Text == "" then
-			speechLabel.Text = `💬 "{skin.speech[1]}"`
+			speechLabel.Text = `💬 "{Loc.skinSpeech(skin.id, 1)}"`
 		end
 		selectedId = skin.id
-		nameLabel.Text = skin.displayName
+		nameLabel.Text = Loc.skinName(skin.id)
 		local info = Skins.TIER_INFO[skin.tier]
-		tierLabel.Text = info.displayName
+		tierLabel.Text = Loc.tierName(skin.tier)
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
 		currentState = ShopLogic.cardState(skin, view, robux, now)

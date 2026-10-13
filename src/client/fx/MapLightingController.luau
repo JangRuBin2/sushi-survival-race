@@ -36,6 +36,9 @@ local function color(c: MapLighting.RGB): Color3
 	return Color3.fromRGB(c.r, c.g, c.b)
 end
 
+-- 서버 효과가 늦게 복제되면 클라이언트가 먼저 만든 것을 지워서 클래스마다 하나만 남겨요 (QA B3)
+local localCreated: { [string]: Instance } = {}
+
 -- 같은 클래스 효과는 하나만 (서버가 만든 Lobby* 이름을 먼저 찾아요)
 local function effect(className: string, preferred: string): Instance
 	local named = Lighting:FindFirstChild(preferred)
@@ -49,6 +52,7 @@ local function effect(className: string, preferred: string): Instance
 	local created = Instance.new(className)
 	created.Name = preferred
 	created.Parent = Lighting
+	localCreated[className] = created
 	return created
 end
 
@@ -103,17 +107,20 @@ local function measure(model: Model): (Vector3?, Vector3?)
 		end
 		local parent = d.Parent
 		local skip = false
+		local introPoint = false
 		while parent and parent ~= model do
-			if parent.Name == "Decor" or parent.Name == "IntroCamera" then
+			if parent.Name == "Decor" then
 				skip = true
 				break
+			elseif parent.Name == "IntroCamera" then
+				introPoint = true -- 소개 경유점은 크기 없이 점으로 (QA B2: 소개 첫 컷부터 맵 조명)
 			end
 			parent = parent.Parent
 		end
 		if skip then
 			continue
 		end
-		local half = d.Size.Magnitude / 2
+		local half = if introPoint then 0 else d.Size.Magnitude / 2
 		local p = d.Position
 		local lo = p - Vector3.new(half, half, half)
 		local hi = p + Vector3.new(half, half, half)
@@ -178,6 +185,16 @@ local function poll()
 end
 
 function MapLightingController.start(_gui: Instance)
+	Lighting.ChildAdded:Connect(function(child: Instance)
+		for className, mine in localCreated do
+			if child ~= mine and child:IsA(className) then
+				localCreated[className] = nil
+				mine:Destroy()
+				apply(applied)
+				return
+			end
+		end
+	end)
 	apply(MapLighting.LOBBY)
 	for _, inst in CollectionService:GetTagged(MapDecorTags.Arena) do
 		addArena(inst)

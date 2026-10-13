@@ -436,4 +436,99 @@ return function(t: Test.Test)
 		t.eq(#a, 64 * 36 * 3)
 		t.ok(a == b, "deterministic")
 	end)
+	-- QA 수정 (docs/qa/m5-23-map-visual-kit.md) ------------------------------------------------
+	t.test("QA B1: Surface 조명 range 상한 16, Point·Spot 60", function()
+		local function light(kind: string, range: number): any
+			return base({ light = { kind = kind, color = LIGHT.color, brightness = 1, range = range } })
+		end
+		t.eq(MapKitLogic.SURFACE_LIGHT_MAX_RANGE, 16)
+		t.eq(MapKitLogic.validate({ light("Surface", 16) }), nil, "Surface 16 ok")
+		local problem = MapKitLogic.validate({ light("Surface", 16.01) })
+		t.ok(
+			problem ~= nil and string.find(problem, "0~16", 1, true) ~= nil,
+			`Surface 16.01 rejected ({tostring(problem)})`
+		)
+		t.eq(MapKitLogic.validate({ light("Point", 60) }), nil, "Point 60 ok")
+		t.eq(MapKitLogic.validate({ light("Spot", 60) }), nil, "Spot 60 ok")
+		t.ok(MapKitLogic.validate({ light("Point", 60.5) }) ~= nil, "Point 60.5 rejected")
+	end)
+
+	t.test("QA B6: roundedBox radius ≤ 0 → 상자 하나, checkBudget extra 그림자 조명", function()
+		local P = MapKitLogic.PALETTE
+		for _, radius in { 0, -1 } do
+			local list = MapKitShapes.roundedBox(
+				"RB",
+				{ x = 4, y = 2, z = 3 },
+				P.Wood,
+				"Wood",
+				{ x = 0, y = 0, z = 0 },
+				{ radius = radius }
+			)
+			t.eq(#list, 1, `radius {radius}: one block`)
+			t.eq(MapKitLogic.validate(list), nil, `radius {radius}: valid`)
+		end
+		t.eq(MapKitLogic.checkBudget(many(1), "Standard", { shadowedLights = 1 }), nil)
+		t.ok(
+			MapKitLogic.checkBudget(many(1), "Standard", { shadowedLights = 2 }) ~= nil,
+			"extra shadowed lights counted"
+		)
+	end)
+
+	t.test("QA B4: Spin은 amount 없이도 통과, offset은 그대로", function()
+		t.eq(MapKitLogic.validate({ base({ anim = { kind = "Spin", period = 4 } }) }), nil)
+		t.ok(MapKitLogic.validate({ base({ anim = { kind = "Bob", period = 4 } }) }) ~= nil, "Bob needs amount")
+	end)
+
+	t.test("렌더러 shim: CFrame.lookAt이 Roblox와 같은 방향 (Lune 0.10.5 버그 우회)", function()
+		local roblox = require("@lune/roblox")
+		local Shims = require("../tools/render/Shims")
+		local V = roblox.Vector3
+		local function close(a: any, b: any): boolean
+			return (a - b).Magnitude < 1e-4
+		end
+		local cases = {
+			{ V.new(0, 0, 0), V.new(0, 0, -1) },
+			{ V.new(34, -8, -132), V.new(0, -30, -172) },
+			{ V.new(5, 5, 5), V.new(-20, 0, 40) },
+			{ V.new(0, 0, 0), V.new(0, 10, 0) }, -- 바로 위
+			{ V.new(0, 0, 0), V.new(0, -10, 0) }, -- 바로 아래
+		}
+		for i, c in cases do
+			local cf = Shims.lookAt(c[1], c[2])
+			t.ok(close(cf.LookVector, (c[2] - c[1]).Unit), `case {i}: LookVector`)
+			t.ok(close(cf.Position, c[1]), `case {i}: Position`)
+			t.ok(
+				math.abs(cf.RightVector:Dot(cf.UpVector)) < 1e-4 and math.abs(cf.UpVector.Y) >= 0,
+				`case {i}: orthonormal`
+			)
+		end
+		-- 맵 코드가 받는 전역 CFrame이 고친 lookAt이에요
+		t.ok(Shims.globals.CFrame.lookAt == Shims.lookAt, "global CFrame.lookAt patched")
+		t.ok(close(Shims.globals.CFrame.new(1, 2, 3).Position, V.new(1, 2, 3)), "other CFrame members still work")
+		-- MapKit.introCamera가 고친 lookAt으로 앞을 봐요
+		local Shared = Shims.root("src/shared")
+		local MapKit = Shims.require(Shared.maps.MapKit)
+		local model = roblox.Instance.new("Model")
+		local folder = MapKit.introCamera(
+			model,
+			{ { pos = { x = 0, y = 10, z = 20 }, lookAt = { x = 0, y = 0, z = -20 } } },
+			roblox.CFrame.new()
+		)
+		local look = folder:FindFirstChild("01").CFrame.LookVector
+		t.ok(look.Z < -0.9, `intro camera looks forward (-Z), got {look}`)
+	end)
+
+	t.test(
+		"렌더러 shim: 가짜 RunService 이벤트는 연결만, 없는 멤버는 이름을 찍고 실패",
+		function()
+			local Shims = require("../tools/render/Shims")
+			local runService = Shims.game:GetService("RunService")
+			local connection = runService.Heartbeat:Connect(function() end)
+			connection:Disconnect()
+			local ok, err = pcall(function()
+				return runService.BindToRenderStep
+			end)
+			t.ok(not ok and string.find(tostring(err), "RunService.BindToRenderStep", 1, true) ~= nil, tostring(err))
+		end
+	)
 end

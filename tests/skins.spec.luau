@@ -297,6 +297,10 @@ return function(t: Test.Test)
 				["galaxy-roll"] = { "Sparkles", "Glow" },
 				["crown-tuna"] = { "Sparkles", "Glow" },
 				["unicorn-roll"] = { "Sparkles", "Glow" },
+				-- m5-07 시즌 한정·VIP
+				["ghost-tamago"] = { "Glow" },
+				["tree-maki"] = { "Sparkles" },
+				["vip-gold-tamago"] = { "Sparkles" },
 			}
 			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-17 — 새 Survival 맵: 고양이 카페 캣타워 (`cat-cafe-shelves`)

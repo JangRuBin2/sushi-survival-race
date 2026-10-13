@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-04 — 두 번째 결승 맵: 연어알 폭탄 접시 (`ikura-bombs`)
@@ -105,7 +105,33 @@ status: ready
 <!-- 날짜 · 질문 · 결정 · 누가 -->
 - 2026-10-08 · D1 두 번째 결승으로 무엇을 · **연어알 폭탄 접시**(폭탄 피하기 + 넉백 + 바닥 축소). GDD 5.3의 "연어 왕관 쟁탈전(왕관 들고 30초 버티기)"은 v0.3에서 결승이 "마지막 1명 생존형"이 되며 규칙 재검토가 필요했고, 왕관 들기는 잡기("늦추기만", GDD 6)로 뺏을 수 없어 성립이 어려움 → 백로그로 둠. 근거: Fall Guys Blast Ball(넉백 폭탄 + 조각 낙하 결승), Roblox Super Bomb Survival(하늘에서 폭탄, 단계별 강도), Super Bomberman(Hurry Up 축소) — REFERENCE-m5-maps 1·2.1. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · D2 폭탄 수치 · 경고 1.5초(젓가락 1초·셰프 손 2초 사이, 서든데스 1.2), 반경 7 → 9, 간격 2.5 → 2.0 → 1.5 → 1.0, 60%는 사람을 노림(결승 인원 2~5명이라 무작위만이면 안 맞음). 넉백 50/30은 꼬치(32/20)보다 세게 — 폭탄은 피할 시간이 더 길어서. **기본값, 플레이테스트 후 조정** · planner
+- 2026-10-13 · D4 (developer, 스펙 해석) 같은 묶음 다시 뽑기 · 간격 6 미만이면 다시 뽑을 때 **이 묶음이 이미 노린 레이서(그 근처 9 안에 폭탄이 있는 사람)는 빼고** 뽑아요. 그냥 다시 뽑으면 레이서 1명 + 폭탄 3개일 때 0.6^6 확률로 계속 같은 사람 위에 겹쳐 AC4 간격 기준을 자주 못 지켜서. 1개짜리 묶음의 60% 비율은 그대로. 바꾸고 싶으면 planner 확인 · developer
+  - → 2026-10-13 **확정: 개발 해석 그대로**(같은 묶음 다시 뽑기에서 이미 노린 레이서 제외) · 메인 세션 (사용자가 맵 판단 위임)
 - 2026-10-08 · D3 "안전한 자리" 막기 · 가운데 원판은 연장전 전까지 남기되(설 곳 보장) 폭탄이 계속 노려서 굳히기 불가, 연장전 20초에 원판까지 사라짐. 장식은 전부 충돌 없음(Jump Showdown infinite hang 교훈, m5-01). · planner
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE B — 아트 (2026-10-13, m5-23 키트, Extended 예산)
+- **상태**: `in-qa`. 검증 5단계 통과 (rojo build, stylua, selene 0/0/0, lune **1590 통과 0 실패**, luau-lsp 끝 코드 0).
+- **최종 렌더 PNG** (`lune run tools/render-map ikura-bombs`, origin/main e07e08d 이후 렌더러): `docs/renders/ikura-bombs/after-overview.png`, `after-eye.png`, `after-mobile.png`, `after-intro-01.png`, `after-intro-02.png`, `after-intro-04.png`, `after-top.png` (전: `before-overview.png`·`before-eye.png`·`before-intro-01.png`).
+- **최종 stats**: decor 1182/1500, lights 10/24 (그림자 1/2), particles 7/16, anim 71/80, void intro-01 2% · intro-02 5% · intro-03 0% · intro-04 4% · overview 3% · eye 5% · mobile 5%.
+- **바뀐 파일**
+  - `IkuraBombsArt.luau` 전면: 도자기 접시(남색 립 −0.12, 두 단 흰·남 테두리는 칸보다 1 넘게 낮게, 물결 점, 몸통·굽), 와사비·생강 종지 2개(r 31, 윗면 −2.5 아래), 연어알 군함말이 탑(김 원통 높이 66 + 밥 띠 + 넘치는 연어알 더미·흘러내린 줄기·부두에 굴러떨어진 알, Pulse), 나무 부두(윗면 −45, 판자 3 shade, 말뚝·계류 기둥·밧줄, SeaSpray, 차가운 유리 부표 등), 바다(−62, 반사) + 먼 섬 실루엣 + 등대(빛) + 지는 해(Neon) + 작은 배·부표·갈매기(Bob/Sway), +X·+Z 가게 거리 6채(둥근 벽·기와 처마·노렌 Sway·불 켜진 창·초롱 빛/Sparkle), 출발 쪽 뒤 노점(+X: 카운터·남색 옻칠 지붕·노렌·초롱 3·찻잔 Steam·간장병·초밥 접시), 그림자 SpotLight 1개 달린 나무 기둥 등(접시 위 고정 — 숟가락 그림자), 부두 소품 무리(술통·상자·생선 바구니 scatter). `tileDecor`(칸 경계 금빛 선, 칸 Model 안 Decor 폴더), `spoonDecor`(셰프 팔·커프·손·은 숟가락·담긴 연어알), `LIGHTING`(17.8 골든아워, 복숭아 안개 + 보라 감쇠), `BUDGET = "Extended"`, IntroCamera 4점(전부 판정 경계 + 40 안).
+  - `IkuraBombs.luau`: 칸 경계 선 부착, 숟가락 Model을 `Art.spoonDecor`로 만들고 Decor 폴더 안에 둠(판정 지오메트리가 아님), `lighting = Art.LIGHTING`, **경고 원을 불투명 빨강 SmoothPlastic + 흰 테두리 원판, 깜빡임은 색(빨강 ↔ 밝은 빨강)**으로 바꿈 — 렌더에서 반투명 Neon 빨강이 빛 번짐에 하얗게 날아가 연어알 주황·바닥과 구분이 약했어요. 판정 수치·지오메트리는 그대로.
+  - 테스트: `tests/map-ikura-bombs.spec.luau` 23개(아트: checkBudget Extended·그림자 ≤ 2·파티클·anim, 움직이는 숟가락·칸 장식에 anim·조명 없음, 시야 상자, 가짜 바닥 없음, 배경 바닥 ≤ 탈락선 −10, lighting validate, 소개 카메라 경계). `tests/m5-03-qa.spec.luau`: ikura-bombs 껍데기 build/start/overtime 확인을 뺌(껍데기가 실제 맵으로 바뀜 — tempura-pot·dessert-fridge만 남김).
+- **Studio 확인 (AC18 추가)**: 결승 시작 때 조명이 해 질 녘으로 바뀌는지, 기둥 등 SpotLight 아래 숟가락 그림자가 접시에 떨어지는지, 휴대폰 에뮬레이터에서 빨간 경고 원(흰 테두리)이 연어알 주황과 헷갈리지 않는지. 셰프 팔 소매가 숟가락을 따라 움직일 때 카메라를 가리지 않는지.
+- **남은 이슈**: 숟가락 팔은 폭탄 위치로 평행 이동만 해요(관절 없음). 갈매기는 원 궤도 대신 Bob(파츠 자체 Spin은 제자리 회전이라). 소개 3번(위에서 반전)은 숟가락 그릇이 화면 위쪽에 크게 걸려요(의도: 숟가락 아래 접시).
+
+### PHASE A (2026-10-13, 게임플레이만 — 아트는 PHASE B, m5-23 비주얼 키트 뒤)
+- **상태**: `in-dev` 유지 (아트 PHASE B가 남아서 아직 `in-qa`로 넘기지 않아요).
+- **바뀐 파일**
+  - 새 파일 `src/shared/maps/IkuraBombsLayout.luau`: 칸 17개 표, 6도 조각(고리 칸 판정 파츠), 스폰 24개(반지름 13·19)
+  - 새 파일 `src/shared/maps/IkuraBombsLogic.luau`: `tileAt`, `bombWave`, `pickTargets`·`clampToAlive`, `knockback`·`inBlast`, `crack`, `scheduleMarks`·`scheduledDrops`, `overtimeRings`
+  - 새 파일 `src/shared/maps/IkuraBombsArt.luau`: 자리 잡기용 최소 장식(접시 몸통·굽·남색 테두리 30조각, 전부 충돌 없음), 판정 파츠 기본 색, IntroCamera 4점, 시야 상자
+  - `src/shared/maps/IkuraBombs.luau`: 껍데기 덮어쓰기. 칸 Model(태그 `IkuraTile`, 속성 `Ring`·`Index`·`TileId`·`Cracks`, 떨어지면 `Falling`·`Dropped`), 숟가락+손 Model(태그 `IkuraSpoon`, 충돌 없음, 폭탄 쪽으로 따라감), 폭탄(태그 `IkuraBomb`, `Bombs` 폴더), 넉백(LinearVelocity 0.12초 + PlatformStand 1초 + `MoveExempt.mark` 1.5초, 0.5초 쿨다운), 금 가기, 정해진 낙하, 연장전 고리 붕괴, 낙하 탈락(윗면 −30). **`inPool = false` 삭제** → 랜덤 결승 풀(Final 4개)
+  - 새 테스트 `tests/map-ikura-bombs.spec.luau` (18개, AC1~AC8)
+  - 스펙 밖 테스트 최소 수정(풀 개수·Final 목록): `tests/m5-03-foundation.spec.luau`(ikura를 껍데기 목록에서 빼고 infos 13개, id·이름·문구는 계속 확인), `tests/maps.spec.luau`(13개), `tests/m4-foundation.spec.luau`(Final 4개), `tests/m2-01-qa.spec.luau`(결승 후보에 추가), `tests/m4-12-hardening.spec.luau`(강제 플랜 `{ rotating-belt, hot-plate, ikura-bombs }` 추가)
+- **검증**: 5단계 전부 통과 (rojo build, stylua, selene 0/0/0, lune 1251 통과 0 실패, luau-lsp 끝 코드 0).
+- **Studio 확인** (`Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "ikura-bombs" }`, 빠른 연장전 `overtimeAt = 15`, 확인 뒤 둘 다 nil): AC10~AC15 그대로. 판정 지오메트리는 진한 간장색 칸(두 톤 번갈아), 원판은 더 진한 색. 금 1번이면 어두워지고 검은 금 줄.
+- **남은 것 (PHASE B)**: 본격 아트(가게 앞 부두·바다, 셰프 손·은 숟가락 모델, 칸 경계 얇은 선, 고추냉이·생강, 등롱 조명) — m5-23 키트 사용. 숟가락·손은 지금 `IkuraBombs.buildSpoon`의 자리 잡기용 3파츠.
+- **알려진 한계**: 폭탄 알갱이 파티클은 ParticleEmitter 1개를 폭발 위치로 옮겨 `Emit` (같은 순간 여러 폭발이면 마지막 위치로 몰릴 수 있음, 연출만).

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-24 — 기존 맵 12개 아트 패스 v2 (비주얼 키트 + 렌더 루프, 판정 불변)

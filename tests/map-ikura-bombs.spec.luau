@@ -13,6 +13,7 @@ local MapKitLogic = RobloxRequire.require(Shared.maps.MapKitLogic)
 local Layout = RobloxRequire.require(Shared.maps.IkuraBombsLayout)
 local Logic = RobloxRequire.require(Shared.maps.IkuraBombsLogic)
 local Art = RobloxRequire.require(Shared.maps.IkuraBombsArt)
+local MapLighting = RobloxRequire.require(Shared.maps.MapLighting)
 
 type Bounds = MapKitLogic.Bounds
 
@@ -457,17 +458,112 @@ return function(t: Test.Test)
 		t.eq(steps[3].dropAt, Config.Final.CollapseDuration)
 	end)
 
-	---------------------------------------------------------------- AC8
-	t.test("AC8: 장식 — validate 통과, 예산 안, 시야 상자와 안 겹쳐요", function()
-		local decor = Art.decor()
-		t.eq(MapKitLogic.validate(decor), nil)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, "part budget")
-		local sight = Art.courseVolume()
-		for _, spec in decor do
-			local bounds = MapKitLogic.bounds({ spec }) :: Bounds
-			t.ok(not overlaps(bounds, sight), `{spec.name} overlaps sight box`)
+	---------------------------------------------------------------- AC8 · AC17 (아트)
+	local function allDecor(): { any }
+		local list = table.clone(Art.decor())
+		for id = 0, 16 do
+			for _, spec in Art.tileDecor(id) do
+				table.insert(list, spec)
+			end
 		end
+		for _, spec in Art.spoonDecor() do
+			table.insert(list, spec)
+		end
+		return list
+	end
+
+	t.test("AC8·AC17: 장식 — 목록마다 validate 통과, 합쳐서 Extended 예산 안", function()
+		t.eq(Art.BUDGET, "Extended")
+		t.eq(MapKitLogic.validate(Art.decor()), nil)
+		t.eq(MapKitLogic.validate(Art.spoonDecor()), nil)
+		for id = 0, 16 do
+			t.eq(MapKitLogic.validate(Art.tileDecor(id)), nil, `tileDecor {id}`)
+		end
+		t.eq(MapKitLogic.checkBudget(Art.decor(), "Extended"), nil)
+		t.eq(MapKitLogic.checkBudget(allDecor(), "Extended"), nil)
+		t.ok(MapKitLogic.countShadowedLights(allDecor()) <= 2, "shadowed lights")
+		t.ok(MapKitLogic.countParticles(allDecor()) >= 2, "particles")
+		t.ok(MapKitLogic.countAnimated(Art.decor()) >= 3, "anim")
+		-- 움직이는 숟가락·칸 장식에는 anim·조명 금지
+		for _, spec in Art.spoonDecor() do
+			t.eq(spec.anim, nil, `spoon {spec.name} anim`)
+			t.ok(spec.light == nil, `spoon {spec.name} light`)
+		end
+		for id = 0, 16 do
+			for _, spec in Art.tileDecor(id) do
+				t.eq(spec.anim, nil, "tile decor anim")
+			end
+		end
+		t.eq(Art.spoonDecor()[1].name, "SpoonBowl") -- 숟가락 Model의 PrimaryPart
+		t.eq(#Art.tileDecor(0), 0) -- 원판은 경계 선 없음
+		-- Surface 조명은 Roblox 최대 범위 16 (m5-23 QA)
+		for _, spec in allDecor() do
+			if spec.light and spec.light.kind == "Surface" then
+				t.ok(spec.light.range <= 16, `{spec.name} surface light range`)
+			end
+		end
+	end)
+
+	t.test(
+		"AC8: 장식이 시야 상자(칸 윗면 위 2~12)와 안 겹쳐요, 칸 경계 선은 윗면에 붙어 있어요",
+		function()
+			local sight = Art.courseVolume()
+			for _, spec in Art.decor() do
+				local bounds = MapKitLogic.bounds({ spec }) :: Bounds
+				t.ok(not overlaps(bounds, sight), `{spec.name} overlaps sight box`)
+			end
+			for id = 0, 16 do
+				for _, spec in Art.tileDecor(id) do
+					local bounds = MapKitLogic.bounds({ spec }) :: Bounds
+					t.ok(bounds.max.y <= 0.1 and bounds.min.y >= -0.01, "seam stays flush with the tile top")
+				end
+			end
+		end
+	)
+
+	t.test(
+		"AC17: 가짜 바닥 없음 — 접시 근처에서 칸 윗면 ±1 안의 얇은 판 장식은 립(윗면보다 낮게)뿐",
+		function()
+			for _, spec in Art.decor() do
+				local b = MapKitLogic.bounds({ spec }) :: Bounds
+				local near = b.min.x < 30 and b.max.x > -30 and b.min.z < 30 and b.max.z > -30
+				-- 얇고 넓은 판(두께 ≤ 1.5, 가로세로 ≥ 2)만 "바닥처럼 보이는 것" (와사비 덩이 같은 둥근 더미는 제외)
+				local flat = b.max.y - b.min.y <= 1.5 and math.min(b.max.x - b.min.x, b.max.z - b.min.z) >= 2
+				if near and flat and b.max.y > -1 and b.max.y < 1 then
+					t.eq(spec.name, "PlateLip", `{spec.name} top {b.max.y} looks like floor`)
+					t.ok(b.max.y < 0, "lip is below the tile top")
+				end
+			end
+		end
+	)
+
+	t.test("AC17: 배경 바닥(부두·바다·길)은 낙하 탈락선보다 10 이상 아래", function()
+		local killY = -Layout.FALL_DEPTH
+		local found = 0
+		for _, spec in Art.decor() do
+			if spec.name == "Sea" or spec.name == "DeckPlank" or spec.name == "Street" then
+				local b = MapKitLogic.bounds({ spec }) :: Bounds
+				t.ok(b.max.y <= killY - 10, `{spec.name} top {b.max.y}`)
+				found += 1
+			end
+		end
+		t.ok(found > 10, "background floors exist")
+	end)
+
+	t.test("AC17: 맵 lighting 프리셋이 있고 validate 통과, 로비와 달라요", function()
+		local map = Maps.get("ikura-bombs")
+		t.ok(map.lighting ~= nil, "lighting preset")
+		t.eq(MapLighting.validate(map.lighting), nil)
+		t.ok((map.lighting :: any).ClockTime ~= MapLighting.LOBBY.ClockTime, "differs from lobby")
+	end)
+
+	t.test("소개 카메라 4점, 전부 판정 경계 + 40 안 (밖이면 로비 조명)", function()
 		local points = Art.introCamera()
 		t.eq(#points, 4)
+		local limit = Layout.RADIUS + 40
+		for i, p in points do
+			t.ok(math.abs(p.pos.x) <= limit and math.abs(p.pos.z) <= limit, `point {i} xz`)
+			t.ok(p.pos.y <= 40 and p.pos.y >= -40, `point {i} y`)
+		end
 	end)
 end

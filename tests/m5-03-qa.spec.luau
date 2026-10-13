@@ -1,7 +1,7 @@
 --!strict
 -- m5-03 QA (docs/qa/m5-03-foundation.md): 개발 테스트(m5-03-foundation·seasons·fx-catalog)에 없는 경계값과
 -- 가짜 Roblox 환경에서 실제로 돌려 보는 확인.
---   맵 껍데기 3개: build(스폰 24개·바닥·결승선) / start(낙하·결승선) / ikura-bombs overtime(바로 돌아옴, 시간 뒤 판 제거)
+--   맵 껍데기 2개(tempura-pot·dessert-fridge, ikura-bombs는 m5-04가 실제 맵으로): build(스폰 24개·바닥·결승선) / start(낙하·결승선)
 --   껍데기 서비스: OfferService·CodeService 리모트가 아무 인자에도 false, "준비 중이에요"
 --   DataService.setViewExtra: 바뀔 때만 ProfileUpdated, 로드 전 기억, 나간 뒤 무시
 --   프로필 v2 경계: v1 두 번 migrate, 칸 모양이 틀린 v2 칸, redeemedCodes 정확히 200·201
@@ -446,9 +446,9 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- 맵 껍데기 build
 	t.test(
-		"QA 껍데기 build: tempura-pot·ikura-bombs 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상)",
+		"QA 껍데기 build: tempura-pot 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상) — ikura-bombs는 m5-04가 덮어써서 map-ikura-bombs.spec AC1로",
 		function()
-			for _, case in { { "TempuraPot", "Floor" }, { "IkuraBombs", "Plate" } } do
+			for _, case in { { "TempuraPot", "Floor" } } do
 				local env = loadMap(case[1])
 				local model = env.map.build(origin())
 				t.eq(model.Name, env.map.id)
@@ -498,7 +498,7 @@ return function(t: Test.Test)
 	t.test(
 		"QA 껍데기 start: 낙하 25 아래면 탈락, 판 위면 그대로, 끝난 라운드에는 판정 안 함",
 		function()
-			for _, file in { "TempuraPot", "IkuraBombs", "DessertFridge" } do
+			for _, file in { "TempuraPot", "DessertFridge" } do -- ikura-bombs는 m5-04 실제 맵 (껍데기 판 없음)
 				local env = loadMap(file)
 				local model = env.map.build(origin())
 				local safe = racerAt("safe", 0, 3, -40)
@@ -530,47 +530,8 @@ return function(t: Test.Test)
 		t.eq(#c.eliminated, 0)
 	end)
 
-	---------------------------------------------------------------- ikura-bombs 연장전
-	t.test("QA ikura-bombs overtime: 바로 돌아오고, collapseDuration 뒤에 접시가 사라져요", function()
-		local env = loadMap("IkuraBombs")
-		local model = env.map.build(origin())
-		local c = newCtx(model, {})
-		env.map.start(c.ctx)
-		local plate = model:FindFirstChild("Plate")
-		local co = coroutine.create(env.map.overtime)
-		local ok = coroutine.resume(co, c.ctx, { collapseDuration = 20 })
-		t.ok(ok, "overtime ran")
-		t.eq(coroutine.status(co), "dead", "overtime returns without yielding (task.wait 금지)")
-		t.eq(#env.T.delayed, 1)
-		local entry = env.T.delayed[1]
-		t.eq(entry.seconds, 20)
-		t.ok(table.find(c.cleanups, entry) ~= nil, "delay thread is in ctx.cleanup")
-		t.eq(plate.CanCollide ~= false, true, "plate still there before the delay")
-		entry.fn()
-		t.eq(plate.CanCollide, false)
-		t.eq(plate.Transparency, 1)
-		-- 판이 사라진 뒤 떨어진 사람은 start의 낙하 판정으로 탈락
-		local faller = racerAt("faller", 0, -30, -40)
-		local c2 = newCtx(model, { faller })
-		env.map.start(c2.ctx)
-		env.heartbeat:Fire()
-		t.eq(c2.eliminated, { faller })
-	end)
-
-	t.test(
-		"QA ikura-bombs overtime: 라운드가 먼저 끝나면(isActive false) 접시를 건드리지 않아요",
-		function()
-			local env = loadMap("IkuraBombs")
-			local model = env.map.build(origin())
-			local c = newCtx(model, {})
-			env.map.overtime(c.ctx, { collapseDuration = 5 })
-			c.setActive(false)
-			env.T.delayed[1].fn()
-			local plate = model:FindFirstChild("Plate")
-			t.ok(plate.CanCollide ~= false, "plate kept")
-			t.ok(plate.Transparency ~= 1, "plate visible")
-		end
-	)
+	-- ikura-bombs 껍데기 연장전 테스트 2개는 m5-04가 껍데기를 실제 맵으로 덮어써서 뺐어요
+	-- (고리 붕괴 일정은 tests/map-ikura-bombs.spec.luau AC7 overtimeRings).
 
 	---------------------------------------------------------------- 껍데기 서비스
 	t.test(

@@ -27,7 +27,7 @@ local TAG_SPOON = "IkuraSpoon"
 local ROE_DIAMETER = 4
 local ROE_FALL_TIME = 0.5 -- 경고 마지막 이 초 동안 연어알이 떨어지는 모습
 local WARN_BLINK = 0.15 -- 빨간 원 깜빡임 간격
-local CIRCLE_TRANSPARENCY = { 0.35, 0.65 }
+-- 경고 원은 불투명 빨강 + 흰 테두리, 깜빡임은 색으로 (반투명·Neon이면 빛 번짐에 빨강이 하얗게 날아가요)
 local LAUNCH_HOLD = 0.12 -- LinearVelocity 유지 시간
 local KNOCKDOWN_TIME = 1 -- PlatformStand
 local EXEMPT_TIME = 1.5 -- 이동 감시 면제
@@ -103,6 +103,11 @@ local function buildTile(model: Model, origin: CFrame, tile: Layout.TileDef)
 			end
 		end
 	end
+	-- 칸 경계 얇은 선: 칸 Model 안 Decor 폴더 (칸 파츠 목록에는 안 섞이고, 떨어질 때 GetDescendants로 같이 사라져요)
+	local seams = Art.tileDecor(tile.id)
+	if #seams > 0 then
+		MapKit.buildDecor(seams, origin, MapKit.decorFolder(tileModel))
+	end
 	tileModel:SetAttribute("Ring", tile.ring)
 	tileModel:SetAttribute("Index", tile.index)
 	tileModel:SetAttribute("TileId", tile.id)
@@ -116,41 +121,11 @@ local function buildSpoon(model: Model, origin: CFrame)
 	local CollectionService = game:GetService("CollectionService")
 	local spoon = Instance.new("Model")
 	spoon.Name = "Spoon"
-	local base = origin * CFrame.new(0, Layout.SPOON_HEIGHT, 0)
-	local bowl = makePart({
-		Name = "Bowl",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(5, 1.6, 6),
-		CFrame = base,
-		Color = rgb(Art.COLORS.spoon),
-		Material = Enum.Material.Metal,
-		Reflectance = 0.3,
-		Parent = spoon,
-	})
-	makePart({
-		Name = "Handle",
-		Size = Vector3.new(1, 0.6, 12),
-		CFrame = base * CFrame.new(0, 1.5, 8) * CFrame.Angles(math.rad(-15), 0, 0),
-		Color = rgb(Art.COLORS.spoon),
-		Material = Enum.Material.Metal,
-		Parent = spoon,
-	})
-	makePart({
-		Name = "Hand",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.new(5, 4, 5),
-		CFrame = base * CFrame.new(0, 3.5, 13),
-		Color = rgb(Art.COLORS.hand),
-		Parent = spoon,
-	})
-	for _, part in spoon:GetChildren() do
-		if part:IsA("BasePart") then
-			MapKit.applyDecorRules(part)
-		end
-	end
-	spoon.PrimaryPart = bowl
+	-- 셰프 팔·손·은 숟가락 장식 (IkuraBombsArt.spoonDecor, 첫 파츠 = 숟가락 그릇 = 기준)
+	local parts = MapKit.buildDecor(Art.spoonDecor(), origin * CFrame.new(0, Layout.SPOON_HEIGHT, 0), spoon)
+	spoon.PrimaryPart = parts[1]
 	CollectionService:AddTag(spoon, TAG_SPOON)
-	spoon.Parent = model
+	spoon.Parent = MapKit.decorFolder(model) -- 장식 폴더 안 (판정 지오메트리가 아님)
 end
 
 local function build(origin: CFrame): Model
@@ -465,14 +440,24 @@ local function runBomb(ctx: MapTypes.RoundContext, state: RoundState, point: Log
 	local bomb = Instance.new("Model")
 	bomb.Name = "Bomb"
 	local d = wave.radius * 2
+	-- 흰 테두리 (빨간 원보다 조금 크게, 바로 아래)
+	local border = makePart({
+		Name = "WarningBorder",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.16, d + 1, d + 1),
+		CFrame = origin * CFrame.new(center.X, 0.09, center.Z) * upright(),
+		Color = rgb(Art.COLORS.bombBorder),
+		Material = Enum.Material.SmoothPlastic,
+		Parent = bomb,
+	})
+	noCollide(border)
 	local circle = makePart({
 		Name = "Warning",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.2, d, d),
 		CFrame = origin * CFrame.new(center.X, 0.12, center.Z) * upright(),
 		Color = rgb(Art.COLORS.bombCircle),
-		Material = Enum.Material.Neon,
-		Transparency = CIRCLE_TRANSPARENCY[1],
+		Material = Enum.Material.SmoothPlastic,
 		Parent = bomb,
 	})
 	noCollide(circle)
@@ -508,7 +493,7 @@ local function runBomb(ctx: MapTypes.RoundContext, state: RoundState, point: Log
 			break
 		end
 		if now >= nextBlink then
-			circle.Transparency = CIRCLE_TRANSPARENCY[if blinkOn then 1 else 2]
+			circle.Color = rgb(if blinkOn then Art.COLORS.bombCircle else Art.COLORS.bombBlink)
 			blinkOn = not blinkOn
 			nextBlink = now + WARN_BLINK
 		end
@@ -659,6 +644,7 @@ local IkuraBombs: MapTypes.MapModule = {
 	build = build,
 	start = start,
 	overtime = overtime,
+	lighting = Art.LIGHTING, -- m5-23 맵 조명 (해 질 녘 바닷가)
 }
 
 return IkuraBombs

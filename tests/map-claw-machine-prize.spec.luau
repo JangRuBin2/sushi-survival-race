@@ -254,7 +254,12 @@ return function(t: Test.Test)
 					total += MapKitLogic.count(tileDecor)
 				end
 			end
-			t.ok(total <= MapKitLogic.DECOR_PART_BUDGET, `decor {total} parts over budget`)
+			-- m5-24 D2: 아트 패스로 Extended 예산 (칸 장식 64칸분 + NEON PointLight 1 포함)
+			t.eq(
+				MapKitLogic.checkBudget(decor, "Extended", { parts = total - MapKitLogic.count(decor), lights = 1 }),
+				nil,
+				`decor {total} parts over budget`
+			)
 
 			local lightCount = 0
 			for _, spec in decor do

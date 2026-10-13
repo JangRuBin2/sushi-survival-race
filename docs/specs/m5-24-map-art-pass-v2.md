@@ -174,3 +174,10 @@ status: in-dev
 - 바꾼 아트 수량 단언(D2): `map-art-race` AC1, `m5-23-visual-kit` AC7, `m5-23-qa` lighting·soy-swamp 조명/파티클 수, `map-chef-board` AC6, `m4-05-qa` AC6 예산.
 - 전/후 PNG: `docs/renders/{soy-swamp,chef-board,tug-of-war-platform}/before-*.png` → `after-*.png`. 체크리스트 18개는 세 맵 모두 마지막 반복에서 "예".
 - 휴대폰 메모: soy tris 87k·그림자 1·파티클 Rate 20(+코드 3) / chef 50k·1·22(+칼 불꽃 one-shot) / tug 26k·1·10. 큰 반투명 판 새로 추가 없음.
+
+### 그룹 C (ramen-rapids · giant-jenga · claw-machine-prize)
+- 자세한 기록(반복 비평 18개·바꾼 단언 전후·휴대폰 메모·Studio 확인): `docs/developer/m5-24-group-c.md` "인계 2".
+- 바뀐 파일: `RamenRapidsArt.luau`·`RamenRapids.luau`(lighting 한 줄), `GiantJengaArt.luau`·`GiantJenga.luau`(lighting 한 줄), `ClawMachinePrizeArt.luau`·`ClawMachinePrize.luau`(lighting 한 줄), 새 테스트 `tests/m5-24-c.spec.luau`.
+- 바꾼 아트 수량 단언(D2): `map-ramen-rapids.spec.luau` 318·371, `m5-20-qa.spec.luau` 177, `map-giant-jenga.spec.luau` 322, `map-claw-machine-prize.spec.luau` 257, `m5-23-visual-kit.spec.luau` AC7, `m5-23-qa.spec.luau` "기존 6개는 프리셋을 씀"(Extended 맵은 자기 Art.LIGHTING).
+- 전/후 PNG: `docs/renders/<mapId>/before-*.png` → `after-*.png`. void% 후: 세 맵 eye·overview·intro 전부 0~1%.
+- 남은 이슈: 인형뽑기 Decor는 연장전 모델 기울기 때문에 Pulse만(미러볼 Spin 뺌). Studio AC12~15 사용자 확인 필요.

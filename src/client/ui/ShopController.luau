@@ -7,7 +7,10 @@
 
 --   로벅스 (m4-14): RequestRobuxPurchase → 서버가 Roblox 결제 창을 띄워요 (Studio 가짜 결제면 바로 처리).
 --   지급은 서버 ProcessReceipt가 해요. 여기서는 요청한 스킨이 ProfileUpdated로 보유에 들어오면 "🎉 획득!" 한 줄.
---   상품 id가 있는 스킨은 MarketplaceService:GetProductInfo의 실제 가격을 받아 보여 줘요 (실패하면 카탈로그 값).
+--   상품 id가 있는 스킨은 PriceCache.product(실제 상품 가격, 지역 가격 준비 — m5-07)로 보여 줘요 (실패하면 카탈로그 값).
+--   시즌 이벤트 (m5-07): 지금 시각 = Seasons.now(Studio, Config.DEBUG.eventNow, workspace:GetServerTimeNow()).
+--   탈의실을 열면 ShopLogic.defaultTab(이벤트 중이면 이벤트 탭)이 먼저 선택돼요. 재화 스킨의 "🍬 80으로 받기"는
+--   BuyWithTokens (판정은 서버 ShopService).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -17,20 +20,27 @@ local RunService = game:GetService("RunService")
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local Types = require(ReplicatedStorage.Shared.Types)
+local PriceCache = require(script.Parent.Parent.PriceCache)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
 local ShopScreen = require(script.Parent.ShopScreen)
 local UiScaleController = require(script.Parent.UiScaleController)
 
 local ShopController = {}
 
+-- 시즌 판매 기간을 볼 "지금 시각" (서버와 같은 규칙: Studio면 Config.DEBUG.eventNow 우선)
+local function eventNow(): number
+	return Seasons.now(RunService:IsStudio(), Config.DEBUG.eventNow, workspace:GetServerTimeNow())
+end
+
 function ShopController.start(_gui: Instance)
 	local me = Players.LocalPlayer
 	local isMatchServer = workspace:GetAttribute(Attributes.PlaceRole) == "Match"
 
-	local tier: Skins.Tier? = nil
+	local tabId = "all" -- ShopLogic.Tab.id
 	local selected = Skins.DEFAULT_ID
 	local busy = false
 	local view: Types.ProfileView? = ProfileStore.get()
@@ -57,7 +67,29 @@ function ShopController.start(_gui: Instance)
 		if current == nil or screen == nil then
 			return
 		end
-		screen:render(current, tier, selected, robux)
+		local now = eventNow()
+		local tabs = ShopLogic.tabs(now)
+		local tab = tabs[1]
+		for _, candidate in tabs do
+			if candidate.id == tabId then
+				tab = candidate
+			end
+		end
+		tabId = tab.id -- 이벤트가 끝나 탭이 없어졌으면 맨 앞 탭으로
+		local header: string? = nil
+		local event = if tab.eventId then Seasons.get(tab.eventId) else nil
+		if event then
+			header = ShopLogic.eventHeader(event, now, ShopLogic.tokensOf(current, event.id))
+		end
+		screen:render({
+			view = current,
+			tab = tab,
+			tabs = tabs,
+			selected = selected,
+			robux = robux,
+			now = now,
+			eventHeader = header,
+		})
 	end
 
 	local function canShow(): boolean
@@ -130,7 +162,11 @@ function ShopController.start(_gui: Instance)
 		if current.equippedSkin == skinId then
 			return
 		end
-		local name = if owned then "EquipSkin" elseif skin.coins then "BuyWithCoins" else nil
+		local name = if owned
+			then "EquipSkin"
+			elseif skin.coins then "BuyWithCoins"
+			elseif skin.tokens then "BuyWithTokens"
+			else nil
 		if name == nil then
 			buyRobux(skinId) -- 레어 이상: 행동 버튼이 로벅스 버튼
 			return
@@ -141,7 +177,11 @@ function ShopController.start(_gui: Instance)
 		busy = false
 		screen:setBusy(false)
 		if ok then
-			screen:showResult(if owned then `{skin.displayName} 입었어요!` else `{skin.displayName} 해금!`, false)
+			local done = if owned
+				then `{skin.displayName} 입었어요!`
+				elseif name == "BuyWithTokens" then `🎉 {skin.displayName} 받았어요!`
+				else `{skin.displayName} 해금!`
+			screen:showResult(done, false)
 		else
 			screen:showResult(err or "다시 해 주세요", true)
 		end
@@ -153,6 +193,7 @@ function ShopController.start(_gui: Instance)
 				return
 			end
 			selected = (view :: Types.ProfileView).equippedSkin
+			tabId = ShopLogic.defaultTab(eventNow()).id -- 이벤트 중이면 이벤트 탭이 먼저
 			render()
 			screen:setOpen(true)
 		end,
@@ -165,8 +206,8 @@ function ShopController.start(_gui: Instance)
 		end,
 		act = act,
 		buyRobux = buyRobux,
-		tab = function(newTier: Skins.Tier?)
-			tier = newTier
+		tab = function(newTabId: string)
+			tabId = newTabId
 			render()
 		end,
 	})
@@ -209,23 +250,23 @@ function ShopController.start(_gui: Instance)
 		end
 	end)
 
-	-- 실제 상품 가격 (상품 id가 있는 스킨만, 한 번)
-	for _, skin in Skins.LIST do
-		local productId = skin.productId
-		if productId == nil then
-			continue
-		end
-		task.spawn(function()
-			local ok, info = pcall(function()
-				return MarketplaceService:GetProductInfoAsync(productId, Enum.InfoType.Product)
-			end)
-			local price = if ok and type(info) == "table" then (info :: any).PriceInRobux else nil
-			if type(price) == "number" and price > 0 then
-				(robux.prices :: { [string]: number })[skin.id] = price
-				render()
+	-- 실제 상품 가격 (상품 id가 있는 스킨만): PriceCache가 한 번 받아 오고, 받으면 다시 그려요 (m5-07)
+	local function refreshPrices()
+		local prices = robux.prices :: { [string]: number }
+		for _, skin in Skins.LIST do
+			local productId = skin.productId
+			if productId ~= nil and skin.robux ~= nil then
+				prices[skin.id] = PriceCache.product(productId, skin.robux)
 			end
-		end)
+		end
 	end
+	refreshPrices()
+	PriceCache.changed:Connect(function(kind: PriceCache.Kind)
+		if kind == "Product" then
+			refreshPrices()
+			render()
+		end
+	end)
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(snapshot: Types.RoomSnapshot?)
 		local wasInMatch = room ~= nil and room.state == "InMatch"

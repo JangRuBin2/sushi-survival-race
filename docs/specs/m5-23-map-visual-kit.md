@@ -178,3 +178,15 @@ AC13: rotating-belt lights 3·particles 2, soy-swamp lights 2·particles 3 (stat
 - R1 CornerWedge 꼭대기 방향(로컬 +X·위·-Z)은 가정이에요 — 렌더러와 `MapKitShapes.bevelBox` 귀퉁이가 같은 가정이라 서로는 맞지만, Studio와 다르면 `Scene.cornerWedge`·`CORNER_YAW` 두 곳을 고쳐야 해요(3-11의 5번).
 - R2 렌더러는 근사 — Studio와 밝기·재질감·그림자 부드러움이 달라요. 특히 밤 프리셋(hot-plate)은 렌더가 실제보다 어두울 수 있어요.
 - R3 `castShadow` nil → 가장 긴 변 < 3이면 그림자 끔이 기존 맵 장식에도 적용돼요(의도, 작은 소품 그림자가 사라짐).
+
+**QA 수정 (2026-10-13, developer)** — `docs/qa/m5-23-map-visual-kit.md` B1~B6 + 렌더러 lookAt 버그
+- B1(P1): `MapKitLogic.SURFACE_LIGHT_MAX_RANGE = 16`·`LIGHT_MAX_RANGE = 60`, `validateExtras`가 종류별로 검사(`light.range must be 0~16 for Surface lights`). 렌더러 `Scene.luau`도 Surface 16·나머지 60에서 잘라요(맵 코드가 직접 붙인 조명 포함).
+- B2(P2): `MapLightingController.measure`가 `IntroCamera` 파츠를 크기 없이 점으로 상자에 넣어요(`Decor`는 계속 뺌). `tests/m5-23-qa.spec.luau`의 같은 측정 함수도 맞추고 `KNOWN_INTRO_OUTSIDE`를 비움 — 15개 맵 소개 점 전부 안.
+- B3: 클라이언트가 먼저 만든 효과는 서버 효과가 복제되면(`Lighting.ChildAdded`) 지우고 다시 적용 — 클래스마다 하나.
+- B4: `AnimSpec.amount: number?` (Spin은 없어도 0).
+- B5: 렌더러 가짜 `RunService`에 Heartbeat·Stepped·RenderStepped·PreSimulation·PostSimulation(연결만), 가짜 CollectionService·RunService·TweenService에 없는 멤버는 `[render] RunService.X is not available …`로 실패.
+- B6: `roundedBox` radius ≤ 0(또는 너무 작음) → 상자 하나. `checkBudget` extra에 `shadowedLights`. 클라이언트 로비 기본값을 플레이스 파일 값과 같게(`EnvironmentDiffuseScale/SpecularScale = 0`, `ShadowSoftness = 0.5`).
+- **렌더러 lookAt 버그(아트 그룹 C 보고)**: Lune 0.10.5 `CFrame.lookAt`이 방향에 따라 틀려요(예: (0,0,0)→(0,0,-1)의 LookVector가 (0,0,1)). 그래서 `MapKit.introCamera` 경유점이 렌더러에서만 거의 반대로 봤어요(이전 intro-NN 렌더는 전부 틀린 방향 — **다시 렌더하세요**). `Shims.lookAt`(fromMatrix로 만들고 위·아래를 똑바로 볼 때 다른 위 축)을 맵 코드의 전역 `CFrame.lookAt`으로 넣고, `render-map`의 인형·빔도 같은 함수를 써요. 실제 Roblox는 원래 맞아요.
+- 테스트: `tests/m5-23-visual-kit.spec.luau`에 B1·B4·B6·lookAt(5방향 + introCamera)·RunService shim 테스트 추가.
+- 검증: rojo build OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` 1467 passed / 0 failed · luau-lsp 끝 코드 0. hot-plate intro-03이 이제 철판 3층을 정면으로 비춰요.
+- 다른 키트 API는 안 바꿈.

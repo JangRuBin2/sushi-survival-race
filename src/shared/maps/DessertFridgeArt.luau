@@ -722,7 +722,7 @@ local function addCourse(list: { DecorSpec })
 		local z = (step.front + step.back) / 2
 		add(
 			list,
-			ball("ChocoChip", 0.9, P.Chocolate, "SmoothPlastic", v(Layout.COOKIE_MAX_X + 0.2, step.top - 1.2, z - 0.8))
+			ball("ChocoChip", 0.9, P.Chocolate, "SmoothPlastic", v(Layout.COOKIE_MAX_X + 0.55, step.top - 1.2, z - 0.8))
 		)
 		add(
 			list,
@@ -731,7 +731,7 @@ local function addCourse(list: { DecorSpec })
 				0.7,
 				shade(P.Chocolate, 0.8),
 				"SmoothPlastic",
-				v(Layout.COOKIE_MAX_X + 0.2, step.top - 2.2, z + 1)
+				v(Layout.COOKIE_MAX_X + 0.55, step.top - 2.2, z + 1)
 			)
 		)
 	end

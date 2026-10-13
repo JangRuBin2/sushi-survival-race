@@ -15,6 +15,7 @@ local Layout = RobloxRequire.require(Shared.maps.DessertFridgeLayout)
 local Logic = RobloxRequire.require(Shared.maps.DessertFridgeLogic)
 local Art = RobloxRequire.require(Shared.maps.DessertFridgeArt)
 local DessertFridge = RobloxRequire.require(Shared.maps.DessertFridge)
+local MapLighting = RobloxRequire.require(Shared.maps.MapLighting)
 
 local EPS = 1e-6
 local GRAVITY = 196.2
@@ -367,19 +368,56 @@ return function(t: Test.Test)
 		t.eq(Layout.HOLES[2].z, -70)
 	end)
 
-	t.test("AC7: 장식이 MapKitLogic.validate 통과, 600개 이하, 소개 카메라 4점", function()
-		local decor = Art.decor()
-		t.eq(MapKitLogic.validate(decor), nil)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)}`)
-		t.eq(#Art.introCamera(), 4)
-	end)
+	t.test(
+		"AC7·AC16: 장식이 validate 통과, Extended 예산 안(checkBudget), 코스 공간과 안 겹치고, 조명 프리셋이 있어요",
+		function()
+			local decor = Art.decor()
+			t.eq(MapKitLogic.validate(decor), nil)
+			t.eq(Art.BUDGET, "Extended")
+			t.eq(MapKitLogic.checkBudget(decor, "Extended"), nil)
+			t.ok(MapKitLogic.count(decor) <= 1500, `decor {MapKitLogic.count(decor)}`)
+			t.ok(MapKitLogic.countShadowedLights(decor) <= 2, "shadowed lights")
+			t.ok(MapKitLogic.countParticles(decor) + 2 <= 16, "particles incl. 2 judgment frost emitters")
+			t.ok(MapKitLogic.countAnimated(decor) >= 3, "at least 3 animated decor")
+			t.ok(MapKitLogic.countParticles(decor) >= 2, "at least 2 particle emitters")
+			-- SurfaceLight는 Roblox 한계 16 이하
+			for _, spec in decor do
+				if spec.light and spec.light.kind == "Surface" then
+					t.ok(spec.light.range <= 16, `{spec.name} surface light range {spec.light.range}`)
+				end
+			end
+			-- 코스 시야 상자(각 바닥 위 2~12)에 장식이 없어요
+			for i, spec in decor do
+				local b = MapKitLogic.bounds({ spec }) :: any
+				for j, volume in Art.courseVolume() do
+					local overlap = b.min.x < volume.max.x
+						and b.max.x > volume.min.x
+						and b.min.y < volume.max.y
+						and b.max.y > volume.min.y
+						and b.min.z < volume.max.z
+						and b.max.z > volume.min.z
+					t.ok(not overlap, `decor #{i} {spec.name} overlaps course volume #{j}`)
+				end
+			end
+			-- 배경 바닥(채소 서랍 윗면)은 낙하 탈락선(-25)보다 10 이상 아래
+			t.ok(Art.DRAWER_TOP_Y <= Logic.fallLineAt(0) - 10, "crisper below the fall line")
+			t.ok(Art.KITCHEN_FLOOR_Y <= Logic.fallLineAt(0) - 10, "kitchen floor below the fall line")
+			-- 조명 프리셋
+			t.eq(DessertFridge.lighting, Art.LIGHTING)
+			t.eq(MapLighting.validate(Art.LIGHTING), nil)
+			t.eq(#Art.introCamera(), 4)
+		end
+	)
 
 	t.test("AC8: 서버 모듈이 판정 지오메트리에 태그를 달아요 (Ice·Jelly·ColdFan)", function()
 		local source = fs.readFile("src/shared/maps/DessertFridge.luau")
 		t.ok(string.find(source, 'TAG_JELLY = "Jelly"', 1, true) ~= nil)
 		t.ok(string.find(source, 'TAG_FAN = "ColdFan"', 1, true) ~= nil)
 		t.ok(string.find(source, "IceLogic.TAG", 1, true) ~= nil)
-		t.ok(string.find(source, "MoveExempt.mark", 1, true) ~= nil)
+		-- 이동 감시 면제는 젤리 튕김 한 곳뿐 (송풍구는 연속 밀기라 안 달아요 — 결정 Q2)
+		local _, marks = string.gsub(source, "MoveExempt%.mark%(", "")
+		t.eq(marks, 1, "only the jelly bounce marks MoveExempt")
+		t.ok(string.find(source, "MoveExempt.mark(character, Layout.JELLY_EXEMPT)", 1, true) ~= nil)
 		local client = fs.readFile("src/client/input/IceController.luau")
 		t.ok(string.find(client, "IceLogic.step", 1, true) ~= nil)
 		t.ok(string.find(client, "RunService.Stepped", 1, true) ~= nil)

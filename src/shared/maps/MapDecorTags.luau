@@ -9,4 +9,14 @@ local MapDecorTags = {}
 MapDecorTags.EyeBlink = "MapDecorEyeBlink" -- rotating-belt 손님 얼굴 눈 (이따금 깜빡임)
 MapDecorTags.Wobble = "MapDecorWobble" -- hot-plate 선반 간장병 (좌우로 천천히 흔들림)
 
+-- m5-23
+MapDecorTags.Anim = "MapDecorAnim" -- DecorSpec.anim이 있는 장식 (MapKit.buildDecor가 달아요, 클라이언트가 움직여요)
+MapDecorTags.Arena = "MapArena" -- 라운드 맵 Model (RoundService가 달아요, 클라이언트 MapLightingController가 찾아요)
+
+-- Anim 태그 파츠의 속성 이름 (MapDecorAnimLogic.offset 인자)
+MapDecorTags.AnimKind = "AnimKind" -- string: Spin | Bob | Sway | Pulse
+MapDecorTags.AnimPeriod = "AnimPeriod" -- number: 초
+MapDecorTags.AnimAmount = "AnimAmount" -- number
+MapDecorTags.AnimAxis = "AnimAxis" -- string: X | Y | Z
+
 return MapDecorTags

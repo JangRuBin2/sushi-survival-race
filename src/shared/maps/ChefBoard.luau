@@ -17,6 +17,7 @@ local Config = require(script.Parent.Parent.Config)
 local Logic = require(script.Parent.ChefBoardLogic)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 local MoveExempt = require(script.Parent.Parent.MoveExempt)
 
@@ -568,6 +569,7 @@ end
 
 local ChefBoard: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Survival",
 	displayName = "셰프의 도마",
 	rule = "칼이 내려치는 줄을 피하고, 잘려 나가는 도마 위에서 끝까지 버티세요!",

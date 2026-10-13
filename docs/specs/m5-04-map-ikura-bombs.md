@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-04 — 두 번째 결승 맵: 연어알 폭탄 접시 (`ikura-bombs`)
@@ -111,6 +111,17 @@ status: in-dev
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE B — 아트 (2026-10-13, m5-23 키트, Extended 예산)
+- **상태**: `in-qa`. 검증 5단계 통과 (rojo build, stylua, selene 0/0/0, lune **1590 통과 0 실패**, luau-lsp 끝 코드 0).
+- **최종 렌더 PNG** (`lune run tools/render-map ikura-bombs`, origin/main e07e08d 이후 렌더러): `docs/renders/ikura-bombs/after-overview.png`, `after-eye.png`, `after-mobile.png`, `after-intro-01.png`, `after-intro-02.png`, `after-intro-04.png`, `after-top.png` (전: `before-overview.png`·`before-eye.png`·`before-intro-01.png`).
+- **최종 stats**: decor 1182/1500, lights 10/24 (그림자 1/2), particles 7/16, anim 71/80, void intro-01 2% · intro-02 5% · intro-03 0% · intro-04 4% · overview 3% · eye 5% · mobile 5%.
+- **바뀐 파일**
+  - `IkuraBombsArt.luau` 전면: 도자기 접시(남색 립 −0.12, 두 단 흰·남 테두리는 칸보다 1 넘게 낮게, 물결 점, 몸통·굽), 와사비·생강 종지 2개(r 31, 윗면 −2.5 아래), 연어알 군함말이 탑(김 원통 높이 66 + 밥 띠 + 넘치는 연어알 더미·흘러내린 줄기·부두에 굴러떨어진 알, Pulse), 나무 부두(윗면 −45, 판자 3 shade, 말뚝·계류 기둥·밧줄, SeaSpray, 차가운 유리 부표 등), 바다(−62, 반사) + 먼 섬 실루엣 + 등대(빛) + 지는 해(Neon) + 작은 배·부표·갈매기(Bob/Sway), +X·+Z 가게 거리 6채(둥근 벽·기와 처마·노렌 Sway·불 켜진 창·초롱 빛/Sparkle), 출발 쪽 뒤 노점(+X: 카운터·남색 옻칠 지붕·노렌·초롱 3·찻잔 Steam·간장병·초밥 접시), 그림자 SpotLight 1개 달린 나무 기둥 등(접시 위 고정 — 숟가락 그림자), 부두 소품 무리(술통·상자·생선 바구니 scatter). `tileDecor`(칸 경계 금빛 선, 칸 Model 안 Decor 폴더), `spoonDecor`(셰프 팔·커프·손·은 숟가락·담긴 연어알), `LIGHTING`(17.8 골든아워, 복숭아 안개 + 보라 감쇠), `BUDGET = "Extended"`, IntroCamera 4점(전부 판정 경계 + 40 안).
+  - `IkuraBombs.luau`: 칸 경계 선 부착, 숟가락 Model을 `Art.spoonDecor`로 만들고 Decor 폴더 안에 둠(판정 지오메트리가 아님), `lighting = Art.LIGHTING`, **경고 원을 불투명 빨강 SmoothPlastic + 흰 테두리 원판, 깜빡임은 색(빨강 ↔ 밝은 빨강)**으로 바꿈 — 렌더에서 반투명 Neon 빨강이 빛 번짐에 하얗게 날아가 연어알 주황·바닥과 구분이 약했어요. 판정 수치·지오메트리는 그대로.
+  - 테스트: `tests/map-ikura-bombs.spec.luau` 23개(아트: checkBudget Extended·그림자 ≤ 2·파티클·anim, 움직이는 숟가락·칸 장식에 anim·조명 없음, 시야 상자, 가짜 바닥 없음, 배경 바닥 ≤ 탈락선 −10, lighting validate, 소개 카메라 경계). `tests/m5-03-qa.spec.luau`: ikura-bombs 껍데기 build/start/overtime 확인을 뺌(껍데기가 실제 맵으로 바뀜 — tempura-pot·dessert-fridge만 남김).
+- **Studio 확인 (AC18 추가)**: 결승 시작 때 조명이 해 질 녘으로 바뀌는지, 기둥 등 SpotLight 아래 숟가락 그림자가 접시에 떨어지는지, 휴대폰 에뮬레이터에서 빨간 경고 원(흰 테두리)이 연어알 주황과 헷갈리지 않는지. 셰프 팔 소매가 숟가락을 따라 움직일 때 카메라를 가리지 않는지.
+- **남은 이슈**: 숟가락 팔은 폭탄 위치로 평행 이동만 해요(관절 없음). 갈매기는 원 궤도 대신 Bob(파츠 자체 Spin은 제자리 회전이라). 소개 3번(위에서 반전)은 숟가락 그릇이 화면 위쪽에 크게 걸려요(의도: 숟가락 아래 접시).
+
 ### PHASE A (2026-10-13, 게임플레이만 — 아트는 PHASE B, m5-23 비주얼 키트 뒤)
 - **상태**: `in-dev` 유지 (아트 PHASE B가 남아서 아직 `in-qa`로 넘기지 않아요).
 - **바뀐 파일**

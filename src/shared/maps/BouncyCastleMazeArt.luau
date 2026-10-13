@@ -1174,6 +1174,74 @@ local function addTicketBooth(list: { DecorSpec }, x: number, z: number)
 	})
 end
 
+-- 입구 길 옆 꽃밭 + 피크닉 돗자리 (3/4 뷰 앞쪽 빈 잔디를 채우는 FG/MG 무리)
+local function addPicnic(list: { DecorSpec })
+	local flowers = { RED, YELLOW, PIPING, { r = 240, g = 120, b = 180 } }
+	for b, bed in { { -40, 110, 34 }, { 46, 150, 26 } } do
+		local bx, bz, d = bed[1], bed[2], bed[3]
+		add(list, "FlowerBedRim", "Cylinder", v(1.6, d + 2, d + 2), PATH, "Concrete", v(bx, GROUND + 0.8, bz), UP)
+		add(
+			list,
+			"FlowerBedSoil",
+			"Cylinder",
+			v(1.8, d, d),
+			{ r = 108, g = 76, b = 52 },
+			"Mud",
+			v(bx, GROUND + 0.9, bz),
+			UP
+		)
+		local rng = MapKitShapes.rng(300 + b)
+		for k = 1, 12 do
+			local a = rng:range(0, math.pi * 2)
+			local r = rng:range(1, d / 2 - 2)
+			local fs = rng:range(2.2, 3.4)
+			add(
+				list,
+				"FlowerHead",
+				"Ball",
+				v(fs, fs, fs),
+				flowers[k % #flowers + 1],
+				"SmoothPlastic",
+				v(bx + math.cos(a) * r, GROUND + 2.6 + rng:range(0, 1), bz + math.sin(a) * r)
+			)
+		end
+	end
+	-- 돗자리 (빨강·흰 체크 4칸) + 도시락 상자 + 주스 병
+	local mats = { { -70, 70, 12 }, { 36, 96, -18 } }
+	for m, mat in mats do
+		local parts: { DecorSpec } = {}
+		for i = 0, 1 do
+			for j = 0, 1 do
+				add(
+					parts,
+					"PicnicMat",
+					"Block",
+					v(8, 0.2, 8),
+					if (i + j) % 2 == 0 then RED else PIPING,
+					"Fabric",
+					v(-4 + i * 8, GROUND + 0.2, -4 + j * 8)
+				)
+			end
+		end
+		append(
+			parts,
+			MapKitShapes.roundedBox(
+				"PicnicBox",
+				v(5, 2.4, 4),
+				if m == 1 then BLUE else GREEN,
+				"SmoothPlastic",
+				v(-2, GROUND + 1.4, 1),
+				{ radius = 0.5, style = "vertical" }
+			)
+		)
+		add(parts, "PicnicBottle", "Cylinder", v(4, 1.4, 1.4), YELLOW, "Glass", v(3, GROUND + 2.2, -2), UP, {
+			transparency = 0.2,
+			reflectance = 0.15,
+		})
+		append(list, MapKitShapes.transform(parts, v(mat[1], 0, mat[2]), v(0, mat[3], 0)))
+	end
+end
+
 function BouncyCastleMazeArt.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addFloorChecker(list)
@@ -1206,6 +1274,7 @@ function BouncyCastleMazeArt.decor(): { DecorSpec }
 	addTent(list, 300, 40, 110)
 	addSushiShop(list, 40, -640)
 	addTicketBooth(list, -30, 44)
+	addPicnic(list)
 	-- 먼 언덕 띠 (지평선 아래 빈 하늘이 안 보이게, 잔디밭 가장자리 바깥)
 	local hill = MapKitLogic.shades({ r = 98, g = 168, b = 96 })
 	for k = 0, 17 do
@@ -1225,10 +1294,10 @@ function BouncyCastleMazeArt.decor(): { DecorSpec }
 	local trees = {
 		{ -140, -60, 1.2 },
 		{ -170, -160, 1.4 },
-		{ -120, 60, 1 },
+		{ -190, 70, 1.1 },
 		{ 150, -120, 1.3 },
 		{ 140, 140, 1.1 },
-		{ -160, 180, 1.3 },
+		{ -230, 210, 1.3 },
 		{ 120, -420, 1.6 },
 		{ -420, -150, 1.8 },
 		{ 420, -520, 1.7 },

@@ -153,10 +153,7 @@ return function(t: Test.Test)
 	t.test("AC4: rewardFor — 이벤트 진행 중이면 재화도", function()
 		local codes = CodeLogic.validateConfig(fakeCodes())
 		local spooky = codes[2]
-		t.eq(
-			CodeLogic.rewardFor(spooky, HALLOWEEN_START),
-			{ coins = 100, tokens = 10, eventId = "halloween-2026" }
-		)
+		t.eq(CodeLogic.rewardFor(spooky, HALLOWEEN_START), { coins = 100, tokens = 10, eventId = "halloween-2026" })
 		t.eq(CodeLogic.rewardFor(spooky, HALLOWEEN_START - 1), { coins = 100 })
 		t.eq(CodeLogic.rewardFor(spooky, HALLOWEEN_END), { coins = 100 })
 		t.eq(CodeLogic.rewardFor(codes[1], HALLOWEEN_START), { coins = 200 })
@@ -214,22 +211,25 @@ return function(t: Test.Test)
 		t.eq(#problemsOf("GOOD123"), 1, "표 아님")
 	end)
 
-	t.test("AC5: validateConfig — 중복(대소문자 무시)은 처음 것만, 나쁜 코드만 빠져요", function()
-		local valid, problems = CodeLogic.validateConfig({
-			{ code = "DUP123", coins = 100 },
-			{ code = "dup123", coins = 200 },
-			{ code = "DUP123", coins = 300 },
-			{ code = "OTHER1", coins = 999 },
-			{ code = "OTHER2", coins = 50 },
-		})
-		t.eq(#valid, 2)
-		t.eq(valid[1].code, "DUP123")
-		t.eq(valid[1].coins, 100)
-		t.eq(valid[2].code, "OTHER2")
-		t.eq(#problems, 3)
-		local joined = table.concat(problems, "\n")
-		t.ok(string.find(joined, "duplicate", 1, true) ~= nil)
-	end)
+	t.test(
+		"AC5: validateConfig — 중복(대소문자 무시)은 처음 것만, 나쁜 코드만 빠져요",
+		function()
+			local valid, problems = CodeLogic.validateConfig({
+				{ code = "DUP123", coins = 100 },
+				{ code = "dup123", coins = 200 },
+				{ code = "DUP123", coins = 300 },
+				{ code = "OTHER1", coins = 999 },
+				{ code = "OTHER2", coins = 50 },
+			})
+			t.eq(#valid, 2)
+			t.eq(valid[1].code, "DUP123")
+			t.eq(valid[1].coins, 100)
+			t.eq(valid[2].code, "OTHER2")
+			t.eq(#problems, 3)
+			local joined = table.concat(problems, "\n")
+			t.ok(string.find(joined, "duplicate", 1, true) ~= nil)
+		end
+	)
 
 	t.test("AC6: message — Reason마다 문구", function()
 		t.eq(CodeLogic.message("Cooldown"), "잠시 뒤에 다시 해 주세요")

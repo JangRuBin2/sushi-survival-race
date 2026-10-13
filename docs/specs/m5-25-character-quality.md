@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-25 — 캐릭터 퀄리티 개선 (2단계: 새 기준 몸·얼굴·31종 재배치·작은 움직임)
@@ -141,3 +141,9 @@ status: in-dev
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 2026-10-13 developer
+  - 바뀐 파일: `src/shared/SushiBody.luau`(새 기준 몸·31종·joint/attach build·상수), `src/shared/CharacterAnimLogic.luau`(새, 순수), `src/client/fx/CharacterFxController.luau`(작은 움직임, 이름표 높이 상수, 몸 통통 0.3·누운 높이 1.8), `tools/render/LayoutCheck.luau`(원기둥 마개·같은 겉모습 제외), `tools/render-character.luau`(이름표·얼굴 카메라 높이), 테스트 `tests/m5-25-character-quality.spec.luau`(새) + 기준값 이동 `skins`·`sushi-body`·`m3-02-qa`·`m5-21-qa`·`m5-22-qa`, 렌더 `docs/renders/characters/after-*.png` 8장, 기록 `docs/developer/m5-25-character-quality.md`(렌더 비평 6회).
+  - 검증 5단계(2026-10-13, Windows 로컬): rojo build OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **1759 passed, 0 failed** · luau-lsp analyze 끝 코드 0.
+  - 수치: 계란초밥 외곽 3.80 × 4.32 × 2.97, GROUND_OFFSET 2.25, 파츠 28~40(평균 34.6), z-fighting 0·떠 있는 파츠 0(31종).
+  - Studio 확인 방법: AC13~AC18 그대로. 움직임은 Play(F5) 뒤 로비에서 가만히 5초(숨쉬기·깜빡임), 걷기·점프. 다른 사람은 Test → Clients and Servers 2명. 휴대폰은 Test → Device(가로 휴대폰). 넘어짐은 `Config.DEBUG.forceMapPlan`으로 날치알·꼬치 맵.
+  - 남은 이슈(P3 후보): 토핑 앞면이 곧은 띠라 살짝 머리띠처럼 보임(메시 단계), 유니콘 뿔은 쌓은 원기둥(나선 아님), 렌더러는 Sparkles를 못 그림(AC17 Studio).

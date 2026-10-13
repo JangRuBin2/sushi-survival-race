@@ -4,6 +4,9 @@
 
 ## 인계 메모 (최신이 위)
 
+### 2026-10-13 — 2단계로 넘어감
+- 2단계 스펙 `docs/specs/m5-25-character-quality.md`, 개발 기록·렌더 비평은 `docs/developer/m5-25-character-quality.md`. 아래 진단 8개는 그 스펙의 AC1~AC9로 옮겨졌어요. 이 문서는 1단계 기록으로 그대로 둬요.
+
 ### 2026-10-13 — 1단계 끝
 - 브랜치: `m5-25-character` (worktree `agent-a88fc8be8ece10a90`에서 `git push -u origin HEAD:m5-25-character`)
 - 끝난 것

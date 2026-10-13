@@ -358,6 +358,7 @@ local map: MapTypes.MapModule = {
 	rule = "좁은 선반 사이를 옮겨 다니며 버텨요. 가장자리 밖으로 밀리면 안 돼요!",
 	build = build,
 	start = start,
+	lighting = Art.LIGHTING, -- m5-24 오후 햇살 카페
 }
 
 return map

@@ -441,7 +441,7 @@ local function addCastleBody(list: { DecorSpec })
 	local tubeD = 3.6
 	local tubeTop = Layout.WALL_HEIGHT - 1
 	local outer = HALF + 0.5 + tubeD / 2 - 0.1
-	local shine = { reflectance = 0.08 }
+	local shine: Extra = { reflectance = 0.08 }
 	local i = 0
 	local z = Layout.START.front - 2
 	while z > Layout.FINISH.back + 1 do
@@ -646,7 +646,7 @@ local function addFinishArch(list: { DecorSpec })
 	local z = Layout.finishLineZ()
 	local base = Layout.WALL_HEIGHT + 0.8
 	local top = 27
-	local shine = { reflectance = 0.15 }
+	local shine: Extra = { reflectance = 0.15 }
 	for _, side in { -1, 1 } do
 		column(list, "FinishArchPost", side * (HALF + 0.25), base, z, top - base, 2.2, GOLD, "SmoothPlastic", shine)
 		add(

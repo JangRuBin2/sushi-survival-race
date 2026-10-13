@@ -42,7 +42,7 @@ local function addTorii(list: { DecorSpec })
 		add(list, {
 			name = "ToriiPillar",
 			shape = "Cylinder",
-			size = v(1.4, 16, 1.4),
+			size = v(16, 1.4, 1.4), -- m5-24: 원기둥 축(X)이 높이 — 전엔 축이 뒤바뀌어 지름 16 원판이었어요
 			color = PALETTE.Lacquer,
 			material = "Wood",
 			offset = v(side * 7, 8, z),
@@ -539,7 +539,7 @@ end
 
 -- 다리 끝 고정 기둥 (쉼터·출발·결승 가장자리, 판자 밖) + 기둥 위 작은 등 (Sway — 기둥은 고정)
 local function addBridgePosts(list: { DecorSpec })
-	for i, bridge in Layout.BRIDGES do
+	for _, bridge in Layout.BRIDGES do
 		for _, endZ in { bridge.front + 0.6, bridge.back - 0.6 } do
 			for _, side in { -1, 1 } do
 				local x = side * (bridge.halfWidth + 0.7)
@@ -1174,7 +1174,7 @@ function Art.introCamera(): { IntroPoint }
 	return {
 		{ pos = v(-10, 32, 36), lookAt = v(0, 0, -50) },
 		{ pos = v(12, 9, -46), lookAt = v(0, 0, -64) },
-		{ pos = v(-4, 26, -176), lookAt = v(0, -2, -112) },
+		{ pos = v(0, 15, -172), lookAt = v(0, -2, -112) },
 		{ pos = v(0, 8, 12), lookAt = v(0, 3, -24) },
 	}
 end

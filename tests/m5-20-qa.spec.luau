@@ -174,7 +174,7 @@ return function(t: Test.Test)
 				end
 			end
 			t.eq(got, want)
-			t.ok(MapKitLogic.count(RamenArt.decor()) <= MapKitLogic.DECOR_PART_BUDGET, "ramen budget")
+			t.eq(MapKitLogic.checkBudget(RamenArt.decor(), "Extended"), nil, "ramen budget") -- m5-24 D2
 		end
 	)
 

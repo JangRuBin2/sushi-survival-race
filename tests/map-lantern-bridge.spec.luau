@@ -192,7 +192,9 @@ return function(t: Test.Test)
 	t.test("AC10: 장식이 MapKitLogic.validate를 통과하고 파츠·조명 예산 안이에요", function()
 		local specs = Art.decor()
 		t.eq(MapKitLogic.validate(specs), nil)
-		t.ok(MapKitLogic.count(specs) <= MapKitLogic.DECOR_PART_BUDGET, "decor part budget")
+		-- m5-24 D2: 아트 패스로 Extended 예산 (이전: count <= DECOR_PART_BUDGET 600)
+		t.eq(Art.BUDGET, "Extended")
+		t.eq(MapKitLogic.checkBudget(specs, "Extended"), nil)
 		local lights = 0
 		for _, spec in specs do
 			if spec.name == Art.LANTERN then

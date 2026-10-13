@@ -62,7 +62,7 @@ local function placeDoll(podiumFolder: Instance)
 		return -- 아직 우승자 없음 (이름표만 "다음 우승자는 누구?")
 	end
 	local podium = LobbyLayout.PODIUM
-	local model = SushiBody.build(appearanceId)
+	local model = SushiBody.build(appearanceId, "Happy") -- 표정은 concept-salmon만 (m5-27)
 	model.Name = DOLL_NAME
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then

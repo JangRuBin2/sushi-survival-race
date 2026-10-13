@@ -1,0 +1,3 @@
+[render] giant-jenga decor=1101/1500 lights=7/24 (shadowed 1/2) particles=4/16 anim=5/80 tris=89888 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,overview:0%,eye:0%,mobile:0%,top:0% time=29.2s
+[render]   Survival · budget Extended · parts 1207 (judgment 106, decor 1101, hidden 3) · beams 0 · lighting map preset
+[render]   bounds all 546x480x526 · play area 50x12x50 · out build/renders/giant-jenga/

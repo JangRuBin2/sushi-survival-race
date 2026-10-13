@@ -140,7 +140,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- m5-21 효과 예산·박스 허용치 테이블
 	t.test(
-		"AC3: EFFECT_BUDGET·BOUNDS_TOLERANCE 값이 맞고 SushiBody는 아무것도 require하지 않아요",
+		"AC3: EFFECT_BUDGET·BOUNDS_TOLERANCE 값이 맞고 SushiBody는 순수 SushiConceptSample만 require해요 (m5-27)",
 		function()
 			t.eq(SushiBody.EFFECT_BUDGET.Common, 1)
 			t.eq(SushiBody.EFFECT_BUDGET.Rare, 1)
@@ -151,7 +151,12 @@ return function(t: Test.Test)
 			t.eq(SushiBody.BOUNDS_TOLERANCE.Epic, 0.25)
 			t.eq(SushiBody.BOUNDS_TOLERANCE.Legendary, 0.25)
 			local source = fs.readFile("src/shared/SushiBody.luau")
-			t.ok(string.find(source, "require(", 1, true) == nil, "SushiBody should not require anything")
+			-- 유일한 예외 (m5-27): 순수 SushiConceptSample 하나만, 그 모듈은 아무것도 require하지 않아요
+			local _, count = string.gsub(source, "require%(", "")
+			t.eq(count, 1, "SushiBody requires only SushiConceptSample")
+			t.ok(string.find(source, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil, "concept require")
+			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
+			t.ok(string.find(sample, "require(", 1, true) == nil, "SushiConceptSample should not require anything")
 		end
 	)
 

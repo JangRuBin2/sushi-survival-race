@@ -157,7 +157,7 @@ function ShopController.start(_gui: Instance)
 		if busy or current == nil or skin == nil then
 			return
 		end
-		local owned = table.find(current.ownedSkins, skinId) ~= nil or skinId == Skins.DEFAULT_ID
+		local owned = table.find(current.ownedSkins, skinId) ~= nil or Skins.isFree(skinId)
 		if current.equippedSkin == skinId then
 			return
 		end

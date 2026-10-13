@@ -319,7 +319,8 @@ return function(t: Test.Test)
 	t.test("AC8: 장식이 MapKitLogic.validate 통과, 파츠·파티클·조명 예산 안", function()
 		local decor = Art.decor()
 		t.eq(MapKitLogic.validate(decor), nil)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)} parts`)
+		-- m5-24 D2: 아트 패스로 Extended 예산 (장식 1500·조명 24·그림자 2·파티클 16·움직임 80)
+		t.eq(MapKitLogic.checkBudget(decor, "Extended", { lights = 3 }), nil, `decor {MapKitLogic.count(decor)} parts`)
 		local lamps = 0
 		for _, spec in decor do
 			if spec.name == Art.LAMP_BULB then

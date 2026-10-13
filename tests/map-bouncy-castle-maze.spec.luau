@@ -249,10 +249,9 @@ return function(t: Test.Test)
 		function()
 			local decor = Art.decor()
 			t.eq(MapKitLogic.validate(decor), nil)
-			t.ok(
-				MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET,
-				`decor part count {MapKitLogic.count(decor)}`
-			)
+			-- m5-24 D2: 아트 패스로 Extended 예산 (이전: count <= DECOR_PART_BUDGET 600)
+			t.eq(Art.BUDGET, "Extended")
+			t.eq(MapKitLogic.checkBudget(decor, "Extended"), nil)
 
 			local lampCount = 0
 			for _, spec in decor do

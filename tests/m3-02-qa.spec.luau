@@ -247,6 +247,7 @@ local function baseEnv(env: Env, sharedModules: { [string]: any }): { [string]: 
 				return assert(services[name], `no fake service {name}`)
 			end,
 		},
+		script = { Parent = sharedFolder }, -- SushiBody가 형제 SushiConceptSample을 불러요 (m5-27)
 		Instance = Instance,
 		Vector3 = Vector3,
 		CFrame = CFrame,
@@ -276,7 +277,10 @@ end
 
 local function loadAll(): (any, any, Env)
 	local env: Env = { warnings = {}, starterPlayer = { LoadCharacterAppearance = true } }
-	local SushiBody = load("src/shared/SushiBody.luau", baseEnv(env, {}))
+	local SushiBody = load(
+		"src/shared/SushiBody.luau",
+		baseEnv(env, { SushiConceptSample = RobloxRequire.require(Shared.SushiConceptSample) })
+	)
 	local AppearanceService = load(
 		"src/server/AppearanceService.luau",
 		baseEnv(env, { Attributes = Attributes, Config = Config, SushiBody = SushiBody })

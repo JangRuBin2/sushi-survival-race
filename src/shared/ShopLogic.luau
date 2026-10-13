@@ -145,8 +145,8 @@ function ShopLogic.canEquip(skinId: unknown, ownedSkins: { [string]: boolean }, 
 	if skin == nil then
 		return false, "UnknownSkin"
 	end
-	if ownedSkins[skin.id] ~= true then
-		return false, "NotOwned"
+	if ownedSkins[skin.id] ~= true and not Skins.isFree(skin.id) then
+		return false, "NotOwned" -- 무료 스킨(계란초밥·실험 스킨)은 저장된 목록에 없어도 가져요 (m5-27)
 	end
 	if locked then
 		return false, "Locked"
@@ -166,7 +166,7 @@ function ShopLogic.canBuyWithCoins(skinId: unknown, wallet: Wallet, canSave: boo
 	if skin == nil then
 		return { ok = false, reason = "UnknownSkin" }
 	end
-	if wallet.ownedSkins[skin.id] == true then
+	if wallet.ownedSkins[skin.id] == true or Skins.isFree(skin.id) then
 		return { ok = false, reason = "AlreadyOwned" }
 	end
 	local price = skin.coins
@@ -338,7 +338,7 @@ function ShopLogic.defaultTab(now: number?): Tab
 end
 
 local function owns(view: ViewLike, skin: Skins.Skin): boolean
-	return skin.id == Skins.DEFAULT_ID or table.find(view.ownedSkins, skin.id) ~= nil
+	return Skins.isFree(skin.id) or table.find(view.ownedSkins, skin.id) ~= nil
 end
 
 function ShopLogic.visibleSkins(view: ViewLike, tab: Tab?, now: number?): { Skins.Skin }

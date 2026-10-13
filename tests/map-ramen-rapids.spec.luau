@@ -315,7 +315,7 @@ return function(t: Test.Test)
 	t.test("AC6: 장식이 validate 통과, 600개 이하, 구간별 시야 상자와 안 겹쳐요", function()
 		local decor = Art.decor()
 		t.eq(MapKitLogic.validate(decor), nil)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)}`)
+		t.eq(MapKitLogic.checkBudget(decor, "Extended"), nil, `decor {MapKitLogic.count(decor)}`) -- m5-24 D2
 		t.ok(#Art.steamPoints() == 3 and #Art.steamPoints() <= MapKitLogic.PARTICLE_BUDGET, "steam emitters 3")
 		local volumes = Art.courseVolumes()
 		t.eq(#volumes, 5)
@@ -368,7 +368,7 @@ return function(t: Test.Test)
 		t.eq(countNamed(decor, "Kombu"), 12)
 		t.eq(countNamed(decor, "SesameSeed"), 20)
 		t.eq(countNamed(decor, "ChopstickRest"), 6)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)}`)
+		t.eq(MapKitLogic.checkBudget(decor, "Extended"), nil, `decor {MapKitLogic.count(decor)}`) -- m5-24 D2
 		-- 급류 양옆(|x| >= 30)에만 있어요 (코스 공간과 안 겹침, AC6 테스트가 다시 확인해요)
 		for _, name in { "Kombu", "SesameSeed", "ChopstickRest" } do
 			for _, spec in decor do

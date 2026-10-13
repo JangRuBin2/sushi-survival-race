@@ -267,7 +267,10 @@ return function(t: Test.Test)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Rare, 0.15)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Epic, 0.25)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Legendary, 0.25)
-		t.eq(string.find(SUSHI_SOURCE, "require(", 1, true), nil)
+		-- m5-27: 유일한 require는 순수(아무것도 require하지 않는) SushiConceptSample
+		local _, requires = string.gsub(SUSHI_SOURCE, "require%(", "")
+		t.eq(requires, 1)
+		t.ok(string.find(SUSHI_SOURCE, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil)
 	end)
 
 	t.test(

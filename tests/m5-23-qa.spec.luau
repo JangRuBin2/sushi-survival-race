@@ -141,6 +141,15 @@ local function artBudgetTier(id: string): any
 	return "Standard"
 end
 
+-- m5-24 D4: 아트 패스 v2를 마친 맵은 <Map>Art.LIGHTING을 가져요 (없으면 nil → 아직 m5-23 프리셋)
+local function artModule(id: string): any
+	local pascal = (string.gsub("-" .. id, "%-(%w)", string.upper))
+	local ok, art = pcall(function()
+		return RobloxRequire.require((Shared.maps :: any)[pascal .. "Art"])
+	end)
+	return if ok and type(art) == "table" then art else nil
+end
+
 local function allIds(): { string }
 	local ids = {}
 	for _, info in Maps.allInfos() do
@@ -236,7 +245,13 @@ return function(t: Test.Test)
 			t.eq(MapTypes.validate(map), nil, id)
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
-			t.ok(Maps.get(id).lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			-- m5-24 D4: 아트 패스 v2를 마친 맵(Art.LIGHTING 있음)은 그 값을, 아직인 맵은 m5-23 프리셋을 그대로 써요
+			local art = artModule(id)
+			if art and art.LIGHTING ~= nil then
+				t.ok(Maps.get(id).lighting == art.LIGHTING, `{id} uses Art.LIGHTING (m5-24)`)
+			else
+				t.ok(Maps.get(id).lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			end
 		end
 	end)
 
@@ -456,10 +471,23 @@ return function(t: Test.Test)
 				end
 				return lights, particles
 			end
+			-- m5-24 D2: 아트 패스 v2를 마친 맵(Art.BUDGET = Extended)은 DecorSpec 조명·파티클이 늘어요 → 렌더러 수 =
+			-- 장식 목록 수 + 코드가 Instance.new로 붙인 m5-20 수 (렌더러 통계 = lune 카운트라는 원래 뜻은 그대로)
+			local function expected(id: string, codeLights: number, codeParticles: number): { number }
+				local art = artModule(id)
+				if art and art.BUDGET == "Extended" and type(art.decor) == "function" then
+					local decor = art.decor()
+					return {
+						MapKitLogic.countLights(decor) + codeLights,
+						MapKitLogic.countParticles(decor) + codeParticles,
+					}
+				end
+				return { codeLights, codeParticles }
+			end
 			local l1, p1 = count(buildAt("rotating-belt", 1).model)
-			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
+			t.eq({ l1, p1 }, expected("rotating-belt", 3, 2), "rotating-belt lights/particles")
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
-			t.eq({ l2, p2 }, { 2, 3 }, "soy-swamp lights/particles")
+			t.eq({ l2, p2 }, expected("soy-swamp", 2, 3), "soy-swamp lights/particles")
 			-- 모든 맵이 자기 예산 단계(<Map>Art.BUDGET, 없으면 Standard — 렌더러 budgetTier와 같은 규칙) 조명·파티클 안
 			-- (Instance.new 포함 실제 수). 단계는 맵마다 Art 모듈에서 읽어요 (m5-05 QA: 하드코딩 목록 대신).
 			local extendedSeen = 0

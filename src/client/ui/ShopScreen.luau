@@ -379,7 +379,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		if previewModel then
 			previewModel:Destroy()
 		end
-		local ok, model = pcall(SushiBody.build, skinId)
+		local ok, model = pcall(SushiBody.build, skinId, nil) -- 표정 없음 (기본)
 		if not ok then
 			warn(`[ShopScreen] preview failed: {model}`)
 			previewModel = nil

@@ -197,7 +197,7 @@ return function(t: Test.Test)
 	---------------------------------------------------------------- 예산
 	t.test("QA AC6: 장식 전체(칸 장식 + 배경)가 예산 안", function()
 		local total = MapKitLogic.count(Art.decor()) + MapKitLogic.count(Art.allCellDecor())
-		t.ok(total <= MapKitLogic.DECOR_PART_BUDGET, `decor {total}`)
+		t.ok(total <= MapKitLogic.budget(Art.BUDGET).parts, `decor {total}`) -- m5-24 (D2): Extended
 	end)
 
 	-- m5-20: 등 3개(가운데 넓게·양옆 좁게)와 칼이 닿는 순간 한 번 터지는 불꽃 1개를 추가했어요.

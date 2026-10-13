@@ -850,7 +850,6 @@ local function addArcadeCabinet(list: { DecorSpec }, x: number, z: number, yaw: 
 		color = MapKitLogic.shade(screen, 0.9),
 		material = "Neon",
 		offset = v(0, 158, -23.5),
-		transparency = 0.15,
 	})
 	-- 조작대 (쐐기) + 버튼 3개
 	add(specs, {

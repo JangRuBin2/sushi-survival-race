@@ -166,3 +166,10 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### 그룹 A …). 바뀐 파일, 바꾼 아트 수량 단언 목록, 전/후 PNG 경로, 휴대폰 성능 메모, Studio 확인 방법, 남은 이슈 -->
+
+### 그룹 C (ramen-rapids · giant-jenga · claw-machine-prize)
+- 자세한 기록(반복 비평 18개·바꾼 단언 전후·휴대폰 메모·Studio 확인): `docs/developer/m5-24-group-c.md` "인계 2".
+- 바뀐 파일: `RamenRapidsArt.luau`·`RamenRapids.luau`(lighting 한 줄), `GiantJengaArt.luau`·`GiantJenga.luau`(lighting 한 줄), `ClawMachinePrizeArt.luau`·`ClawMachinePrize.luau`(lighting 한 줄), 새 테스트 `tests/m5-24-c.spec.luau`.
+- 바꾼 아트 수량 단언(D2): `map-ramen-rapids.spec.luau` 318·371, `m5-20-qa.spec.luau` 177, `map-giant-jenga.spec.luau` 322, `map-claw-machine-prize.spec.luau` 257, `m5-23-visual-kit.spec.luau` AC7, `m5-23-qa.spec.luau` "기존 6개는 프리셋을 씀"(Extended 맵은 자기 Art.LIGHTING).
+- 전/후 PNG: `docs/renders/<mapId>/before-*.png` → `after-*.png`. void% 후: 세 맵 eye·overview·intro 전부 0~1%.
+- 남은 이슈: 인형뽑기 Decor는 연장전 모델 기울기 때문에 Pulse만(미러볼 Spin 뺌). Studio AC12~15 사용자 확인 필요.

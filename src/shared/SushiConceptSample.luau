@@ -335,7 +335,7 @@ end
 -- 계란초밥: 모서리가 모두 둥근 두툼한 노란 계란말이 (폭신한 베개) + 앞·뒤 겹 줄 + 가운데 김 띠 (위 → 앞 / 위 → 등 아래)
 local EGG_W, EGG_T, EGG_D = 3.96, 1.1, 2.98 -- 폭·두께·깊이 (모서리 반지름 = 두께/2)
 local EGG_Y = 1.38 -- 중심 (y 0.83~1.93, 밥 위끝 1.0 아래로 0.17 늘어져요 — 꼭대기가 연어 돔(1.97)과 비슷)
-local EGG_TOP, EGG_BOTTOM = EGG_Y + EGG_T / 2, EGG_Y - EGG_T / 2
+local EGG_TOP = EGG_Y + EGG_T / 2
 local EGG_EDGE_Z = (EGG_D - EGG_T) / 2 -- 앞뒤 둥근 모서리 원기둥 z
 local function tamagoTopping(_variant: Variant): { PartSpec }
 	local band = NORI_W

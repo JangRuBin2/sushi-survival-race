@@ -975,12 +975,14 @@ end
 SushiBody.GROUND_OFFSET = 2.25
 assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concept skin feet must match GROUND_OFFSET")
 
--- 실험 스킨의 명시적 예외 (m5-27). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
--- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 새 실험 스킨을 넣을 때만 늘려요.
-SushiBody.EXPERIMENTAL = {} :: { [string]: { partBudget: number, expressions: { string } } }
+-- 실험 스킨의 명시적 예외 (m5-27·m5-28). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
+-- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
+type ExperimentalRule = { partBudget: number, expressions: { string } }
+local experimental: { [string]: ExperimentalRule } = {}
 for id in CONCEPT_IDS do
-	SushiBody.EXPERIMENTAL[id] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS }
+	experimental[id] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS :: any }
 end
+SushiBody.EXPERIMENTAL = experimental
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
 

@@ -12,6 +12,7 @@ local Layout = require(script.Parent.SoySwampLayout)
 local MoveExempt = require(script.Parent.Parent.MoveExempt)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
+local WorldText = require(script.Parent.Parent.WorldText)
 
 local Hazards = {}
 
@@ -109,7 +110,7 @@ local function showSpicyText(ctx: MapTypes.RoundContext, character: Model)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = "매워!!"
+	WorldText.mark(label, "map.soy-swamp.spicy") -- 클라이언트 WorldTextController가 그 사람 언어로 채워요 (m5-26)
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBlack
 	label.TextColor3 = Color3.fromRGB(120, 220, 60)

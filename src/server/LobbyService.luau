@@ -4,9 +4,10 @@
 --   start(): Workspace.Lobby를 코드로 지어요 (매치 플레이스면 안 지어요) + 우승자 단상
 -- 건물(벽·기둥·카운터·레일·단상)은 충돌 있음, 나머지는 MapKit 장식 규칙(충돌·쿼리·터치 없음).
 -- 레일 접시는 서버에서는 멈춰 있고, 클라이언트 LobbyFxController가 로컬로 돌려요 (복제·서버 부하 없음).
--- 단상: MatchEvents.onWinnerShowcase가 올 때마다 가장 최근 우승자 1명으로 바꿔요. 서버는 이름표(BillboardGui)와
--- Podium 폴더 속성(LobbyLayout.WINNER_ATTRS)만 두고, 초밥 인형은 클라이언트 LobbyFxController가 그 속성으로 세워요.
--- 인형·이름은 플레이어가 나가도 남아요. 아무도 없으면 "다음 우승자는 누구?".
+-- 단상: MatchEvents.onWinnerShowcase가 올 때마다 가장 최근 우승자 1명으로 바꿔요. 서버는 빈 이름표(BillboardGui)와
+-- Podium 폴더 속성(LobbyLayout.WINNER_ATTRS, Attributes.WinnerName·WinnerWins)만 두고, 초밥 인형과 이름표 글씨는
+-- 클라이언트 LobbyFxController가 그 속성으로 만들어요 (글씨는 PodiumLogic → Loc, m5-26 — 서버는 문장을 만들지 않아요).
+-- 인형·이름은 플레이어가 나가도 남아요. 아무도 없으면 빈 상태 문구(lobby.podium.empty).
 -- 시즌 이벤트 장식 (m5-07): 로비를 지은 뒤와 10분마다 진행 중 이벤트(Seasons.current, Studio면 Config.DEBUG.eventNow)를
 -- 보고 카운터 주변 장식을 켜고 꺼요. 할로윈: 호박 등 6개·보라 조명 2 / 크리스마스: 작은 트리 2·눈 입자 1·선물 상자 4.
 -- 모두 MapKit 장식 규칙(충돌·쿼리·터치 없음), 이벤트마다 파츠 40개 이하 (SEASON_DECOR_BUDGET).
@@ -19,11 +20,11 @@ local RunService = game:GetService("RunService")
 local DataService = require(script.Parent.DataService)
 local MatchEvents = require(script.Parent.MatchEvents)
 local PlaceService = require(script.Parent.PlaceService)
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local LobbyLayout = require(ReplicatedStorage.Shared.LobbyLayout)
 local MapKit = require(ReplicatedStorage.Shared.maps.MapKit)
 local MapKitLogic = require(ReplicatedStorage.Shared.maps.MapKitLogic)
-local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 
 local LobbyService = {}
@@ -38,7 +39,6 @@ local SEASON_DECOR_BUDGET = 40 -- 이벤트 하나당 장식 파츠
 local podiumFolder: Folder? = nil
 local lobbyModel: Model? = nil
 local seasonDecorKind: string? = nil -- 지금 켠 장식 종류 ("halloween" / "christmas" / nil)
-local labels: { name: TextLabel, title: TextLabel, wins: TextLabel }? = nil
 local showcaseSerial = 0
 
 local function color(c: MapKitLogic.RGB): Color3
@@ -148,6 +148,7 @@ local function makeLabel(name: string, order: number, height: number, textColor:
 	label.TextStrokeTransparency = 0.3
 	label.TextStrokeColor3 = Color3.fromRGB(40, 24, 12)
 	label.Text = ""
+	label.AutoLocalize = false -- 우승자 이름을 번역하지 않게 (m5-26). 문구는 클라이언트가 Loc으로
 	label.Parent = parent
 	return label
 end
@@ -157,7 +158,7 @@ local function buildPodium(parent: Instance)
 	podiumFolder = folder("Podium", parent)
 
 	local anchor = Instance.new("Part")
-	anchor.Name = "ShowcaseLabel"
+	anchor.Name = LobbyLayout.PODIUM_ANCHOR
 	anchor.Size = Vector3.new(1, 1, 1)
 	anchor.Transparency = 1
 	anchor.CFrame = CFrame.new(podium.center.x, podium.labelHeight, podium.center.z)
@@ -165,7 +166,7 @@ local function buildPodium(parent: Instance)
 	anchor.Parent = podiumFolder
 
 	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "Showcase"
+	billboard.Name = LobbyLayout.PODIUM_BILLBOARD
 	billboard.Size = UDim2.fromScale(14, 4.5) -- studs (월드 크기라 멀어지면 작아져요)
 	billboard.LightInfluence = 0
 	billboard.MaxDistance = 160
@@ -177,23 +178,10 @@ local function buildPodium(parent: Instance)
 	list.VerticalAlignment = Enum.VerticalAlignment.Bottom
 	list.Parent = billboard
 
-	labels = {
-		name = makeLabel("Name", 1, 0.45, Color3.fromRGB(255, 214, 90), billboard),
-		title = makeLabel("Title", 2, 0.3, Color3.fromRGB(255, 255, 255), billboard),
-		wins = makeLabel("Wins", 3, 0.25, Color3.fromRGB(255, 236, 210), billboard),
-	}
-end
-
-local function setLabels(nameText: string, titleText: string?, winsText: string?)
-	local l = labels
-	if l == nil then
-		return
-	end
-	l.name.Text = nameText
-	l.title.Text = titleText or ""
-	l.title.Visible = titleText ~= nil
-	l.wins.Text = winsText or ""
-	l.wins.Visible = winsText ~= nil
+	-- 글씨는 비워 둬요 — 클라이언트 LobbyFxController가 속성(WinnerName·WinnerWins)으로 그 사람 언어로 채워요 (m5-26)
+	makeLabel(LobbyLayout.PODIUM_LABELS.name, 1, 0.45, Color3.fromRGB(255, 214, 90), billboard)
+	makeLabel(LobbyLayout.PODIUM_LABELS.title, 2, 0.3, Color3.fromRGB(255, 255, 255), billboard)
+	makeLabel(LobbyLayout.PODIUM_LABELS.wins, 3, 0.25, Color3.fromRGB(255, 236, 210), billboard)
 end
 
 local function onWinnerShowcase(info: MatchEvents.WinnerShowcaseInfo)
@@ -201,23 +189,22 @@ local function onWinnerShowcase(info: MatchEvents.WinnerShowcaseInfo)
 	if parent == nil or parent.Parent == nil then
 		return
 	end
-	-- 가장 최근 1명만: 속성을 바꾸면 클라이언트가 전 인형을 치우고 새로 세워요.
+	-- 승수는 프로필에서 읽어요 (나간 사람이면 이름만). 문장·칭호는 클라이언트가 그 사람 언어로 만들어요 (m5-26).
+	local wins: number? = nil
+	local player = Players:GetPlayerByUserId(info.userId)
+	local profile = player and DataService.get(player)
+	if profile and profile.wins > 0 then
+		wins = profile.wins
+	end
+	parent:SetAttribute(Attributes.WinnerName, info.name)
+	parent:SetAttribute(Attributes.WinnerWins, wins)
+
+	-- 가장 최근 1명만: 속성을 바꾸면 클라이언트가 전 인형을 치우고 새로 세워요 (serial은 맨 나중에).
 	-- 인형은 클라이언트(LobbyFxController)가 만들어요 — 서버에서 초밥 몸을 만드는 곳은 AppearanceService 하나뿐 (m3-02 규칙).
 	showcaseSerial += 1
 	parent:SetAttribute(LobbyLayout.WINNER_ATTRS.userId, info.userId)
 	parent:SetAttribute(LobbyLayout.WINNER_ATTRS.appearanceId, info.appearanceId)
 	parent:SetAttribute(LobbyLayout.WINNER_ATTRS.serial, showcaseSerial)
-
-	-- 칭호·승수는 프로필에서 읽어요 (나간 사람이면 이름만)
-	local titleText: string? = nil
-	local winsText: string? = nil
-	local player = Players:GetPlayerByUserId(info.userId)
-	local profile = player and DataService.get(player)
-	if profile and profile.wins > 0 then
-		titleText = ProfileSchema.titleFor(profile.wins)
-		winsText = `{profile.wins}승`
-	end
-	setLabels(`🏆 {info.name}`, titleText, winsText)
 end
 
 ---------------------------------------------------------------- 시즌 이벤트 장식 (m5-07)
@@ -423,7 +410,6 @@ local function buildLobby()
 	addLights(decor)
 	buildPlates(lobby)
 	buildPodium(lobby)
-	setLabels(LobbyLayout.PODIUM.emptyText, nil, nil)
 	MapKit.attachStudioArt(lobby, STUDIO_ART_ID, CFrame.identity)
 
 	-- 다 지은 뒤 한 번에 Workspace로 (클라이언트에 한 묶음으로 복제돼요)

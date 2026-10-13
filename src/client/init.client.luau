@@ -26,6 +26,7 @@ local CONTROLLERS = {
 	require(script.ui.UiScaleController), -- m4-09
 	require(script.ui.CoinController), -- m4-08
 	require(script.fx.LobbyFxController), -- m4-06
+	require(script.fx.WorldTextController), -- m5-26 서버가 키만 단 월드 글씨 (와사비 "매워!!")
 	require(script.ui.ShopController), -- m4-13
 	require(script.ui.AdminController), -- m5-02 (관리자에게만 패널을 만들어요)
 	-- m5-03 껍데기 (각 스펙이 채워요)

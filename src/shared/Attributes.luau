@@ -30,6 +30,14 @@ local Attributes = {
 	EliminationFx = "EliminationFx", -- string: 입은 탈락 연출 id (없으면 기본). 모든 클라이언트가 연출을 고를 때 읽어요 (m5-09)
 	VictoryFx = "VictoryFx", -- string: 입은 우승 연출 id (없으면 기본) (m5-09)
 
+	-- Workspace.Lobby.Podium 폴더 (서버 LobbyService가 달아요, m5-26 2단계). 서버는 문장을 만들지 않고 값만 둬요 —
+	-- 클라이언트 LobbyFxController가 PodiumLogic.view → Loc으로 이름표를 채워요. (인형 속성은 LobbyLayout.WINNER_ATTRS)
+	WinnerName = "WinnerName", -- string: 가장 최근 우승자 DisplayName (아직 없으면 없음)
+	WinnerWins = "WinnerWins", -- number: 그 사람 승수 (프로필을 못 읽었으면 없음 — 이름만 보여요)
+
+	-- 서버가 만든 월드 글씨 TextLabel (WorldText.mark, m5-26 2단계)
+	LocKey = "LocKey", -- string: Strings.csv 키. 클라이언트 WorldTextController가 Loc.t(키)로 채워요
+
 	-- 라운드 맵 Model (RoundService.prepareRound가 Workspace에 넣기 전에 달아요)
 	RoomId = "RoomId", -- string: 이 맵을 쓰는 방
 	RoundIndex = "RoundIndex", -- number: 몇 번째 라운드인지 (1부터)

@@ -17,7 +17,9 @@
 -- 해가 캐릭터 앞쪽 왼편 30°에서 오도록 캐릭터를 돌려 세워요(어느 조명이든 얼굴에 빛). 같은 입력이면 같은 PNG 바이트.
 -- 콘셉트 견본 (m5-27): --sample concept 이면 스킨 대신 SushiConceptSample(사용자 콘셉트 시트를 따른 연어초밥 견본,
 -- 게임에서는 안 써요)을 그려요 → <out>/<light>/concept/ 에 turntable(서기)·turntable-run(달리기)·expressions(표정 4종)·
--- gameplay-back/front·mobile-back/front·compare(지금 게임 연어 ↔ 견본, 3/4·뒤). 배우 id "concept:<표정>:<자세>".
+-- gameplay-back/front·mobile-back/front·compare(지금 게임 연어 ↔ 견본, 3/4·뒤). 배우 id "concept:<표정>:<자세>[:<스킨 id>]".
+-- m5-28: --sample concept-tuna 처럼 콘셉트 몸 스킨 id를 주면 같은 그림 묶음을 그 토핑으로 <out>/<light>/<스킨 id>/에 그려요
+-- (compare는 같은 음식의 지금 게임 스킨 ↔ 콘셉트, 예: tuna ↔ concept-tuna). --sample concept = concept-salmon 견본(예전 그대로).
 -- 한계: tools/render-map과 같아요 (Sparkles·Decal·SurfaceGui·이름표는 안 그려요, 파티클은 한 순간의 점 구름).
 -- gameplay 뷰의 이름표는 렌더 뒤에 5×7 픽셀 글자로 흉내만 내요 (진짜는 GothamBold 18px).
 
@@ -69,7 +71,10 @@ while i <= #args do
 		i += 1
 	elseif a == "--sample" then
 		sampleArg = args[i + 1]
-		assert(sampleArg == "concept", "--sample must be concept")
+		assert(
+			sampleArg == "concept" or string.match(sampleArg or "", "^concept%-") ~= nil,
+			"--sample must be concept or a concept skin id (concept-tuna ...)"
+		)
 		i += 1
 	elseif a == "--help" or a == "-h" then
 		print(
@@ -162,16 +167,17 @@ local function newScene(): Scene.Scene
 end
 
 -- 게임과 같은 build로 만든 캐릭터를 (x, z)에 yaw로 세워요. 돌려주는 값: Model
--- 배우 id: 스킨 id, 또는 "concept:<표정>:<자세>" (콘셉트 견본, m5-27)
-local function conceptArgs(id: string): (string?, string?)
-	local expression, pose = string.match(id, "^concept:(%a+):(%a+)$")
-	return expression, pose
+-- 배우 id: 스킨 id, 또는 "concept:<표정>:<자세>[:<콘셉트 스킨 id>]" (콘셉트 견본, m5-27·m5-28)
+local function conceptArgs(id: string): (string?, string?, string?)
+	local expression, pose, rest = string.match(id, "^concept:(%a+):(%a+)(.*)$")
+	local skinId = if rest and rest ~= "" then string.sub(rest, 2) else nil
+	return expression, pose, skinId
 end
 
 local function layoutOf(id: string): { any }
-	local expression, pose = conceptArgs(id)
+	local expression, pose, skinId = conceptArgs(id)
 	if expression then
-		return ConceptSample.layout(expression, pose)
+		return ConceptSample.layout(expression, pose, skinId)
 	end
 	return SushiBody.layout(id)
 end
@@ -181,8 +187,8 @@ local function groundOffsetOf(id: string): number
 end
 
 local function placeCharacter(scene: Scene.Scene, id: string, x: number, z: number, yaw: number): any
-	local expression, pose = conceptArgs(id)
-	local model = if expression then ConceptSample.build(expression, pose) else SushiBody.build(id)
+	local expression, pose, skinId = conceptArgs(id)
+	local model = if expression then ConceptSample.build(expression, pose, skinId) else SushiBody.build(id)
 	model:PivotTo(roblox.CFrame.new(x, groundOffsetOf(id), z) * roblox.CFrame.Angles(0, yaw, 0))
 	Scene.addModel(scene, model)
 	return model
@@ -408,14 +414,45 @@ local CONCEPT_FRONT_ACTORS: { Actor } = {
 	{ id = "concept:Flustered:Stand", x = 3.2, z = 1, turn = 185, tag = "Player3" },
 }
 
+-- m5-28 콘셉트 스킨 하나 (skinId): 그 스킨이 나(뒤 카메라)·가운데이고, 다른 콘셉트 스킨 둘이 옆에 서요 (서로 구분되는지)
+local function conceptId(expression: string, pose: string, skinId: string?): string
+	return if skinId then `concept:{expression}:{pose}:{skinId}` else `concept:{expression}:{pose}`
+end
+
+local function otherConcepts(skinId: string): (string, string)
+	local others = {}
+	for _, id in ConceptSample.SKIN_IDS do
+		if id ~= skinId then
+			table.insert(others, id)
+		end
+	end
+	return others[1], others[#others]
+end
+
+local function conceptActors(skinId: string?): ({ Actor }, { Actor })
+	if skinId == nil then
+		return CONCEPT_BACK_ACTORS, CONCEPT_FRONT_ACTORS
+	end
+	local a, b = otherConcepts(skinId)
+	return {
+		{ id = conceptId("Default", "Run", skinId), x = 0, z = 0, turn = 0 },
+		{ id = conceptId("Happy", "Run", a), x = -4, z = 8, turn = 160, tag = "Player2" },
+		{ id = conceptId("Flustered", "Run", b), x = 5, z = 16, turn = 100, tag = "Player3" },
+	}, {
+		{ id = conceptId("Happy", "Stand", a), x = -3.2, z = 1, turn = 180, tag = "Player1" },
+		{ id = conceptId("Default", "Run", skinId), x = 0, z = 3, turn = 175, tag = "Player2" },
+		{ id = conceptId("Flustered", "Stand", b), x = 3.2, z = 1, turn = 185, tag = "Player3" },
+	}
+end
+
 -- 표정 4종: 얼굴 가까이 (밥 앞면 높이, 살짝 오른쪽에서)
-local function renderExpressions(dir: string, lighting: any)
+local function renderExpressions(dir: string, lighting: any, skinId: string?)
 	local w, h, pad = 360, 300, 6
 	local list = ConceptSample.EXPRESSIONS
 	local sheet = Sheet.new(pad + #list * (w + pad), pad * 2 + h + LABEL_H, { 200, 200, 204 })
 	local yaw = keyYaw(lighting)
 	for index, expression in list do
-		local id = `concept:{expression}:Stand`
+		local id = conceptId(expression, "Stand", skinId)
 		local scene = newScene()
 		placeCharacter(scene, id, 0, 0, yaw)
 		local cy = groundOffsetOf(id) + 0.2
@@ -426,14 +463,19 @@ local function renderExpressions(dir: string, lighting: any)
 	save(`{dir}/expressions.png`, sheet)
 end
 
--- 지금 게임 연어 ↔ 콘셉트 견본 (3/4 앞, 뒤)
-local function renderCompare(dir: string, lighting: any)
+-- 지금 게임 스킨 ↔ 콘셉트 (3/4 앞, 뒤). 견본은 연어, 스킨 id면 같은 음식 (concept-tuna ↔ tuna, concept-ikura ↔ ikura)
+local function renderCompare(dir: string, lighting: any, skinId: string?)
 	local w, h, pad = 300, 340, 6
+	local now = if skinId then string.sub(skinId, #"concept-" + 1) else "salmon"
+	if Skins.get(now) == nil then
+		now = "salmon"
+	end
+	local concept = conceptId("Default", "Stand", skinId)
 	local cells = {
-		{ id = "salmon", az = 30, label = "NOW 3/4" },
-		{ id = "salmon", az = 180, label = "NOW BACK" },
-		{ id = CONCEPT, az = 30, label = "CONCEPT 3/4" },
-		{ id = CONCEPT, az = 180, label = "CONCEPT BACK" },
+		{ id = now, az = 30, label = "NOW 3/4" },
+		{ id = now, az = 180, label = "NOW BACK" },
+		{ id = concept, az = 30, label = "CONCEPT 3/4" },
+		{ id = concept, az = 180, label = "CONCEPT BACK" },
 	}
 	local sheet = Sheet.new(pad + #cells * (w + pad), pad * 2 + h + LABEL_H, { 200, 200, 204 })
 	for index, cell in cells do
@@ -444,24 +486,26 @@ local function renderCompare(dir: string, lighting: any)
 	save(`{dir}/compare.png`, sheet)
 end
 
-local function renderConcept(root: string, lighting: any)
-	local dir = `{root}/concept`
+-- skinId 없음 = 견본(concept-salmon, <root>/concept), 있으면 <root>/<skinId>
+local function renderConcept(root: string, lighting: any, skinId: string?)
+	local dir = `{root}/{skinId or "concept"}`
 	fs.writeDir(dir)
+	local back, front = conceptActors(skinId)
 	if wants("turntable") then
-		renderTurntable(dir, lighting, CONCEPT, "turntable", "concept")
-		renderTurntable(dir, lighting, "concept:Happy:Run", "turntable-run", "run")
+		renderTurntable(dir, lighting, conceptId("Default", "Stand", skinId), "turntable", skinId or "concept")
+		renderTurntable(dir, lighting, conceptId("Happy", "Run", skinId), "turntable-run", "run")
 	end
 	if wants("face") then
-		renderExpressions(dir, lighting)
+		renderExpressions(dir, lighting, skinId)
 	end
 	if wants("gameplay") then
-		renderGameplay(dir, lighting, "gameplay-back", CONCEPT_BACK_ACTORS, 960, 540)
-		renderGameplay(dir, lighting, "gameplay-front", CONCEPT_FRONT_ACTORS, 960, 540)
-		renderGameplay(dir, lighting, "mobile-back", CONCEPT_BACK_ACTORS, 480, 270)
-		renderGameplay(dir, lighting, "mobile-front", CONCEPT_FRONT_ACTORS, 480, 270)
+		renderGameplay(dir, lighting, "gameplay-back", back, 960, 540)
+		renderGameplay(dir, lighting, "gameplay-front", front, 960, 540)
+		renderGameplay(dir, lighting, "mobile-back", back, 480, 270)
+		renderGameplay(dir, lighting, "mobile-front", front, 480, 270)
 	end
 	if wants("compare") then
-		renderCompare(dir, lighting)
+		renderCompare(dir, lighting, skinId)
 	end
 end
 
@@ -522,29 +566,38 @@ local function skinStats(id: string): string
 end
 
 -- ── 실행 ────────────────────────────────────────────────────────────
-if sampleArg == "concept" then
+if sampleArg ~= nil then
+	local skinId: string? = if sampleArg == "concept" then nil else sampleArg
+	if skinId then
+		assert(
+			table.find(ConceptSample.SKIN_IDS, skinId) ~= nil,
+			`unknown concept skin {skinId} (concept skins: {table.concat(ConceptSample.SKIN_IDS, ", ")})`
+		)
+	end
 	for _, light in LIGHTS do
 		local t0 = os.clock()
-		renderConcept(`{outDir}/{light.name}`, light.lighting)
+		renderConcept(`{outDir}/{light.name}`, light.lighting, skinId)
 		print(
 			string.format(
-				"[render-character] concept %s: %s/%s/concept (%.1fs)",
+				"[render-character] %s %s: %s/%s/%s (%.1fs)",
+				skinId or "concept",
 				light.name,
 				outDir,
 				light.name,
+				skinId or "concept",
 				os.clock() - t0
 			)
 		)
 	end
-	local layout = ConceptSample.layout()
+	local layout = ConceptSample.layout(nil, nil, skinId)
 	print(
-		`[render-character] concept parts {#layout} (Default·Stand), zfight {table.concat(
+		`[render-character] {skinId or "concept"} parts {#layout} (Default·Stand), zfight {table.concat(
 			LayoutCheck.zFight(layout),
 			";"
 		)}, floating {table.concat(LayoutCheck.floating(layout), ";")}`
 	)
 	for _, expression in ConceptSample.EXPRESSIONS do
-		print(`  {expression}: {#ConceptSample.layout(expression)} parts`)
+		print(`  {expression}: {#ConceptSample.layout(expression, nil, skinId)} parts`)
 	end
 	process.exit(0)
 end

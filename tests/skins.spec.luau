@@ -48,6 +48,11 @@ local EXPECTED = {
 	{ "crown-tuna", "크라운 참치", "Legendary", 199, nil },
 	{ "unicorn-roll", "유니콘 롤", "Legendary", 199, nil },
 	{ "concept-salmon", "콘셉트 연어초밥 (테스트)", "Basic", nil, nil }, -- m5-27 실험 스킨 (모두 무료)
+	-- m5-28 콘셉트 몸 실험 스킨 4종 (모두 무료)
+	{ "concept-tuna", "콘셉트 참치초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-shrimp", "콘셉트 새우초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-tamago", "콘셉트 계란초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-ikura", "콘셉트 연어알 군함 (테스트)", "Basic", nil, nil },
 }
 
 local TOLERANCE = 0.15
@@ -68,7 +73,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 카탈로그 32종(실험 스킨 1 포함)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
+		"AC1: 카탈로그 36종(실험 스킨 5 포함)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
 		function()
 			t.eq(#Skins.LIST, #EXPECTED)
 			for i, row in EXPECTED do
@@ -81,7 +86,7 @@ return function(t: Test.Test)
 				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
 				local pid = skin.productId
 				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-				if row[1] == "tamago" or row[1] == "concept-salmon" then
+				if row[1] == "tamago" or Skins.EXPERIMENTAL_IDS[row[1]] then
 					t.eq(pid, nil, "default skin has no product")
 				end
 				t.eq(Skins.get(row[1]), skin)
@@ -132,14 +137,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"byTier: 등급별 개수 (기본 2 = 계란초밥 + 실험 스킨, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
+		"byTier: 등급별 개수 (기본 6 = 계란초밥 + 실험 스킨 5, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
 		function()
-			t.eq(#Skins.byTier("Basic"), 2)
+			t.eq(#Skins.byTier("Basic"), 6)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
 			t.eq(#Skins.byTier("Legendary"), 6)
-			t.eq(#Skins.byTier(nil), 32)
+			t.eq(#Skins.byTier(nil), 36)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end

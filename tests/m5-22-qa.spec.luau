@@ -109,7 +109,7 @@ return function(t: Test.Test)
 			end
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.eq(ok, true, table.concat(problems, "; "))
-			t.eq(#Skins.LIST, 32) -- m5-27 실험 스킨 concept-salmon 포함
+			t.eq(#Skins.LIST, 36) -- m5-27·m5-28 실험 스킨 concept-* 5종 포함
 		end
 	)
 
@@ -190,8 +190,8 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("QA AC1: 등급별 개수 Basic 2(실험 1) / Common 8 / Rare 9 / Epic 7 / Legendary 6", function()
-		t.eq(#Skins.byTier("Basic"), 2)
+	t.test("QA AC1: 등급별 개수 Basic 6(실험 5) / Common 8 / Rare 9 / Epic 7 / Legendary 6", function()
+		t.eq(#Skins.byTier("Basic"), 6)
 		t.eq(#Skins.byTier("Common"), 8)
 		t.eq(#Skins.byTier("Rare"), 9)
 		t.eq(#Skins.byTier("Epic"), 7)

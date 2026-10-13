@@ -43,6 +43,10 @@ export type PartSpec = {
 
 SushiConceptSample.EXPRESSIONS = { "Default", "Happy", "Flustered", "Hurt" } :: { Expression }
 SushiConceptSample.POSES = { "Stand", "Run" } :: { Pose }
+-- 이 몸을 쓰는 실험 스킨 (m5-27 연어 + m5-28 참치·새우·계란·연어알 군함). 밥·얼굴·팔다리는 같고 토핑만 달라요
+local SALMON_ID = "concept-salmon"
+SushiConceptSample.SKIN_IDS =
+	{ SALMON_ID, "concept-tuna", "concept-shrimp", "concept-tamago", "concept-ikura" } :: { string }
 
 ---------------------------------------------------------------- 치수
 local RICE_W, RICE_H, RICE_D, RICE_R = 3.6, 2.0, 2.7, 0.45 -- 밥 (y -1.0~1.0, 세로 모서리 반지름)
@@ -79,6 +83,18 @@ local CHEEK = { 255, 170, 180 }
 local SWEAT = { 140, 210, 255 }
 local BANDAGE = { 250, 214, 170 }
 local BANDAGE_PAD = { 236, 180, 140 }
+-- m5-28 콘셉트 스킨 토핑 색
+local TUNA = { 186, 26, 48 } -- 진한 참치 빨강
+local TUNA_MARBLE = { 238, 118, 132 } -- 밝은 결 (힘줄·지방)
+local SHRIMP = { 255, 236, 222 } -- 익힌 새우 흰 바탕
+local SHRIMP_BAND = { 250, 112, 52 } -- 주황 줄
+local SHRIMP_TAIL = { 226, 52, 36 } -- 꼬리 부채
+local SHRIMP_RIM = { 255, 178, 132 } -- 늘어진 가장자리 (익은 새우 옆면의 주황빛)
+local EGG = { 255, 208, 64 } -- 계란말이
+local EGG_LAYER = { 196, 120, 30 } -- 겹 사이 갈색 줄
+local IKURA = { 255, 92, 28 } -- 연어알 (Glass)
+local CUCUMBER = { 92, 170, 70 } -- 연어알 군함 오이 조각
+local IKURA_BED = { 236, 96, 30 } -- 알 아래 깔린 주황 (김 그릇 윗면을 덮어요)
 
 ---------------------------------------------------------------- 도우미
 type Extra = { shape: Shape?, rotation: { number }?, joint: boolean?, transparency: number?, attach: string? }
@@ -199,36 +215,39 @@ local function join(...: { PartSpec }): { PartSpec }
 	return list
 end
 
----------------------------------------------------------------- 몸 (표정·자세와 무관)
-local function body(): { PartSpec }
-	return join(
-		roundedPrism("Body", { 0, 0, 0 }, RICE_W, RICE_H, RICE_D, RICE_R, RICE, "Salt"),
-		{
-			-- 아래 한 단 좁은 받침: 바닥 모서리가 둥글어 보이게 (상자 두 개를 엇갈려 모서리를 깎아요)
-			piece("BodyBase", { RICE_W - 0.9, BASE_H, RICE_D - 0.3 }, RICE, { 0, -1.0 - BASE_H / 2 + 0.01, 0 }, "Salt"),
-			piece(
-				"BodyBaseWide",
-				{ RICE_W - 0.3, BASE_H, RICE_D - 0.9 },
-				RICE,
-				{ 0, -1.0 - BASE_H / 2 + 0.01, 0 },
-				"Salt"
-			),
-		},
-		-- 연어: 늘어진 베개 + 돔 등성이
-		pillow("Topping", { 0, TOP_Y, 0 }, TOP_W, TOP_T, TOP_D, SALMON),
-		{
-			piece(
-				"Ridge",
-				{ 2 * RIDGE_HALF, RIDGE_D, RIDGE_D },
-				SALMON,
-				{ 0, RIDGE_Y, 0 },
-				nil,
-				{ shape = "Cylinder" }
-			),
-			ball("RidgeLeft", RIDGE_D, SALMON, { -RIDGE_HALF, RIDGE_Y, 0 }),
-			ball("RidgeRight", RIDGE_D, SALMON, { RIDGE_HALF, RIDGE_Y, 0 }),
-		}
-	)
+---------------------------------------------------------------- 몸 (표정·자세·토핑과 무관 — 모든 콘셉트 스킨이 같아요)
+local function rice(): { PartSpec }
+	return join(roundedPrism("Body", { 0, 0, 0 }, RICE_W, RICE_H, RICE_D, RICE_R, RICE, "Salt"), {
+		-- 아래 한 단 좁은 받침: 바닥 모서리가 둥글어 보이게 (상자 두 개를 엇갈려 모서리를 깎아요)
+		piece("BodyBase", { RICE_W - 0.9, BASE_H, RICE_D - 0.3 }, RICE, { 0, -1.0 - BASE_H / 2 + 0.01, 0 }, "Salt"),
+		piece("BodyBaseWide", { RICE_W - 0.3, BASE_H, RICE_D - 0.9 }, RICE, { 0, -1.0 - BASE_H / 2 + 0.01, 0 }, "Salt"),
+	})
+end
+
+---------------------------------------------------------------- 토핑: 늘어진 베개 + 돔 (연어·참치·새우가 같이 써요)
+-- rimColor: 늘어진 가장자리(베개) 색 — 없으면 돔과 같아요 (새우는 가장자리가 주황빛)
+local function dome(color: { number }, material: string?, rimColor: { number }?): { PartSpec }
+	return join(pillow("Topping", { 0, TOP_Y, 0 }, TOP_W, TOP_T, TOP_D, rimColor or color, material), {
+		piece(
+			"Ridge",
+			{ 2 * RIDGE_HALF, RIDGE_D, RIDGE_D },
+			color,
+			{ 0, RIDGE_Y, 0 },
+			material,
+			{ shape = "Cylinder" }
+		),
+		ball("RidgeLeft", RIDGE_D, color, { -RIDGE_HALF, RIDGE_Y, 0 }, material),
+		ball("RidgeRight", RIDGE_D, color, { RIDGE_HALF, RIDGE_Y, 0 }, material),
+	})
+end
+
+-- 돔을 앞뒤로 가로지르는 줄 하나 (돔과 같은 축의 얇은 원판 조각 — 표면을 따라 휘어 보여요).
+-- 돔 끝(공 부분)에서는 그 자리 단면 지름에 맞춰요. lift = 돔 표면 위로 나오는 두께
+local function domeBand(name: string, x: number, width: number, color: { number }, lift: number?): PartSpec
+	local over = math.max(0, math.abs(x) - RIDGE_HALF)
+	local r = RIDGE_D / 2
+	local d = 2 * math.sqrt(r * r - over * over) + 2 * (lift or 0.02)
+	return piece(name, { width, d, d }, color, { x, RIDGE_Y, 0 }, nil, { shape = "Cylinder" })
 end
 
 -- 지방 줄: 등성이와 앞 늘어짐을 가로지르는 얇은 원판 조각 (같은 축이라 표면을 따라 휘어 보여요)
@@ -236,16 +255,7 @@ local STRIPE_X = { -0.95, 0.5, 1.12 }
 local function stripes(variant: Variant): { PartSpec }
 	local list: { PartSpec } = {}
 	for i, x in STRIPE_X do
-		-- 등성이 끝(공 부분)에서는 그 자리 단면 지름에 맞춰요
-		local over = math.max(0, math.abs(x) - RIDGE_HALF)
-		local r = RIDGE_D / 2
-		local d = 2 * math.sqrt(r * r - over * over) + 0.04
-		table.insert(
-			list,
-			piece(`Stripe{i}`, { 0.12, d, d }, SALMON_FAT, { x, RIDGE_Y, 0 }, nil, {
-				shape = "Cylinder",
-			})
-		)
+		table.insert(list, domeBand(`Stripe{i}`, x, 0.12, SALMON_FAT))
 		if variant.game then
 			continue -- 게임 스킨은 파츠를 줄여요 (앞 늘어짐의 줄 조각은 작고 뒤 카메라에서 안 보여요)
 		end
@@ -281,6 +291,139 @@ local function nori(): { PartSpec }
 		),
 	}
 end
+
+---------------------------------------------------------------- 스킨별 토핑 (m5-28) — 밥·얼굴·팔다리·깜빡임 관절은 모두 같아요
+-- 토핑은 얼굴(밥 앞면 y 0.8 아래)을 가리지 않고, 발바닥·관절 이름은 건드리지 않아요. 상한: 가장 많은 표정(당황 27) + 토핑 ≤ 47 → 토핑 ≤ 20.
+
+-- 연어 (m5-27 그대로): 돔 + 지방 줄 + 가운데 김 띠
+local function salmonTopping(variant: Variant): { PartSpec }
+	return join(dome(SALMON), stripes(variant), nori())
+end
+
+-- 참치: 진한 빨강 돔 + 가늘고 간격이 고르지 않은 밝은 결 4줄 (김 띠 없음 — 뒤에서 연어와 바로 구분)
+local TUNA_MARBLE_X = { -1.1, -0.38, 0.32, 1.02 }
+local TUNA_MARBLE_W = { 0.17, 0.24, 0.14, 0.2 }
+local function tunaTopping(_variant: Variant): { PartSpec }
+	local list = dome(TUNA)
+	for i, x in TUNA_MARBLE_X do
+		table.insert(list, domeBand(`Marble{i}`, x, TUNA_MARBLE_W[i], TUNA_MARBLE))
+	end
+	return list
+end
+
+-- 새우: 흰 돔 + 굵은 주황 줄 4개 + 주황빛 가장자리 + 뒤로 솟은 빨간 꼬리 부채 3장 (뒤 카메라 실루엣)
+local SHRIMP_BAND_X = { -1.12, -0.38, 0.38, 1.12 }
+local function shrimpTopping(_variant: Variant): { PartSpec }
+	local list = dome(SHRIMP, nil, SHRIMP_RIM)
+	for i, x in SHRIMP_BAND_X do
+		table.insert(list, domeBand(`Band{i}`, x, 0.3, SHRIMP_BAND))
+	end
+	-- 꼬리 부채: 돔 뒤 꼭대기에서 위·뒤로 펼쳐져요 (가운데 + 양옆으로 기울인 쐐기)
+	for _, fan in { { "TailLeft", -1 }, { "TailMid", 0 }, { "TailRight", 1 } } do
+		local side = fan[2] :: number
+		table.insert(
+			list,
+			piece(fan[1] :: string, { 0.22, 1.15, 0.78 }, SHRIMP_TAIL, { side * 0.34, 2.0, 1.22 }, nil, {
+				shape = "Wedge",
+				rotation = { -25, 180, side * 28 },
+			})
+		)
+	end
+	return list
+end
+
+-- 계란초밥: 모서리가 모두 둥근 두툼한 노란 계란말이 (폭신한 베개) + 앞·뒤 겹 줄 + 가운데 김 띠 (위 → 앞 / 위 → 등 아래)
+local EGG_W, EGG_T, EGG_D = 3.96, 1.1, 2.98 -- 폭·두께·깊이 (모서리 반지름 = 두께/2)
+local EGG_Y = 1.38 -- 중심 (y 0.83~1.93, 밥 위끝 1.0 아래로 0.17 늘어져요 — 꼭대기가 연어 돔(1.97)과 비슷)
+local EGG_TOP = EGG_Y + EGG_T / 2
+local EGG_EDGE_Z = (EGG_D - EGG_T) / 2 -- 앞뒤 둥근 모서리 원기둥 z
+local function tamagoTopping(_variant: Variant): { PartSpec }
+	local band = NORI_W
+	return join(pillow("Topping", { 0, EGG_Y, 0 }, EGG_W, EGG_T, EGG_D, EGG), {
+		-- 겹 줄: 앞·뒤 둥근 모서리의 가장 튀어나온 곳에 얇은 선 (김 띠가 가운데를 덮어요)
+		piece(
+			"LayerFront",
+			{ EGG_W - EGG_T - 0.06, 0.1, 0.04 },
+			EGG_LAYER,
+			{ 0, EGG_Y - 0.08, -EGG_EDGE_Z - EGG_T / 2 + 0.01 }
+		),
+		piece(
+			"LayerBack",
+			{ EGG_W - EGG_T - 0.06, 0.1, 0.04 },
+			EGG_LAYER,
+			{ 0, EGG_Y - 0.08, EGG_EDGE_Z + EGG_T / 2 - 0.01 }
+		),
+		-- 김 띠: 평평한 윗면 + 앞뒤 둥근 모서리를 감싸는 같은 축 원기둥 조각 + 등 아래
+		piece("NoriTop", { band, 0.06, EGG_D - EGG_T + 0.04 }, NORI, { 0, EGG_TOP + 0.02, 0 }, "Fabric"),
+		piece("NoriFront", { band, EGG_T + 0.06, EGG_T + 0.06 }, NORI, { 0, EGG_Y, -EGG_EDGE_Z }, "Fabric", {
+			shape = "Cylinder",
+		}),
+		piece("NoriBack", { band, EGG_T + 0.06, EGG_T + 0.06 }, NORI, { 0, EGG_Y, EGG_EDGE_Z }, "Fabric", {
+			shape = "Cylinder",
+		}),
+		piece(
+			"NoriBackStrip",
+			{ band, EGG_Y - 0.1 + 0.97, 0.06 },
+			NORI,
+			{ 0, (EGG_Y - 0.1 - 0.97) / 2, RICE_D / 2 + 0.02 },
+			"Fabric"
+		),
+	})
+end
+
+-- 연어알 군함: 김 벽이 등·옆을 감싸고(앞은 밥 속으로 숨어 얼굴이 보여요) 밥보다 높이 솟아 그릇이 되고,
+-- 위에 주황 바닥 + 큰 연어알 몇 알 (파츠를 아끼려고 알을 크게)
+local WALL_W, WALL_D, WALL_R, WALL_Z = 3.72, 2.62, 0.5, 0.12 -- 앞 -1.19 (밥 앞면 -1.35 뒤), 뒤 1.43
+local WALL_BOTTOM, WALL_TOP = -0.94, 1.4
+local ROE_D = 0.68
+local ROE = {
+	{ -1.15, -0.45 },
+	{ -0.4, -0.55 },
+	{ 0.4, -0.5 },
+	{ 1.15, -0.4 },
+	{ -1.05, 0.6 },
+	{ -0.3, 0.55 },
+	{ 0.45, 0.65 },
+	{ 1.15, 0.6 },
+}
+local ROE_TOP = { { -0.75, 0.05 }, { 0.05, 0.0 }, { 0.8, 0.1 } } -- 두 번째 층 (가운데가 볼록)
+local function ikuraTopping(_variant: Variant): { PartSpec }
+	local list = roundedPrism(
+		"Wall",
+		{ 0, (WALL_BOTTOM + WALL_TOP) / 2, WALL_Z },
+		WALL_W,
+		WALL_TOP - WALL_BOTTOM,
+		WALL_D,
+		WALL_R,
+		NORI,
+		"Fabric"
+	)
+	local bedTop = WALL_TOP + 0.08
+	table.insert(list, piece("RoeBed", { WALL_W - 0.36, 0.2, WALL_D - 0.36 }, IKURA_BED, { 0, bedTop - 0.1, WALL_Z }))
+	for i, p in ROE do
+		table.insert(list, ball(`Roe{i}`, ROE_D, IKURA, { p[1], bedTop + 0.12, WALL_Z + p[2] }, "Glass"))
+	end
+	for i, p in ROE_TOP do
+		table.insert(list, ball(`RoeTop{i}`, ROE_D, IKURA, { p[1], bedTop + 0.5, WALL_Z + p[2] }, "Glass"))
+	end
+	-- 오이 한 조각: 뒤 왼쪽 구석에 비스듬히 꽂혀 초록 포인트 (뒤 카메라에서도 보여요)
+	table.insert(
+		list,
+		piece("Cucumber", { 0.12, 0.62, 0.62 }, CUCUMBER, { -1.35, bedTop + 0.3, WALL_Z + 0.85 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 35, 60 },
+		})
+	)
+	return list
+end
+
+local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
+	["concept-salmon"] = salmonTopping,
+	["concept-tuna"] = tunaTopping,
+	["concept-shrimp"] = shrimpTopping,
+	["concept-tamago"] = tamagoTopping,
+	["concept-ikura"] = ikuraTopping,
+}
 
 ---------------------------------------------------------------- 얼굴
 local EYE_X, EYE_Y = 0.52, -0.12
@@ -459,14 +602,28 @@ local function isExpression(value: unknown): boolean
 	return type(value) == "string" and table.find(SushiConceptSample.EXPRESSIONS, value :: any) ~= nil
 end
 
-function SushiConceptSample.layout(expression: Expression?, pose: Pose?): { PartSpec }
-	return join(body(), stripes(SAMPLE), nori(), face(expression or "Default", SAMPLE), limbs(pose or "Stand", SAMPLE))
+local function toppingOf(skinId: string?): (Variant) -> { PartSpec }
+	local id = skinId or SALMON_ID
+	local topping = TOPPINGS[id]
+	assert(topping ~= nil, `unknown concept skin {id}`)
+	return topping
 end
 
--- 게임 스킨 "concept-salmon" (서기 자세). 모르는 표정 이름이면 기본 표정이에요 (오류 없음)
-function SushiConceptSample.gameLayout(expression: string?): { PartSpec }
+-- 견본 (렌더용, 자세 포함). skinId 없으면 연어 (m5-27 그대로)
+function SushiConceptSample.layout(expression: Expression?, pose: Pose?, skinId: string?): { PartSpec }
+	return join(
+		rice(),
+		toppingOf(skinId)(SAMPLE),
+		face(expression or "Default", SAMPLE),
+		limbs(pose or "Stand", SAMPLE)
+	)
+end
+
+-- 게임 스킨 (서기 자세). skinId 없으면 "concept-salmon". 모르는 표정 이름이면 기본 표정이에요 (오류 없음),
+-- 모르는 skinId는 오류 (SushiBody가 SKIN_IDS만 넘겨요)
+function SushiConceptSample.gameLayout(expression: string?, skinId: string?): { PartSpec }
 	local chosen: Expression = if isExpression(expression) then expression :: any else "Default"
-	return join(body(), stripes(GAME), nori(), face(chosen, GAME), limbs("Stand", GAME))
+	return join(rice(), toppingOf(skinId)(GAME), face(chosen, GAME), limbs("Stand", GAME))
 end
 
 local function vec(v: { number }): Vector3
@@ -480,10 +637,10 @@ local function angles(rotation: { number }?): CFrame
 	return CFrame.Angles(math.rad(rotation[1]), math.rad(rotation[2]), math.rad(rotation[3]))
 end
 
-function SushiConceptSample.build(expression: Expression?, pose: Pose?): Model
+function SushiConceptSample.build(expression: Expression?, pose: Pose?, skinId: string?): Model
 	local model = Instance.new("Model")
 	model.Name = "SushiConceptSample"
-	local layout = SushiConceptSample.layout(expression, pose)
+	local layout = SushiConceptSample.layout(expression, pose, skinId)
 	local parts: { [string]: BasePart } = {}
 	for _, spec in layout do
 		local part = Instance.new("Part")

@@ -8,13 +8,13 @@
 --   BOUNDS_TOLERANCE[tier]  등급별 외곽 상자 허용 비율 (m5-21). 비교도 호출부의 몫 — bounds() 자체는 그대로.
 --   BASE_NAMES            모든 스킨이 계란초밥과 똑같이 가지는 기준 파츠 이름 (밥 몸·눈·입·볼·발, m5-25)
 --   PART_BUDGET           스킨 하나의 파츠 수 상한 (m5-25, 24명·모바일 기준)
---   build(appearanceId, expression?)   파츠를 만든 Model. expression은 표정이 있는 실험 스킨(concept-salmon)만 봐요
+--   build(appearanceId, expression?)   파츠를 만든 Model. expression은 표정이 있는 실험 스킨(concept-*)만 봐요
 --                         ("Default"·"Happy"·"Flustered"·"Hurt", 인형 연출용 — 나머지 스킨은 무시). PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27 concept-salmon): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27·m5-28 concept-* 5종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -57,7 +57,11 @@ export type Bounds = {
 }
 
 local DEFAULT_ID = "tamago"
-local CONCEPT_ID = "concept-salmon" -- m5-27 실험 스킨 (Skins.EXPERIMENTAL_IDS와 같은 id)
+-- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함, Skins.EXPERIMENTAL_IDS와 같은 id)
+local CONCEPT_IDS: { [string]: boolean } = {}
+for _, id in SushiConceptSample.SKIN_IDS do
+	CONCEPT_IDS[id] = true
+end
 
 ---------------------------------------------------------------- 치수 (m5-25)
 local RICE_W, RICE_H, RICE_D = 3.6, 2.4, 2.4 -- 밥 몸 (위에서 보면 알약, y -1.2~1.2)
@@ -961,18 +965,24 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 	}),
 }
 
--- 실험 스킨 (m5-27): 사용자 콘셉트 시트를 따른 연어초밥. 다른 모양 문법(돔 연어·팔)이라 기준 몸을 공유하지 않아요.
-LAYOUTS[CONCEPT_ID] = SushiConceptSample.gameLayout("Default")
+-- 실험 스킨 (m5-27·m5-28): 사용자 콘셉트 시트를 따른 콘셉트 몸. 다른 모양 문법(돔·팔)이라 기준 몸을 공유하지 않아요.
+-- 밥·얼굴·팔다리는 모두 같고 토핑만 달라요 (SushiConceptSample).
+for id in CONCEPT_IDS do
+	LAYOUTS[id] = SushiConceptSample.gameLayout("Default", id)
+end
 
 -- Body 중심에서 발바닥까지 (발 공 아래 y = -2.25)
 SushiBody.GROUND_OFFSET = 2.25
 assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concept skin feet must match GROUND_OFFSET")
 
--- 실험 스킨의 명시적 예외 (m5-27). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
--- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 새 실험 스킨을 넣을 때만 늘려요.
-SushiBody.EXPERIMENTAL = {
-	[CONCEPT_ID] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS },
-} :: { [string]: { partBudget: number, expressions: { string } } }
+-- 실험 스킨의 명시적 예외 (m5-27·m5-28). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
+-- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
+type ExperimentalRule = { partBudget: number, expressions: { string } }
+local experimental: { [string]: ExperimentalRule } = {}
+for id in CONCEPT_IDS do
+	experimental[id] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS :: any }
+end
+SushiBody.EXPERIMENTAL = experimental
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
 
@@ -1052,8 +1062,8 @@ end
 -- 파츠 목록 (복사본이라 고쳐도 원본은 안 바뀌어요)
 function SushiBody.layout(appearanceId: string, expression: string?): { PartSpec }
 	local source = LAYOUTS[appearanceId] or LAYOUTS[DEFAULT_ID]
-	if appearanceId == CONCEPT_ID and expression ~= nil then
-		source = SushiConceptSample.gameLayout(expression)
+	if CONCEPT_IDS[appearanceId] and expression ~= nil then
+		source = SushiConceptSample.gameLayout(expression, appearanceId)
 	end
 	local list = {}
 	for _, spec in source do

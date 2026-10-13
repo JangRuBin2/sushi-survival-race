@@ -273,34 +273,6 @@ for _, key in
 do
 	globals[key] = (roblox :: any)[key]
 end
-
--- Lune 0.10.5의 CFrame.lookAt / CFrame.new(pos, lookAt)은 회전이 틀려요(LookVector가 대상 쪽을 안 봐요 —
--- 예: (0,0,0) → (0,-1,-3)이면 (0, 0.32, 0.95)). Roblox와 같은 결과가 나오게 바로잡은 판을 넣어요 (m5-24에서 발견,
--- 소개 카메라 경유점이 전부 하늘을 보던 원인).
-local function lookAtFixed(from: any, to: any, up: any?): any
-	local look = to - from
-	if look.Magnitude < 1e-6 then
-		return CFrame.new(from)
-	end
-	look = look.Unit
-	local right = look:Cross(up or Vector3.new(0, 1, 0))
-	if right.Magnitude < 1e-6 then
-		right = look:Cross(Vector3.new(0, 0, 1))
-	end
-	right = right.Unit
-	return CFrame.fromMatrix(from, right, right:Cross(look), -look)
-end
-Env.lookAt = lookAtFixed
-globals.CFrame = setmetatable({
-	lookAt = lookAtFixed,
-	new = function(...)
-		local a, b = ...
-		if select("#", ...) == 2 and typeof(a) == "Vector3" and typeof(b) == "Vector3" then
-			return lookAtFixed(a, b)
-		end
-		return CFrame.new(...)
-	end,
-}, { __index = CFrame })
 -- 판정용 API는 build에서 만들기만 해요 — 빈 테이블로 충분해요
 globals.RaycastParams = {
 	new = function()

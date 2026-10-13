@@ -1,7 +1,7 @@
 --!strict
 -- m5-03 QA (docs/qa/m5-03-foundation.md): 개발 테스트(m5-03-foundation·seasons·fx-catalog)에 없는 경계값과
 -- 가짜 Roblox 환경에서 실제로 돌려 보는 확인.
---   맵 껍데기 2개(tempura-pot·dessert-fridge, ikura-bombs는 m5-04가 실제 맵으로): build(스폰 24개·바닥·결승선) / start(낙하·결승선)
+--   맵 껍데기 1개(tempura-pot — ikura-bombs는 m5-04, dessert-fridge는 m5-06이 실제 맵으로): build(스폰 24개·바닥·결승선) / start(낙하·결승선)
 --   (껍데기 서비스 확인은 m5-08·m5-10이 채워서 각 QA 테스트로 옮김)
 --   DataService.setViewExtra: 바뀔 때만 ProfileUpdated, 로드 전 기억, 나간 뒤 무시
 --   프로필 v2 경계: v1 두 번 migrate, 칸 모양이 틀린 v2 칸, redeemedCodes 정확히 200·201
@@ -433,36 +433,14 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test(
-		"QA 껍데기 build: dessert-fridge 결승선은 출발선에서 160 앞, 혼자~12명 스폰(1~12번)은 바닥 위",
-		function()
-			-- 13~24번은 바닥 끝 걸침·밖 (QA 리포트 B1, P3 — m5-06 AC1 "스폰은 A 구간 안"이 덮어쓰며 고침).
-			-- 여기서는 고쳐질 부분을 기대값으로 고정하지 않고, 지금 맞는 부분만 확인해요.
-			local env = loadMap("DessertFridge")
-			local model = env.map.build(origin())
-			local floor = model:FindFirstChild("Floor")
-			local spawns = model:FindFirstChild("Spawns"):GetChildren()
-			table.sort(spawns, function(a, b)
-				return a.Name < b.Name
-			end)
-			t.eq(#spawns, 24)
-			for i = 1, 12 do
-				t.ok(spawnOnFloor(spawns[i], floor, 1), `{spawns[i].Name} on the floor`)
-			end
-			local finish = model:FindFirstChild("FinishLine")
-			t.ok(finish ~= nil, "FinishLine")
-			t.eq(finish.CFrame.Position.Z - ORIGIN_Z, -160)
-			t.eq(finish.CanCollide, false)
-			-- 결승선 너머에도 바닥이 있어요 (통과 직후 떨어지지 않게)
-			t.ok(floor.CFrame.Position.Z - floor.Size.Z / 2 - ORIGIN_Z < -160, "floor extends past the finish")
-		end
-	)
+	-- dessert-fridge는 m5-06이 껍데기를 실제 맵으로 덮어써서(QA B1 스폰 바닥 밖 문제도 함께 닫힘) 여기서 빠졌어요.
+	-- 실제 맵 검사는 tests/map-dessert-fridge.spec.luau (스폰 24개 A 구간 안, 결승선 z -250).
 
 	---------------------------------------------------------------- 맵 껍데기 start
 	t.test(
 		"QA 껍데기 start: 낙하 25 아래면 탈락, 판 위면 그대로, 끝난 라운드에는 판정 안 함",
 		function()
-			for _, file in { "TempuraPot", "DessertFridge" } do -- ikura-bombs는 m5-04 실제 맵 (껍데기 판 없음)
+			for _, file in { "TempuraPot" } do -- ikura-bombs(m5-04)·dessert-fridge(m5-06)는 실제 맵 (tests/map-*.spec.luau)
 				local env = loadMap(file)
 				local model = env.map.build(origin())
 				local safe = racerAt("safe", 0, 3, -40)
@@ -482,20 +460,8 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("QA 껍데기 start: dessert-fridge 결승선(-Z 160)에서 통과, 159.9는 아직", function()
-		local env = loadMap("DessertFridge")
-		local model = env.map.build(origin())
-		local near = racerAt("near", 0, 3, -159.9)
-		local over = racerAt("over", 5, 3, -160)
-		local c = newCtx(model, { near, over })
-		env.map.start(c.ctx)
-		env.heartbeat:Fire()
-		t.eq(c.passed, { over })
-		t.eq(#c.eliminated, 0)
-	end)
-
-	-- ikura-bombs 껍데기 연장전 테스트 2개는 m5-04가 껍데기를 실제 맵으로 덮어써서 뺐어요
-	-- (고리 붕괴 일정은 tests/map-ikura-bombs.spec.luau AC7 overtimeRings).
+	-- dessert-fridge 결승선·ikura-bombs 연장전 껍데기 테스트는 실제 맵으로 바뀌어 뺐어요
+	-- (tests/map-dessert-fridge.spec.luau·m5-06-qa, tests/map-ikura-bombs.spec.luau·m5-04-qa).
 
 	-- 껍데기 서비스: OfferService(m5-08)·CodeService(m5-10)가 채워져서 껍데기 확인은 끝났어요.
 	-- 리모트 인자 검증은 실제 서비스로 tests/m5-08-qa.spec.luau·tests/m5-10-qa.spec.luau에서 확인해요.

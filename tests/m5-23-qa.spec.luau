@@ -448,13 +448,21 @@ return function(t: Test.Test)
 			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
 			t.eq({ l2, p2 }, { 2, 3 }, "soy-swamp lights/particles")
-			-- 모든 맵이 Standard 조명·파티클 예산 안 (Instance.new 포함 실제 수)
+			-- 모든 맵이 자기 예산 단계(<Map>Art.BUDGET, 없으면 Standard)의 조명·파티클 예산 안 (Instance.new 포함 실제 수)
+			-- (m5-06 dessert-fridge가 Extended를 처음 골라서 단계별로 확인하게 바꿨어요)
 			for _, id in allIds() do
+				local pascal = string.gsub("-" .. id, "%-(%w)", string.upper)
+				local ok, art = pcall(function()
+					return RobloxRequire.require((Shared.maps :: any)[pascal .. "Art"])
+				end)
+				local tier = if ok
+						and type(art) == "table"
+						and type(art.BUDGET) == "string"
+					then art.BUDGET
+					else "Standard"
+				local budget = MapKitLogic.budget(tier)
 				local l, p = count(buildAt(id, 1).model)
-				t.ok(
-					l <= MapKitLogic.LIGHT_BUDGET and p <= MapKitLogic.PARTICLE_BUDGET,
-					`{id}: {l} lights {p} particles`
-				)
+				t.ok(l <= budget.lights and p <= budget.particles, `{id} ({tier}): {l} lights {p} particles`)
 			end
 		end
 	)

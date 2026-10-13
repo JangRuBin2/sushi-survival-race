@@ -1,4 +1,4 @@
-status: in-qa
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-23 — 맵 비주얼 키트 + 미리보기 렌더러

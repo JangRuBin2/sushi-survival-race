@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-09 — 연출 팩 비주얼: 고양이 손님(탈락)·불꽃놀이(우승)
@@ -68,6 +68,46 @@ status: ready
 - 2026-10-08 · D1 첫 연출 팩 2개 · GDD 7·8의 예시 중 탈락 "고양이 손님"(먹는 쪽만 바꿔서 3변형 모두 적용 가능), 우승 "불꽃놀이"(기존 장면 위에 얹기만 하면 됨)를 먼저. 상어 손님·고래 타고 퇴장은 장면 구조가 달라 후속 · planner
 - 2026-10-08 · D2 흐름·길이 그대로 · 연출 길이는 서버 진행(탈락 3초 뒤 관전, 우승 10초)과 묶여 있어서 팩이 바꾸면 안 됨. 겉모습만 바꿔 Pay-to-Win·진행 차이 없음(GDD 9.1) · planner
 - 2026-10-08 · D3 고양이 대사가 스킨 대사보다 우선 · 먹는 쪽이 고양이라 말투를 맞춤. 스킨 전용 대사는 기본 연출에서 그대로 · **기본값, 사용자 수정 가능** · planner
+- 2026-10-13 · D4 (질문, 확인 필요) 불꽃 위치: "부두 위 하늘" 대신 **인형 뒤 바다 위 낮은 곳** · 카메라를 바꾸지 않는다는 규칙과 부딪쳐요. 박수 장면 카메라는 수면 위 높이 6에서 인형을 26도 내려다봐서 수평선 위 하늘이 화면 맨 위 13%뿐이고, 부두는 카메라 뒤에 있어요. 하늘에 띄운 시안을 `tools/render`로 그려 보니 불꽃이 작고 위가 잘리고 밝은 하늘에 묻혔어요. 그래서 수면 위 2.5~3.5에서 좌우로 번갈아 터뜨려 화면 위쪽 1/3을 채우고, 파란 바다를 배경으로 색을 살렸어요(불티가 바다로 흘러내림). 진짜 "하늘 높이"를 원하면 불꽃놀이일 때만 박수 카메라를 조금 들어 올려야 해서 기획 결정이 필요해요 · 개발 판단, planner·사용자 확인 대기 · developer
+- 2026-10-13 · D5 (해석) Chopsticks "젓가락은 고양이 발로 집고" → 젓가락은 그대로 두고 **고양이 발(주황 털 + 분홍 발바닥)이 젓가락 위쪽을 쥐어요**. 흐름(집기·간장·입)이 그대로 보이게. 젓가락 없이 발로만 집기를 원하면 알려 주세요 · developer
+- 2026-10-13 · D6 (해석) ChefHand 변형에는 Chomp 박자가 없어서, CatMeow는 `ChefHand` 박자(앞발이 내려오기 시작, 0초) 뒤 0.12초(3초 기준)에 울려요 (AC3의 "또는 ChefHand 박자") · developer
+- 2026-10-13 · D7 불꽃 색 5가지 중 "하늘색" 대신 **산호색**: 뒤가 파란 바다라 하늘색이 묻혀서 바다와 대비되는 금·분홍·산호·연두·보라로 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-13 · developer · 브랜치 `m5-09-fx` (commit 75467c9~)
+
+### 바뀐 파일 (스펙 목록 안만, 공용 파일 변경 없음)
+- `src/shared/EliminationCutsceneLogic.luau` — `skinFor(fxId)`(FxCatalog로 slot 확인), `CAT_LINES`, `linesFor/pickLine`의 선택 인자 `fxSkin`(고양이면 고양이 대사 3개만), `timeline(variant, duration, fxSkin)`(고양이면 `Chomp`/`ChefHand` 뒤 0.12×(길이/3)초에 `CatMeow` 하나 끼움, 나머지 박자 그대로). 인자를 안 주면 지금과 똑같아요.
+- `src/client/fx/CutsceneProps.luau` — `catChopsticks/poseCatChopsticks`(발이 쥔 젓가락), `catHead/poseCatHead`(주황 머리, 네모를 45도 돌려 반만 내민 세모 귀 + 분홍 속귀·가끔 쫑긋, 눈·하이라이트, 볼터치, "ω" 주둥이 두 개, 분홍 코, 수염 4가닥, 둥근 송곳니, 분홍 혀, 주로 아래턱이 벌어짐), `catPaw/poseCatPaw`(둥근 발바닥 + 줄무늬 팔, 발가락 4개 + 분홍 젤리 4개 + 큰 젤리, 쥘 때 흰 발톱이 쏙). 기본 소품과 같은 pose 인자. WedgePart는 안 써요(방향 착오 위험).
+  - 파츠 수(말풍선 자리·간장 방울 포함): Chopsticks 39(기본 19 + 20), Mouth 24(기본 7 + 17), ChefHand 18(기본 8 + 10) — 모두 기본 + 20 이하. Chopsticks는 한도에 딱 맞아서 고양이 얼굴에 파츠를 더하려면 다른 걸 빼야 해요.
+- `src/client/fx/EliminationCutsceneController.luau` — 탈락한 **사람의** `EliminationFx` 속성을 읽어(나갔으면 기본) 세 변형 함수에 `cat`을 넘겨 소품·pose만 바꿈. 고양이는 다 먹은 뒤 오물오물, 말풍선 자리가 조금 더 위.
+- `src/shared/VictoryCutsceneLogic.luau` — `extraFor(fxId)`, `fireworksTimeline(duration)`(풍덩+0.05 ~ 길이−0.34, 같은 간격 0.432초), `fireworks(duration)`(시각·자리·반지름·색 번호), `FIREWORK_COLORS`(금·분홍·산호·연두·보라), `fireworkColor`, `rocketAlpha`(로켓 0.45초, 풍덩 전엔 안 쏨), `flash`(0.3초 섬광·조명 곡선).
+- `src/client/fx/VictoryProps.luau` — `buildFireworks`(ParticleEmitter **3개**·PointLight **2개**·로켓 2개(Neon + Trail)·섬광 공 1개), `burstFirework`(이미터 돌려 쓰기, 흰빛 → 색 → 어두워지는 색, 끝에 깜빡이는 크래클, 버드나무처럼 늘어짐, 바깥 꽃 + 안쪽 작은 꽃 두 겹), `poseRocket/poseFlash/poseGlow`(빛은 인형 쪽으로 끌어와 물·인형·물고기를 물들임). 불티 텍스처는 내장 `rbxasset://textures/particles/sparkles_main.dds`.
+- `src/client/fx/VictoryCutsceneController.luau` — 우승자의 `VictoryFx`가 불꽃놀이면 장면에 불꽃 소품을 지어 매 프레임 `updateFireworks`. 터질 때마다 `Sfx.play("Fireworks")`(2D). 장면·박자·카메라·물고기·순위표는 그대로, 장면 Model째 지워져서 남는 것 없음.
+- 테스트: `tests/elimination-cutscene.spec.luau`(+4: AC1·AC2 두 개·AC3), `tests/victory-cutscene.spec.luau`(+5: AC1·AC4·색 순환·**화면 안 확인**(박수 카메라로 투영해서 화면 안·수면 위·인형 머리보다 위)·로켓/섬광).
+
+### 검증 (2026-10-13, 로컬 Windows)
+`rojo build` OK · `stylua --check` OK · `selene` 0 errors/0 warnings · `lune run tests` **1272 passed / 0 failed** · `luau-lsp analyze` exit 0.
+모습은 `tools/render`(m5-23)로 고양이 소품 3종과 불꽃 구도를 PNG로 그려 보며 다듬었어요(임시 스크립트, 커밋 안 함). 렌더러는 실제 Roblox와 다르고 파티클 버스트는 근사라서 최종 판단은 Studio에서.
+
+### Studio 확인 방법 (AC6~AC10)
+1. `Config.DEBUG.forceMapPlan`에 Race·Survival·Final 맵을 하나씩 넣어요(예: `{ "rotating-belt", "hot-plate", "skewer-showdown" }`). 커밋하지 말 것.
+2. Play(혼자) 또는 Test → Clients and Servers(2명). 서버 쪽 명령줄(Server로 바꾼 Command Bar)에서:
+   ```lua
+   for _, p in game.Players:GetPlayers() do p:SetAttribute("EliminationFx", "cat-customer") p:SetAttribute("VictoryFx", "fireworks") end
+   ```
+   한 사람만 확인하려면 `game.Players.Player1:SetAttribute(...)`. 끄려면 `SetAttribute("EliminationFx", nil)`. (m5-08이 머지되면 서버가 장착에 맞춰 이 속성을 덮어쓸 수 있어요 — 그 뒤엔 상점에서 가짜 결제로 사서 입기.)
+3. AC6: Race에서 떨어지기 → 고양이 발이 젓가락을 쥐고 집어 간장에 찍은 뒤 고양이 얼굴이 "냠!", 말풍선은 "냥~ 신선하다냥!"·"생선은 역시 최고냥"·"한 접시 더 달라냥!" 중 하나. Survival에서 떨어지기 → 아래에서 고양이가 입을 벌려 받아먹고 오물오물. 결승에서 떨어지기 → 줄무늬 앞발이 내려와 발톱을 내밀며 움켜쥐고 위로.
+4. AC7: 2명 중 Player1에만 속성을 달고, Player1이 떨어질 때 Player2 화면에도 고양이, Player2가 떨어질 때는 지금 연출.
+5. AC8: 불꽃놀이를 입은 사람이 우승 → 다이빙(풍덩) 뒤 인형 뒤 바다 위에서 6번(좌·우 번갈아, 마지막 가운데 큰 금색) 터짐, 로켓 꼬리·섬광·물이 색으로 물듦. 두 화면 모두 같은 장면. 안 입은 사람 우승은 지금 그대로.
+6. AC9: 탈락 3초 뒤 관전으로, 우승 단계 10초 그대로. 끝난 뒤 Explorer의 `Workspace.EliminationCutscenes`가 비어 있고, `VictoryCutscene` 모델이 없어야 해요.
+7. AC10: 4명 이상 Clients and Servers에서 모두 고양이를 입고 한꺼번에 떨어지기(동시 6개 한도) → 프레임 체감.
+8. 소리: `CatMeow`·`Fireworks`는 아직 무음(USER-TODO A2). id를 넣으면 고양이는 Chomp 직후, 불꽃은 터질 때마다.
+
+### 남은 이슈·질문
+- D4(불꽃 위치) 확인 필요 — 기획이 "부두 위 높은 하늘"을 꼭 원하면 불꽃놀이일 때만 박수 카메라를 바꾸는 후속 스펙이 필요해요.
+- 첫 불꽃(풍덩 +0.05초)은 아직 옆 카메라(다이빙)라 화면 밖이에요. 불티가 1초 넘게 남아서 카메라가 돌아오면 보여요. 스펙의 "풍덩부터 6번, 간격 0.4초 이상, 5.7초까지"를 지키면 피할 수 없어요.
+- 마지막 불꽃의 불티는 연출이 끝나는 6초에 장면과 함께 사라져요(그때 카메라가 로비로 바뀌어서 눈에 띄지 않음).
+- `Sfx`의 같은 cue 간격 제한은 지금 코드에선 0.05초(스펙 문구의 0.4초와 다름) — 불꽃 간격이 0.43초라 어느 쪽이든 매번 울려요.
+

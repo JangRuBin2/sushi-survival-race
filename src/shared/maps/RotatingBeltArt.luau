@@ -875,15 +875,17 @@ local function addOverheadRails(list: { DecorSpec })
 			"SmoothPlastic",
 			v(side * 28, railY, (front + back) / 2)
 		)
-		for _, z in { front - 2, -60, back + 2 } do
+		-- 매단 봉: 양 끝 둘만, 굵게(1.4) 옻칠 — 가는 검은 선 여럿이 overview에서 "철사 숲"처럼 보였어요 (반복 4)
+		for _, z in { front - 2, back + 2 } do
 			part(
 				list,
 				"OverheadPost",
-				"Block",
-				v(0.6, CEIL_Y - 17 - railY, 0.6),
-				BLACK,
-				"Metal",
-				v(side * 28, (railY + CEIL_Y - 17) / 2, z)
+				"Cylinder",
+				v(CEIL_Y - 17 - railY, 1.4, 1.4),
+				P.LacquerDark,
+				"SmoothPlastic",
+				v(side * 28, (railY + CEIL_Y - 17) / 2, z),
+				UP
 			)
 		end
 		local lit = 0

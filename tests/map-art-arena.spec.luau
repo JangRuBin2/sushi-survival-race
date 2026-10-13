@@ -95,10 +95,12 @@ end
 
 return function(t: Test.Test)
 	-- AC1 ---------------------------------------------------------------------------------
-	t.test("AC1: 철판 decor()가 검사를 통과하고 600개 이하", function()
+	t.test("AC1: 철판 decor()가 검사를 통과하고 예산 안 (m5-24 D2: Art.BUDGET 단계)", function()
 		local specs = HotPlateArt.decor()
 		t.eq(MapKitLogic.validate(specs), nil)
-		t.ok(MapKitLogic.count(specs) <= MapKitLogic.DECOR_PART_BUDGET, `count {MapKitLogic.count(specs)}`)
+		local tier = HotPlateArt.BUDGET or "Standard"
+		t.ok(MapKitLogic.count(specs) <= MapKitLogic.budget(tier).parts, `count {MapKitLogic.count(specs)}`)
+		t.eq(MapKitLogic.checkBudget(specs, tier), nil, `hot-plate {tier} budget`)
 		t.ok(#specs >= 50, "철판 장식이 충분히 있어요")
 		t.eq(shapeProblem(specs), nil)
 	end)

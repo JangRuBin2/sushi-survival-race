@@ -163,6 +163,14 @@ status: in-dev
   - → 2026-10-13 **확정: Extended(장식 1500) 허용, 아트 수량 단언만 수정 가능** · 사용자
 - 2026-10-13 · D3 m5-20 안개 패널 · 지우지 않는다("되돌리지 않음"). 대신 새로 추가하지도 않고, 분위기는 `lighting` 프리셋으로. · planner
 - 2026-10-13 · D4 조명 프리셋 위치 · 그룹끼리 같은 파일을 안 고치게 각 맵 `Art.LIGHTING`에 둔다(m5-23의 `MapLighting.PRESETS` 원래 6개 값은 출발점으로 복사만). · planner
+- 2026-10-13 · D5 (그룹 B) 안개 패널을 방 안에 두면 새 배경 벽 안쪽이 뿌옇게 됨 · D3대로 지우지 않고, 개수·색·투명도는 그대로 두고 **위치만 방 벽 바깥으로** 옮김(soy-swamp ±680, chef-board ±312). 분위기는 `Art.LIGHTING` Atmosphere. 관련 테스트(개수 3~4, 시야 상자·카메라 경로 안 겹침, Glass 0.88~0.92, 색 다름)는 수정 없이 통과. · developer (planner 확인 필요)
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### 그룹 A …). 바뀐 파일, 바꾼 아트 수량 단언 목록, 전/후 PNG 경로, 휴대폰 성능 메모, Studio 확인 방법, 남은 이슈 -->
+
+### 그룹 B (soy-swamp · chef-board · tug-of-war-platform)
+- 브랜치 `m5-24-art-b`. 반복별 체크리스트 비평·단언 전후·Studio 확인·특이사항은 **`docs/developer/m5-24-group-b.md`**.
+- 바꾼 파일: `SoySwamp.luau`·`ChefBoard.luau`(lighting 한 줄), `TugOfWarPlatform.luau`(lighting 한 줄 + 고정 장식 CastShadow 강제 끔 삭제), `SoySwampArt`·`ChefBoardArt`·`TugOfWarPlatformArt`(BUDGET·LIGHTING·CODE_EXTRAS·장식), 새 테스트 `tests/m5-24-group-b.spec.luau`(AC2~AC5).
+- 바꾼 아트 수량 단언(D2): `map-art-race` AC1, `m5-23-visual-kit` AC7, `m5-23-qa` lighting·soy-swamp 조명/파티클 수, `map-chef-board` AC6, `m4-05-qa` AC6 예산.
+- 전/후 PNG: `docs/renders/{soy-swamp,chef-board,tug-of-war-platform}/before-*.png` → `after-*.png`. 체크리스트 18개는 세 맵 모두 마지막 반복에서 "예".
+- 휴대폰 메모: soy tris 87k·그림자 1·파티클 Rate 20(+코드 3) / chef 50k·1·22(+칼 불꽃 one-shot) / tug 26k·1·10. 큰 반투명 판 새로 추가 없음.

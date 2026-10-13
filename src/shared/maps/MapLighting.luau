@@ -71,9 +71,9 @@ local MapLighting = {}
 
 -- 로비 조명(LobbyLayout.LIGHTING)에 없는 값의 기본 (로비도 이 값으로 맞춰요)
 MapLighting.DEFAULTS = {
-	EnvironmentDiffuseScale = 0.5,
-	EnvironmentSpecularScale = 0.5,
-	ShadowSoftness = 0.2,
+	EnvironmentDiffuseScale = 0, -- 플레이스 파일 값과 같게 (접속 직후 로비 조명이 한 번 바뀌지 않게, QA B6)
+	EnvironmentSpecularScale = 0,
+	ShadowSoftness = 0.5,
 	ExposureCompensation = 0,
 	GeographicLatitude = 41.733,
 	SunRays = { Intensity = 0.03, Spread = 0.6 },

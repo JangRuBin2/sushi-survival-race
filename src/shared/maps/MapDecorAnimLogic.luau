@@ -12,7 +12,7 @@
 
 export type Axis = "X" | "Y" | "Z"
 export type Kind = "Spin" | "Bob" | "Sway" | "Pulse"
-export type AnimSpec = { kind: Kind, period: number, amount: number, axis: Axis? }
+export type AnimSpec = { kind: Kind, period: number, amount: number?, axis: Axis? } -- amount: Spin은 없어도 돼요(0)
 
 -- 로컬(파츠 기준) 오프셋: 이동 studs, 회전 라디안(X·Y·Z 순서), 크기 배율
 export type Offset = { dx: number, dy: number, dz: number, rx: number, ry: number, rz: number, scale: number }

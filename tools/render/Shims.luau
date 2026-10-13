@@ -142,6 +142,18 @@ local fakeCollection = {
 	end,
 }
 
+local fakeSignal = {
+	Connect = function()
+		return { Disconnect = function() end, Connected = true }
+	end,
+	Once = function()
+		return { Disconnect = function() end, Connected = true }
+	end,
+	Wait = function()
+		return 0
+	end,
+}
+
 local fakeRunService = {
 	IsServer = function()
 		return true
@@ -155,6 +167,12 @@ local fakeRunService = {
 	IsRunning = function()
 		return false
 	end,
+	-- 이벤트는 연결만 받고 부르지 않아요 (build 단계라 시간이 안 흘러요, QA B5)
+	Heartbeat = fakeSignal,
+	Stepped = fakeSignal,
+	RenderStepped = fakeSignal,
+	PreSimulation = fakeSignal,
+	PostSimulation = fakeSignal,
 }
 
 local mapArtFolder = roblox.Instance.new("Folder")
@@ -176,6 +194,41 @@ local services: { [string]: any } = {
 	TweenService = fakeTweenService,
 	Workspace = workspaceInst,
 }
+
+-- 가짜 서비스에 없는 멤버를 쓰면 이름을 찍고 실패해요 (조용히 nil이 되지 않게, QA B5)
+for serviceName, fake in
+	{ CollectionService = fakeCollection, RunService = fakeRunService, TweenService = fakeTweenService }
+do
+	setmetatable(fake :: any, {
+		__index = function(_self: any, key: any)
+			error(
+				`[render] {serviceName}.{tostring(key)} is not available in the preview shim (tools/render/Shims.luau)`,
+				2
+			)
+		end,
+	})
+end
+
+-- ── CFrame.lookAt 고침 ────────────────────────────────────────────────
+-- Lune 0.10.5 @lune/roblox의 CFrame.lookAt은 방향에 따라 틀린 값을 돌려줘요 (예: (0,0,0)→(0,0,-1)의 LookVector가
+-- (0,0,1)). 실제 Roblox는 맞아요. 맵 코드(MapKit.introCamera 등)가 렌더러에서 돌 때는 fromMatrix로 만든 올바른 lookAt을 써요.
+function Env.lookAt(at: any, target: any, up: any?): any
+	local delta = target - at
+	if delta.Magnitude < 1e-9 then
+		return CFrame.new(at)
+	end
+	local forward = delta.Unit
+	local upVector = up or Vector3.new(0, 1, 0)
+	if math.abs(forward:Dot(upVector.Unit)) > 0.99999 then
+		-- 위/아래를 똑바로 보면 위 벡터가 겹쳐요 → 다른 축을 위로
+		upVector = if math.abs(forward.Z) < 0.9 then Vector3.new(0, 0, 1) else Vector3.new(1, 0, 0)
+	end
+	local right = forward:Cross(upVector).Unit
+	local trueUp = right:Cross(forward)
+	return CFrame.fromMatrix(at, right, trueUp, -forward)
+end
+
+Env.CFrame = setmetatable({ lookAt = Env.lookAt }, { __index = roblox.CFrame })
 
 Env.game = {
 	GetService = function(_self: any, name: string): any
@@ -273,6 +326,7 @@ for _, key in
 do
 	globals[key] = (roblox :: any)[key]
 end
+globals.CFrame = Env.CFrame -- lookAt이 맞는 CFrame (위 "CFrame.lookAt 고침")
 -- 판정용 API는 build에서 만들기만 해요 — 빈 테이블로 충분해요
 globals.RaycastParams = {
 	new = function()

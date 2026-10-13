@@ -6,6 +6,9 @@
 --   compact(휴대폰): 카드 2열, 미리보기는 위쪽. 그 밖: 미리보기 왼쪽, 카드 3열.
 -- 카드 상태 글씨·버튼 활성은 Shared.ShopLogic.cardState. 로벅스(m4-14)는 상품 id가 있거나 Studio 가짜 결제일 때만
 -- 켜지고, 아니면 "곧 열려요" 비활성. 일반·레어 스킨은 코인 해금 버튼 아래에 "R$ 29로 사기"(레어는 59) 버튼이 하나 더 있어요.
+-- 시즌 이벤트 (m5-07): 탭은 ShopLogic.tabs(now) — 이벤트 중이면 "🎃 할로윈" 탭이 맨 앞. 이벤트 탭에서는 카드 위에
+--   머리줄 "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" + 작은 안내(ShopLogic.EVENT_NOTE). 날짜로만, 카운트다운 없음 (D4).
+--   보이는 카드는 ShopLogic.visibleSkins (기간 끝 + 미보유 한정 스킨은 숨김), 보유한 한정 스킨 카드 구석에 "한정".
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,9 +25,20 @@ export type Actions = {
 	open: () -> (),
 	close: () -> (),
 	select: (skinId: string) -> (),
-	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 로벅스 레어 이상)
+	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 재화로 받기 / 로벅스 레어 이상)
 	buyRobux: (skinId: string) -> (), -- 일반·레어 스킨의 두 번째 버튼 "R$ 29로 사기" (m4-14)
-	tab: (tier: Skins.Tier?) -> (),
+	tab: (tabId: string) -> (), -- ShopLogic.Tab.id (m5-07)
+}
+
+-- 한 번 그리기에 필요한 것 (m5-07)
+export type RenderState = {
+	view: ShopLogic.ViewLike,
+	tab: ShopLogic.Tab,
+	tabs: { ShopLogic.Tab },
+	selected: string,
+	robux: ShopLogic.RobuxOptions?,
+	now: number?, -- 시즌 판매 기간 판단 시각
+	eventHeader: string?, -- 이벤트 탭 머리줄 (이벤트 탭이 아니면 nil)
 }
 
 export type ShopScreen = {
@@ -32,13 +46,7 @@ export type ShopScreen = {
 	setButtonVisible: (self: ShopScreen, visible: boolean) -> (),
 	setOpen: (self: ShopScreen, open: boolean) -> (),
 	isOpen: (self: ShopScreen) -> boolean,
-	render: (
-		self: ShopScreen,
-		view: ShopLogic.ViewLike,
-		tier: Skins.Tier?,
-		selected: string,
-		robux: ShopLogic.RobuxOptions?
-	) -> (),
+	render: (self: ShopScreen, state: RenderState) -> (),
 	setBusy: (self: ShopScreen, busy: boolean) -> (),
 	showResult: (self: ShopScreen, text: string, isError: boolean) -> (),
 	setLayout: (self: ShopScreen, m: UiLayout.Metrics) -> (),
@@ -50,13 +58,8 @@ local WINDOW_MAX = Vector2.new(880, 580)
 local GAP = 8
 local CARD_HEIGHT = 70
 local SPIN_SPEED = 0.8 -- rad/s
-local TABS: { { tier: Skins.Tier?, label: string } } = {
-	{ tier = nil, label = "전체" },
-	{ tier = "Common", label = "일반" },
-	{ tier = "Rare", label = "레어" },
-	{ tier = "Epic", label = "에픽" },
-	{ tier = "Legendary", label = "전설" },
-}
+local EVENT_COLOR = Color3.fromRGB(150, 80, 200) -- 이벤트 탭·"한정" 표시 (m5-07)
+local EVENT_BAR_HEIGHT = 44 -- 이벤트 머리줄 두 줄 (기본 크기, setLayout이 바꿔요)
 
 local function rgb(v: { number }): Color3
 	return Color3.fromRGB(v[1], v[2], v[3])
@@ -148,21 +151,65 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 40),
 	}, { Kit.list(Enum.FillDirection.Horizontal, 6) })
-	local tabButtons: { { button: TextButton, tier: Skins.Tier? } } = {}
-	for i, tab in TABS do
-		local color = if tab.tier then tierColor(tab.tier) else Color.Salmon
-		local button = Kit.button(tab.label, color, {
-			Parent = tabRow,
-			LayoutOrder = i,
-			Size = UDim2.new(1 / #TABS, -6, 1, 0),
-			TextSize = 16,
-		})
-		local tier = tab.tier
-		Kit.onClick(button, function()
-			actions.tab(tier)
-		end)
-		table.insert(tabButtons, { button = button, tier = tier })
+	local tabButtons: { { button: TextButton, id: string } } = {}
+	local tabKey = "" -- 지금 만든 탭들의 id·이름 (바뀔 때만 다시 만들어요)
+	local tabTextSize = 16
+
+	local function buildTabs(tabs: { ShopLogic.Tab })
+		local key = ""
+		for _, tab in tabs do
+			key ..= `{tab.id}={tab.label};`
+		end
+		if key == tabKey then
+			return
+		end
+		tabKey = key
+		for _, old in tabButtons do
+			old.button:Destroy()
+		end
+		table.clear(tabButtons)
+		for i, tab in tabs do
+			local color = if tab.eventId then EVENT_COLOR elseif tab.tier then tierColor(tab.tier) else Color.Salmon
+			local button = Kit.button(tab.label, color, {
+				Parent = tabRow,
+				LayoutOrder = i,
+				Size = UDim2.new(1 / #tabs, -6, 1, 0),
+				TextSize = tabTextSize,
+			}) :: TextButton
+			local id = tab.id
+			Kit.onClick(button, function()
+				actions.tab(id)
+			end)
+			table.insert(tabButtons, { button = button, id = id })
+		end
 	end
+
+	-- 이벤트 머리줄 (이벤트 탭에서만, m5-07): 이벤트 이름 · 마지막 날 · 내 재화 + 작은 안내
+	local eventBar = Kit.new("Frame", {
+		Name = "EventBar",
+		Parent = window,
+		BackgroundColor3 = Color.Row,
+		Size = UDim2.new(1, 0, 0, EVENT_BAR_HEIGHT),
+		Visible = false,
+	}, { Kit.corner(10), Kit.new("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
+	local eventTitle = Kit.label({
+		Name = "Title",
+		Parent = eventBar,
+		Size = UDim2.fromScale(1, 0.58),
+		Text = "",
+		TextSize = 17,
+	})
+	local eventNote = Kit.label({
+		Name = "Note",
+		Parent = eventBar,
+		Position = UDim2.fromScale(0, 0.58),
+		Size = UDim2.fromScale(1, 0.42),
+		Text = ShopLogic.EVENT_NOTE,
+		TextSize = 12,
+		TextColor3 = Color.SubText,
+	})
+	local contentTop = 88 + GAP -- 탭 아래 (setLayout이 바꿔요)
+	local eventBarHeight = EVENT_BAR_HEIGHT
 
 	-- 본문: 미리보기 칸 + 카드 격자
 	local content = Kit.new("Frame", {
@@ -255,7 +302,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	}) :: UIGridLayout
 	Kit.new("UIPadding", { Parent = grid, PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 2) })
 
-	type Card = { button: TextButton, stroke: UIStroke, name: TextLabel, status: TextLabel }
+	type Card = { button: TextButton, stroke: UIStroke, name: TextLabel, status: TextLabel, limited: TextLabel }
 	local cards: { [string]: Card } = {}
 	for _, skin in Skins.LIST do
 		local button = Kit.new("TextButton", {
@@ -287,11 +334,27 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			TextSize = 13,
 			TextColor3 = Color.SubText,
 		})
+		local limited = Kit.label({
+			Name = "Limited",
+			Parent = button,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 2, 0, -2),
+			Size = UDim2.fromOffset(34, 16),
+			Text = "한정",
+			TextSize = 11,
+			TextColor3 = Color.White,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			BackgroundColor3 = EVENT_COLOR,
+			BackgroundTransparency = 0,
+			Visible = false,
+			ZIndex = 2,
+		})
+		Kit.corner(6).Parent = limited
 		local id = skin.id
 		Kit.onClick(button, function()
 			actions.select(id)
 		end)
-		cards[skin.id] = { button = button, stroke = stroke, name = name, status = status }
+		cards[skin.id] = { button = button, stroke = stroke, name = name, status = status, limited = limited }
 	end
 
 	local selectedId = Skins.DEFAULT_ID
@@ -387,23 +450,39 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		return backdrop.Visible
 	end
 
-	function screen.render(
-		_self: ShopScreen,
-		view: ShopLogic.ViewLike,
-		tier: Skins.Tier?,
-		selected: string,
-		robux: ShopLogic.RobuxOptions?
-	)
+	local function placeContent(showEventBar: boolean)
+		eventBar.Visible = showEventBar
+		eventBar.Position = UDim2.fromOffset(0, contentTop)
+		eventBar.Size = UDim2.new(1, 0, 0, eventBarHeight)
+		local top = if showEventBar then contentTop + eventBarHeight + GAP else contentTop
+		content.Position = UDim2.fromOffset(0, top)
+		content.Size = UDim2.new(1, 0, 1, -top)
+	end
+
+	function screen.render(_self: ShopScreen, state: RenderState)
+		local view = state.view
+		local selected = state.selected
+		local robux = state.robux
+		local now = state.now
 		coinLabel.Text = `🍚 {view.coins}`
+		buildTabs(state.tabs)
 		for _, tab in tabButtons do
-			Kit.setSelected(tab.button, tab.tier == tier)
+			Kit.setSelected(tab.button, tab.id == state.tab.id)
+		end
+		local eventText = state.eventHeader
+		eventTitle.Text = eventText or ""
+		placeContent(eventText ~= nil)
+		local visible: { [string]: boolean } = {}
+		for _, skin in ShopLogic.visibleSkins(view, state.tab, now) do
+			visible[skin.id] = true
 		end
 		for _, skin in Skins.LIST do
 			local card = cards[skin.id]
-			card.button.Visible = tier == nil or skin.tier == tier
-			local state = ShopLogic.cardState(skin, view, robux)
-			card.status.Text = ShopLogic.cardButtonText(state)
-			card.status.TextColor3 = if state.kind == "Equipped" then Color.Salmon else Color.SubText
+			card.button.Visible = visible[skin.id] == true
+			local cardState = ShopLogic.cardState(skin, view, robux, now)
+			card.status.Text = ShopLogic.cardButtonText(cardState)
+			card.status.TextColor3 = if cardState.kind == "Equipped" then Color.Salmon else Color.SubText
+			card.limited.Visible = cardState.limited == true
 			card.button.BackgroundColor3 = if skin.id == selected then Color.Row else Color.White
 			card.stroke.Thickness = if skin.id == selected then 4 else 2
 		end
@@ -422,7 +501,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		tierLabel.Text = info.displayName
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
-		currentState = ShopLogic.cardState(skin, view, robux)
+		currentState = ShopLogic.cardState(skin, view, robux, now)
 		refreshAction()
 	end
 
@@ -458,12 +537,15 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		local tabHeight = UiLayout.touchSize(36, m)
 		tabRow.Position = UDim2.fromOffset(0, buttonHeight + GAP)
 		tabRow.Size = UDim2.new(1, 0, 0, tabHeight)
+		tabTextSize = text(16)
 		for _, tab in tabButtons do
-			tab.button.TextSize = text(16)
+			tab.button.TextSize = tabTextSize
 		end
-		local top = buttonHeight + GAP + tabHeight + GAP
-		content.Position = UDim2.fromOffset(0, top)
-		content.Size = UDim2.new(1, 0, 1, -top)
+		contentTop = buttonHeight + GAP + tabHeight + GAP
+		eventTitle.TextSize = text(17)
+		eventNote.TextSize = text(12)
+		eventBarHeight = UiLayout.lineHeight(24, m, 17) + UiLayout.lineHeight(18, m, 12)
+		placeContent(eventBar.Visible)
 
 		nameLabel.TextSize = text(20)
 		nameLabel.Size = UDim2.new(1, 0, 0, UiLayout.lineHeight(24, m, 20))

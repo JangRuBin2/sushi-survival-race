@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-06 — 새 Race 맵: 디저트 냉장고 (`dessert-fridge`) + 얼음 이동
@@ -83,5 +83,28 @@ status: ready
 - 2026-10-08 · D2 얼음 수치 · ACCEL 2.5(0.9초에 90%), DRAG 1.0(약 16 studs 미끄러짐), 속도를 늘리지 않음(이동 감시와 무관, 다이브 지름길 문제 없음). 미끄러짐이 너무 길면 처음 하는 아이가 구멍에 계속 빠져서 감쇠를 0.6 → 1.0으로 · **기본값, 플레이테스트 후 조정** · planner
 - 2026-10-08 · D3 송풍구·젤리 · 송풍구 밀기 14(라멘 급류 소용돌이 옆 10보다 조금 세게, 얼음이라 체감은 더 큼), 0.5초 경고(서리). 젤리는 와사비와 같은 서버 튕김. 느린 길(쿠키 계단)을 함께 둬서 한 구간이 막히지 않게(라멘 급류 착지판 R1과 같은 원칙) · **기본값, 플레이테스트 후 조정** · planner
 
+- 2026-10-13 · Q1 (developer, 질문) C 구간 배치 · 표의 "C 바닥 0 → 12"를 **앞쪽 바닥 y 0(z −96 ~ −124) + 뒤쪽 위 칸 착지대(y 0 ~ 12 통짜 블록, z −124 ~ −136)**로 구현. 젤리(위 72·앞 10)로 착지대 앞면을 넘으려면 오르는 0.3초 동안 몇 studs밖에 못 가서 발판을 착지대 앞면에 붙여야 하고, 8 × 8 발판 3개 + 쿠키 계단(폭 6)을 한 줄에 두려고 **C 폭만 30**(B 22, D 18)으로 했어요. 쿠키 계단은 x 9 ~ 15, 디딤 y 3·6·9 → 착지대 12. 낙하선은 표대로 C 전체 −25. 다르게 원하면 Layout 상수만 바꾸면 돼요 · planner 확인 필요
+- 2026-10-13 · Q2 (developer, 질문) 송풍구 `MoveExempt` · 스펙은 송풍구 밀기에 `MoveExempt.mark`를 달라고 했지만 CLAUDE.md 규칙은 "연속 밀기에는 달지 않는다"예요. 스펙대로 달되 **한 번 불기(2초)마다 사람당 한 번, 2.5초**만 표시(매 프레임 속성 복제 없음). 밀기 14 + 걷기 16이라도 상한 80보다 한참 낮아서 빼도 오탐은 없을 것 같아요 — 빼는 쪽이 낫다면 알려 주세요 · planner 확인 필요
+- 2026-10-13 · Q3 (developer, 메모) 송풍구 2는 2초 어긋나서 라운드 시작(t 0)에 이미 불기 중이에요(경고 없이 시작). 선반까지 오는 데 30초 넘게 걸려서 체감 영향 없음 · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE A (게임플레이, 2026-10-13) — 아트는 PHASE B(m5-23 비주얼 키트 이후)에서
+- 바뀐 파일
+  - 새 파일: `src/shared/IceLogic.luau`(순수 얼음 관성 계산), `src/shared/maps/DessertFridgeLayout.luau`(치수·튜닝), `DessertFridgeLogic.luau`(진행도·낙하선·송풍구 주기·젤리/송풍구 구역·길 찾기용 판정), `DessertFridgeArt.luau`(**자리 표시용 최소 장식** — 결승 문틀·문짝 4개 + IntroCamera 4점)
+  - `src/shared/maps/DessertFridge.luau`: 껍데기 → 실제 맵. 판정 지오메트리(얼음 바닥 `Ice` 태그 + Ice 재질·하늘색, 얼음 큐브 8, 구멍 2, 젤리 3 `Jelly` 태그 반투명 빨강·초록, 쿠키 계단, 크림색 착지대, 송풍구 2 `ColdFan` 태그 + 서리 입자, 결승 바닥·FinishLine). 서버: 결승선·낙하 판정, 젤리 튕김(LinearVelocity 0.15초, 면제 1.5초, 쿨다운 0.6초, `JellyBoing`), 송풍구 주기·밀기(14까지 가속 40, `FanGust`). **`inPool = false` 줄 삭제 → 랜덤 풀 합류**
+  - `src/client/input/IceController.luau`: 껍데기 채움. 땅 + 발밑 4.5 레이캐스트가 `Ice` 태그면 매 `Stepped` 실제 수평 속도 → `IceLogic.step` → 내 캐릭터에만 로컬 **수평(Plane) `LinearVelocity`**(힘 = 질량 × 600)로 적용. Humanoid 걷기가 직접 쓴 속도를 바로 덮어써서 제약으로 걷기 힘을 이기게 했어요. 공중·일반 바닥·넘어짐·앉음·죽음이면 제약을 끄고, 캐릭터가 바뀌면 지워요(AC15)
+  - 테스트: 새 `tests/ice-logic.spec.luau`(8), `tests/map-dessert-fridge.spec.luau`(16). 풀 합류로 기존 가정 수정: `tests/maps.spec.luau`(풀 12 → 13), `tests/m4-foundation.spec.luau`(Race 목록), `tests/m4-12-hardening.spec.luau`(강제 플랜에 dessert-fridge 추가), `tests/m5-03-foundation.spec.luau`(SHELLS·껍데기 표에서 제외, infos 13)
+- 검증 5단계 통과: rojo build, stylua --check, selene(0/0/0), lune run tests(1257 passed, 0 failed), luau-lsp analyze(끝 코드 0)
+- Studio 확인 (`Config.DEBUG.forceMapPlan = { "dessert-fridge", "hot-plate", "skewer-showdown" }`, **확인 뒤 nil**)
+  1. 얼음 쟁반(B)에서 앞으로 달리다 손을 떼면 약 16 studs 미끄러져 멈추는지, 옆으로 꺾으면 둥글게 도는지, 출발·결승 바닥에서는 바로 멈추는지 (AC9). 얼음 위 다이브(Shift)는 더 멀리 미끄러지는지
+  2. 구멍(z −40 왼쪽, z −70 오른쪽)이나 얼음 끝으로 떨어지면 1초 안에 탈락 연출 (AC10)
+  3. C 착지대 앞 젤리 3개(빨강·초록·빨강)를 밟으면 위 칸으로 튕겨 오르는지, 오른쪽 쿠키 계단으로도 올라가지는지 (AC11)
+  4. D 선반에서 송풍구(회색 판) 앞 서리 → 2초 바람 → 옆으로 밀림, 반대로 누르면 버틸 수 있는지 (AC12)
+  5. Clients and Servers 2명: 상대가 미끄러지는 모습, 얼음 위 잡기 감속, 출력 창에 `[MovementGuard]` 로그 없음 (AC13)
+  6. 다음 맵(hot-plate)·로비에서 이동이 평소와 같은지 (AC15)
+- 남은 이슈
+  - 아트(PHASE B): 냉장고 벽·유리 선반·차가운 조명·디저트 장식·젤리 출렁임 애니메이션·결승 주방 불빛. 판정 파츠는 실루엣이 읽히게 이미 색·재질만 정해 둠
+  - Q1·Q2 planner 확인
+  - IceController의 제약 힘(질량 × 600)과 Studio 체감은 미확인 — 너무 끈적이거나 벽(큐브)에서 떨리면 `GLIDE_ACCEL`만 조절
+  - 이 브랜치와 병렬인 m5-04·m5-05가 같은 테스트(`m5-03-foundation`·`maps`·`m4-foundation`·`m4-12-hardening`)의 맵 개수를 바꾸면 병합 때 충돌 — 숫자를 합쳐 맞추면 돼요

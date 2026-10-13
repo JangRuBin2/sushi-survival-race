@@ -27,11 +27,10 @@ local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
 -- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
 -- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 inPool = true로 바뀌어 더 이상 껍데기가 아니에요
--- (shells 밖에서 검사해요). 남은 껍데기는 m5-03 원래 3개(ikura-bombs·tempura-pot·dessert-fridge)뿐이에요.
+-- (shells 밖에서 검사해요). dessert-fridge(m5-06)도 졸업했어요. 남은 껍데기는 ikura-bombs·tempura-pot뿐이에요.
 local SHELLS = {
 	"ikura-bombs",
 	"tempura-pot",
-	"dessert-fridge",
 }
 
 local function fakeRng(seed: number)
@@ -102,11 +101,6 @@ return function(t: Test.Test)
 				"튀김 냄비 탈출",
 				"차오르는 기름을 피해 위로! 튀는 기름도 조심!",
 			},
-			["dessert-fridge"] = {
-				"Race",
-				"디저트 냉장고",
-				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
-			},
 			-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
 			-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
 			-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
@@ -132,13 +126,14 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 12개(신규 맵 6개 전부 합류 — m5-14~19, 껍데기는 m5-03 원래 3개뿐), allInfos()는 15개",
+		"AC2: infos()는 13개(신규 맵 6개 + dessert-fridge 합류 — m5-14~19·m5-06, 껍데기 2개), allInfos()는 15개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 12)
+			t.eq(#Maps.infos(), 13)
+			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")
 			t.ok(ids["bouncy-castle-maze"], "bouncy-castle-maze joined the random pool")
 			t.ok(ids["lantern-bridge"], "lantern-bridge joined the random pool")
 			t.ok(ids["giant-jenga"], "giant-jenga joined the random pool")

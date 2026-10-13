@@ -95,16 +95,18 @@ end
 
 return function(t: Test.Test)
 	-- AC1 ---------------------------------------------------------------------------------
-	t.test("AC1: 철판 decor()가 검사를 통과하고 600개 이하", function()
+	t.test("AC1: 철판 decor()가 검사를 통과하고 예산 안 (m5-24 D2: Art.BUDGET 단계)", function()
 		local specs = HotPlateArt.decor()
 		t.eq(MapKitLogic.validate(specs), nil)
-		t.ok(MapKitLogic.count(specs) <= MapKitLogic.DECOR_PART_BUDGET, `count {MapKitLogic.count(specs)}`)
+		local tier = HotPlateArt.BUDGET or "Standard"
+		t.ok(MapKitLogic.count(specs) <= MapKitLogic.budget(tier).parts, `count {MapKitLogic.count(specs)}`)
+		t.eq(MapKitLogic.checkBudget(specs, tier), nil, `hot-plate {tier} budget`)
 		t.ok(#specs >= 50, "철판 장식이 충분히 있어요")
 		t.eq(shapeProblem(specs), nil)
 	end)
 
 	t.test(
-		"AC1: 꼬치 쇼다운 장식(고정·조각·음식·손 전부)이 검사를 통과하고 합쳐서 600개 이하",
+		"AC1: 꼬치 쇼다운 장식(고정·조각·음식·손 전부)이 검사를 통과하고 합쳐서 예산 안 (m5-24 D2: Art.BUDGET 단계)",
 		function()
 			t.eq(MapKitLogic.validate(SkewerArt.decor()), nil)
 			for index = 1, SkewerLogic.SLICE_COUNT do
@@ -113,7 +115,9 @@ return function(t: Test.Test)
 			t.eq(MapKitLogic.validate(SkewerArt.skewerFood(SkewerLogic.LOW_SKEWER)), nil)
 			t.eq(MapKitLogic.validate(SkewerArt.handDecor()), nil)
 			local all = skewerAll()
-			t.ok(MapKitLogic.count(all) <= MapKitLogic.DECOR_PART_BUDGET, `count {MapKitLogic.count(all)}`)
+			local tier = SkewerArt.BUDGET or "Standard"
+			t.ok(MapKitLogic.count(all) <= MapKitLogic.budget(tier).parts, `count {MapKitLogic.count(all)}`)
+			t.eq(MapKitLogic.checkBudget(all, tier), nil, `skewer-showdown {tier} budget`)
 			t.eq(shapeProblem(all), nil)
 		end
 	)

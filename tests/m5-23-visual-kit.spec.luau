@@ -291,7 +291,15 @@ return function(t: Test.Test)
 	t.test("AC7: MapLighting — 프리셋·로비 검사, lerp, 시계 짧은 쪽", function()
 		for id, preset in MapLighting.PRESETS do
 			t.eq(MapLighting.validate(preset), nil, id)
-			t.ok(Maps.get(id).lighting == preset, `{id} uses its preset`)
+			-- m5-24 D4: 아트 패스 v2를 마친 맵은 프리셋 초안을 Art.LIGHTING으로 옮겨 다듬어요 → 그 맵은 제외
+			local lighting = Maps.get(id).lighting
+			local artName = (string.gsub("-" .. id, "%-(%w)", string.upper)) .. "Art"
+			local art = RobloxRequire.require((Shared.maps :: any)[artName])
+			if art.LIGHTING ~= nil then
+				t.ok(lighting == art.LIGHTING, `{id} uses Art.LIGHTING (m5-24)`)
+			else
+				t.ok(lighting == preset, `{id} uses its preset`)
+			end
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
 			t.ok(MapLighting.PRESETS[id] ~= nil, `preset {id}`)

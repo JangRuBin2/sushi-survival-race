@@ -14,7 +14,6 @@ local Art = require(script.Parent.HotPlateArt)
 local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
-local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 local Logic = require(script.Parent.HotPlateLogic)
 
@@ -68,13 +67,8 @@ local function buildArt(model: Model, origin: CFrame)
 			})
 			steam.EmissionDirection = Enum.NormalId.Top
 			steam.Parent = part
-		elseif part.Name == Art.HOOD_LAMP then
-			local light = Instance.new("PointLight")
-			light.Color = Color3.fromRGB(255, 226, 180)
-			light.Brightness = 1
-			light.Range = 40
-			light.Parent = part
 		end
+		-- m5-24: 후드 램프 빛은 HotPlateArt의 DecorSpec.light(아래로 비추는 SpotLight, 하나만 그림자)로 옮겼어요
 	end
 	MapKit.introCamera(model, Art.introCamera(), origin)
 	MapKit.attachStudioArt(model, ID, origin)
@@ -231,7 +225,7 @@ end
 
 local HotPlate: MapTypes.MapModule = {
 	id = ID,
-	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
+	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (m5-23 프리셋 초안을 Art로 옮겨 다듬음)
 	kind = "Survival",
 	displayName = "뜨거운 철판",
 	rule = "밟은 철판은 곧 사라져요. 계속 움직여서 끝까지 버티세요!",

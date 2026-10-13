@@ -22,10 +22,10 @@ export type IntroPoint = { pos: Vec3, lookAt: Vec3 }
 local ClawMachinePrizeArt = {}
 
 ClawMachinePrizeArt.NEON = "Neon"
-ClawMachinePrizeArt.WALL_HEIGHT = 30 -- 유리 상자 벽 높이 (칸 윗면 변화폭 ±1.5보다 훨씬 커요)
+ClawMachinePrizeArt.WALL_HEIGHT = 30 -- 유리 상자 벽 높이 (칸 윗면 변화폭 ±1보다 훨씬 커요)
 ClawMachinePrizeArt.WALL_THICKNESS = 1
 ClawMachinePrizeArt.RAIL_HEIGHT = ClawMachinePrizeArt.WALL_HEIGHT - 2 -- 천장 바로 아래 크레인 레일
-ClawMachinePrizeArt.SIGHT_MIN = 2 -- 칸 윗면 변화폭(±1.5) 위, 시야를 가리면 안 되는 상자 바닥
+ClawMachinePrizeArt.SIGHT_MIN = 2 -- 칸 윗면 변화폭(±1, m5-19 QA B3) 위, 시야를 가리면 안 되는 상자 바닥
 ClawMachinePrizeArt.SIGHT_MAX = ClawMachinePrizeArt.RAIL_HEIGHT - 2 -- 레일 바로 아래까지
 
 local GLASS: RGB = { r = 205, g = 232, b = 246 }

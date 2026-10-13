@@ -13,9 +13,9 @@ local ALL: { MapTypes.MapModule } = {
 	require(script.HotPlate),
 	require(script.ChefBoard), -- m4-01 stub → m4-05
 	require(script.SkewerShowdown),
-	require(script.IkuraBombs), -- m5-03 껍데기 → m5-04 (inPool = false)
-	require(script.TempuraPot), -- m5-03 껍데기 → m5-05 (inPool = false)
-	require(script.DessertFridge), -- m5-03 껍데기 → m5-06 (inPool = false)
+	require(script.IkuraBombs), -- m5-03 껍데기 → m5-04
+	require(script.TempuraPot), -- m5-03 껍데기 → m5-05
+	require(script.DessertFridge), -- m5-03 껍데기 → m5-06
 	require(script.BouncyCastleMaze), -- m5-13 껍데기 → m5-14
 	require(script.LanternBridge), -- m5-13 껍데기 → m5-15
 	require(script.GiantJenga), -- m5-13 껍데기 → m5-16

@@ -161,7 +161,7 @@ Config.Ui = {
 
 -- 스킨 탈의실 (m4-13). 가격·목록은 Shared.Skins
 Config.Shop = {
-	RequestCooldown = 0.3, -- EquipSkin·BuyWithCoins 요청 간격 제한(초, 두 요청이 같이 써요)
+	RequestCooldown = 0.3, -- EquipSkin·BuyWithCoins·BuyWithTokens 요청 간격 제한(초, 세 요청이 같이 써요)
 	PurchaseRequestCooldown = 1, -- RequestRobuxPurchase 요청 간격 제한(초, m4-14)
 	PurchasePromptHold = 120, -- 결제 창을 띄운 스킨의 코인 해금을 막는 최대 시간(초). 취소·지급되면 바로 풀려요 (m4-14 QA R2)
 	ReceiptHistoryMax = 50, -- 프로필에 기억하는 처리한 결제 id 수 (오래된 것부터 지워요, m4-14)

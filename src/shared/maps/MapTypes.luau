@@ -23,8 +23,8 @@
 -- build()가 돌려주는 Model 안의 약속
 --   Spawns (Folder)  시작 위치 BasePart들. 이름순으로 플레이어를 배치해요. 최대 인원(24)만큼 있어야 해요.
 --   코스는 origin의 앞쪽(LookVector, 로컬 -Z)으로 뻗어요. 시간 종료 때 "가장 멀리 간" 순위도 이 축으로 재요.
--- 장애물은 CollectionService 태그를 파츠에 달아서 동작시켜요 (전체 목록은 CLAUDE.md "맵 모듈 공통 인터페이스":
--- Conveyor·Chopstick, SoySauce·Wasabi, Broth·Chashu·NoodleSweeper, HotTile, ChefBoardCell·ChefKnife, SkewerShowdown*).
+-- 장애물은 CollectionService 태그를 파츠에 달아서 동작시켜요. start에서는 ctx.model 하위의 태그 파츠만 써요.
+-- 태그 이름은 맵마다 다르고 각 맵 모듈 머리 주석에 있어요 (맵 15개 목록은 Shared.maps의 init.luau).
 
 local Cleanup = require(script.Parent.Parent.Cleanup)
 local MapLighting = require(script.Parent.MapLighting)

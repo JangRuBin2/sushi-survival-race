@@ -6,6 +6,7 @@
 --   탈락 고정(서버가 HumanoidRootPart를 Anchored + PlatformStand)은 넘어짐이 아니에요 — 연출·소리 없음 (m3-02 QA B1).
 --   이름표: 다른 사람의 초밥 Body 위에 이름(DisplayName)을 직접 띄워요. Head가 투명해도 보이게 기본 이름표 대신 (m3-02 QA B2).
 --   칭호: 캐릭터 Model의 Attributes.Title(서버 RewardService가 달아요, m4-08)이 있으면 이름 위에 작은 금색 글씨로.
+--   VIP: Player 속성 Attributes.Vip(서버 OfferService, m5-08)이면 이름 앞에 "👑 ". 칭호 줄은 그대로.
 --   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않고 이름표도 숨겨요.
 
 local Players = game:GetService("Players")
@@ -139,6 +140,18 @@ local function updateTitle(tag: BillboardGui, character: Model)
 	label.Visible = text ~= ""
 end
 
+-- 이름 줄: VIP면 앞에 👑 (m5-08)
+local function updateName(tag: BillboardGui, player: Player)
+	local label = tag:FindFirstChild("Name")
+	if label == nil or not label:IsA("TextLabel") then
+		return
+	end
+	local text = if player:GetAttribute(Attributes.Vip) == true then `👑 {player.DisplayName}` else player.DisplayName
+	if label.Text ~= text then
+		label.Text = text
+	end
+end
+
 -- 다른 사람 캐릭터의 이름표: 기본 휴머노이드 이름표는 끄고(로컬) 우리 이름표를 Body에 붙여요.
 local function updateNameTag(character: Model, state: State, body: BasePart, humanoid: Humanoid, player: Player)
 	if humanoid.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None then
@@ -151,6 +164,7 @@ local function updateNameTag(character: Model, state: State, body: BasePart, hum
 	end
 	local tag = state.nameTag :: BillboardGui
 	tag.Enabled = not hidden and character.Parent ~= nil
+	updateName(tag, player)
 	updateTitle(tag, character)
 end
 

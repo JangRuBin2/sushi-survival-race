@@ -14,6 +14,7 @@ local Art = require(script.Parent.HotPlateArt)
 local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 local Logic = require(script.Parent.HotPlateLogic)
 
@@ -230,6 +231,7 @@ end
 
 local HotPlate: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Survival",
 	displayName = "뜨거운 철판",
 	rule = "밟은 철판은 곧 사라져요. 계속 움직여서 끝까지 버티세요!",

@@ -23,6 +23,7 @@ local MapKit = require(script.Parent.MapKit)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapSfx = require(script.Parent.MapSfx)
 local MapSfxLogic = require(script.Parent.MapSfxLogic)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "skewer-showdown"
@@ -640,6 +641,7 @@ end
 
 local SkewerShowdown: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Final",
 	displayName = "회전 꼬치 쇼다운",
 	rule = "돌아오는 꼬치를 뛰어넘고 끝까지 버티세요! 마지막 1명만 탈출해요",

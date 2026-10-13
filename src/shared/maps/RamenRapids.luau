@@ -14,6 +14,7 @@ local Layout = require(script.Parent.RamenRapidsLayout)
 local Logic = require(script.Parent.RamenRapidsLogic)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 local MoveExempt = require(script.Parent.Parent.MoveExempt)
 
@@ -590,6 +591,7 @@ end
 
 local map: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Race",
 	displayName = "라멘 국물 급류",
 	rule = "국물 급류를 타고 차슈·나루토를 밟아 건너, 결승선까지!",

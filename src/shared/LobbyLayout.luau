@@ -546,7 +546,8 @@ function LobbyLayout.allSpecs(t: number): { DecorSpec }
 end
 
 -- ── 조명 ─────────────────────────────────────────────────────────────
--- Technology는 건드리지 않아요 (Studio 설정). 한 플레이스 모드라 아레나에도 같이 적용돼요.
+-- Technology는 default.project.json에서 Future로 둬요 (m5-23, 스크립트로 못 바꾸는 속성). 서버는 이 로비 값만 두고,
+-- 아레나 안에서는 클라이언트 MapLightingController가 맵 조명(MapLighting)으로 로컬에서 바꿔요.
 
 LobbyLayout.LIGHTING = {
 	ClockTime = 14,

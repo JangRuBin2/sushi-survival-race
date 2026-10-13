@@ -75,3 +75,43 @@
 - 남은 것: developer가 B1(필수, 한 줄)·B4(권장) 수정, B2는 되돌리거나 planner 결정, B3은 planner 판단 → 재QA. Studio AC10~AC16(사용자).
 - 다음 첫 단계: developer가 `GiantJenga.luau:303`을 위에서부터 숨기게 바꾸고, 블록 순서를 고정하는 테스트(예: 소스에서 `LEVEL_MAX - newLevel` 확인 또는 블록 높이 계산을 Layout으로 빼서 순수 테스트)를 추가.
 - 막힌 점: 없음.
+
+---
+
+## 재QA (2026-10-13, 브랜치 `m5-maps-fix-a`, 수정 커밋 `b036ad8`)
+- 결과: **통과**. 스펙 `qa-passed`. B2(문구)는 결정 기록대로 유지하고, GDD §5.3 문구 맞추기는 planner 몫으로 남는다. B3은 메인 세션 결정(테두리 바깥 기울기 ≤ 0.5단위 = 3도)을 기준으로 확인했다.
+
+### 자동 검증
+| 명령 | 결과 |
+|---|---|
+| `rojo build -o build.rbxl` | 통과 |
+| `stylua --check src tests` | 통과 |
+| `selene src` | 0 errors / 0 warnings |
+| `lune run tests` | 1587 passed, 0 failed (origin/main `591d84e` 병합 뒤, 재QA 테스트 10개 포함) |
+| `luau-lsp analyze` (타입 검사) | 끝 코드 0 |
+
+### 버그별 확인
+| 버그 | 결과 | 근거 |
+|---|---|---|
+| B1 (P1) 맨 아래 블록부터 사라짐 | **고쳐짐** | `Logic.poppedBlockIndex(newLevel) = LEVEL_MAX - newLevel`(3→2 Block1, 2→1 Block2, 1→0 Block3)이고, build는 블록 높이에 `Logic.blockCenterY(n)`(Block1이 맨 위)을 쓴다. 재QA: build의 이름 `Block{level}`·높이 `blockCenterY(level)`과 start의 `FindFirstChild(`Block{level}`)`·`blocks[level]`이 같은 번호를 쓰고, 3단을 차례로 뽑으면 Block1→2→3이 한 번씩 숨겨지고, 남은 블록 윗면은 늘 그 칸 윗면(`heightOf`) 이하다(가라앉은 타일을 가리는 블록이 없다) |
+| B2 (P3) rule 문구 | 결정으로 유지 | 결정 기록 2026-10-13. GDD 문구 동기화는 planner |
+| B3 (P3) 테두리 칸 바깥 기울기 | **고쳐짐(결정 기준)** | `tiltFor`가 테두리 칸의 바깥 성분을 `EDGE_OUTWARD_MAX_UNITS` 0.5로 자른다. 재QA: 무작위 보드 500개(레벨 0~3, 뚫린 이웃 포함)의 모든 테두리 칸에서 바깥쪽 각도 성분이 3도 이하다. 테두리를 따라가는 기울기(6도)가 그대로인 것은 개발 테스트가 확인한다 |
+| B4 (P3) 첫 프레임 0.2 들림 | **고쳐짐** | `flatCFrame`이 `heightOf - TOP_THICKNESS / 2`로 build와 같은 중심 높이를 쓴다(개발 소스 테스트). 밀기 범위(`columnY - 6 ~ + 8`)는 윗면 기준 그대로라 영향이 없다 |
+
+- 변이 확인: 수정 7곳(출구 벽 제거, 수평 속도 지우기, 레이캐스트 3.5, `plankRoll` 부호, `isRiding` 무조건 true, 옛 `newLevel + 1`, 바깥 기울기 상한 제거)을 임시로 되돌리면 재QA 테스트가 모두 실패하는 것을 확인했고, 그 뒤 `src`는 원래대로 되돌렸다.
+
+### 판정 회귀 확인
+- 낙하 탈락(`FALL_DEPTH`)·밀기 범위·제거 일정은 바뀌지 않았다. 기울기 상한은 테두리 칸(`i` 또는 `j`가 `±GRID_HALF`)의 바깥 성분에만 걸리고 안쪽 칸은 그대로다. 블록은 충돌 없는 표시용이라 숨기는 순서를 바꿔도 판정에 영향이 없다.
+
+### 추가한 테스트
+- `tests/m5-14-16-reqa.spec.luau`의 m5-16 2개(build/start 번호 일치·위에서부터 숨김, 무작위 보드 바깥 기울기 상한).
+
+### Studio 확인 (사용자 확인 필요)
+- `forceMapPlan = { "rotating-belt", "giant-jenga", "soy-swamp", "skewer-showdown" }`로 시작해서 확인한다: 6초 뒤 처음 삐걱인 칸을 위에서 보면 맨 위 블록이 사라지고 칸이 4 내려가 보이는지, 혼자 가라앉은 테두리 칸이 바깥으로 거의 기울지 않는지, 시작할 때 칸들이 들썩이지 않는지. 끝나면 `nil`로 되돌린다.
+
+## 인계 메모 (재QA)
+- 브랜치: `m5-maps-fix-a`
+- 끝난 것: B1·B3·B4 확인, 테스트 2개 추가, 스펙 `qa-passed`.
+- 남은 것: Studio 확인(사용자), GDD §5.3 rule 문구 동기화(planner).
+- 다음 첫 단계: 사용자 Studio 확인 → docs-writer.
+- 막힌 점: 없음.

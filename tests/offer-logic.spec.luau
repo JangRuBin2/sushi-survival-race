@@ -450,11 +450,7 @@ return function(t: Test.Test)
 					`RobuxShopService must not require {name}`
 				)
 			end
-			t.eq(
-				string.find(offerService, "ProcessReceipt%s*="),
-				nil,
-				"OfferService does not set ProcessReceipt"
-			)
+			t.eq(string.find(offerService, "ProcessReceipt%s*="), nil, "OfferService does not set ProcessReceipt")
 			t.ok(
 				string.find(offerService, "RobuxShopService.setOfferPort(offerPort)", 1, true) ~= nil,
 				"port registered"

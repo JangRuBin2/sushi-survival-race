@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -213,5 +213,37 @@ status: in-dev
 - 2026-10-13 · 이번 결정은 가격·난이도 같은 체감 수치가 아니라 기술 방향이라 비슷한 로블록스 게임 비교 표는 만들지 않았다. 출처(확인 2026-10-13): Roblox 문서 [Localize with scripting](https://create.roblox.com/docs/production/localization/localize-with-scripting)(번역기 비동기·실패 가능·pcall, 이름 인자 테이블), [Translate dynamic content](https://create.roblox.com/docs/production/localization/translate-dynamic-content)(자리표시자·서식 지정자 목록), [Add translations](https://create.roblox.com/docs/production/localization/add-translations)(CSV 업로드, 빈 언어는 자동 번역 대상, 고친 번역은 수동으로 잠김), [LocalizationTable](https://create.roblox.com/docs/en-us/reference/engine/classes/LocalizationTable.md)(키 조회 때 번역이 없으면 Source 사용), [LocalizationService](https://create.roblox.com/docs/reference/engine/classes/LocalizationService)("Not Replicated" 표기), [Rojo sync details](https://rojo.space/docs/v7/sync-details/)(`.csv` → LocalizationTable, Roblox 내보내기 형식). 확인 못 함: 배경 절 마지막 줄의 네 가지. · planner
 - 2026-10-13 · 기획 질문 3개 (메인 세션 기본값, 사용자 위임) · (1) 관리자 "🛠" 패널은 한국어 유지, `AutoLocalize = false`(이번 범위에서 제외). (2) 영어 용어는 7절 용어집 그대로("Wardrobe", "Rice Coins", 맵 이름 7절). (3) 원어민 검토는 지금 안 함(나중에 CSV로 가능). · 메인 세션 기본값
 
+- 2026-10-13 · 구현 중 정한 세부 (developer, 스펙 범위 안) · (1) `choose`: `en`도 번역기 결과가 한국어 원문과 같으면 "정상"으로 보지 않고 카탈로그 `en`을 써요(클라우드 표에 영어가 빠졌을 때 한국어가 보이지 않게, 표의 다른 줄은 그대로). (2) 숫자 인자는 한국어 화면에서도 천 단위 쉼표(`1,234`) — 코인 배지·정산 줄이 예전 `1234`와 달라요. (3) `.tab` 10자 제한 때문에 이벤트 탭 영어는 "🎃 Spooky"·"🎄 Holiday". (4) `RoomUiKit` label·button·textBox 기본 `AutoLocalize = false`라 관리자 패널(Kit 사용)도 자동으로 꺼져요. (5) m5-25가 main에 머지돼서 2단계 중 `CharacterFxController` 칭호·이름표는 1단계에 같이 했어요(메인 세션 허락). (6) `RoomService.forceStart`(관리자 명령 전용) 문구는 한국어 문자열 그대로 — AC11 허용 목록. · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-13 · 1단계 구현 (developer, 브랜치 `m5-26-i18n`)
+
+**결과**: 1단계 수용 기준 AC1~AC16 구현·자동 테스트, 검증 5단계 통과(아래). AC17~AC24는 Studio·실서버 확인 필요(사용자). 2단계 중 `CharacterFxController` 칭호·이름표(AC25 일부)는 m5-25가 main에 머지돼서 같이 했어요. 로비 단상·간장 늪 "매워!!"(AC25 나머지·AC26)는 남았어요.
+
+**카탈로그**: `src/shared/Localization/Strings.csv` 397행 (UI·서버 문구 223 + 날짜 12 + 데이터 162: 맵 15×2, 등급 5, 스킨 31 이름 + 대사 62, 상품 이름·설명·혜택 15, 연출 2, 시즌 4, 칭호 3, 탈락 대사 10). Rojo가 `ReplicatedStorage.Shared.Localization.Strings`(LocalizationTable, 397 entries)로 만드는 것을 build.rbxl에서 확인했어요(`SourceLocaleId`는 Rojo 기본값 en-us — 이 표는 폴백 카탈로그로만 읽어서 상관없음). 머리줄 `Key,Source,Context,Example,en`.
+
+**바뀐 파일**
+- 새 파일: `src/shared/LocalizeLogic.luau`(순수), `src/client/Loc.luau`, `src/server/ServerLoc.luau`(Kick 문구만), `src/shared/Localization/Strings.csv`, `tests/localization.spec.luau`, `tests/lib/LocTest.luau`(CSV로 LocText를 한국어·영어로 풀기), `tests/lib/LuauStrings.luau`(문자열 리터럴 토크나이저, AC11).
+- 공용(이 스펙 담당): `shared/Types.luau`(LocText, NoticeKind, RoomSnapshot·RoomListing.nameIsDefault), `shared/Remotes.luau`(주석 계약만, 21개 그대로), `src/client/init.client.luau`(맨 먼저 `Loc.init()`).
+- 순수 로직 → LocText: `ShopLogic`(message·cardButtonText·robuxButtonText·탭 label·EVENT_NOTE·eventHeader·lastDayText, REASONS), `OfferLogic`(message·valueText·contentLines는 `{ { LocText } }`·buttonText·grantNotice, REASONS), `ReceiptLogic`·`CodeLogic`(message·successMessage, REASONS), `RoomLogic`(새 `Reason`·`MESSAGES`·`message(reason, args)`·REASONS, `defaultName`은 DisplayName만, `nameIsDefault`), `RewardLogic`(toastText·summaryText, `REASON_TEXT` → `REASONS`), `VictoryCutsceneLogic.titleText`, `EliminationCutsceneLogic`(+`lineTextsFor`·`pickLineText`, 기존 linesFor·pickLine은 그대로).
+- 서버: `RoomService`(오류 전부 `RoomLogic.message`, 기본 이름 = `nameIsDefault`, 복원 때 기본 이름은 다시 필터하지 않음), `RoomDirectory`, `PlaceService`(notice = LocText + kind 항상, Kick 2곳은 `ServerLoc.render`), `ShopService`·`OfferService`·`RobuxShopService`·`CodeService`(반환 타입 LocText). `PlacePayload.Settings`·`RoomDirectoryLogic.Entry`에 `nameIsDefault`(서버 이동·다른 서버 목록에서도 유지).
+- 클라이언트: `ui/*`(관리자 파일 제외), `input/*`, `Sfx`, `fx/`의 Intro·Elimination·Victory 화면·컨트롤러·VictoryProps 간판, `CharacterFxController`(칭호 `Loc.titleFromName`, 이름표 AutoLocalize false). `RoomUiKit`의 label·button·textBox는 `AutoLocalize = false`가 기본(관리자 패널도 Kit이라 함께 꺼짐).
+- 테스트 수정(AC14): 문구를 비교하던 기존 테스트는 `LocTest.ko(...)`로 풀어 비교하거나 키로 비교(`code.err.Expired`, `room.err.Full`), 가짜 환경(`FakeSfxEnv`, m4-14·m5-08 하네스)에 Loc/LocalizeLogic 의존 추가. 조사 규칙으로 바뀐 기대값만 고쳤어요("🍚 300 · 해금", "R$ 29 · 사기", "🍬 80 · 받기", "(총 1,234)").
+
+**검증 (2026-10-13, 로컬 Windows, main c65266a 머지 뒤)**: `rojo build` 성공 · `stylua --check` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` 1787 passed 0 failed (localization.spec 20개 포함) · `luau-lsp analyze` 끝 코드 0, 오류 없음.
+
+**Studio 확인 방법** (AC17~AC23, `DEV-SETUP`에 옮길 내용)
+1. 한국어(AC17): 그냥 Play. 로비·방·HUD·탈락·관전·우승·코인·탈의실·상점·코드 화면이 예전과 같은지. 의도한 차이: "🍚 300 · 해금", "R$ 29 · 사기", "🍬 80 · 받기", 탭 이름 그대로, 천 단위 쉼표(코인 1,234), 등수는 "{n}등" 그대로.
+2. 영어(AC18): Test 탭 → Player Emulator 켜기 → Locale **English** → Play, `DEBUG.minPlayersToStart = 1`로 혼자 한 판. 맵 소개 이름·규칙, "GO!", HUD, "EATEN!" + "5th", 관전 바, 연장전 배너, "ESCAPED!", 순위표("1st"), 코인 토스트·정산에 한글이 없는지(플레이어 이름 제외). 출력 창에 `[Loc]` 경고는 번역기 없음 한 줄 정도만.
+3. 서버 오류(AC19): English에서 없는 방 코드, 꽉 찬 방, 방장 아닌 사람 시작(Clients and Servers 2명), 코인 모자란 스킨, 없는 코드·이미 받은 코드.
+4. 다른 언어(AC20): Locale Deutsch/日本語 → 키 문구가 영어, 한글·키 이름(`shop.err.…`)이 안 보이는지.
+5. 번역기 실패(AC21): 퍼블리시 안 한 플레이스면 번역기가 키를 몰라 폴백 — English 영어, 기본 한국어.
+6. 휴대폰(AC22): English + Device Emulator 667×375·844×390에서 로비·방 만들기 창·대기실·HUD·탈의실·상점·코드 창·관전 바·Dive/Grab·음소거 버튼이 잘리거나 겹치지 않는지. 특히 "Join with Code", "Private (Code)", 탈의실 탭(이벤트 탭 "🎃 Spooky").
+7. 이름(AC23): 방 이름 칸에 "Shop"이라고 쓰고 만들기 → 다른 언어 화면에서도 "Shop".
+
+**남은 이슈 / 2단계**
+- 로비 우승자 단상(`LobbyService`·`LobbyLayout` SurfaceGui의 "다음 우승자는 누구?", "{wins}승", 칭호)과 간장 늪 "매워!!"(`SoySwampHazards`) — 2단계. 단상은 `Attributes.luau` 속성 추가가 필요(이 스펙 담당).
+- 관리자 "🛠" 패널·관리자 명령·`RoomService.forceStart` 문구는 한국어 그대로(제외, AC11 허용 목록 4줄 + PlaceService "Studio 매치" 1줄).
+- 영어 원어민 검토 안 함(메인 세션 기본값). 바꾸려면 CSV `en` 열만 고치면 돼요(키는 그대로).
+- 사용자 할 일(docs-writer가 USER-TODO에): Creator Dashboard 현지화에서 원본 언어 한국어 확인·자동 수집·자동 번역 켜기, 업데이트마다 `Strings.csv` Upload CSV(처음엔 Download CSV로 백업), AC24.

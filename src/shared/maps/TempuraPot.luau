@@ -1,19 +1,42 @@
 --!strict
--- Survival 맵 "튀김 냄비 탈출" (m5-05). m5-03 껍데기: 회색 바닥 + 스폰 24개, 떨어지면 탈락.
--- 실제 맵(차오르는 기름, 튀김 발판, 튀는 기름)은 m5-05가 이 파일을 덮어써요.
--- id·kind·displayName·rule은 m5-03에서 확정이에요 (바꾸려면 m5-05 결정 기록에).
--- inPool = false: 랜덤 판에 안 나오고 Config.DEBUG.forceMapPlan으로만 돌아요. 맵이 끝나면 그 줄만 지워요.
+-- Survival 맵 "튀김 냄비 탈출" (m5-05, GDD 5.3 "튀김 기름 점프"). 거대한 튀김 냄비 속에서 기름이 차올라요.
+-- 가운데 튀김 바구니(출발 판)에서 둘레의 튀김 발판(새우·고구마·깻잎, 고정)을 밟고 나선을 따라 위로 올라가야
+-- 살아요. 발이 기름보다 낮아지면 "튀겨짐" 탈락. 10초부터는 서 있는 레이서 한 명의 발밑에 주황 원이 뜨고,
+-- 1.2초 뒤 기름이 솟구쳐 원 안 레이서를 바깥으로 밀어 넘어뜨려요. 23·27·31층은 60초까지 잠기지 않는
+-- 안전 구역(좁아서 자리싸움). 결승선은 없고 통과자는 RoundService가 정해요 (남은 인원 ≤ 목표 또는 시간 종료).
+--
+-- 치수·발판 배치는 TempuraPotLayout, 기름 높이·튀김 판정·튀는 기름 일정·넉백·경로 계산은 TempuraPotLogic —
+-- 둘 다 순수 로직이고 tests/map-tempura-pot.spec.luau가 확인해요. 장식은 TempuraPotArt → MapKit.buildDecor.
+-- 발판·바구니 파츠는 태그 "TempuraRaft" + Attribute "RaftKey"(Layout의 key), 기름 표면은 태그 "HotOil"
+-- (보여 주기만 — 판정은 숫자 Logic.oilHeight로 해요). start는 ctx.model 하위 태그 파츠만 찾아요 (M1 B10 (A)).
+-- 넉백은 SoySwampHazards.launch와 같은 방식(LinearVelocity를 짧게 걸고 그 뒤는 포물선) + PlatformStand 1초,
+-- MoveExempt.mark 1.5초. 상태(서 있는 발판, 쿨다운)는 start 지역 변수에 둬서 여러 방이 섞이지 않아요.
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
+local Art = require(script.Parent.TempuraPotArt)
+local Layout = require(script.Parent.TempuraPotLayout)
+local Logic = require(script.Parent.TempuraPotLogic)
+local MapKit = require(script.Parent.MapKit)
+local MapKitLogic = require(script.Parent.MapKitLogic)
+local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
+local MoveExempt = require(script.Parent.Parent.MoveExempt)
 
 local ID = "tempura-pot"
-local SIZE = 60 -- 정사각 바닥 한 변
-local THICKNESS = 2
-local CENTER_Z = -40 -- 바닥 중심 (origin 앞쪽)
-local FALL_DEPTH = 25 -- origin 아래로 이만큼 떨어지면 탈락
-local SPAWN_COLUMNS = 6
-local SPAWN_SPACING = 6
+local RAFT_TAG = "TempuraRaft"
+local OIL_TAG = "HotOil"
+local SPLASH_TAG = "OilSplash"
+local OIL_NAME = "Oil"
+local OIL_THICKNESS = 0.4
+local BASKET_THICKNESS = 2
+local POT_FLOOR_THICKNESS = 2
+local PROBE_LENGTH = 4.5 -- 루트 중심 → 발바닥(약 3)보다 길어서 서 있을 때만 닿아요 (HotPlate와 같은 관례)
+local WARN_HEIGHT = 0.12 -- 경고 원을 윗면 위로 이만큼 띄워요 (z-fighting 방지)
+
+-- Color3는 Roblox API라 함수 안에서만 만들어요 (모듈 최상위에서 만들면 Lune require가 실패해요).
+local function color3(rgb: MapKitLogic.RGB): Color3
+	return Color3.fromRGB(rgb.r, rgb.g, rgb.b)
+end
 
 local function part(props: { [string]: any }): BasePart
 	local p = Instance.new("Part")
@@ -26,33 +49,142 @@ local function part(props: { [string]: any }): BasePart
 	return p
 end
 
+local function ghost(p: BasePart)
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+end
+
+-- 세운 원기둥(축 Y): 원기둥 축이 로컬 X라 Z로 90° 돌려요
+local UPRIGHT_Z = math.rad(90)
+
+-- 윗면이 topY인 원판 CFrame (origin 로컬)
+local function discCFrame(origin: CFrame, x: number, topY: number, z: number, thickness: number): CFrame
+	return origin * CFrame.new(x, topY - thickness / 2, z) * CFrame.Angles(0, 0, UPRIGHT_Z)
+end
+
+local function raftColor(kind: Layout.Kind): Color3
+	if kind == "Shrimp" then
+		return color3(Art.COLORS.shrimp)
+	elseif kind == "Shiso" then
+		return color3(Art.COLORS.shiso)
+	elseif kind == "Basket" then
+		return color3(Art.COLORS.basket)
+	end
+	return color3(Art.COLORS.sweetPotato)
+end
+
+-- 발판 하나 (Disc → 세운 Cylinder, Rect → yaw만큼 돌린 Block). 튀김옷 느낌의 Sand 질감에 Plastic 물성.
+local function buildRaft(raft: Layout.Raft, origin: CFrame, thickness: number): BasePart
+	local CollectionService = game:GetService("CollectionService")
+	local p: BasePart
+	if raft.shape == "Disc" then
+		p = part({
+			Name = raft.key,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(thickness, raft.radius * 2, raft.radius * 2),
+			CFrame = discCFrame(origin, raft.x, raft.topY, raft.z, thickness),
+		})
+	else
+		p = part({
+			Name = raft.key,
+			Size = Vector3.new(raft.length, thickness, raft.width),
+			CFrame = origin
+				* CFrame.new(raft.x, raft.topY - thickness / 2, raft.z)
+				* CFrame.Angles(0, math.rad(raft.yaw), 0),
+		})
+	end
+	p.Color = raftColor(raft.kind)
+	if raft.kind == "Basket" then
+		p.Material = Enum.Material.DiamondPlate
+	else
+		p.Material = Enum.Material.Sand
+	end
+	p.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Plastic) -- 재질이 물성을 바꾸지 않게
+	p.CanCollide = true
+	p:SetAttribute("RaftKey", raft.key)
+	p:SetAttribute("RaftKind", raft.kind)
+	CollectionService:AddTag(p, RAFT_TAG)
+	return p
+end
+
+-- 냄비: 바닥 원판 + 세로 벽 조각(POT_WALL_SEGMENTS개, 안쪽 면이 반지름 POT_INNER_RADIUS)
+local function buildPot(model: Model, origin: CFrame)
+	local folder = Instance.new("Folder")
+	folder.Name = "Pot"
+	local cx, cz = Layout.POT_CENTER_X, Layout.POT_CENTER_Z
+	local inner = Layout.POT_INNER_RADIUS
+	local wallT = Layout.POT_WALL_THICKNESS
+	local outer = inner + wallT
+
+	part({
+		Name = "PotFloor",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(POT_FLOOR_THICKNESS, outer * 2, outer * 2),
+		CFrame = discCFrame(origin, cx, Layout.POT_FLOOR_Y, cz, POT_FLOOR_THICKNESS),
+		Color = color3(Art.COLORS.pot),
+		Material = Enum.Material.Metal,
+		Parent = folder,
+	})
+
+	local count = Layout.POT_WALL_SEGMENTS
+	local height = Layout.POT_WALL_TOP_Y - Layout.POT_FLOOR_Y
+	local chord = 2 * outer * math.tan(math.pi / count) + 0.2 -- 바깥 반지름 기준 + 겹침
+	for i = 0, count - 1 do
+		local angle = i * 360 / count
+		local x, z = Layout.polar(angle, inner + wallT / 2)
+		part({
+			Name = string.format("PotWall%02d", i + 1),
+			Size = Vector3.new(chord, height, wallT),
+			CFrame = origin
+				* CFrame.new(x, Layout.POT_FLOOR_Y + height / 2, z)
+				* CFrame.Angles(0, math.rad(angle + 90), 0),
+			Color = color3(Art.COLORS.pot),
+			Material = Enum.Material.Metal,
+			Parent = folder,
+		})
+	end
+	folder.Parent = model
+end
+
 local function build(origin: CFrame): Model
+	local CollectionService = game:GetService("CollectionService")
+
 	local model = Instance.new("Model")
 	model.Name = ID
 
-	part({
-		Name = "Floor",
-		Size = Vector3.new(SIZE, THICKNESS, SIZE),
-		CFrame = origin * CFrame.new(0, -THICKNESS / 2, CENTER_Z),
-		Color = Color3.fromRGB(150, 150, 150),
-		Material = Enum.Material.SmoothPlastic,
-		Parent = model,
+	buildPot(model, origin)
+
+	local rafts = Instance.new("Folder")
+	rafts.Name = "Rafts"
+	buildRaft(Layout.basket(), origin, BASKET_THICKNESS).Parent = rafts
+	for _, raft in Layout.rafts() do
+		buildRaft(raft, origin, Layout.RAFT_THICKNESS).Parent = rafts
+	end
+	rafts.Parent = model
+
+	-- 기름 표면 (보여 주기만, 충돌 없음). start가 Logic.oilHeight를 따라 올려요.
+	local oil = part({
+		Name = OIL_NAME,
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(OIL_THICKNESS, Layout.POT_INNER_RADIUS * 2 - 0.2, Layout.POT_INNER_RADIUS * 2 - 0.2),
+		CFrame = discCFrame(origin, Layout.POT_CENTER_X, Logic.oilHeight(0), Layout.POT_CENTER_Z, OIL_THICKNESS),
+		Color = color3(Art.COLORS.oil),
+		Material = Enum.Material.Glass,
+		Transparency = 0.3,
 	})
+	ghost(oil)
+	CollectionService:AddTag(oil, OIL_TAG)
+	oil.Parent = model
 
 	local spawns = Instance.new("Folder")
 	spawns.Name = "Spawns"
-	local rows = 24 // SPAWN_COLUMNS
-	for i = 1, 24 do
-		local column = (i - 1) % SPAWN_COLUMNS
-		local row = (i - 1) // SPAWN_COLUMNS
+	for i, offset in Layout.spawnOffsets() do
 		part({
 			Name = string.format("Spawn%02d", i),
 			Size = Vector3.new(2, 0.2, 2),
-			CFrame = origin * CFrame.new(
-				(column - (SPAWN_COLUMNS - 1) / 2) * SPAWN_SPACING,
-				0.1,
-				CENTER_Z + (row - (rows - 1) / 2) * SPAWN_SPACING
-			),
+			CFrame = origin * CFrame.new(offset.x, Layout.BASKET_TOP_Y + 0.1, offset.z),
 			CanCollide = false,
 			CanTouch = false,
 			CanQuery = false,
@@ -63,22 +195,255 @@ local function build(origin: CFrame): Model
 	end
 	spawns.Parent = model
 
+	local decor = MapKit.decorFolder(model)
+	MapKit.buildDecor(Art.decor(), origin, decor)
+	MapKit.introCamera(model, Art.introCamera(), origin)
+	MapKit.attachStudioArt(model, ID, origin)
+
 	return model
 end
 
+-- 서버가 root를 짧게(hold초) 강제 속도로 띄워요 (SoySwampHazards.launch와 같은 방식: 클라이언트 물리가
+-- 그 뒤를 포물선으로 이어가요). ctx.cleanup에 Attachment·LinearVelocity·되돌리는 스레드를 넣어요.
+local function launch(ctx: MapTypes.RoundContext, root: BasePart, velocity: Vector3, hold: number)
+	local attachment = root:FindFirstChild("RootAttachment") or root:FindFirstChildOfClass("Attachment")
+	if attachment == nil then
+		local created = Instance.new("Attachment")
+		created.Name = "TempuraPotAttachment"
+		created.Parent = root
+		ctx.cleanup:add(created)
+		attachment = created
+	end
+	local push = Instance.new("LinearVelocity")
+	push.Name = "OilSplashLaunch"
+	push.Attachment0 = attachment :: Attachment
+	push.RelativeTo = Enum.ActuatorRelativeTo.World
+	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	push.VectorVelocity = velocity
+	push.MaxForce = math.huge
+	push.Parent = root
+	root.AssemblyLinearVelocity = velocity
+	ctx.cleanup:add(push)
+	ctx.cleanup:add(task.delay(hold, function()
+		push:Destroy()
+	end))
+end
+
 local function start(ctx: MapTypes.RoundContext)
+	local CollectionService = game:GetService("CollectionService")
 	local RunService = game:GetService("RunService")
 	local origin = ctx.origin
-	ctx.cleanup:add(RunService.Heartbeat:Connect(function()
+
+	local raftByKey: { [string]: Layout.Raft } = { [Layout.basket().key] = Layout.basket() }
+	for _, raft in Layout.rafts() do
+		raftByKey[raft.key] = raft
+	end
+
+	-- 이 방 Model 안의 발판만 (다른 방의 같은 맵과 안 섞여요, M1 B10 (A))
+	local probeTargets: { Instance } = {}
+	for _, instance in CollectionService:GetTagged(RAFT_TAG) do
+		if instance:IsA("BasePart") and ctx.model:IsAncestorOf(instance) then
+			table.insert(probeTargets, instance)
+		end
+	end
+	local oil: BasePart? = nil
+	for _, instance in CollectionService:GetTagged(OIL_TAG) do
+		if instance:IsA("BasePart") and ctx.model:IsAncestorOf(instance) then
+			oil = instance
+		end
+	end
+
+	local probeParams = RaycastParams.new()
+	probeParams.FilterType = Enum.RaycastFilterType.Include
+	probeParams.FilterDescendantsInstances = probeTargets
+	local down = Vector3.new(0, -PROBE_LENGTH, 0)
+
+	local startedAt = os.clock()
+	local function elapsed(): number
+		return os.clock() - startedAt
+	end
+
+	local standingOn: { [Player]: string } = {} -- 마지막 확인 때 서 있던 발판 key
+	local lastHitAt: { [Player]: number } = {}
+	local sinceCheck = math.huge
+
+	local function rootOf(player: Player): (BasePart?, Humanoid?)
+		local character = player.Character
+		if character == nil then
+			return nil, nil
+		end
+		local root = character:FindFirstChild("HumanoidRootPart")
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if root and root:IsA("BasePart") then
+			return root, humanoid
+		end
+		return nil, humanoid
+	end
+
+	local function isRacer(player: Player): boolean
+		return table.find(ctx.getRacers(), player) ~= nil
+	end
+
+	-- 기름 높이 따라가기 + 튀김 탈락 + 서 있는 발판 기록 (CHECK_INTERVAL마다)
+	ctx.cleanup:add(RunService.Heartbeat:Connect(function(dt: number)
 		if not ctx.isActive() then
 			return
 		end
+		sinceCheck += dt
+		if sinceCheck < Logic.CHECK_INTERVAL then
+			return
+		end
+		sinceCheck = 0
+		local oilY = Logic.oilHeight(elapsed())
+		if oil then
+			oil.CFrame = discCFrame(origin, Layout.POT_CENTER_X, oilY, Layout.POT_CENTER_Z, OIL_THICKNESS)
+		end
+
+		local newStanding: { [Player]: string } = {}
 		for _, player in ctx.getRacers() do
-			local character = player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if root and root:IsA("BasePart") and origin:PointToObjectSpace(root.Position).Y < -FALL_DEPTH then
-				ctx.eliminate(player)
+			local root = rootOf(player)
+			if root == nil then
+				continue
 			end
+			local rel = origin:PointToObjectSpace(root.Position)
+			if rel.Y < Layout.FALL_ELIMINATION_Y or Logic.isFried(rel.Y - Layout.FOOT_OFFSET, oilY) then
+				ctx.eliminate(player)
+				if not ctx.isActive() then
+					return -- 이 탈락으로 라운드가 끝났어요
+				end
+				continue
+			end
+			local hit = workspace:Raycast(root.Position, down, probeParams)
+			if hit then
+				local key = hit.Instance:GetAttribute("RaftKey")
+				if type(key) == "string" then
+					newStanding[player] = key
+				end
+			end
+		end
+		standingOn = newStanding
+	end))
+
+	-- 원 안 레이서를 바깥으로 밀고 1초 넘어뜨려요
+	local function knock(player: Player, root: BasePart, humanoid: Humanoid?, kx: number, ky: number, kz: number)
+		lastHitAt[player] = os.clock()
+		MoveExempt.mark(player.Character, Logic.SPLASH_MOVE_EXEMPT)
+		if humanoid then
+			humanoid.PlatformStand = true
+			ctx.cleanup:add(task.delay(Logic.SPLASH_KNOCKDOWN_TIME, function()
+				-- 그 사이 탈락했으면(EliminationService가 고정함) 손대지 않아요
+				if ctx.isActive() and humanoid.Parent and isRacer(player) then
+					humanoid.PlatformStand = false
+				end
+			end))
+		end
+		local velocity = origin:VectorToWorldSpace(Vector3.new(kx, 0, kz)) + Vector3.new(0, ky, 0)
+		launch(ctx, root, velocity, Logic.SPLASH_HOLD)
+	end
+
+	-- 튀는 기름 한 번: 경고 원(그 자리 고정) → WARN_TIME 뒤 솟구침 → 원 안 레이서 넉백
+	local function splash(raft: Layout.Raft, cx: number, cz: number)
+		local warnDisc = part({
+			Name = "OilSplashWarning",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.2, Logic.SPLASH_RADIUS * 2, Logic.SPLASH_RADIUS * 2),
+			CFrame = discCFrame(origin, cx, raft.topY + WARN_HEIGHT, cz, 0.2),
+			Color = color3(Art.COLORS.warn),
+			Material = Enum.Material.Neon,
+			Transparency = 0.35,
+		})
+		ghost(warnDisc)
+		CollectionService:AddTag(warnDisc, SPLASH_TAG)
+		warnDisc.Parent = ctx.model
+		ctx.cleanup:add(warnDisc)
+
+		local waited = 0
+		while waited < Logic.SPLASH_WARN_TIME do
+			waited += task.wait(0.15)
+			if not ctx.isActive() then
+				return
+			end
+			warnDisc.Transparency = if warnDisc.Transparency > 0.5 then 0.35 else 0.65 -- 깜빡임
+		end
+		warnDisc:Destroy()
+
+		-- 솟구치는 기름 (보여 주기): 기름 방울 파티클 한 번
+		local burst = part({
+			Name = "OilSplashBurst",
+			Size = Vector3.new(1, 1, 1),
+			CFrame = origin * CFrame.new(cx, raft.topY + 0.5, cz),
+			Transparency = 1,
+		})
+		ghost(burst)
+		local drops = Instance.new("ParticleEmitter")
+		drops.Name = "OilDrops"
+		drops.Color = ColorSequence.new(color3(Art.COLORS.splash))
+		drops.LightEmission = 0.4
+		drops.Rate = 0
+		drops.Lifetime = NumberRange.new(0.6, 1)
+		drops.Speed = NumberRange.new(14, 22)
+		drops.SpreadAngle = Vector2.new(35, 35)
+		drops.Acceleration = Vector3.new(0, -40, 0)
+		drops.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.6),
+			NumberSequenceKeypoint.new(1, 0.2),
+		})
+		drops.EmissionDirection = Enum.NormalId.Top
+		drops.Parent = burst
+		burst.Parent = ctx.model
+		ctx.cleanup:add(burst)
+		drops:Emit(40)
+		MapSfx.play(burst, "OilSplash")
+		ctx.cleanup:add(task.delay(1.5, function()
+			burst:Destroy()
+		end))
+
+		local now = os.clock()
+		for _, player in ctx.getRacers() do
+			local root, humanoid = rootOf(player)
+			if root == nil then
+				continue
+			end
+			local last = lastHitAt[player]
+			if last and now - last < Logic.SPLASH_COOLDOWN then
+				continue
+			end
+			local rel = origin:PointToObjectSpace(root.Position)
+			local above = (rel.Y - Layout.FOOT_OFFSET) - raft.topY
+			if above < -1 or above > Logic.SPLASH_HEIGHT_RANGE then
+				continue
+			end
+			local velocity = Logic.splashKnockback(rel.X - cx, rel.Z - cz)
+			if velocity then
+				knock(player, root, humanoid, velocity.x, velocity.y, velocity.z)
+			end
+		end
+	end
+
+	-- 일정: 10초부터 간격마다 기름 위에 서 있는 레이서 한 명을 골라요
+	ctx.cleanup:add(task.spawn(function()
+		local first = Logic.SPLASH_SCHEDULE[1].from
+		task.wait(math.max(0, first - elapsed()))
+		while ctx.isActive() do
+			local oilY = Logic.oilHeight(elapsed())
+			local candidates: { Player } = {}
+			for _, player in ctx.getRacers() do
+				local key = standingOn[player]
+				local raft = if key then raftByKey[key] else nil
+				if raft and raft.topY > oilY then
+					table.insert(candidates, player)
+				end
+			end
+			local target = Logic.pickSplashTarget(candidates, ctx.rng)
+			if target then
+				local root = rootOf(target)
+				local raft = raftByKey[standingOn[target]]
+				if root and raft then
+					local rel = origin:PointToObjectSpace(root.Position)
+					ctx.cleanup:add(task.spawn(splash, raft, rel.X, rel.Z))
+				end
+			end
+			task.wait(Logic.splashInterval(elapsed()) or Logic.SPLASH_SCHEDULE[1].interval)
 		end
 	end))
 end
@@ -88,7 +453,6 @@ local map: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "튀김 냄비 탈출",
 	rule = "차오르는 기름을 피해 위로! 튀는 기름도 조심!",
-	inPool = false, -- m5-05가 끝나면 이 줄만 지워요
 	build = build,
 	start = start,
 }

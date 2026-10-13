@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-05 — 새 Survival 맵: 튀김 냄비 탈출 (`tempura-pot`)
@@ -86,7 +86,21 @@ status: ready
 <!-- 날짜 · 질문 · 결정 · 누가 -->
 - 2026-10-08 · D1 규칙 방향 · GDD 5.3 "튀김 기름 점프(튀는 기름 방울 피하기)"에 **차오르는 기름 + 위로 올라가기**를 더함. 지금 Survival 2개가 다 평평한 바닥이라 "올라가기"가 빈자리이고, 로블록스 아이들에게 차오르는 용암·물은 익숙한 장르. Survival 점수가 높이라 규칙과도 맞음. 근거: Fall Guys Slime Climb·Roll Off(차오르는 슬라임), Roblox The Floor Is LAVA!(방문 32억)·Flood Escape 2 — REFERENCE-m5-maps 1·2.2. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · D2 꼭대기 넓이 · Survival은 시간이 끝나면 버틴 사람 전원 통과라서 안전 구역이 넓으면 탈락이 안 생김 → 안전한 세 층(23·27·31) 넓이 합 160 이하(약 8~10명), 튀는 기름이 계속 사람을 노려 자리싸움이 생기게. 잡기(GDD 6)도 자리싸움에 쓰임. **기본값, 플레이테스트 후 조정** · planner
+- 2026-10-13 · D4 (developer, 해석 — 확인 부탁) AC4 "수직 ≤ 4.5"를 **높이 차 0~4.5(같은 층 옆으로 건너기 포함, 내려가기 제외)**로 읽어 경로 그래프를 만듦. 층마다 나선이 60° 돌아서 위층으로 바로 올라가는 자리는 각 층의 한쪽 끝에 있고, 나머지 발판에서는 옆 발판(틈 2.5)으로 건너가야 해요. 바로 11층으로 올라갈 수 있는 7층 발판은 3개(세 갈래, 테스트로 고정). 위·두 층 위 발판과는 위에서 볼 때 겹치지 않게(머리 닿음 방지) 했어요. · developer
+- 2026-10-13 · D5 (developer, 스펙 빈칸 채움) 튀는 기름 대상 = 마지막 0.1초 확인에서 발밑 레이캐스트(4.5)가 발판/바구니에 닿은 레이서 중 그 발판 윗면 > 기름인 사람. 원 안 판정은 수평 반경 5 + 발 높이가 그 윗면 −1 ~ +6. 0.5초 쿨다운은 "같은 사람이 다시 맞는 간격". 넉백은 PlatformStand 1초 + LinearVelocity 0.15초(SoySwampHazards 방식). 바구니도 태그 `TempuraRaft`(RaftKey "Basket")를 달아 같은 방식으로 찾음. · developer
 - 2026-10-08 · D3 기름 속도 · 0.4 studs/s(4초에 한 층), 6초 여유. 점프 한 번에 한 층(4)을 오르니 기름보다 빠르게 오를 수 있지만 꾸물거리면 잠김. 근거: 우리 점프 높이 약 6.4(점프력 50)·Survival 60초 — 계산값. **기본값, 플레이테스트 후 조정** · planner
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE A (게임플레이) — 2026-10-13, 브랜치 `m5-05-tempura`
+- 상태: **in-dev 유지** — 게임플레이·판정·테스트는 끝, 아트(PHASE B, m5-23 새 비주얼 키트 위)가 남음.
+- 바뀐 파일
+  - `src/shared/maps/TempuraPotLayout.luau`(새): 냄비·바구니·발판 7층(17+5개) 나선 배치, 스폰 24(동심원 4·8·12).
+  - `src/shared/maps/TempuraPotLogic.luau`(새): `oilHeight`, `isFried`, `splashInterval`, `splashKnockback`, `pickSplashTarget`, 발판 기하(`gap`·`isOnRaft`·`wallClearance`·`area`), 경로(`canClimb`·`climbGraph`·`pathFrom`·`startsReachingTop`·`tierConnected`).
+  - `src/shared/maps/TempuraPotArt.luau`(새): 판정 파츠 기본 색, 장식 자리표시(거대한 젓가락 2), `introCamera` 4점.
+  - `src/shared/maps/TempuraPot.luau`(덮어씀): 냄비 벽 32조각·바닥, 바구니·발판(태그 `TempuraRaft`), 기름 표면(태그 `HotOil`, Glass 0.3, 충돌 없음), 0.1초마다 기름 높이·튀김/낙하 탈락·서 있는 발판 기록, 10초부터 튀는 기름(태그 `OilSplash` 경고 원 1.2초 깜빡임 → 파티클 + `OilSplash` 소리 + 넉백). **`inPool = false` 삭제 → 랜덤 풀 합류.**
+  - `tests/map-tempura-pot.spec.luau`(새, 24개): AC1~AC8 + 무대·발판 표·겹침·gap 기하.
+  - 맵 개수 고정 테스트 갱신: `tests/maps.spec.luau`(풀 13), `tests/m4-foundation.spec.luau`(Survival 5), `tests/m5-03-foundation.spec.luau`(껍데기 목록에서 제거, infos 13), `tests/m4-12-hardening.spec.luau`(강제 플랜 9번째에 tempura-pot).
+  - `docs/USER-TODO.md` A2에 `OilSplash` 소리.
+- Studio 확인: `Config.DEBUG.forceMapPlan = { "rotating-belt", "tempura-pot", "skewer-showdown" }`(확인 뒤 nil) → 1라운드 통과 → 냄비. AC10(6초 뒤 기름 상승, 바구니에 계속 서 있으면 약 13.5초에 탈락), AC11(혼자 꼭대기까지 — 7층 오른쪽 끝 세 발판 중 하나에서 바깥 새우튀김으로, 층마다 옆으로 건너 나선을 따라), AC12(10초부터 발밑 주황 원 → 1.2초 뒤 넉백, 원 밖이면 안 맞음), AC13, AC14(벽·젓가락에 못 올라감, 이동 감시 `[MoveGuard]` 로그가 넉백 때 안 생김).
+- 알려진 것: `src/shared/maps/init.luau`의 주석 "(inPool = false)"가 낡음 — 공용 파일이라 안 고침(다음 공용 파일 담당이 지우면 됨). 장식은 자리표시뿐(PHASE B).

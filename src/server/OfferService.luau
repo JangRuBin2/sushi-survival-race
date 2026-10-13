@@ -1,6 +1,6 @@
 --!strict
 -- 특별 상품 상점 (m5-08, GDD 9.1·9.3·9.5). 카탈로그 Shared.Offers, 판단 Shared.OfferLogic (순수).
--- 리모트 (RemoteFunction, 반환 ok: boolean, err: string?):
+-- 리모트 (RemoteFunction, 반환 ok: boolean, err: LocText?):
 --   RequestOfferPurchase(offerId)  간격 Config.Shop.PurchaseRequestCooldown → OfferLogic.canRequest →
 --       묶음·연출(개발자 상품): MarketplaceService:PromptProductPurchase (Studio 가짜 결제면 RobuxShopService.fakeOfferReceipt)
 --       VIP(게임 패스): MarketplaceService:PromptGamePassPurchase (Studio 가짜 VIP면 바로 VIP)
@@ -25,10 +25,12 @@ local RunService = game:GetService("RunService")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local OfferLogic = require(ReplicatedStorage.Shared.OfferLogic)
 local Offers = require(ReplicatedStorage.Shared.Offers)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local DataService = require(script.Parent.DataService)
 local RobuxShopService = require(script.Parent.RobuxShopService)
@@ -82,7 +84,7 @@ local function viewOf(player: Player): OfferLogic.ViewLike?
 	}
 end
 
-local function notice(player: Player, message: string, kind: OfferLogic.NoticeKind)
+local function notice(player: Player, message: Types.LocText, kind: OfferLogic.NoticeKind)
 	if player.Parent == Players then
 		Remotes.event("Notice"):FireClient(player, message, kind)
 	end
@@ -264,7 +266,7 @@ local offerPort: RobuxShopService.OfferPort = {
 
 ---------------------------------------------------------------- 리모트
 
-local function onRequestOffer(player: Player, offerId: unknown): (boolean, string?)
+local function onRequestOffer(player: Player, offerId: unknown): (boolean, Types.LocText?)
 	local now = os.clock()
 	local last = lastPurchaseAt[player]
 	if last and now - last < Config.Shop.PurchaseRequestCooldown then
@@ -297,7 +299,7 @@ local function onRequestOffer(player: Player, offerId: unknown): (boolean, strin
 	return true, nil
 end
 
-local function onEquipFx(player: Player, slot: unknown, fxId: unknown): (boolean, string?)
+local function onEquipFx(player: Player, slot: unknown, fxId: unknown): (boolean, Types.LocText?)
 	local now = os.clock()
 	local last = lastEquipAt[player]
 	if last and now - last < Config.Shop.RequestCooldown then
@@ -327,19 +329,19 @@ function OfferService.init()
 			"[Offer] fakeVipInStudio is ignored while persistDataInStudio is on (would save the VIP skin to the real store)"
 		)
 	end
-	Remotes.fn("RequestOfferPurchase").OnServerInvoke = function(player: Player, offerId: unknown): (boolean, string?)
+	Remotes.fn("RequestOfferPurchase").OnServerInvoke = function(player: Player, offerId: unknown): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onRequestOffer, player, offerId)
 		if not ok then
 			warn(`[Offer] RequestOfferPurchase failed for {player.Name}: {success}`)
-			return false, "다시 해 주세요"
+			return false, LocalizeLogic.text("common.err.retry")
 		end
 		return success, err
 	end
-	Remotes.fn("EquipFx").OnServerInvoke = function(player: Player, slot: unknown, fxId: unknown): (boolean, string?)
+	Remotes.fn("EquipFx").OnServerInvoke = function(player: Player, slot: unknown, fxId: unknown): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onEquipFx, player, slot, fxId)
 		if not ok then
 			warn(`[Offer] EquipFx failed for {player.Name}: {success}`)
-			return false, "다시 해 주세요"
+			return false, LocalizeLogic.text("common.err.retry")
 		end
 		return success, err
 	end

@@ -22,9 +22,12 @@ local RunService = game:GetService("RunService")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local PlacePayload = require(ReplicatedStorage.Shared.PlacePayload)
 local PlaceRole = require(ReplicatedStorage.Shared.PlaceRole)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local CharacterUtil = require(script.Parent.CharacterUtil)
 local DataService = require(script.Parent.DataService)
@@ -32,6 +35,7 @@ local MatchEvents = require(script.Parent.MatchEvents)
 local PlaceBackend = require(script.Parent.PlaceBackend)
 local RoomDirectory = require(script.Parent.RoomDirectory)
 local RoomService = require(script.Parent.RoomService)
+local ServerLoc = require(script.Parent.ServerLoc)
 
 local PlaceService = {}
 
@@ -66,11 +70,17 @@ local function getBackend(): PlaceBackend.Backend
 	return backend :: PlaceBackend.Backend
 end
 
-local function notice(player: Player, message: string)
+-- 안내 한 줄 (m5-26: 문구는 LocText, 색은 kind — 기본 오류)
+local function notice(player: Player, message: Types.LocText, kind: Types.NoticeKind?)
 	local event = noticeEvent
 	if event and player.Parent then
-		event:FireClient(player, message)
+		event:FireClient(player, message, kind or "error")
 	end
+end
+
+-- 로비로 못 돌아간 사람을 내보낼 때 (클라이언트가 풀 수 없어서 서버가 그 사람 언어로 만들어요)
+local function kickToRejoin(player: Player)
+	player:Kick(ServerLoc.render(player, LocalizeLogic.text("place.kick.rejoin")))
 end
 
 -- MemoryStore 요청을 몇 번 다시 해요. 성공하면 (true, 결과)
@@ -212,7 +222,7 @@ local function sendToLobby(player: Player, reason: string)
 		return
 	end
 	teleportGroup({ player }, { placeId = lobbyPlaceId() }, function(p: Player)
-		p:Kick("로비로 돌아가지 못했어요. 다시 접속해 주세요")
+		kickToRejoin(p)
 	end)
 end
 
@@ -225,7 +235,7 @@ local function launchMatch(room: RoomService.Room, _players: { Player })
 	local key = room.key :: string
 	local b = getBackend()
 
-	local function cancel(message: string)
+	local function cancel(message: Types.LocText)
 		if RoomService.getRoom(roomId) == room then
 			for _, player in RoomService.getPlayers(roomId) do
 				notice(player, message)
@@ -238,7 +248,7 @@ local function launchMatch(room: RoomService.Room, _players: { Player })
 	local reserved, accessCode, privateServerId = pcall(b.reserveServer, matchPlaceId)
 	if not reserved then
 		warn(`[PlaceService] ReserveServer failed for room {roomId}: {accessCode}`)
-		cancel("매치 서버를 열지 못했어요. 다시 시작해 주세요")
+		cancel(LocalizeLogic.text("place.err.matchOpen"))
 		return
 	end
 	if RoomService.getRoom(roomId) ~= room or room.state ~= "InMatch" then
@@ -258,7 +268,7 @@ local function launchMatch(room: RoomService.Room, _players: { Player })
 		return true
 	end)
 	if not stored then
-		cancel("매치 서버를 열지 못했어요. 다시 시작해 주세요")
+		cancel(LocalizeLogic.text("place.err.matchOpen"))
 		return
 	end
 
@@ -277,7 +287,7 @@ local function launchMatch(room: RoomService.Room, _players: { Player })
 		if RoomService.getRoomIdOf(player) == roomId then
 			RoomService.removeFromRoom(player)
 		end
-		notice(player, "매치 서버로 이동하지 못했어요")
+		notice(player, LocalizeLogic.text("place.err.matchTeleport"))
 	end)
 
 	-- 오래 남아 있는 멤버(텔레포트가 소리 없이 멈춤)는 방에서 빼요. 나머지가 떠나면 방은 닫혀요.
@@ -288,7 +298,7 @@ local function launchMatch(room: RoomService.Room, _players: { Player })
 		for _, player in RoomService.getPlayers(roomId) do
 			pending[player] = nil
 			RoomService.removeFromRoom(player)
-			notice(player, "매치 서버로 이동하지 못했어요")
+			notice(player, LocalizeLogic.text("place.err.matchTeleport"))
 		end
 	end)
 end
@@ -401,7 +411,10 @@ local function handleReturn(player: Player, raw: any)
 			r.roomId = target.id
 			local joined, why = RoomService.joinRestored(player, target.id, r.hostUserId, r.verified)
 			if not joined then
-				notice(player, `원래 방에 들어가지 못했어요: {why}`)
+				notice(
+					player,
+					LocalizeLogic.text("place.err.rejoinRoom", { reason = why or LocalizeLogic.text("common.err.retry") })
+				)
 			end
 		else
 			local created = RoomService.restoreRoom({
@@ -431,7 +444,7 @@ local function handleJoinTicket(player: Player, raw: any)
 		ok, err = RoomService.joinLocalById(player, ticket.roomId :: string)
 	end
 	if not ok then
-		notice(player, `그 방에 들어가지 못했어요: {err}`)
+		notice(player, LocalizeLogic.text("place.err.joinRoom", { reason = err or LocalizeLogic.text("common.err.retry") }))
 	end
 end
 
@@ -452,7 +465,7 @@ local joiningAt: { [Player]: number } = {}
 local function teleportToLobbyServer(player: Player, jobId: string, ticket: PlacePayload.JoinTicket)
 	local mark = os.clock()
 	joiningAt[player] = mark
-	notice(player, "방이 있는 서버로 이동하고 있어요…")
+	notice(player, LocalizeLogic.text("place.info.moving"), "info")
 	saveBeforeTeleport({ player })
 	teleportGroup({ player }, {
 		placeId = lobbyPlaceId(),
@@ -462,7 +475,7 @@ local function teleportToLobbyServer(player: Player, jobId: string, ticket: Plac
 		if joiningAt[p] == mark then
 			joiningAt[p] = nil
 		end
-		notice(p, "그 방이 있는 서버로 이동하지 못했어요")
+		notice(p, LocalizeLogic.text("place.err.roomTeleport"))
 	end)
 	-- 텔레포트가 소리 없이 멈추면 다시 요청할 수 있게 풀어 줘요
 	task.delay(Config.Teleport.LaunchTimeout, function()
@@ -479,7 +492,7 @@ local function startLobby()
 	RoomService.setPlaceHooks({
 		launchMatch = launchMatch,
 		decorateList = RoomDirectory.decorate,
-		joinRemote = function(player: Player, id: string): (boolean, string?)
+		joinRemote = function(player: Player, id: string): (boolean, Types.LocText?)
 			local entry, err = RoomDirectory.findRemote(id)
 			if entry == nil then
 				return false, err
@@ -487,10 +500,10 @@ local function startLobby()
 			teleportToLobbyServer(player, entry.jobId, PlacePayload.joinTicket(entry.roomId, nil))
 			return true, nil
 		end,
-		joinRemoteByCode = function(player: Player, code: string): (boolean, string?)
+		joinRemoteByCode = function(player: Player, code: string): (boolean, Types.LocText?)
 			local entry = RoomDirectory.lookupCode(code)
 			if entry == nil then
-				return false, "그 코드의 방이 없어요"
+				return false, RoomLogic.message("NoCodeRoom")
 			end
 			teleportToLobbyServer(player, entry.jobId, PlacePayload.joinTicket(nil, code))
 			return true, nil
@@ -566,7 +579,7 @@ local function returnToLobby(players: { Player }, settings: PlacePayload.Setting
 		else anyLobby
 	print(`[PlaceService] room {m.roomKey}: {#players} players → lobby ({reason})`)
 	teleportGroup(players, request, function(player: Player)
-		player:Kick("로비로 돌아가지 못했어요. 다시 접속해 주세요")
+		kickToRejoin(player)
 	end)
 end
 

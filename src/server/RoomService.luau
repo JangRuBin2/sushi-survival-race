@@ -35,7 +35,8 @@ export type Room = RoomLogic.Room
 type MatchStartHandler = (room: Room, players: { Player }) -> ()
 type MemberLeftHandler = (roomId: string, player: Player) -> ()
 type ListDecorator = (listings: { Types.RoomListing }) -> { Types.RoomListing }
-type RemoteJoin = (player: Player, id: string) -> (boolean, string?)
+type LocText = Types.LocText
+type RemoteJoin = (player: Player, id: string) -> (boolean, LocText?)
 type ClaimCode = (code: string, roomId: string) -> boolean
 
 -- PlaceService가 넣어 주는 훅 (모두 선택)
@@ -304,6 +305,7 @@ type CreateParams = {
 	roomId: string,
 	settings: { maxPlayers: number, isPrivate: boolean },
 	name: string,
+	nameIsDefault: boolean?, -- m5-26: name은 방장 DisplayName (클라이언트가 기본 이름으로 보여 줘요)
 	code: string?,
 	key: string?,
 	players: { Player }, -- 첫 사람이 방장 (restore는 뒤에서 바꿔요)
@@ -321,6 +323,7 @@ local function insertRoom(params: CreateParams): Room
 		code = params.code,
 		slot = slot,
 		key = key,
+		nameIsDefault = params.nameIsDefault,
 	}, memberInfo(params.players[1]))
 	for i = 2, #params.players do
 		RoomLogic.addMember(room, memberInfo(params.players[i]))
@@ -340,7 +343,8 @@ local function insertRoom(params: CreateParams): Room
 	return room
 end
 
-local function createRoom(player: Player, settings: Types.RoomSettings, name: string): Room?
+-- name이 nil이면 기본 이름 (방장 DisplayName + nameIsDefault, m5-26)
+local function createRoom(player: Player, settings: Types.RoomSettings, name: string?): Room?
 	local roomId = reserveRoomId()
 	local code: string? = nil
 	if settings.isPrivate then
@@ -359,14 +363,15 @@ local function createRoom(player: Player, settings: Types.RoomSettings, name: st
 	return insertRoom({
 		roomId = roomId,
 		settings = settings,
-		name = name,
+		name = name or RoomLogic.defaultName(player.DisplayName),
+		nameIsDefault = name == nil,
 		code = code,
 		key = nil,
 		players = { player },
 	})
 end
 
-local function joinRoom(player: Player, room: Room): (boolean, string?)
+local function joinRoom(player: Player, room: Room): (boolean, LocText?)
 	local ok, err = RoomLogic.addMember(room, memberInfo(player))
 	if not ok then
 		return false, err
@@ -414,42 +419,40 @@ end
 ------------------------------------------------------------------------
 -- 리모트 요청 처리. 반환: (ok, 실패 이유)
 
-local MATCH_SERVER_BLOCKED = "매치 서버에서는 할 수 없어요"
-
-local function requireNoRoom(player: Player): string?
+local function requireNoRoom(player: Player): LocText?
 	if hooks.matchServer then
-		return MATCH_SERVER_BLOCKED
+		return RoomLogic.message("MatchServer")
 	end
 	if roomIdByUser[player.UserId] ~= nil then
-		return "이미 방에 들어가 있어요"
+		return RoomLogic.message("AlreadyInRoom")
 	end
 	local teleporting = hooks.isTeleporting
 	if teleporting and teleporting(player) then
-		return "다른 서버로 이동하고 있어요"
+		return RoomLogic.message("Teleporting")
 	end
 	return nil
 end
 
-local function joinLocalById(player: Player, roomId: string): (boolean, string?)
+local function joinLocalById(player: Player, roomId: string): (boolean, LocText?)
 	local room = rooms[roomId]
 	if room == nil or room.isPrivate then -- 비공개 방은 코드로만 들어가요
-		return false, "방을 찾을 수 없어요"
+		return false, RoomLogic.message("NotFound")
 	end
 	return joinRoom(player, room)
 end
 
-local function joinLocalByCode(player: Player, code: string): (boolean, string?)
+local function joinLocalByCode(player: Player, code: string): (boolean, LocText?)
 	local roomId = roomIdByCode[code]
 	local room = roomId and rooms[roomId]
 	if not room then
-		return false, "그 코드의 방이 없어요"
+		return false, RoomLogic.message("NoCodeRoom")
 	end
 	return joinRoom(player, room)
 end
 
-local handlers: { [string]: (player: Player, ...any) -> (boolean, string?) } = {}
+local handlers: { [string]: (player: Player, ...any) -> (boolean, LocText?) } = {}
 
-function handlers.CreateRoom(player: Player, rawSettings: any): (boolean, string?)
+function handlers.CreateRoom(player: Player, rawSettings: any): (boolean, LocText?)
 	local blocked = requireNoRoom(player)
 	if blocked then
 		return false, blocked
@@ -460,31 +463,31 @@ function handlers.CreateRoom(player: Player, rawSettings: any): (boolean, string
 	end
 	local name = settings.name and filterRoomName(settings.name, player)
 	if player.Parent == nil then -- 필터가 yield하는 동안 게임을 떠났으면 방을 만들지 않아요 (유령 방 방지)
-		return false, "게임을 떠났어요"
+		return false, RoomLogic.message("LeftGame")
 	end
 	if roomIdByUser[player.UserId] ~= nil then -- 필터가 yield하는 동안 다른 요청으로 방에 들어갔을 수 있어요
-		return false, "이미 방에 들어가 있어요"
+		return false, RoomLogic.message("AlreadyInRoom")
 	end
-	local room = createRoom(player, settings, name or RoomLogic.defaultName(player.DisplayName))
+	local room = createRoom(player, settings, name)
 	if room == nil then
 		if player.Parent == nil then
-			return false, "게임을 떠났어요"
+			return false, RoomLogic.message("LeftGame")
 		end
 		if roomIdByUser[player.UserId] ~= nil then
-			return false, "이미 방에 들어가 있어요"
+			return false, RoomLogic.message("AlreadyInRoom")
 		end
-		return false, "방을 만들 수 없어요. 잠시 뒤 다시 시도해 주세요"
+		return false, RoomLogic.message("CreateFailed")
 	end
 	return true, nil
 end
 
-function handlers.JoinRoom(player: Player, roomId: any): (boolean, string?)
+function handlers.JoinRoom(player: Player, roomId: any): (boolean, LocText?)
 	local blocked = requireNoRoom(player)
 	if blocked then
 		return false, blocked
 	end
 	if type(roomId) ~= "string" or #roomId > 200 then
-		return false, "방을 찾을 수 없어요"
+		return false, RoomLogic.message("NotFound")
 	end
 	-- 다른 로비 서버의 방 (m4-11): 그 서버로 텔레포트해서 들어가요
 	local joinRemote = hooks.joinRemote
@@ -494,13 +497,13 @@ function handlers.JoinRoom(player: Player, roomId: any): (boolean, string?)
 	return joinLocalById(player, roomId)
 end
 
-function handlers.JoinByCode(player: Player, code: any): (boolean, string?)
+function handlers.JoinByCode(player: Player, code: any): (boolean, LocText?)
 	local blocked = requireNoRoom(player)
 	if blocked then
 		return false, blocked
 	end
 	if not RoomLogic.isValidCode(code) then
-		return false, `방 코드는 숫자 {Config.Room.CodeLength}자리예요`
+		return false, RoomLogic.message("BadCode", { count = Config.Room.CodeLength })
 	end
 	local roomId = roomIdByCode[code]
 	local joinRemote = hooks.joinRemoteByCode
@@ -510,7 +513,7 @@ function handlers.JoinByCode(player: Player, code: any): (boolean, string?)
 	return joinLocalByCode(player, code)
 end
 
-function handlers.QuickJoin(player: Player): (boolean, string?)
+function handlers.QuickJoin(player: Player): (boolean, LocText?)
 	local blocked = requireNoRoom(player)
 	if blocked then
 		return false, blocked
@@ -525,21 +528,21 @@ function handlers.QuickJoin(player: Player): (boolean, string?)
 		return true, nil
 	end
 	if player.Parent == nil or roomIdByUser[player.UserId] ~= nil then
-		return false, "이미 방에 들어가 있어요"
+		return false, RoomLogic.message("AlreadyInRoom")
 	end
 	local created = createRoom(player, {
 		maxPlayers = Config.Room.DefaultMaxPlayers,
 		isPrivate = false,
-	}, RoomLogic.defaultName(player.DisplayName))
+	}, nil)
 	if created == nil then
-		return false, "방을 만들 수 없어요. 잠시 뒤 다시 시도해 주세요"
+		return false, RoomLogic.message("CreateFailed")
 	end
 	return true, nil
 end
 
-function handlers.LeaveRoom(player: Player): (boolean, string?)
+function handlers.LeaveRoom(player: Player): (boolean, LocText?)
 	if roomIdByUser[player.UserId] == nil then
-		return false, "방에 들어가 있지 않아요"
+		return false, RoomLogic.message("NotInRoom")
 	end
 	leaveRoom(player)
 	local onLeave = hooks.onLeaveRoom
@@ -549,14 +552,14 @@ function handlers.LeaveRoom(player: Player): (boolean, string?)
 	return true, nil
 end
 
-function handlers.StartRoom(player: Player): (boolean, string?)
+function handlers.StartRoom(player: Player): (boolean, LocText?)
 	if hooks.matchServer then
-		return false, MATCH_SERVER_BLOCKED
+		return false, RoomLogic.message("MatchServer")
 	end
 	local roomId = roomIdByUser[player.UserId]
 	local room = roomId and rooms[roomId]
 	if not room then
-		return false, "방에 들어가 있지 않아요"
+		return false, RoomLogic.message("NotInRoom")
 	end
 	local ok, err = RoomLogic.canStart(room, player.UserId, RoomLogic.minPlayersToStart(RunService:IsStudio()))
 	if not ok then
@@ -568,9 +571,10 @@ end
 
 -- 관리자 명령 start (m5-11): 대기 중인 방을 최소 인원·방장 검사 없이 지금과 같은 시작 흐름(beginMatch)으로.
 -- 권한은 AdminService가 봐요 (Studio 전용 Test 명령). 매치 중·자동 시작 카운트다운 중이면 거절해요.
+-- 관리자 도구라 문구는 한국어 문자열 그대로예요 (m5-26 제외 범위).
 function RoomService.forceStart(roomId: string): (boolean, string?)
 	if hooks.matchServer then
-		return false, MATCH_SERVER_BLOCKED
+		return false, "매치 서버에서는 할 수 없어요"
 	end
 	local room = rooms[roomId]
 	if not room then
@@ -588,18 +592,18 @@ end
 
 local function bindRequest(name: string)
 	local handler = handlers[name]
-	Remotes.fn(name).OnServerInvoke = function(player: Player, ...: any): (boolean, string?)
+	Remotes.fn(name).OnServerInvoke = function(player: Player, ...: any): (boolean, LocText?)
 		local now = os.clock()
 		local last = lastRequestAt[player]
 		if last and now - last < REQUEST_COOLDOWN then
-			return false, "너무 빨라요. 잠시 뒤 다시 눌러 주세요"
+			return false, RoomLogic.message("TooFast")
 		end
 		lastRequestAt[player] = now
 
 		local ok, result, err = pcall(handler, player, ...)
 		if not ok then
 			warn(`[RoomService] {name} failed for {player.Name}: {result}`)
-			return false, "서버 오류가 났어요"
+			return false, RoomLogic.message("ServerError")
 		end
 		return result, err
 	end
@@ -688,8 +692,15 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 		return nil -- 이미 있어요 (joinRestored로)
 	end
 	local name = spec.settings.name
-	if filterWith then
-		name = filterRoomName(name, filterWith) or RoomLogic.defaultName(filterWith.DisplayName)
+	local nameIsDefault = spec.settings.nameIsDefault == true
+	if filterWith and not nameIsDefault then
+		local filtered = filterRoomName(name, filterWith)
+		if filtered == nil then
+			name = RoomLogic.defaultName(filterWith.DisplayName)
+			nameIsDefault = true
+		else
+			name = filtered
+		end
 	end
 	local roomId = reserveRoomId()
 	local code: string? = nil
@@ -717,6 +728,7 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 		roomId = roomId,
 		settings = spec.settings,
 		name = name,
+		nameIsDefault = nameIsDefault,
 		code = code,
 		key = spec.key,
 		players = present,
@@ -733,13 +745,13 @@ function RoomService.joinRestored(
 	roomId: string,
 	hostUserId: number,
 	verified: boolean
-): (boolean, string?)
+): (boolean, LocText?)
 	if roomIdByUser[player.UserId] ~= nil then
-		return false, "이미 방에 들어가 있어요"
+		return false, RoomLogic.message("AlreadyInRoom")
 	end
 	local room = rooms[roomId]
 	if room == nil then
-		return false, "방을 찾을 수 없어요"
+		return false, RoomLogic.message("NotFound")
 	end
 	local ok, err = joinRoom(player, room)
 	if ok and verified then
@@ -774,16 +786,16 @@ function RoomService.addLateMember(roomId: string, player: Player): boolean
 	return true
 end
 
-function RoomService.joinLocalById(player: Player, roomId: string): (boolean, string?)
+function RoomService.joinLocalById(player: Player, roomId: string): (boolean, LocText?)
 	if roomIdByUser[player.UserId] ~= nil then
-		return false, "이미 방에 들어가 있어요"
+		return false, RoomLogic.message("AlreadyInRoom")
 	end
 	return joinLocalById(player, roomId)
 end
 
-function RoomService.joinLocalByCode(player: Player, code: string): (boolean, string?)
+function RoomService.joinLocalByCode(player: Player, code: string): (boolean, LocText?)
 	if roomIdByUser[player.UserId] ~= nil then
-		return false, "이미 방에 들어가 있어요"
+		return false, RoomLogic.message("AlreadyInRoom")
 	end
 	return joinLocalByCode(player, code)
 end

@@ -7,6 +7,13 @@ export type MapKind = Rules.MapKind
 
 export type RoomState = "Waiting" | "InMatch"
 
+-- 화면에 보일 문구 (m5-26). 서버는 문장 대신 키를 보내고, 클라이언트가 그 사람 언어로 만들어요 (Loc.text).
+-- key는 src/shared/Localization/Strings.csv의 키, args는 {이름} 자리표시자 값 (숫자는 클라이언트가 1,234처럼).
+export type LocText = { key: string, args: { [string]: string | number | LocText }? }
+
+-- Notice 색 (m5-26부터 항상 보내요)
+export type NoticeKind = "success" | "info" | "error"
+
 -- 방 만들기 요청 (GDD 3.2). 서버에서 Config.Room 기준으로 검증해요.
 export type RoomSettings = {
 	maxPlayers: number,
@@ -22,7 +29,8 @@ export type MemberInfo = {
 -- 방 멤버에게만 보내는 상세 정보 (비공개 방 코드 포함)
 export type RoomSnapshot = {
 	id: string,
-	name: string,
+	name: string, -- nameIsDefault면 방장 DisplayName (클라이언트가 room.defaultName "{name}의 초밥집"으로 보여 줘요)
+	nameIsDefault: boolean?, -- 이름 없이 만든 방 (m5-26)
 	maxPlayers: number,
 	isPrivate: boolean,
 	code: string?,
@@ -35,7 +43,8 @@ export type RoomSnapshot = {
 -- 로비 방 목록에 보이는 공개 방 요약
 export type RoomListing = {
 	id: string,
-	name: string,
+	name: string, -- nameIsDefault면 방장 DisplayName (RoomSnapshot과 같아요)
+	nameIsDefault: boolean?, -- m5-26
 	maxPlayers: number,
 	memberCount: number,
 	state: RoomState,

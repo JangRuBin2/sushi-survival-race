@@ -14,9 +14,10 @@
 --   matchEndPayout(lastDay?, today, now?) -> Payout?  매치 끝 한 번: 하루 첫 판이면 DailyFirstMatch(코인 50 + 재화
 --       판 참가 1 + 하루 첫 판 3), 아니면 이벤트 중 MatchPlayed(코인 0 + 재화 1), 둘 다 아니면 nil
 --   matchTokenTotal(grants) -> number             받은 지급의 재화 합계 (우승 화면 정산)
---   toastText(reason, amount, tokens?, icon?) · summaryText(total, coins, tokens?, icon?)
+--   toastText(reason, amount, tokens?, icon?) · summaryText(total, coins, tokens?, icon?)   화면 문구 (m5-26: LocText)
 
 local Config = require(script.Parent.Config)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local ProfileLogic = require(script.Parent.ProfileLogic)
 local Seasons = require(script.Parent.Seasons)
 local Types = require(script.Parent.Types)
@@ -149,38 +150,49 @@ function RewardLogic.matchTokenTotal(grants: { read [number]: { read tokens: num
 	return total
 end
 
-RewardLogic.REASON_TEXT = {
-	RoundPass = "라운드 통과",
-	FinalQualify = "결승 진출",
-	Win = "우승!",
-	DailyFirstMatch = "오늘 첫 판",
-	Code = "코드 보상", -- m5-10
-	MatchPlayed = "판 참가", -- m5-07 (이벤트 재화)
-} :: { [Types.RewardReason]: string }
+-- 지급 이유 (Types.RewardReason 전부). 화면 글씨는 reward.reason.<이유> 키 (m5-26)
+RewardLogic.REASONS = {
+	"RoundPass",
+	"FinalQualify",
+	"Win",
+	"DailyFirstMatch",
+	"Code", -- m5-10
+	"MatchPlayed", -- m5-07 (이벤트 재화)
+} :: { Types.RewardReason }
 
 local function hasTokens(tokens: number?): boolean
 	return type(tokens) == "number" and tokens > 0
 end
 
 -- 지급 토스트 글씨: "+10 🍚 라운드 통과". 재화도 받으면 "+10 🍚 +1 🍬 라운드 통과", 재화만이면 "+1 🍬 판 참가" (m5-07)
-function RewardLogic.toastText(reason: Types.RewardReason, amount: number, tokens: number?, icon: string?): string
-	local label = RewardLogic.REASON_TEXT[reason] or reason
+function RewardLogic.toastText(
+	reason: Types.RewardReason,
+	amount: number,
+	tokens: number?,
+	icon: string?
+): Types.LocText
+	local label = LocalizeLogic.text(LocalizeLogic.rewardReasonKey(reason))
 	if not hasTokens(tokens) then
-		return `+{amount} 🍚 {label}`
+		return LocalizeLogic.text("reward.toast.coins", { amount = amount, label = label })
 	end
-	local tokenText = `+{tokens} {icon or "🍬"}`
 	if amount > 0 then
-		return `+{amount} 🍚 {tokenText} {label}`
+		return LocalizeLogic.text(
+			"reward.toast.both",
+			{ amount = amount, tokens = tokens :: number, icon = icon or "🍬", label = label }
+		)
 	end
-	return `{tokenText} {label}`
+	return LocalizeLogic.text("reward.toast.tokens", { tokens = tokens :: number, icon = icon or "🍬", label = label })
 end
 
--- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1234)" (m5-07)
-function RewardLogic.summaryText(matchTotal: number, coins: number, tokens: number?, icon: string?): string
+-- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1,234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1,234)" (m5-07)
+function RewardLogic.summaryText(matchTotal: number, coins: number, tokens: number?, icon: string?): Types.LocText
 	if hasTokens(tokens) then
-		return `이번 판 +{matchTotal} 🍚 +{tokens} {icon or "🍬"} (총 {coins})`
+		return LocalizeLogic.text(
+			"reward.summaryTokens",
+			{ total = matchTotal, tokens = tokens :: number, icon = icon or "🍬", coins = coins }
+		)
 	end
-	return `이번 판 +{matchTotal} 🍚 (총 {coins})`
+	return LocalizeLogic.text("reward.summary", { total = matchTotal, coins = coins })
 end
 
 -- 매치 끝 지급(하루 첫 판·matchesPlayed) 대상: 매치를 시작한 참가자 중 매치 끝 시점에 방에 남은 사람 (참가자 순서).

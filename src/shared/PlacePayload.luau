@@ -25,6 +25,7 @@ export type Settings = {
 	maxPlayers: number,
 	isPrivate: boolean,
 	name: string,
+	nameIsDefault: boolean?, -- m5-26: name은 방장 DisplayName (기본 이름)
 }
 
 export type Manifest = {
@@ -110,6 +111,9 @@ function PlacePayload.validateSettings(raw: any): (Settings?, string?)
 	if type(raw.isPrivate) ~= "boolean" then
 		return nil, "isPrivate"
 	end
+	if raw.nameIsDefault ~= nil and type(raw.nameIsDefault) ~= "boolean" then
+		return nil, "nameIsDefault"
+	end
 	local name = raw.name
 	if type(name) ~= "string" or utf8.len(name) == nil then
 		return nil, "name"
@@ -118,7 +122,13 @@ function PlacePayload.validateSettings(raw: any): (Settings?, string?)
 	if cleaned == nil or cleaned ~= name then
 		return nil, "name" -- 정리하면 달라지는 이름(너무 김·제어 문자·앞뒤 공백)은 받지 않아요
 	end
-	return { maxPlayers = raw.maxPlayers, isPrivate = raw.isPrivate, name = name }, nil
+	return {
+		maxPlayers = raw.maxPlayers,
+		isPrivate = raw.isPrivate,
+		name = name,
+		nameIsDefault = if raw.nameIsDefault == true then true else nil,
+	},
+		nil
 end
 
 -- 멤버 userId 목록: 1~MAX_MEMBERS명, 정수, 중복 없음
@@ -160,8 +170,15 @@ end
 ------------------------------------------------------------------------
 -- 만들기
 
-function PlacePayload.settingsOf(room: { maxPlayers: number, isPrivate: boolean, name: string }): Settings
-	return { maxPlayers = room.maxPlayers, isPrivate = room.isPrivate, name = room.name }
+function PlacePayload.settingsOf(
+	room: { maxPlayers: number, isPrivate: boolean, name: string, nameIsDefault: boolean? }
+): Settings
+	return {
+		maxPlayers = room.maxPlayers,
+		isPrivate = room.isPrivate,
+		name = room.name,
+		nameIsDefault = if room.nameIsDefault then true else nil,
+	}
 end
 
 function PlacePayload.manifest(params: ManifestParams): Manifest

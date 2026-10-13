@@ -16,6 +16,7 @@ local RunService = game:GetService("RunService")
 
 local CodeLogic = require(ReplicatedStorage.Shared.CodeLogic)
 local Config = require(ReplicatedStorage.Shared.Config)
+local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -54,7 +55,7 @@ local function fail(
 	reason: CodeLogic.Reason,
 	counts: boolean,
 	realNow: number
-): (boolean, string)
+): (boolean, Types.LocText)
 	if counts then
 		local settings = Config.Codes
 		local recent = CodeLogic.recordFailure(state.failures, realNow, settings.FailureWindow)
@@ -65,7 +66,7 @@ local function fail(
 	return false, CodeLogic.message(reason)
 end
 
-local function redeem(player: Player, raw: unknown): (boolean, string)
+local function redeem(player: Player, raw: unknown): (boolean, Types.LocText)
 	local state = stateOf(player)
 	local clock = os.clock()
 	if clock - state.lastAt < Config.Codes.RequestCooldown then
@@ -149,7 +150,7 @@ function CodeService.init()
 	end
 	count = #valid
 	rewardGrantedEvent = Remotes.event("RewardGranted")
-	Remotes.fn("RedeemCode").OnServerInvoke = function(player: Player, raw: unknown): (boolean, string)
+	Remotes.fn("RedeemCode").OnServerInvoke = function(player: Player, raw: unknown): (boolean, Types.LocText)
 		local called, ok, text = pcall(redeem, player, raw)
 		if not called then
 			warn(`[Code] redeem failed for {who(player)}: {ok}`)

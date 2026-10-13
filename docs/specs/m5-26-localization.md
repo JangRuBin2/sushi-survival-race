@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -211,6 +211,7 @@ status: ready
 - 2026-10-13 · 관리자 패널 · **제외(한국어 유지, `AutoLocalize = false`)**. 개발자 전용 도구라 영어 플레이어가 볼 일이 없고 문구가 약 60개라 1단계 크기를 줄인다. 영어가 필요하면 후속으로. · planner (사용자가 바꿀 수 있음)
 - 2026-10-13 · 복수형·서수 · 복수형 엔진 없이 문장으로 피하고, 서수는 영어만 코드로. 근거: Roblox 자리표시자 서식에 복수형 규칙이 없다(서식 지정자는 int·fixed·num·datetime 등만). · planner
 - 2026-10-13 · 이번 결정은 가격·난이도 같은 체감 수치가 아니라 기술 방향이라 비슷한 로블록스 게임 비교 표는 만들지 않았다. 출처(확인 2026-10-13): Roblox 문서 [Localize with scripting](https://create.roblox.com/docs/production/localization/localize-with-scripting)(번역기 비동기·실패 가능·pcall, 이름 인자 테이블), [Translate dynamic content](https://create.roblox.com/docs/production/localization/translate-dynamic-content)(자리표시자·서식 지정자 목록), [Add translations](https://create.roblox.com/docs/production/localization/add-translations)(CSV 업로드, 빈 언어는 자동 번역 대상, 고친 번역은 수동으로 잠김), [LocalizationTable](https://create.roblox.com/docs/en-us/reference/engine/classes/LocalizationTable.md)(키 조회 때 번역이 없으면 Source 사용), [LocalizationService](https://create.roblox.com/docs/reference/engine/classes/LocalizationService)("Not Replicated" 표기), [Rojo sync details](https://rojo.space/docs/v7/sync-details/)(`.csv` → LocalizationTable, Roblox 내보내기 형식). 확인 못 함: 배경 절 마지막 줄의 네 가지. · planner
+- 2026-10-13 · 기획 질문 3개 (메인 세션 기본값, 사용자 위임) · (1) 관리자 "🛠" 패널은 한국어 유지, `AutoLocalize = false`(이번 범위에서 제외). (2) 영어 용어는 7절 용어집 그대로("Wardrobe", "Rice Coins", 맵 이름 7절). (3) 원어민 검토는 지금 안 함(나중에 CSV로 가능). · 메인 세션 기본값
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

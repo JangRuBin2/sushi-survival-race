@@ -7,12 +7,12 @@
 --   buyWithCoins(profile, skinId) -> Decision
 --       DataService.update 안에서 부르는 것: 다시 판단하고 통과하면 차감 + 보유 + 장착을 한 번에 (중복·음수 방지).
 --   grantSkin(profile, skinId, equip?) -> boolean   보유 목록에 넣어요 (로벅스 결제 m4-14). 새로 넣었으면 true.
---   message(reason, missing?) -> string              거절 이유 한국어 한 줄 (탈의실 결과 글씨)
+--   message(reason, missing?) -> LocText?            거절 이유 한 줄 (탈의실 결과 글씨, m5-26부터 키)
 --   cardState(skin, view, robux?) -> CardState       탈의실 카드 상태 (입는 중 / 입기 / 코인 해금 / 코인 부족 / 로벅스)
 --       로벅스 버튼은 상품 id가 있거나 Studio 가짜 결제(robux.fake)일 때만 켜져요 (m4-14). 일반·레어 스킨은 코인 해금 옆에
 --       로벅스 버튼이 하나 더 있어요 (robux·robuxEnabled → robuxButtonText).
 --   robuxOpen(skin, fake?) / robuxPrice(skin, robux?)  로벅스 판매 여부 / 보여 줄 가격 (실제 상품 가격 우선)
---   cardButtonText(state) -> string · robuxButtonText(state) -> string?
+--   cardButtonText(state) -> LocText · robuxButtonText(state) -> LocText?   (m5-26: 화면 문구는 키, 클라이언트가 Loc.text)
 -- 시즌 이벤트 (m5-07):
 --   canBuyWithTokens(skinId, wallet, now, canSave?, locked?) -> Decision   이벤트 재화로 무료 한정 스킨 받기
 --       순서: 카탈로그(tokens) → 이벤트 진행 중 → 미보유 → 잠금 → 저장 가능 → 재화 ≥ 가격
@@ -23,12 +23,17 @@
 --   defaultTab(now) -> Tab    탈의실을 열 때 먼저 고를 탭 (이벤트 탭, 없으면 전체)
 --   visibleSkins(view, tab?, now?) -> { Skin }   기간 끝 + 미보유 한정 스킨은 어느 탭에도 안 보여요.
 --       이벤트 탭은 그 이벤트 스킨만, 등급 탭은 한정 스킨을 가진 것만(받기 전에는 이벤트 탭·전체에서), 전체는 보이는 것 모두
---   eventHeader(event, now, tokens?) -> string   "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" (날짜로만, D4)
---   lastDayText(event) -> string                 마지막 날 = endsAt − 1초의 UTC 날짜 "11월 5일"
+--   eventHeader(event, now, tokens?) -> LocText  "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" (날짜로만, D4)
+--   lastDayText(event) -> LocText                마지막 날 = endsAt − 1초의 UTC 날짜 "11월 5일" (date.monthDay)
+--   lastDay(event) -> (month, day)               그 날짜 숫자
 -- 소유·착용·코인의 진실은 서버 프로필뿐이에요. 클라이언트는 cardState로 보여 주기만 해요.
 
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Seasons = require(script.Parent.Seasons)
 local Skins = require(script.Parent.Skins)
+local Types = require(script.Parent.Types)
+
+type LocText = Types.LocText
 
 export type Reason =
 	"UnknownSkin"
@@ -104,7 +109,7 @@ export type ViewLike = {
 -- 탈의실 탭 (m5-07): id "event"·"all"·등급 이름
 export type Tab = {
 	id: string,
-	label: string,
+	label: LocText, -- m5-26: 키 (클라이언트가 Loc.text)
 	tier: Skins.Tier?, -- 등급 탭
 	eventId: string?, -- 이벤트 탭
 }
@@ -292,23 +297,27 @@ end
 
 -- 이벤트 탭 이름 (없는 이벤트면 재화 아이콘 + 이벤트 이름)
 ShopLogic.EVENT_TAB_LABEL = {
-	["halloween-2026"] = "🎃 할로윈",
-	["christmas-2026"] = "🎄 크리스마스",
-} :: { [string]: string }
+	["halloween-2026"] = { key = "shop.tab.halloween" },
+	["christmas-2026"] = { key = "shop.tab.christmas" },
+} :: { [string]: LocText }
 
 -- 이벤트 탭 머리줄 아래 작은 안내 (D4: 압박하지 않는 문구)
-ShopLogic.EVENT_NOTE = "이벤트가 끝나면 받을 수 없어요. 다음 해에 다시 올 수도 있어요."
+ShopLogic.EVENT_NOTE = { key = "shop.eventNote" } :: LocText
 
 local TIER_TABS: { Tab } = {
-	{ id = "all", label = "전체" },
-	{ id = "Common", label = "일반", tier = "Common" },
-	{ id = "Rare", label = "레어", tier = "Rare" },
-	{ id = "Epic", label = "에픽", tier = "Epic" },
-	{ id = "Legendary", label = "전설", tier = "Legendary" },
+	{ id = "all", label = { key = "shop.tab.all" } },
+	{ id = "Common", label = { key = "shop.tab.common" }, tier = "Common" },
+	{ id = "Rare", label = { key = "shop.tab.rare" }, tier = "Rare" },
+	{ id = "Epic", label = { key = "shop.tab.epic" }, tier = "Epic" },
+	{ id = "Legendary", label = { key = "shop.tab.legendary" }, tier = "Legendary" },
 }
 
 function ShopLogic.eventTab(event: Seasons.Event): Tab
-	local label = ShopLogic.EVENT_TAB_LABEL[event.id] or `{event.token.icon} {event.name}`
+	local label = ShopLogic.EVENT_TAB_LABEL[event.id]
+		or LocalizeLogic.text("shop.tab.event", {
+			icon = event.token.icon,
+			name = LocalizeLogic.text(LocalizeLogic.seasonNameKey(event.id)),
+		})
 	return { id = "event", label = label, eventId = event.id }
 end
 
@@ -370,49 +379,64 @@ local function civilFromDays(days: number): (number, number, number)
 	return y, m, d
 end
 
--- 마지막 날 (endsAt은 제외라서 endsAt − 1초의 UTC 날짜): "11월 5일"
-function ShopLogic.lastDayText(event: Seasons.Event): string
+-- 마지막 날 (endsAt은 제외라서 endsAt − 1초의 UTC 날짜): 월, 일
+function ShopLogic.lastDay(event: Seasons.Event): (number, number)
 	local _, month, day = civilFromDays((event.endsAt - 1) // 86400)
-	return `{month}월 {day}일`
+	return month, day
+end
+
+-- "11월 5일" / "Nov 5"
+function ShopLogic.lastDayText(event: Seasons.Event): LocText
+	local month, day = ShopLogic.lastDay(event)
+	return LocalizeLogic.text("date.monthDay", { month = LocalizeLogic.text(LocalizeLogic.monthKey(month)), day = day })
 end
 
 -- 이벤트 탭 머리줄: "할로윈 초밥 축제 · 11월 5일까지" (+ tokens가 있으면 " · 🍬 32"). 초 단위 카운트다운 없음 (D4)
-function ShopLogic.eventHeader(event: Seasons.Event, _now: number?, tokens: number?): string
-	local text = `{event.name} · {ShopLogic.lastDayText(event)}까지`
+function ShopLogic.eventHeader(event: Seasons.Event, _now: number?, tokens: number?): LocText
+	local name = LocalizeLogic.text(LocalizeLogic.seasonNameKey(event.id))
+	local date = ShopLogic.lastDayText(event)
 	if tokens ~= nil then
-		text ..= ` · {event.token.icon} {tokens}`
+		return LocalizeLogic.text(
+			"shop.eventHeaderTokens",
+			{ event = name, date = date, icon = event.token.icon, tokens = tokens }
+		)
 	end
-	return text
+	return LocalizeLogic.text("shop.eventHeader", { event = name, date = date })
 end
 
-local MESSAGES: { [Reason]: string } = {
-	UnknownSkin = "없는 스킨이에요",
-	NotOwned = "아직 없는 스킨이에요",
-	Locked = "매치가 끝나면 바꿀 수 있어요",
-	AlreadyOwned = "이미 가진 스킨이에요",
-	NotForCoins = "코인으로는 살 수 없어요",
-	NotEnoughCoins = "코인이 모자라요",
-	CannotSave = "저장이 안 되는 상태예요",
-	TooFast = "잠시 뒤에 다시 해 주세요",
-	NoProfile = "프로필을 불러오는 중이에요",
-	PurchasePending = "로벅스 결제가 끝날 때까지 기다려 주세요",
-	NotForTokens = "이벤트 재화로는 받을 수 없어요",
-	EventEnded = "이벤트 기간이 아니에요",
-	NeedTokens = "이벤트 재화가 모자라요",
+local MESSAGES: { [Reason]: LocText } = {
+	UnknownSkin = { key = "shop.err.UnknownSkin" },
+	NotOwned = { key = "shop.err.NotOwned" },
+	Locked = { key = "shop.err.Locked" },
+	AlreadyOwned = { key = "shop.err.AlreadyOwned" },
+	NotForCoins = { key = "shop.err.NotForCoins" },
+	NotEnoughCoins = { key = "shop.err.NotEnoughCoins" },
+	CannotSave = { key = "shop.err.CannotSave" },
+	TooFast = { key = "shop.err.TooFast" },
+	NoProfile = { key = "shop.err.NoProfile" },
+	PurchasePending = { key = "shop.err.PurchasePending" },
+	NotForTokens = { key = "shop.err.NotForTokens" },
+	EventEnded = { key = "shop.err.EventEnded" },
+	NeedTokens = { key = "shop.err.NeedTokens" },
 }
+ShopLogic.REASONS = {} :: { Reason }
+for reason in MESSAGES do
+	table.insert(ShopLogic.REASONS, reason)
+end
+table.sort(ShopLogic.REASONS)
 
--- icon: NeedTokens의 재화 아이콘 (없으면 🍬)
-function ShopLogic.message(reason: Reason?, missing: number?, icon: string?): string
+-- icon: NeedTokens의 재화 아이콘 (없으면 🍬). reason이 nil이면 nil
+function ShopLogic.message(reason: Reason?, missing: number?, icon: string?): LocText?
 	if reason == "NotEnoughCoins" and missing then
-		return `🍚 {missing}개 더 필요해요`
+		return LocalizeLogic.text("shop.err.needCoinsMore", { count = missing })
 	end
 	if reason == "NeedTokens" and missing then
-		return `{icon or "🍬"} {missing}개 더 필요해요`
+		return LocalizeLogic.text("shop.err.needTokensMore", { icon = icon or "🍬", count = missing })
 	end
 	if reason == nil then
-		return ""
+		return nil
 	end
-	return MESSAGES[reason] or "다시 해 주세요"
+	return MESSAGES[reason] or LocalizeLogic.text("common.err.retry")
 end
 
 function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptions?, now: number?): CardState
@@ -458,41 +482,45 @@ function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptio
 	return { kind = "Robux", price = robuxPrice, enabled = open }
 end
 
-function ShopLogic.cardButtonText(state: CardState): string
+-- 카드 버튼 글씨 (m5-26: 조사가 숫자에 붙지 않게 "🍚 300 · 해금")
+function ShopLogic.cardButtonText(state: CardState): LocText
 	if state.kind == "Equipped" then
-		return "입는 중"
+		return LocalizeLogic.text("shop.btn.wearing")
 	elseif state.kind == "Equip" then
-		return "입기"
+		return LocalizeLogic.text("shop.btn.wear")
 	elseif state.kind == "Unlock" then
-		return `🍚 {state.price}으로 해금`
+		return LocalizeLogic.text("shop.btn.unlock", { price = state.price or 0 })
 	elseif state.kind == "NeedCoins" then
-		return `🍚 {state.missing}개 더 필요해요`
+		return LocalizeLogic.text("shop.btn.needCoins", { count = state.missing or 0 })
 	elseif state.kind == "Soon" then
-		return "곧 열려요"
+		return LocalizeLogic.text("shop.btn.soon")
 	elseif state.kind == "Tokens" then
-		return `{state.icon or "🍬"} {state.price}으로 받기`
+		return LocalizeLogic.text("shop.btn.tokens", { icon = state.icon or "🍬", price = state.price or 0 })
 	elseif state.kind == "NeedTokens" then
-		return `{state.icon or "🍬"} {state.tokens or 0} / {state.price}`
+		return LocalizeLogic.text(
+			"shop.btn.tokenProgress",
+			{ icon = state.icon or "🍬", have = state.tokens or 0, price = state.price or 0 }
+		)
 	elseif state.kind == "Vip" then
-		return "👑 VIP 전용"
+		return LocalizeLogic.text("shop.btn.vipOnly")
 	elseif state.kind == "OffSale" then
-		return "판매 기간이 아니에요"
+		return LocalizeLogic.text("shop.btn.offSale")
 	end
 	if state.enabled then
-		return `R$ {state.price}`
+		return LocalizeLogic.text("shop.btn.robux", { price = state.price or 0 })
 	end
-	return `R$ {state.price} — 곧 열려요`
+	return LocalizeLogic.text("shop.btn.robuxSoon", { price = state.price or 0 })
 end
 
 -- 일반·레어 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)
-function ShopLogic.robuxButtonText(state: CardState): string?
+function ShopLogic.robuxButtonText(state: CardState): LocText?
 	if state.robux == nil or (state.kind ~= "Unlock" and state.kind ~= "NeedCoins") then
 		return nil
 	end
 	if state.robuxEnabled then
-		return `R$ {state.robux}로 사기`
+		return LocalizeLogic.text("shop.btn.robuxBuy", { price = state.robux })
 	end
-	return `R$ {state.robux} — 곧 열려요`
+	return LocalizeLogic.text("shop.btn.robuxSoon", { price = state.robux })
 end
 
 return ShopLogic

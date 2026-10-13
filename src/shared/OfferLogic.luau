@@ -14,10 +14,15 @@
 --   OfferLogic.canEquipFx(slot, fxId, owned, locked) -> (ok, Reason?)   EquipFx 검사 (fxId nil·""면 벗기)
 --   OfferLogic.message(reason) / valueText(offer) / contentLines(offer)
 --   OfferLogic.cardState(offer, view, opts) / buttonText(state, price) / screenList(view, opts)   상점 화면
+-- 화면 문구는 m5-26부터 LocText (키). 클라이언트가 Loc.text로 풀어요.
 
 local FxCatalog = require(script.Parent.FxCatalog)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Offers = require(script.Parent.Offers)
 local Skins = require(script.Parent.Skins)
+local Types = require(script.Parent.Types)
+
+type LocText = Types.LocText
 
 export type Reason =
 	"Unknown"
@@ -258,32 +263,38 @@ function OfferLogic.canEquipFx(slot: unknown, fxId: unknown, view: ViewLike?, lo
 	return true, nil
 end
 
-local MESSAGES: { [Reason]: string } = {
-	Unknown = "없는 상품이에요",
-	AlreadyBought = "이미 샀어요",
-	OwnsSome = "이미 가진 스킨이 있어서 따로 사야 해요",
-	AlreadyOwned = "이미 가진 연출이에요",
-	AlreadyVip = "이미 VIP예요",
-	NotForSale = "준비 중이에요",
-	CannotSave = "저장이 안 되는 상태라 지금은 살 수 없어요",
-	NoProfile = "프로필을 불러오는 중이에요",
-	TooFast = "잠시 뒤에 다시 해 주세요",
-	BadSlot = "없는 연출 칸이에요",
-	UnknownFx = "없는 연출이에요",
-	WrongSlot = "그 칸에 입을 수 없는 연출이에요",
-	NotOwned = "아직 없는 연출이에요",
-	Locked = "매치가 끝나면 바꿀 수 있어요",
+local MESSAGES: { [Reason]: LocText } = {
+	Unknown = { key = "offer.err.Unknown" },
+	AlreadyBought = { key = "offer.err.AlreadyBought" },
+	OwnsSome = { key = "offer.err.OwnsSome" },
+	AlreadyOwned = { key = "offer.err.AlreadyOwned" },
+	AlreadyVip = { key = "offer.err.AlreadyVip" },
+	NotForSale = { key = "offer.err.NotForSale" },
+	CannotSave = { key = "offer.err.CannotSave" },
+	NoProfile = { key = "offer.err.NoProfile" },
+	TooFast = { key = "offer.err.TooFast" },
+	BadSlot = { key = "offer.err.BadSlot" },
+	UnknownFx = { key = "offer.err.UnknownFx" },
+	WrongSlot = { key = "offer.err.WrongSlot" },
+	NotOwned = { key = "offer.err.NotOwned" },
+	Locked = { key = "offer.err.Locked" },
 }
+OfferLogic.REASONS = {} :: { Reason }
+for reason in MESSAGES do
+	table.insert(OfferLogic.REASONS, reason)
+end
+table.sort(OfferLogic.REASONS)
 
-function OfferLogic.message(reason: Reason?): string
+-- 거절 문구. reason이 nil이면 nil
+function OfferLogic.message(reason: Reason?): LocText?
 	if reason == nil then
-		return ""
+		return nil
 	end
-	return MESSAGES[reason] or "다시 해 주세요"
+	return MESSAGES[reason] or LocalizeLogic.text("common.err.retry")
 end
 
 -- 묶음만: 스킨을 따로 살 때 로벅스 합 ("따로 사면 R$ 146")
-function OfferLogic.valueText(offer: Offers.Offer): string?
+function OfferLogic.valueText(offer: Offers.Offer): LocText?
 	if offer.kind ~= "Bundle" then
 		return nil
 	end
@@ -298,31 +309,37 @@ function OfferLogic.valueText(offer: Offers.Offer): string?
 	if total <= 0 then
 		return nil
 	end
-	return `따로 사면 R$ {total}`
+	return LocalizeLogic.text("offer.value", { total = total })
 end
 
--- 카드에 보일 "주는 것" 줄들
-function OfferLogic.contentLines(offer: Offers.Offer): { string }
+-- 카드에 보일 "주는 것" 줄들. 줄 하나 = 조각 목록 (화면이 " · "로 이어 붙여요, m5-26)
+function OfferLogic.contentLines(offer: Offers.Offer): { { LocText } }
 	if offer.kind == "Bundle" then
-		local names: { string } = {}
+		local names: { LocText } = {}
 		for _, skinId in offer.skins or {} do
-			local skin = Skins.get(skinId)
-			table.insert(names, if skin then skin.displayName else skinId)
+			if Skins.get(skinId) then
+				table.insert(names, LocalizeLogic.text(LocalizeLogic.skinNameKey(skinId)))
+			end
 		end
-		return { table.concat(names, " · ") }
+		return { names }
 	elseif offer.kind == "Fx" then
-		local lines: { string } = {}
+		local lines: { { LocText } } = {}
 		if offer.blurb then
-			table.insert(lines, offer.blurb)
+			table.insert(lines, { LocalizeLogic.text(LocalizeLogic.offerBlurbKey(offer.id)) })
 		else
 			for _, fxId in offer.fx or {} do
-				local fx = FxCatalog.get(fxId)
-				table.insert(lines, if fx then fx.displayName else fxId)
+				if FxCatalog.get(fxId) then
+					table.insert(lines, { LocalizeLogic.text(LocalizeLogic.fxNameKey(fxId)) })
+				end
 			end
 		end
 		return lines
 	end
-	return table.clone(offer.perks or {})
+	local lines: { { LocText } } = {}
+	for index in offer.perks or {} do
+		table.insert(lines, { LocalizeLogic.text(LocalizeLogic.offerPerkKey(offer.id, index)) })
+	end
+	return lines
 end
 
 local function forSale(offer: Offers.Offer, opts: ScreenOptions): boolean
@@ -344,15 +361,15 @@ function OfferLogic.cardState(offer: Offers.Offer, view: ViewLike, opts: ScreenO
 	return { kind = "Hidden", enabled = false } -- 조건이 안 맞는 묶음 (일부 스킨을 이미 가짐)
 end
 
-function OfferLogic.buttonText(state: CardState, price: number): string
+function OfferLogic.buttonText(state: CardState, price: number): LocText?
 	if state.kind == "Buy" then
-		return `R$ {price}로 사기`
+		return LocalizeLogic.text("offer.btn.buy", { price = price })
 	elseif state.kind == "Soon" then
-		return "곧 열려요"
+		return LocalizeLogic.text("offer.btn.soon")
 	elseif state.kind == "Bought" then
-		return "산 상품"
+		return LocalizeLogic.text("offer.btn.bought")
 	end
-	return ""
+	return nil
 end
 
 -- 상점에 보일 카드 순서: 살 수 있는 것(order 순) 다음 산 상품(order 순). Hidden은 빼요.
@@ -378,11 +395,12 @@ function OfferLogic.screenList(view: ViewLike, opts: ScreenOptions?, list: { Off
 end
 
 -- 상품을 새로 받았을 때 보낼 안내 (문구, 종류). 늘 성공 안내예요
-function OfferLogic.grantNotice(offer: Offers.Offer): (string, NoticeKind)
+function OfferLogic.grantNotice(offer: Offers.Offer): (LocText, NoticeKind)
 	if offer.kind == "Bundle" then
-		return "탈의실에서 새 스킨을 입어 보세요", "success"
+		return LocalizeLogic.text("offer.notice.bundle"), "success"
 	end
-	return `🎉 {offer.displayName} 획득!`, "success"
+	return LocalizeLogic.text("offer.notice.got", { name = LocalizeLogic.text(LocalizeLogic.offerNameKey(offer.id)) }),
+		"success"
 end
 
 return OfferLogic

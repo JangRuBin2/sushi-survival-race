@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-09 — 연출 팩 비주얼: 고양이 손님(탈락)·불꽃놀이(우승)

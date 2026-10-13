@@ -76,6 +76,15 @@ Layout.GATE = {
 	openXMax = Layout.LANES[1] + Layout.LANE_WIDTH / 2, -- -10
 } :: Gate
 
+-- 출구 벽(m5-14 B1): 미로(C)와 출구 통로(D)의 경계(z -110)에서 4번 레인(x 10~20)만 열려 있어요.
+-- 이게 없으면 1·2·3번 레인 끝도 D로 이어져 1번 레인 직진으로 결승에 가요.
+Layout.EXIT_GATE = {
+	z = Layout.MAZE.back, -- -110
+	thickness = Layout.GATE_THICKNESS,
+	openXMin = Layout.LANES[4] - Layout.LANE_WIDTH / 2, -- 10
+	openXMax = Layout.LANES[4] + Layout.LANE_WIDTH / 2, -- 20
+} :: Gate
+
 Layout.BOUNDS = { xMin = -Layout.HALF_WIDTH, xMax = Layout.HALF_WIDTH } :: Bounds
 
 -- 바운스: 위 속도만(수평 성분 없음). 서버가 BOUNCE_HOLD 동안 강제로 걸고 그다음은 포물선.
@@ -83,7 +92,7 @@ Layout.BOUNCE_UP_SPEED = 55
 Layout.BOUNCE_HOLD = 0.08
 Layout.BOUNCE_COOLDOWN = 0.45 -- 자유낙하 복귀시간(≈0.56초)보다 짧아 착지 즉시 재발동
 Layout.BOUNCE_EXEMPT = 0.8 -- 이동 감시 면제(flightTime보다 넉넉하게)
-Layout.BOUNCE_RAYCAST_LENGTH = 3.5 -- 발밑 레이캐스트 길이 (서 있을 때만 닿음)
+Layout.BOUNCE_RAYCAST_LENGTH = 4.5 -- 발밑 레이캐스트 길이: 서 있을 때 루트 높이 3 + 여유 1.5 (m5-14 B5), 정점 근처에서는 안 닿음
 
 -- 스폰 24개 (6열 × 4줄, SoySwamp와 같은 격자). 전부 A 구간(일반 바닥) 안.
 Layout.SPAWN_COLUMNS = 6

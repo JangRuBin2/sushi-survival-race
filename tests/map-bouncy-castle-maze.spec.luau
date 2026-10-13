@@ -1,6 +1,8 @@
 --!strict
 -- m5-14 "방방 미로": 코스 치수 약속, 미로 길(격자 플러드필), 바운스 포물선 계산, 아트 예산
 
+local fs = require("@lune/fs")
+
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -30,7 +32,10 @@ local function floodFill(startX: number, startZ: number, xMin: number, xMax: num
 			local nx, nz = cur.x + d[1], cur.z + d[2]
 			if nx >= xMin and nx <= xMax and nz >= zMin and nz <= zMax then
 				local k = key(nx, nz)
-				if not visited[k] and not Logic.blockedAt(nx, nz, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS) then
+				if
+					not visited[k]
+					and not Logic.blockedAt(nx, nz, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE)
+				then
 					visited[k] = true
 					table.insert(queue, { x = nx, z = nz })
 				end
@@ -43,11 +48,11 @@ end
 -- (x, z)가 들어 있는 통로의 폭 (같은 z에서 x를 좌우로 벽을 만날 때까지 센 칸 수, stud 단위)
 local function openWidthAt(x: number, z: number): number
 	local left = x
-	while not Logic.blockedAt(left - 1, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS) do
+	while not Logic.blockedAt(left - 1, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE) do
 		left -= 1
 	end
 	local right = x
-	while not Logic.blockedAt(right + 1, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS) do
+	while not Logic.blockedAt(right + 1, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE) do
 		right += 1
 	end
 	return right - left + 1
@@ -123,6 +128,46 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test(
+		"m5-14 B1: 출구 통로(D)로는 4번 레인 끝으로만 나가요 — 1번 레인 직진은 출구 벽에 막혀요",
+		function()
+			local exitGate = Layout.EXIT_GATE
+			t.eq(exitGate.z, Layout.MAZE.back)
+			t.eq(exitGate.openXMin, 10)
+			t.eq(exitGate.openXMax, 20)
+			local exitZ = Layout.EXIT.front - exitGate.thickness / 2 - 1 -- 출구 벽 바로 뒤(D 안)
+			local lastZ = Layout.EXIT.back + 1
+
+			-- 전체 미로에서는 D에 닿아요 (S자 길이 있어요)
+			local all = floodFill(-15, -19, Layout.BOUNDS.xMin + 1, Layout.BOUNDS.xMax - 1, lastZ, -19)
+			t.ok(all[`15,{exitZ}`], "maze must reach the exit corridor through lane 4")
+
+			-- 1번 레인을 곧장 달리면 출구 벽에 막혀요 (x -15 줄에서 z -19 → D 사이에 벽 칸이 있어요)
+			local blockedOnLane1 = false
+			for z = -19, exitZ, -1 do
+				if Logic.blockedAt(-15, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE) then
+					blockedOnLane1 = true
+				end
+			end
+			t.ok(blockedOnLane1, "lane 1 straight line must be blocked before the exit corridor")
+
+			-- 1·2·3번 레인 폭(x < 10)은 출구 벽 줄에서 전부 막혀요
+			for x = Layout.BOUNDS.xMin + 1, exitGate.openXMin - 1 do
+				t.ok(
+					Logic.blockedAt(x, exitGate.z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE),
+					`exit wall must block x={x}`
+				)
+			end
+
+			-- 4번 레인(x ≥ 10)을 막고 돌리면 D에 못 닿아요 → 4번 레인을 거치는 S자가 유일한 길
+			local noLane4 = floodFill(-15, -19, Layout.BOUNDS.xMin + 1, exitGate.openXMin - 1, lastZ, -19)
+			for k in noLane4 do
+				local _, zs = string.match(k, "(-?%d+),(-?%d+)")
+				t.ok((tonumber(zs) :: number) > exitZ, `reached exit corridor without lane 4 at {k}`)
+			end
+		end
+	)
+
 	t.test("AC3: 레인 진행 순서가 1→2→3→4로 S자를 두 번 꺾어요 (칸막이 표)", function()
 		t.eq(#Layout.PARTITIONS, 3)
 		t.eq(Layout.PARTITIONS[1].x, -10)
@@ -144,7 +189,7 @@ return function(t: Test.Test)
 			for z = gate.z - gate.thickness / 2, gate.z + gate.thickness / 2 do
 				for x = gate.openXMax + 1, Layout.BOUNDS.xMax - 1 do
 					t.ok(
-						Logic.blockedAt(x, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS),
+						Logic.blockedAt(x, z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE),
 						`gate must block x={x} z={z}`
 					)
 				end
@@ -152,7 +197,7 @@ return function(t: Test.Test)
 			-- 1번 레인 범위(입구 문이 열린 폭)는 막혀 있지 않아요.
 			for x = gate.openXMin + 1, gate.openXMax - 1 do
 				t.ok(
-					not Logic.blockedAt(x, gate.z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS),
+					not Logic.blockedAt(x, gate.z, Layout.PARTITIONS, Layout.GATE, Layout.BOUNDS, Layout.EXIT_GATE),
 					`lane 1 opening must stay open at x={x}`
 				)
 			end
@@ -226,4 +271,26 @@ return function(t: Test.Test)
 	t.test("AC7: 소개 카메라 4점", function()
 		t.eq(#Art.introCamera(), 4)
 	end)
+
+	t.test(
+		"m5-14 B2·B3: 바운스는 세로축만 묶고(수평 속도 유지), 루트마다 LinearVelocity 하나를 다시 써요",
+		function()
+			local source = fs.readFile("src/shared/maps/BouncyCastleMaze.luau")
+			t.ok(string.find(source, "VelocityConstraintMode.Line", 1, true) ~= nil, "line mode")
+			t.ok(string.find(source, "LineDirection = Vector3.yAxis", 1, true) ~= nil, "vertical axis only")
+			t.ok(string.find(source, "VelocityConstraintMode.Vector", 1, true) == nil, "no full-vector lock")
+			t.ok(
+				string.find(source, "AssemblyLinearVelocity * horizontal + upVelocity", 1, true) ~= nil,
+				"keeps horizontal"
+			)
+			t.ok(string.find(source, "pushes[root] = push", 1, true) ~= nil, "one push per root")
+		end
+	)
+
+	t.test(
+		"m5-14 B5: 발밑 레이캐스트는 서 있을 때 루트 높이(3)보다 1 이상 여유가 있어요",
+		function()
+			t.ok(Layout.BOUNCE_RAYCAST_LENGTH >= 3 + 1, `ray {Layout.BOUNCE_RAYCAST_LENGTH}`)
+		end
+	)
 end

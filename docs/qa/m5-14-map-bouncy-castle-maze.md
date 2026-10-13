@@ -85,3 +85,49 @@
 - 남은 것: 개발이 B1(필수)·B2(권장) 수정 → 재QA. Studio AC9~AC16(사용자).
 - 다음 첫 단계: developer가 B1 "고치는 방향"대로 출구 벽 + `blockedAt`/플러드필 확장. 스펙 표에 출구 벽 행 추가는 planner 결정 기록에 한 줄.
 - 막힌 점: 없음.
+
+---
+
+## 재QA (2026-10-13, 브랜치 `m5-maps-fix-a`, 수정 커밋 `ae11771`)
+- 결과: **통과**. 스펙 `qa-passed`. P0/P1 없음. 남은 것은 P3 B4(정점 주석, 수치 변경이 없어 그대로)뿐.
+
+### 자동 검증
+| 명령 | 결과 |
+|---|---|
+| `rojo build -o build.rbxl` | 통과 |
+| `stylua --check src tests` | 통과 |
+| `selene src` | 0 errors / 0 warnings |
+| `lune run tests` | 1587 passed, 0 failed (origin/main `591d84e` 병합 뒤, 재QA 테스트 10개 포함) |
+| `luau-lsp analyze` (타입 검사) | 끝 코드 0 |
+
+### 버그별 확인
+| 버그 | 결과 | 근거 |
+|---|---|---|
+| B1 (P1) 출구 벽 | **고쳐짐** | `Layout.EXIT_GATE`(z −110, x 10~20만 열림)와 `build`의 `ExitWallLeft`(높이 `WALL_HEIGHT` 14). 재QA 테스트는 **`build`가 실제로 만든 충돌 파츠**(돌린 origin)로 격자를 칠해 BFS를 돌린다. 결승까지 최단 걸음 ≥ 300(S자 길, 출구 벽이 없으면 약 150), x ≥ 10을 막으면 결승에 못 감, 1번 레인 끝 막힘, 4번 레인 끝 열림. 순수 `blockedAt`(출구 벽 포함)과 build 벽 격자가 미로·출구 구간 전체에서 같은 칸을 막는다(벽 가장자리 폭 0 선은 제외) |
+| B2 (P2) 수평 속도 | **고쳐짐** | 가짜 Heartbeat로 `start`를 돌린 결과: 걷던 수평 속도는 그대로이고 위로 55, `LinearVelocity`는 Line 모드·`LineDirection = yAxis`·`LineVelocity 55`·`RootAttachment` 연결. 유지 시간 안에는 켜져 있고 끝나면 꺼진다 |
+| B3 (P3) cleanup 쌓임 | **고쳐짐** | 300번 튕겨도 `ctx.cleanup` 항목 수가 그대로이고, 루트당 `LinearVelocity`는 1개(같은 인스턴스 재사용), 리스폰하면 1개만 늘어난다. 유지 중에 통과(레이서 목록에서 빠짐)하거나 라운드가 끝나도(`isActive` false) 다음 프레임에 꺼지고, 라운드가 끝난 뒤에는 새로 튕기지 않는다 |
+| B4 (P3) 정점 주석 | 그대로(수치 변경 없음) | QA 테스트 `유지 시간까지 넣은 실제 정점…`이 계속 막아 준다 |
+| B5 (P3) 레이캐스트 여유 | **고쳐짐** | 길이 4.5: 루트 높이 3·4에서는 튕기고 8(공중)에서는 안 튕긴다. 출구 통로(일반 바닥)에서도 안 튕긴다 |
+
+### 개발이 바꾼 QA 테스트 검토
+- `tests/m5-14-qa.spec.luau`: `task.delay` 개수 기대를 1 → 0으로 바꾸고, `ctx.cleanup:add(task.delay(Layout.BOUNCE_HOLD` 기대를 지우고, `releaseBounces()` 확인을 더했다. **정당한 변경이다.** 바운스마다 만들던 지연 스레드를 없앤 B3 수정의 직접 결과이고, 원래 테스트의 의도(연결·인스턴스가 `ctx.cleanup`에 들어가고 판정 뒤에만 바운스)는 `ctx.cleanup:add(push)`·Heartbeat 등록·판정→바운스 순서 확인으로 그대로 남았다. 실제 동작(유지 끝에 꺼짐)은 재QA 동작 테스트로 따로 고정했다.
+- 변이 확인: 수정 7곳(출구 벽 제거, 수평 속도 지우기, 레이캐스트 3.5, `plankRoll` 부호, `isRiding` 무조건 true, 옛 `newLevel + 1`, 바깥 기울기 상한 제거)을 임시로 되돌리면 재QA 테스트가 모두 실패하는 것을 확인했고, 그 뒤 `src`는 원래대로 되돌렸다.
+
+### 판정 회귀 확인
+- 통과·탈락 판정 코드(Heartbeat의 `ctx.pass`·`ctx.eliminate` 각 1곳, 판정 뒤 바운스)는 그대로다. `releaseBounces()`는 `isActive` 확인 앞에서 끄기만 하고 판정·바운스는 하지 않는다. 출구 벽은 판정 지오메트리를 더한 것뿐이고 스폰·결승선·낙하선은 바뀌지 않았다.
+- `shared/maps/init.luau`(공용 파일) 변경은 주석 `(inPool = false)` 삭제뿐이라 동작 변화가 없다.
+
+### 추가한 테스트
+- `tests/m5-14-16-reqa.spec.luau`(10개 중 m5-14 5개): build 벽 BFS(S자가 유일한 길·길이), 순수/build 격자 일치, 수평 속도 유지·Line 모드·유지 끝, 300번 튕김 cleanup 고정·재사용·리스폰, 통과·라운드 끝 해제, 레이캐스트 높이 3/4/8·출구 바닥.
+
+### Studio 확인 (사용자 확인 필요, 위 체크리스트에 더해)
+- 4번: 1번 레인으로 곧장 달리면 빨간 출구 벽에 막혀 2번 레인으로 꺾어야 하는지. 8번: 혼자 60~90초 안에 완주되는지(코스가 약 3배로 길어졌으니 시간 제한 안인지 꼭 확인).
+- 2번: 튕기면서 W를 눌러도 앞으로 가던 속도가 끊기지 않는지(Line 모드가 Humanoid 걷기와 잘 맞는지).
+- 9번: 다음 맵에서 루트에 `BounceLaunch`가 남지 않는지.
+
+## 인계 메모 (재QA)
+- 브랜치: `m5-maps-fix-a` (origin/main `591d84e` 병합)
+- 끝난 것: 5단계, B1·B2·B3·B5 확인, 개발이 바꾼 QA 테스트 검토, 재QA 테스트 추가, 스펙 `qa-passed`.
+- 남은 것: Studio AC9~AC16(사용자). 특히 AC15(S자로 길어진 코스의 완주 시간). B4는 P3로 기록만.
+- 다음 첫 단계: 사용자 Studio 확인 → docs-writer 반영 → `done`.
+- 막힌 점: 없음.

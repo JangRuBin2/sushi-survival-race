@@ -142,10 +142,11 @@ return function(t: Test.Test)
 			local connected = countMatches(source, ":Connect%(")
 			local delayed = countMatches(source, "task%.delay%(") + countMatches(source, "task%.spawn%(")
 			t.eq(connected, 1)
-			t.eq(delayed, 1)
+			-- m5-14 B3 수정 뒤: 바운스마다 task.delay를 만들지 않고, 루트마다 LinearVelocity 하나를 켜고 꺼요
+			t.eq(delayed, 0)
 			t.ok(string.find(source, "ctx.cleanup:add(RunService.Heartbeat:Connect(", 1, true) ~= nil)
-			t.ok(string.find(source, "ctx.cleanup:add(task.delay(Layout.BOUNCE_HOLD", 1, true) ~= nil)
 			t.ok(string.find(source, "ctx.cleanup:add(push)", 1, true) ~= nil)
+			t.ok(string.find(source, "releaseBounces()", 1, true) ~= nil, "hold released every frame")
 			-- 판정 뒤 남은 레이서에게만 바운스
 			local judge = string.find(source, "ctx.eliminate(player)", 1, true) :: number
 			local bounce = string.find(source, "stepBounce(ctx.getRacers())", 1, true) :: number

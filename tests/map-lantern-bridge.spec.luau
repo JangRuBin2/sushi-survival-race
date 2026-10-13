@@ -218,4 +218,40 @@ return function(t: Test.Test)
 			t.eq(Logic.bridgeAt(-145), nil) -- 결승
 		end
 	)
+
+	t.test(
+		"m5-15 B1: 다리가 기운 동안 미는 쪽 가장자리가 낮은 쪽이에요 (Roblox CFrame으로 확인)",
+		function()
+			local roblox = require("@lune/roblox")
+			local origin = roblox.CFrame.new(10, 50, -20) * roblox.CFrame.Angles(0, math.rad(37), 0)
+			for _, bridge in Layout.BRIDGES do
+				for _, sign in { 1, -1 } do
+					local angle = sign * math.rad(bridge.maxSwayDeg * 0.7)
+					local plank = origin * roblox.CFrame.Angles(0, 0, Logic.plankRoll(angle))
+					local push = Logic.pushSpeedFor(angle, bridge.maxSwayDeg)
+					t.ok(push ~= 0, "push while tilted")
+					-- 미는 쪽(로컬 +X·push 부호) 가장자리의 월드 높이가 반대쪽보다 낮아야 해요
+					local pushSide = if push > 0 then 1 else -1
+					local pushEdge = plank:PointToWorldSpace(roblox.Vector3.new(pushSide * bridge.halfWidth, 0, 0))
+					local otherEdge = plank:PointToWorldSpace(roblox.Vector3.new(-pushSide * bridge.halfWidth, 0, 0))
+					t.ok(pushEdge.Y < otherEdge.Y, `bridge {bridge.index} sign {sign}: push side must be lower`)
+					-- 서버가 미는 월드 방향(origin.RightVector * push)도 낮은 가장자리 쪽이에요
+					local pushWorld = origin.RightVector * push
+					local towardLow = pushEdge - otherEdge
+					t.ok(pushWorld:Dot(towardLow) > 0, `bridge {bridge.index} sign {sign}: push toward low edge`)
+				end
+			end
+		end
+	)
+
+	t.test(
+		"m5-15 B2: 판 위에 서 있는 사람만 타고 있는 걸로 쳐요 (떨어지는 중·판 밖은 제외)",
+		function()
+			local halfWidth = 2
+			t.ok(Logic.isRiding(0, 3, halfWidth), "standing in the middle")
+			t.ok(Logic.isRiding(halfWidth + 0.5, 2.5, halfWidth), "at the edge (margin)")
+			t.ok(not Logic.isRiding(0, -4, halfWidth), "falling below the plank")
+			t.ok(not Logic.isRiding(halfWidth + Logic.RIDER_EDGE_MARGIN + 0.1, 3, halfWidth), "off the plank side")
+		end
+	)
 end

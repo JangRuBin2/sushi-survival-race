@@ -1,4 +1,4 @@
-status: in-dev
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-14 — 새 Race 맵: 방방 미로 (`bouncy-castle-maze`)
@@ -88,9 +88,21 @@ CLAUDE.md "이동 감시 면제" 기준(연속 밀기엔 안 달고, 순간 튕�
 - 2026-10-09 · D2 바운스 세기·주기 · 위 속도 55(와사비 80보다 약하게 — 와사비는 "한 번 크게", 이쪽은 "계속 반복"이라 매번 세게 하면 미로 조작이 너무 어려워진다), 쿨다운 0.45초(자유낙하 복귀시간 0.56초보다 짧아 끊김 없이 연속 튕김), 벽 높이 14(정점 7.7의 약 1.8배로 뛰어넘기 방지). **기본값, 플레이테스트 후 조정** · planner
 - 2026-10-09 · D3 이동 감시 면제 여부 · CLAUDE.md 기준상 "연속 밀기"가 아니라 "짧은 간격으로 반복되는 순간 튕김"으로 보고 **면제를 단다**(와사비와 같은 근거). 매번 다시 걸리므로(`MoveExempt.mark`가 더 늦은 시각을 유지) 연속 바운스 중 끊기지 않는다. · planner
 - 2026-10-09 · D4 미로 모양 · Union 없이 Block 벽 3개(레인 사이 칸막이) + 입구 문 1개로 "한쪽 끝만 트인 지그재그"를 두 번 반복해 S자 경로를 만들었다(SoySwamp 간장 웅덩이 지그재그와 같은 발상, 다만 통과 불가능한 벽). 분기형 진짜 미로는 복잡도 대비 체감 차이가 크지 않아 보류(제외 항목). · planner
+- 2026-10-13 · B1 미로 출구가 모든 레인에 열려 있음(스펙 칸막이 표에 "출구 벽"이 빠짐) · z −110에 x −20~10을 막는 **출구 벽**(`Layout.EXIT_GATE`, 입구 관문과 같은 모양·두께 2·높이 `WALL_HEIGHT`)을 세워 4번 레인(x 10~20)만 D로 열었다. 원안 "1번 → 2번 → 3번 → 4번 레인 → D"를 지키는 수정이라 스펙 표의 누락으로 본다. · 메인 세션 (사용자가 맵 판단 위임), developer 구현
+- 2026-10-13 · B2 바운스가 수평 속도를 지움 · 스펙 "위 속도 55 (수평 성분 없음)"은 "위로만 민다"는 뜻으로 읽어, `LinearVelocity`를 Line 모드(세로축만)로 바꾸고 걷던·다이브하던 수평 속도는 유지한다. · 메인 세션 (사용자가 맵 판단 위임), developer 구현
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### QA 수정 (2026-10-13, developer, 브랜치 `m5-maps-fix-a`)
+- **B1 (P1)** 출구 벽: `BouncyCastleMazeLayout.EXIT_GATE`(z −110, 4번 레인 x 10~20만 열림), `build`가 `ExitWallLeft`(x −20~10)를 세움(오른쪽은 폭 0이라 생략). `Logic.blockedAt`에 `exitGate` 인자를 더해 z −110 줄도 모델링. 테스트 `m5-14 B1`: 전체 미로는 D(15, −112)에 닿고, 1번 레인 직선은 막히고, x ≥ 10(4번 레인)을 막고 플러드필하면 D에 못 닿음. 기존 플러드필 호출은 모두 `Layout.EXIT_GATE`를 넘김.
+- **B2 (P2)** `LinearVelocity`를 `VelocityConstraintMode.Line` + `LineDirection = Vector3.yAxis` + `LineVelocity = 55`로 바꿔 세로만 묶고, 시작 속도는 `AssemblyLinearVelocity * (1,0,1) + (0,55,0)`(수평 유지).
+- **B3 (P3)** 튕길 때마다 만들던 `LinearVelocity`·`task.delay`를 없앰: 루트마다 하나를 만들어 `Enabled`로 켜고 끄며 재사용(`ctx.cleanup`에는 루트당 1개). 유지 시간 끝은 Heartbeat 맨 앞 `releaseBounces()`가 끔(라운드가 끝난 프레임에도 돎). QA 소스 테스트(`tests/m5-14-qa.spec.luau`)의 `task.delay` 기대를 이 구조에 맞게 고침(delay 0개, `releaseBounces()` 있음).
+- **B5 (P3)** 발밑 레이캐스트 3.5 → 4.5(서 있을 때 루트 높이 3 + 여유 1.5). QA 테스트 "정점 근처에서는 안 닿음"(3 + 정점 12.1 > 2 × 길이) 그대로 통과.
+- B4(P3, 정점 주석)는 수치 변경이 없어 그대로 둠.
+- 아트(`BouncyCastleMazeArt.luau`)는 건드리지 않음. 출구 벽 색은 입구 문과 같은 `COLORS.gate`.
+- Studio 확인 추가: QA 체크리스트 4번(1번 레인 직진 → 이제 빨간 출구 벽에 막혀 2번 레인으로 꺾어야 함), 2번(튕기며 W를 눌러도 앞으로 가던 속도가 끊기지 않음), 9번(다음 맵에서 `BounceLaunch`가 남지 않음).
+- 검증: `rojo build`·`stylua --check`·`selene`(0/0)·`lune run tests`(1363 passed, 0 failed)·`luau-lsp analyze`(exit 0).
 
 ### 바뀐 파일 (2026-10-09, developer)
 - `src/shared/maps/BouncyCastleMaze.luau` — 껍데기를 덮어씀: 바닥 4장(A 일반/B+C BounceFloor 한 장/D 일반/E 일반), 양옆·출발·끝 벽, 칸막이 3개(색 다름), 입구 문(열린 쪽은 생략), 스폰 24개, 결승선, 바운스 레이캐스트 스테퍼(`bounceStepper`), 소개 카메라·Studio 아트 연결. `inPool = false` 줄 삭제(풀에 합류).

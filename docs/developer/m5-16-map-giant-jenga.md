@@ -1,5 +1,11 @@
 # m5-16 map-giant-jenga — 개발 작업 기록
 
+## 2026-10-13 — QA 수정(B1·B3·B4), in-qa
+- **브랜치**: push `m5-maps-fix-a` (m5-14·m5-15와 같은 브랜치).
+- **끝난 것**: B1 `Logic.poppedBlockIndex`(위에서부터 숨김)·`Logic.blockCenterY`(build와 공유), B3 테두리 칸 바깥쪽 기울기 상한(`EDGE_OUTWARD_MAX_UNITS` 0.5 → 최대 3도), B4 `flatCFrame` 두께 절반 보정. 테스트 3개. B2 문구는 메인 세션 결정으로 유지. 결정 기록·개발 메모 "QA 수정", 상태 `in-qa`. 검증 5단계 통과(1363 passed).
+- **남은 것**: 재QA, Studio(맨 위 블록이 빠져 보이는지, 테두리 칸 기울기). GDD §5.3 rule 문구 맞추기는 planner.
+- **막힌 점**: 없음. `GiantJengaArt.luau` 안 건드림, `build`는 블록 높이 한 줄만 바뀜.
+
 ## 2026-10-09 — 구현 완료, in-qa (최신)
 - **worktree**: `/Users/rubinjang/sushi/sushi-survival-race/.claude/worktrees/agent-a3228e567e64d1418`, 브랜치 `worktree-agent-a3228e567e64d1418`. 메인 세션이 머지 (push는 안 함).
 - **끝난 것**: 스펙 범위 1~8 전부.

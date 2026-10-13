@@ -1,5 +1,13 @@
 # m5-17 map-cat-cafe-shelves — 개발 작업 기록
 
+## 2026-10-13 — QA 수정 (메인 세션 결정 반영)
+- **브랜치**: 워크트리 `agent-ac93d92be6e5bd2ae` → push `origin/m5-maps-fix-b` (`origin/main` `e772d23` 기준).
+- **끝난 것**: B1 고양이 발 주기(`pawRest`), B2 공 폭 방향 판정(`isHitAt`). 상태 `qa-passed` 유지. 테스트 `tests/m5-maps-fix-b.spec.luau`. 검증 5단계 통과(lune 1390 passed, 0 failed).
+- **건드리지 않은 것**: `*Art.luau`·장식 코드(m5-24 아트 작업과 병행 — 판정 코드만 바꿈).
+- **남은 것**: 재QA, Studio 확인(스펙 개발 메모 "QA 수정" 절).
+- **다음 첫 단계**: QA가 `m5-maps-fix-b`를 확인.
+- **막힌 점**: 없음.
+
 ## 2026-10-09 — 구현 완료, in-qa (최신)
 - **worktree**: `/Users/rubinjang/sushi/sushi-survival-race/.claude/worktrees/agent-a403f3f4c1e682250` (브랜치 `worktree-agent-a403f3f4c1e682250`). push는 안 함 — 메인 세션이 머지.
 - **끝난 것**: 스펙 범위 전부 (순수 로직 + Roblox 빌드/스타트 + 아트 + cue 3개).

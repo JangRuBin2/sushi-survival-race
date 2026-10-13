@@ -1,5 +1,12 @@
 # m5-14 map bouncy-castle-maze — 개발 작업 기록
 
+## 2026-10-13 — QA 수정(B1·B2·B3·B5), in-qa
+- **브랜치**: `worktree-agent-a345a141e2bd39f27` → push `m5-maps-fix-a` (m5-15·m5-16 QA 수정과 같은 브랜치).
+- **끝난 것**: B1 출구 벽(`Layout.EXIT_GATE`, `ExitWallLeft`, `blockedAt`의 `exitGate` 인자, 회귀 테스트), B2 Line 모드 세로만 묶기 + 수평 속도 유지, B3 루트마다 LinearVelocity 하나 재사용(`releaseBounces`), B5 레이캐스트 4.5. QA 소스 테스트 1곳을 새 구조에 맞춤. 스펙 결정 기록·개발 메모 "QA 수정", 상태 `in-qa`. 검증 5단계 통과(1363 passed).
+- **남은 것**: 재QA, Studio(AC9~AC16 + 1번 레인 직진이 막히는지, 튕기며 앞으로 가는 속도가 끊기지 않는지).
+- **다음 첫 단계**: qa가 `docs/qa/m5-14-*.md` 재검증.
+- **막힌 점**: 없음. 아트 파일은 m5-24가 동시에 고치는 중이라 안 건드림.
+
 ## 2026-10-09 — 구현 완료, in-qa
 - **worktree**: `/Users/rubinjang/sushi/sushi-survival-race/.claude/worktrees/agent-a338176d7e112bd3c` (브랜치 `worktree-agent-a338176d7e112bd3c`). 메인 세션이 머지 — 이 worktree에서 별도 push는 안 함.
 - **끝난 것**: 스펙 범위 전부(실제 코스 구현, `Logic.bounceProfile`·`Logic.blockedAt` 분리, 아트, IntroCamera, `inPool = false` 줄 삭제), AC1~AC8, 검증 5단계 전부 통과(`rojo build`, `stylua --check`, `selene`, `lune run tests` 1163 passed/0 failed, `luau-lsp analyze` 종료 코드 0).

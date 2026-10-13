@@ -206,7 +206,7 @@ local function start(ctx: MapTypes.RoundContext)
 			if root then
 				local rel = origin:PointToObjectSpace(root.Position)
 				local bridge = Logic.bridgeAt(rel.Z)
-				if bridge then
+				if bridge and Logic.isRiding(rel.X, rel.Y, bridge.halfWidth) then
 					riderCounts[bridge.index] = (riderCounts[bridge.index] or 0) + 1
 				end
 			end
@@ -219,7 +219,7 @@ local function start(ctx: MapTypes.RoundContext)
 			local amplitude = Logic.swayAmplitudeDeg(riders, plank.bridge.maxSwayDeg)
 			local angle = Logic.swayAngle(elapsed, amplitude, Layout.SWAY_PERIOD, plank.bridge.phase)
 			angleByIndex[plank.bridge.index] = angle
-			plank.part.CFrame = plank.base * CFrame.Angles(0, 0, angle)
+			plank.part.CFrame = plank.base * CFrame.Angles(0, 0, Logic.plankRoll(angle))
 		end
 
 		-- 3. 판정: 결승선 통과 / 낙하
@@ -238,7 +238,7 @@ local function start(ctx: MapTypes.RoundContext)
 			end
 		end
 
-		-- 4. 남은 레이서에게 다리가 기운 쪽으로 미는 힘
+		-- 4. 다리에 타고 있는 레이서를 다리가 기운 쪽(낮은 쪽)으로 미는 힘
 		for _, player in ctx.getRacers() do
 			local root = rootOf(player)
 			if root == nil then
@@ -246,7 +246,7 @@ local function start(ctx: MapTypes.RoundContext)
 			end
 			local rel = origin:PointToObjectSpace(root.Position)
 			local bridge = Logic.bridgeAt(rel.Z)
-			if bridge then
+			if bridge and Logic.isRiding(rel.X, rel.Y, bridge.halfWidth) then
 				local angle = angleByIndex[bridge.index] or 0
 				local target = Logic.pushSpeedFor(angle, bridge.maxSwayDeg)
 				local velocity = root.AssemblyLinearVelocity

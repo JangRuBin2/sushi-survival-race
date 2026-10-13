@@ -1,0 +1,3 @@
+[render] bouncy-castle-maze decor=291/600 lights=6/12 (shadowed 0/1) particles=0/8 anim=0/40 tris=11276 void=intro-01:21%,intro-02:49%,intro-03:1%,intro-04:0%,overview:87%,eye:16%,mobile:16%,top:87% time=18.5s
+[render]   Race · budget Standard · parts 328 (judgment 37, decor 291, hidden 0) · beams 0 · lighting lobby
+[render]   bounds all 44x18x141 · play area 41x16x141 · out build/renders/bouncy-castle-maze/

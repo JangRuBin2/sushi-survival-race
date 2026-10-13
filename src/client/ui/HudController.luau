@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EliminationCutsceneLogic = require(ReplicatedStorage.Shared.EliminationCutsceneLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local HudScreen = require(script.Parent.HudScreen)
 
@@ -17,11 +18,11 @@ local HudController = {}
 
 local function personalResultText(result: Types.PlayerResult): string
 	if result.result == "Won" then
-		return "🏆 우승했어요!"
+		return Loc.t("hud.result.won")
 	elseif result.result == "Passed" then
-		return `✅ {result.place}번째로 통과했어요!`
+		return Loc.t("hud.result.passed", { place = Loc.place(result.place) })
 	end
-	return `🥢 탈락했어요… ({result.place}등)`
+	return Loc.t("hud.result.out", { place = Loc.place(result.place) })
 end
 
 function HudController.start(gui: Instance)

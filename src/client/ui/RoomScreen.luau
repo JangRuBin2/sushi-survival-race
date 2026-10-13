@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -79,13 +80,13 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 48),
 	}, { Kit.list(Enum.FillDirection.Horizontal, 8) })
-	local leaveButton = Kit.button("나가기", Color.Neutral, {
+	local leaveButton = Kit.button(Loc.t("room.leave.btn"), Color.Neutral, {
 		Parent = buttonRow,
 		LayoutOrder = 1,
 		Size = UDim2.new(0.35, -4, 1, 0),
 		TextColor3 = Color.Text,
 	})
-	local startButton = Kit.button("시작!", Color.Salmon, {
+	local startButton = Kit.button(Loc.t("room.start.btn"), Color.Salmon, {
 		Parent = buttonRow,
 		LayoutOrder = 2,
 		Size = UDim2.new(0.65, -4, 1, 0),
@@ -114,15 +115,15 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 	local function statusText(current: Types.RoomSnapshot): string
 		if current.autoStartAt then
 			local left = math.max(0, math.ceil(current.autoStartAt - workspace:GetServerTimeNow()))
-			return `정원이 다 찼어요! {left}초 뒤 자동 시작`
+			return Loc.t("room.status.autoStart", { seconds = left })
 		end
 		if #current.members < minPlayers then
-			return `{minPlayers}명 이상 모이면 시작할 수 있어요`
+			return Loc.t("room.status.needPlayers", { count = minPlayers })
 		end
 		if isHost() then
-			return "준비되면 시작을 눌러 주세요"
+			return Loc.t("room.status.ready")
 		end
-		return "방장이 시작하기를 기다리는 중…"
+		return Loc.t("room.status.waitHost")
 	end
 
 	local function render()
@@ -130,11 +131,12 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		if current == nil then
 			return
 		end
-		title.Text = current.name
-		info.Text =
-			`{if current.isPrivate then "비공개" else "공개"} 방 · {#current.members}/{current.maxPlayers}명`
+		title.Text = Loc.roomName(current.name, current.nameIsDefault)
+		info.Text = if current.isPrivate
+			then Loc.t("room.info.private", { count = #current.members, max = current.maxPlayers })
+			else Loc.t("room.info.public", { count = #current.members, max = current.maxPlayers })
 		codeLabel.Visible = current.code ~= nil
-		codeLabel.Text = if current.code then `방 코드: {current.code}` else ""
+		codeLabel.Text = if current.code then Loc.t("room.code", { code = current.code }) else ""
 
 		for _, child in list:GetChildren() do
 			if child:IsA("GuiObject") then
@@ -154,7 +156,13 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 				Kit.corner(8),
 				Kit.padding(8),
 				Kit.label({
-					Text = `{if isRoomHost then "👑 " else "🍣 "}{member.name}{if isMe then " (나)" else ""}`,
+					Text = if isRoomHost
+						then (if isMe
+							then Loc.t("room.member.hostMe", { name = member.name })
+							else Loc.t("room.member.host", { name = member.name }))
+						else (if isMe
+							then Loc.t("room.member.me", { name = member.name })
+							else Loc.t("room.member.guest", { name = member.name })),
 					TextSize = rowText,
 					Size = UDim2.fromScale(1, 1),
 				}),

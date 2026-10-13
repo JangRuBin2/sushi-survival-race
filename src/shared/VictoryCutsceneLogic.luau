@@ -7,6 +7,8 @@
 --   (fireworksTimeline, fireworks, fireworkColor, rocketAlpha, flash).
 
 local FxCatalog = require(script.Parent.FxCatalog)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
+local Types = require(script.Parent.Types)
 
 local VictoryCutsceneLogic = {}
 
@@ -138,12 +140,12 @@ function VictoryCutsceneLogic.splashTime(duration: number): number
 	return SPLASH_AT * duration / VictoryCutsceneLogic.BASE_DURATION
 end
 
--- 큰 글씨. 우승자 본인 화면은 "탈출 성공! 🏆", 다른 사람은 "{이름} 탈출 성공!"
-function VictoryCutsceneLogic.titleText(winnerName: string, isMe: boolean): string
+-- 큰 글씨. 우승자 본인 화면은 "탈출 성공! 🏆", 다른 사람은 "{이름} 탈출 성공!" (m5-26: LocText)
+function VictoryCutsceneLogic.titleText(winnerName: string, isMe: boolean): Types.LocText
 	if isMe then
-		return "탈출 성공! 🏆"
+		return LocalizeLogic.text("cutscene.victory.me")
 	end
-	return `{winnerName} 탈출 성공!`
+	return LocalizeLogic.text("cutscene.victory.other", { name = winnerName })
 end
 
 -- 우승자 이름: standings에 저장된 이름을 먼저 (우승자가 나갔어도 나와요), 없으면 fallback.

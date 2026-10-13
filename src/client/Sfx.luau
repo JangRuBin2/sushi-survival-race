@@ -23,6 +23,7 @@ local SfxCues = require(ReplicatedStorage.Shared.SfxCues)
 local SfxLibrary = require(ReplicatedStorage.Shared.SfxLibrary)
 local Types = require(ReplicatedStorage.Shared.Types)
 
+local Loc = require(script.Parent.Loc)
 local ProfileStore = require(script.Parent.ProfileStore)
 
 local Sfx = {}
@@ -36,7 +37,7 @@ local SFX_MAX_LIFETIME = 10 -- Ended가 오지 않아도(로드 실패 등) 이 
 local MUSIC_FADE = 0.5
 
 -- 음소거 단계: 1 소리 켬, 2 음악 끔, 3 모두 끔
-local MUTE_LABELS = { "🔊 소리 켬", "🎵 음악 끔", "🔇 모두 끔" }
+local MUTE_LABELS = { { key = "sfx.mute.on.btn" }, { key = "sfx.mute.music.btn" }, { key = "sfx.mute.all.btn" } } -- m5-26 키
 local MUTE_ICONS = { "🔊", "🎵", "🔇" } -- 좁은 화면에서는 아이콘만
 
 local started = false
@@ -336,6 +337,7 @@ local function buildMuteButton(playerGui: Instance)
 
 	local button = Instance.new("TextButton")
 	button.Name = "MuteButton"
+	button.AutoLocalize = false -- m5-26
 	-- 위쪽 바 높이에 맞춰 세로 가운데, 오른쪽 끝
 	button.AnchorPoint = Vector2.new(1, 0.5)
 	button.Position = UDim2.new(1, -MUTE_MARGIN, 0.5, 0)
@@ -358,7 +360,7 @@ local function buildMuteButton(playerGui: Instance)
 	-- 좁은 화면(휴대폰 가로)에서는 아이콘만 (m3-08 QA B2): 위쪽 바 왼쪽의 Roblox 버튼과 멀리 떨어지게 폭을 줄여요
 	local compact = false
 	local function refresh()
-		button.Text = if compact then MUTE_ICONS[muteLevel] else MUTE_LABELS[muteLevel]
+		button.Text = if compact then MUTE_ICONS[muteLevel] else Loc.text(MUTE_LABELS[muteLevel])
 		local width = if compact then MUTE_COMPACT_WIDTH else MUTE_WIDE_WIDTH
 		button.Size = UDim2.new(0, width, 1, -MUTE_MARGIN * 2)
 	end

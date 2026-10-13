@@ -6,6 +6,8 @@
 
 local TweenService = game:GetService("TweenService")
 
+local Loc = require(script.Parent.Parent.Loc)
+
 local EliminationCutsceneScreen = {}
 
 local FONT = Enum.Font.GothamBlack
@@ -33,6 +35,7 @@ local function textLabel(props: {
 }): TextLabel
 	local label = Instance.new("TextLabel")
 	label.Name = props.name
+	label.AutoLocalize = false -- 이미 Loc으로 만든 글씨 (m5-26)
 	label.Text = props.text
 	label.Font = FONT
 	label.TextColor3 = props.color
@@ -83,7 +86,7 @@ function EliminationCutsceneScreen.showStamp(gui: Instance, place: number?, dura
 
 	local title = textLabel({
 		name = "Title",
-		text = "먹혔다!",
+		text = Loc.t("cutscene.eaten"),
 		color = STAMP_RED,
 		size = UDim2.fromScale(0.88, 0.8),
 		position = UDim2.fromScale(0.5, 0.5),
@@ -96,7 +99,7 @@ function EliminationCutsceneScreen.showStamp(gui: Instance, place: number?, dura
 	if place then
 		local placeLabel = textLabel({
 			name = "Place",
-			text = `{place}등`,
+			text = Loc.t("cutscene.place", { place = Loc.place(place) }),
 			color = Color3.fromRGB(255, 255, 255),
 			size = UDim2.fromScale(0.5, 0.26),
 			position = UDim2.fromScale(0.5, 0.86),

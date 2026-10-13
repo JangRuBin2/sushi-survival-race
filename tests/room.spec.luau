@@ -2,6 +2,7 @@
 -- Shared.RoomLogic: 방 설정 검증, 이름, 코드, 참가/퇴장/방장 승계, 시작 조건, 빠른 참가 (GDD 3.2)
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -62,12 +63,12 @@ return function(t: Test.Test)
 		for i, raw in bad do
 			local settings, err = RoomLogic.validateSettings(raw)
 			t.eq(settings, nil, `case {i}`)
-			t.ok(type(err) == "string", `case {i} has a reason`)
+			t.ok(type(err) == "table" and type(err.key) == "string", `case {i} has a reason (m5-26: LocText)`)
 		end
 	end)
 
 	t.test("cleanName trims, collapses whitespace and drops control characters", function()
-		t.eq(RoomLogic.cleanName("  계란   초밥\n집 "), "계란 초밥 집")
+		t.eq(LocTest.ko(RoomLogic.cleanName("  계란   초밥\n집 ")), "계란 초밥 집")
 		t.eq(RoomLogic.cleanName("   "), nil)
 		t.eq(RoomLogic.cleanName(""), nil)
 		t.eq(RoomLogic.cleanName(nil), nil)
@@ -80,8 +81,12 @@ return function(t: Test.Test)
 		t.eq(utf8.len(name), Config.Room.NameMaxLength)
 	end)
 
-	t.test("defaultName uses the display name", function()
-		t.eq(RoomLogic.defaultName("Rubin"), "Rubin의 초밥집")
+	t.test("defaultName uses the display name (m5-26: 화면이 room.defaultName으로 꾸며요)", function()
+		t.eq(RoomLogic.defaultName("Rubin"), "Rubin")
+		t.eq(
+			LocTest.ko({ key = "room.defaultName", args = { name = RoomLogic.defaultName("Rubin") } }),
+			"Rubin의 초밥집"
+		)
 	end)
 
 	t.test("isValidCode wants exactly CodeLength digits", function()
@@ -132,7 +137,7 @@ return function(t: Test.Test)
 		local r = room("1", 4, 4)
 		local ok, err = RoomLogic.addMember(r, member(9))
 		t.eq(ok, false)
-		t.eq(err, "방이 꽉 찼어요")
+		t.eq(LocTest.ko(err), "방이 꽉 찼어요")
 
 		r = room("2", 8, 2)
 		ok = RoomLogic.addMember(r, member(2))
@@ -141,7 +146,7 @@ return function(t: Test.Test)
 		r.state = "InMatch"
 		ok, err = RoomLogic.addMember(r, member(9))
 		t.eq(ok, false)
-		t.eq(err, "이미 게임 중인 방이에요")
+		t.eq(LocTest.ko(err), "이미 게임 중인 방이에요")
 	end)
 
 	t.test("host leaves -> earliest joined member becomes host", function()
@@ -158,7 +163,7 @@ return function(t: Test.Test)
 		t.eq(RoomLogic.canStart(r, 2, 4), false, "not host")
 		local ok, err = RoomLogic.canStart(r, 1, 4)
 		t.eq(ok, false)
-		t.eq(err, "최소 4명이 모여야 시작할 수 있어요")
+		t.eq(LocTest.ko(err), "최소 4명이 모여야 시작할 수 있어요")
 		t.eq(RoomLogic.canStart(r, 1, 3), true)
 		r.state = "InMatch"
 		t.eq(RoomLogic.canStart(r, 1, 3), false, "already in match")

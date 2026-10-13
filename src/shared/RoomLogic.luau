@@ -4,9 +4,79 @@
 -- tests/room.spec.luau에서 Lune으로 돌려요. 방 하나는 평범한 테이블이고 여기 함수들이 고쳐요.
 
 local Config = require(script.Parent.Config)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Types = require(script.Parent.Types)
 
+type LocText = Types.LocText
+
 local RoomLogic = {}
+
+-- 방 요청 거절 이유 (m5-26: 화면 문구는 room.err.<이유> 키, 클라이언트가 Loc.text로 풀어요)
+export type Reason =
+	"BadSettings"
+	| "BadMaxPlayers"
+	| "BadPrivacy"
+	| "BadName"
+	| "AlreadyMember"
+	| "InMatch"
+	| "Full"
+	| "NotHost"
+	| "AlreadyStarted"
+	| "NeedPlayers" -- args.count = 최소 인원
+	| "MatchServer"
+	| "AlreadyInRoom"
+	| "Teleporting"
+	| "NotFound"
+	| "NoCodeRoom"
+	| "LeftGame"
+	| "CreateFailed"
+	| "BadCode" -- args.count = 코드 자릿수
+	| "NotInRoom"
+	| "TooFast"
+	| "ServerError"
+	| "RemoteUnavailable"
+
+local MESSAGES: { [Reason]: LocText } = {
+	BadSettings = { key = "room.err.BadSettings" },
+	BadMaxPlayers = { key = "room.err.BadMaxPlayers" },
+	BadPrivacy = { key = "room.err.BadPrivacy" },
+	BadName = { key = "room.err.BadName" },
+	AlreadyMember = { key = "room.err.AlreadyMember" },
+	InMatch = { key = "room.err.InMatch" },
+	Full = { key = "room.err.Full" },
+	NotHost = { key = "room.err.NotHost" },
+	AlreadyStarted = { key = "room.err.AlreadyStarted" },
+	NeedPlayers = { key = "room.err.NeedPlayers" },
+	MatchServer = { key = "room.err.MatchServer" },
+	AlreadyInRoom = { key = "room.err.AlreadyInRoom" },
+	Teleporting = { key = "room.err.Teleporting" },
+	NotFound = { key = "room.err.NotFound" },
+	NoCodeRoom = { key = "room.err.NoCodeRoom" },
+	LeftGame = { key = "room.err.LeftGame" },
+	CreateFailed = { key = "room.err.CreateFailed" },
+	BadCode = { key = "room.err.BadCode" },
+	NotInRoom = { key = "room.err.NotInRoom" },
+	TooFast = { key = "room.err.TooFast" },
+	ServerError = { key = "room.err.ServerError" },
+	RemoteUnavailable = { key = "room.err.RemoteUnavailable" },
+}
+RoomLogic.REASONS = {} :: { Reason }
+for reason in MESSAGES do
+	table.insert(RoomLogic.REASONS, reason)
+end
+table.sort(RoomLogic.REASONS)
+
+-- 거절 문구 (LocText). args는 NeedPlayers·BadCode의 { count = n }
+function RoomLogic.message(reason: Reason, args: LocalizeLogic.Args?): LocText
+	local base = MESSAGES[reason]
+	if base == nil then
+		return LocalizeLogic.text("common.err.retry")
+	end
+	if args then
+		return LocalizeLogic.text(base.key, args)
+	end
+	return base
+end
 
 export type Room = {
 	id: string,
@@ -21,6 +91,8 @@ export type Room = {
 	slot: number, -- 아레나 슬롯 (Config.Arena.SlotSpacing 간격으로 맵을 띄우는 번호, 1부터)
 	-- 서버를 넘어 같은 방을 알아보는 키 (m4-11). 로비↔매치 텔레포트 동안 그대로 따라가요.
 	key: string?,
+	-- 이름 없이 만든 방 (m5-26): name은 방장 DisplayName이고 클라이언트가 "{name}의 초밥집"으로 보여 줘요
+	nameIsDefault: boolean?,
 }
 
 export type NewRoomParams = {
@@ -31,6 +103,7 @@ export type NewRoomParams = {
 	code: string?,
 	slot: number,
 	key: string?,
+	nameIsDefault: boolean?,
 }
 
 -- Random과 같은 모양 (Rules.Rng)
@@ -65,24 +138,26 @@ function RoomLogic.cleanName(raw: any): string?
 	return name
 end
 
+-- 기본 방 이름 (m5-26): 방에는 방장 DisplayName만 담고(nameIsDefault = true) 화면이 "{name}의 초밥집"으로 만들어요.
+-- 이름이 비면 "?"
 function RoomLogic.defaultName(displayName: string): string
-	return RoomLogic.cleanName(`{displayName}의 초밥집`) or "초밥집"
+	return RoomLogic.cleanName(displayName) or "?"
 end
 
 -- 클라이언트가 보낸 방 만들기 설정 검증. name은 정리한 결과라 nil일 수 있어요 (그러면 기본 이름).
-function RoomLogic.validateSettings(raw: any): (Types.RoomSettings?, string?)
+function RoomLogic.validateSettings(raw: any): (Types.RoomSettings?, LocText?)
 	if type(raw) ~= "table" then
-		return nil, "잘못된 방 설정이에요"
+		return nil, RoomLogic.message("BadSettings")
 	end
 	local maxPlayers = raw.maxPlayers
 	if type(maxPlayers) ~= "number" or not table.find(Config.Room.MaxPlayerOptions, maxPlayers) then
-		return nil, "최대 인원을 다시 골라 주세요"
+		return nil, RoomLogic.message("BadMaxPlayers")
 	end
 	if type(raw.isPrivate) ~= "boolean" then
-		return nil, "공개 여부를 다시 골라 주세요"
+		return nil, RoomLogic.message("BadPrivacy")
 	end
 	if raw.name ~= nil and type(raw.name) ~= "string" then
-		return nil, "방 이름이 올바르지 않아요"
+		return nil, RoomLogic.message("BadName")
 	end
 	return {
 		maxPlayers = maxPlayers,
@@ -135,6 +210,7 @@ function RoomLogic.newRoom(params: NewRoomParams, host: Types.MemberInfo): Room
 		autoStartAt = nil,
 		slot = params.slot,
 		key = params.key,
+		nameIsDefault = if params.nameIsDefault then true else nil,
 	}
 end
 
@@ -152,20 +228,20 @@ function RoomLogic.isFull(room: Room): boolean
 end
 
 -- 참가 가능 여부 (실패하면 화면에 보여줄 이유)
-function RoomLogic.canJoin(room: Room, userId: number): (boolean, string?)
+function RoomLogic.canJoin(room: Room, userId: number): (boolean, LocText?)
 	if RoomLogic.isMember(room, userId) then
-		return false, "이미 이 방에 있어요"
+		return false, RoomLogic.message("AlreadyMember")
 	end
 	if room.state ~= "Waiting" then
-		return false, "이미 게임 중인 방이에요"
+		return false, RoomLogic.message("InMatch")
 	end
 	if RoomLogic.isFull(room) then
-		return false, "방이 꽉 찼어요"
+		return false, RoomLogic.message("Full")
 	end
 	return true, nil
 end
 
-function RoomLogic.addMember(room: Room, member: Types.MemberInfo): (boolean, string?)
+function RoomLogic.addMember(room: Room, member: Types.MemberInfo): (boolean, LocText?)
 	local ok, err = RoomLogic.canJoin(room, member.userId)
 	if not ok then
 		return false, err
@@ -198,15 +274,15 @@ function RoomLogic.removeMember(room: Room, userId: number): boolean
 end
 
 -- 방장의 시작 요청 검증
-function RoomLogic.canStart(room: Room, userId: number, minPlayers: number): (boolean, string?)
+function RoomLogic.canStart(room: Room, userId: number, minPlayers: number): (boolean, LocText?)
 	if room.hostUserId ~= userId then
-		return false, "방장만 시작할 수 있어요"
+		return false, RoomLogic.message("NotHost")
 	end
 	if room.state ~= "Waiting" then
-		return false, "이미 게임 중이에요"
+		return false, RoomLogic.message("AlreadyStarted")
 	end
 	if #room.members < minPlayers then
-		return false, `최소 {minPlayers}명이 모여야 시작할 수 있어요`
+		return false, RoomLogic.message("NeedPlayers", { count = minPlayers })
 	end
 	return true, nil
 end
@@ -263,6 +339,7 @@ function RoomLogic.snapshot(room: Room): Types.RoomSnapshot
 	return {
 		id = room.id,
 		name = room.name,
+		nameIsDefault = if room.nameIsDefault then true else nil,
 		maxPlayers = room.maxPlayers,
 		isPrivate = room.isPrivate,
 		code = room.code,
@@ -295,6 +372,7 @@ function RoomLogic.listPublic(rooms: { Room }): { Types.RoomListing }
 		listings[i] = {
 			id = room.id,
 			name = room.name,
+			nameIsDefault = if room.nameIsDefault then true else nil,
 			maxPlayers = room.maxPlayers,
 			memberCount = #room.members,
 			state = room.state,

@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -49,7 +50,7 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 		Parent = playerGui,
 	}) :: ScreenGui
 
-	local openButton = Kit.button("🎟 코드", Color.Egg, {
+	local openButton = Kit.button(Loc.t("code.open.btn"), Color.Egg, {
 		Name = "CodeButton",
 		Parent = gui,
 		Position = UDim2.fromOffset(12, buttonY(44)),
@@ -92,7 +93,7 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 	})
 	local titleLabel = Kit.label({
 		Parent = header,
-		Text = "🎟 코드 넣기",
+		Text = Loc.t("code.title"),
 		TextSize = 24,
 		Size = UDim2.new(1, -52, 1, 0),
 	})
@@ -115,11 +116,11 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 	local input = Kit.textBox({
 		Name = "CodeInput",
 		Parent = inputRow,
-		PlaceholderText = "코드를 넣어 주세요",
+		PlaceholderText = Loc.t("code.enterCode"),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Size = UDim2.new(1, -(100 + GAP), 1, 0),
 	}) :: TextBox
-	local submitButton = Kit.button("받기", Color.Salmon, {
+	local submitButton = Kit.button(Loc.t("code.redeem.btn"), Color.Salmon, {
 		Name = "Submit",
 		Parent = inputRow,
 		AnchorPoint = Vector2.new(1, 0),
@@ -140,7 +141,7 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 		Name = "Hint",
 		Parent = window,
 		LayoutOrder = 4,
-		Text = "코드는 게임 설명과 업데이트 소식에서 찾을 수 있어요",
+		Text = Loc.t("code.hint"),
 		TextColor3 = Color.SubText,
 		TextSize = 14,
 		TextWrapped = true,

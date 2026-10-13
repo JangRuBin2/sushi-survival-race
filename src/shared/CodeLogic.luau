@@ -8,12 +8,14 @@
 --   CodeLogic.recordFailure(list, now, window) -> number   창 밖 실패를 지우고 지금을 추가, 창 안 실패 수
 --   CodeLogic.isLocked(list, now, window, max) -> boolean  창 안 실패가 max 이상
 --   CodeLogic.rewardFor(entry, now, isActive?) -> Reward   이벤트 재화는 그 이벤트가 진행 중일 때만
---   CodeLogic.message(reason) -> string                    실패 문구 (한국어)
---   CodeLogic.successMessage(reward) -> string             "🍚 200 받았어요!" / "🍚 100 + 🍬 10 받았어요!"
+--   CodeLogic.message(reason) -> LocText                   실패 문구 (m5-26부터 키)
+--   CodeLogic.successMessage(reward) -> LocText            "🍚 200 받았어요!" / "🍚 100 + 🍬 10 받았어요!"
 --   CodeLogic.validateConfig(codes) -> (valid, problems)   형식·범위·중복 검사, 문제 있는 코드만 빼요
 
 local Config = require(script.Parent.Config)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Seasons = require(script.Parent.Seasons)
+local Types = require(script.Parent.Types)
 
 -- src/server/CodeConfig.luau의 CodeEntry와 같은 모양
 export type CodeEntry = {
@@ -52,19 +54,24 @@ CodeLogic.MIN_TOKENS = 1
 CodeLogic.MAX_TOKENS = 30
 CodeLogic.MAX_RAW_LENGTH = 100 -- 이보다 긴 입력은 다듬기 전에 버려요 (서버 부담 방지)
 
-local MESSAGES: { [Reason]: string } = {
-	Ok = "받았어요!",
-	Cooldown = "잠시 뒤에 다시 해 주세요",
-	Locked = "잠시 뒤에 다시 해 주세요",
-	Invalid = "없는 코드예요",
-	Unknown = "없는 코드예요",
-	NotStarted = "아직 쓸 수 없는 코드예요",
-	Expired = "기간이 끝난 코드예요",
-	AlreadyRedeemed = "이미 받은 코드예요",
-	NoProfile = "프로필을 불러오는 중이에요",
-	NotSaved = "저장이 안 되는 상태라 지금은 쓸 수 없어요",
-	Error = "다시 해 주세요",
+local MESSAGES: { [Reason]: Types.LocText } = {
+	Ok = { key = "code.err.Ok" },
+	Cooldown = { key = "code.err.Cooldown" },
+	Locked = { key = "code.err.Locked" },
+	Invalid = { key = "code.err.Invalid" },
+	Unknown = { key = "code.err.Unknown" },
+	NotStarted = { key = "code.err.NotStarted" },
+	Expired = { key = "code.err.Expired" },
+	AlreadyRedeemed = { key = "code.err.AlreadyRedeemed" },
+	NoProfile = { key = "code.err.NoProfile" },
+	NotSaved = { key = "code.err.NotSaved" },
+	Error = { key = "code.err.Error" },
 }
+CodeLogic.REASONS = {} :: { Reason }
+for reason in MESSAGES do
+	table.insert(CodeLogic.REASONS, reason)
+end
+table.sort(CodeLogic.REASONS)
 
 local function maxLength(): number
 	return Config.Codes.MaxLength
@@ -155,23 +162,23 @@ function CodeLogic.rewardFor(entry: CodeEntry, now: number, isActive: ((id: stri
 	return reward
 end
 
-function CodeLogic.message(reason: Reason): string
+function CodeLogic.message(reason: Reason): Types.LocText
 	return MESSAGES[reason] or MESSAGES.Error
 end
 
-function CodeLogic.successMessage(reward: Reward): string
-	local parts: { string } = {}
+function CodeLogic.successMessage(reward: Reward): Types.LocText
 	local tokens = reward.tokens
 	local eventId = reward.eventId
-	if reward.coins > 0 or tokens == nil then
-		table.insert(parts, `🍚 {reward.coins}`)
-	end
+	local showCoins = reward.coins > 0 or tokens == nil
 	if tokens ~= nil and eventId ~= nil then
 		local event = Seasons.get(eventId)
 		local icon = if event then event.token.icon else "🎟"
-		table.insert(parts, `{icon} {tokens}`)
+		if showCoins then
+			return LocalizeLogic.text("code.ok.both", { coins = reward.coins, icon = icon, tokens = tokens })
+		end
+		return LocalizeLogic.text("code.ok.tokens", { icon = icon, tokens = tokens })
 	end
-	return `{table.concat(parts, " + ")} 받았어요!`
+	return LocalizeLogic.text("code.ok.coins", { coins = reward.coins })
 end
 
 local function isInteger(value: any, low: number, high: number): boolean

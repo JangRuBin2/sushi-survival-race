@@ -12,13 +12,15 @@
 --       판단 + 실행 순서. 저장·기록은 port가 해요 (서버 ShopService가 DataService·PurchaseLog로 만들어요,
 --       테스트는 가짜 저장소). 어느 단계든 실패하면 NotProcessedYet, 그때까지 구매 기록은 쓰지 않아요.
 --   ReceiptLogic.canRequest(skinId, ownedSkins?, opts) -> (ok, reason?)   RequestRobuxPurchase 검사
---   ReceiptLogic.message(reason) -> string                               거절 문구 (탈의실 결과 글씨)
+--   ReceiptLogic.message(reason) -> LocText?                             거절 문구 (탈의실 결과 글씨, m5-26부터 키)
 --   ReceiptLogic.hasReceipt(history, purchaseId) / remember(history, purchaseId, at, max) / sanitizeHistory(raw, max)
 --       프로필의 처리한 결제 id 목록 (오래된 것부터 max개만 남겨요). 같은 PurchaseId를 두 번 지급하지 않게
 --       구매 기록과 함께 한 번 더 막아요.
 
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Seasons = require(script.Parent.Seasons)
 local Skins = require(script.Parent.Skins)
+local Types = require(script.Parent.Types)
 
 export type Verdict = "NotProcessedYet" | "GrantAndRecord" | "AlreadyRecorded" | "RecordOnly"
 export type Result = "PurchaseGranted" | "NotProcessedYet"
@@ -289,22 +291,28 @@ function ReceiptLogic.canRequest(
 	return true, nil
 end
 
-local MESSAGES: { [RequestReason]: string } = {
-	UnknownSkin = "없는 스킨이에요",
-	AlreadyOwned = "이미 있어요",
-	NotForSale = "준비 중이에요",
-	CannotSave = "저장이 안 되는 상태라 지금은 살 수 없어요",
-	NoProfile = "프로필을 불러오는 중이에요",
-	TooFast = "잠시 뒤에 다시 해 주세요",
-	OffSale = "판매 기간이 아니에요",
-	NotRobux = "로벅스로 살 수 없는 스킨이에요",
+local MESSAGES: { [RequestReason]: Types.LocText } = {
+	UnknownSkin = { key = "receipt.err.UnknownSkin" },
+	AlreadyOwned = { key = "receipt.err.AlreadyOwned" },
+	NotForSale = { key = "receipt.err.NotForSale" },
+	CannotSave = { key = "receipt.err.CannotSave" },
+	NoProfile = { key = "receipt.err.NoProfile" },
+	TooFast = { key = "receipt.err.TooFast" },
+	OffSale = { key = "receipt.err.OffSale" },
+	NotRobux = { key = "receipt.err.NotRobux" },
 }
+ReceiptLogic.REASONS = {} :: { RequestReason }
+for reason in MESSAGES do
+	table.insert(ReceiptLogic.REASONS, reason)
+end
+table.sort(ReceiptLogic.REASONS)
 
-function ReceiptLogic.message(reason: RequestReason?): string
+-- 거절 문구. reason이 nil이면 nil
+function ReceiptLogic.message(reason: RequestReason?): Types.LocText?
 	if reason == nil then
-		return ""
+		return nil
 	end
-	return MESSAGES[reason] or "다시 해 주세요"
+	return MESSAGES[reason] or LocalizeLogic.text("common.err.retry")
 end
 
 ---------------------------------------------------------------- 프로필의 처리한 결제 id 목록

@@ -6,6 +6,7 @@
 --   이벤트 재화 (m5-07): 시즌 이벤트 중이면 코인 옆에 "🍬 32" (setTokens(nil)이면 숨김).
 -- 판정·지급과 무관한 표시만 해요. 리모트 연결은 CoinController.
 
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -82,7 +83,7 @@ function CoinScreen.new(playerGui: Instance): CoinScreen
 		Parent = badge,
 		LayoutOrder = 3,
 		Visible = false,
-		Text = "(저장 안 됨)",
+		Text = Loc.t("coin.unsaved"),
 		TextSize = 12,
 		TextColor3 = Color3.fromRGB(200, 200, 200),
 		TextTruncate = Enum.TextTruncate.None,
@@ -134,7 +135,7 @@ function CoinScreen.new(playerGui: Instance): CoinScreen
 	screen.guis = { gui, summaryGui }
 
 	function screen.setCoins(_self: CoinScreen, coins: number, persistent: boolean)
-		coinLabel.Text = `🍚 {coins}`
+		coinLabel.Text = `🍚 {Loc.number(coins)}`
 		unsavedLabel.Visible = not persistent
 	end
 

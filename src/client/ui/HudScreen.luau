@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -42,9 +43,12 @@ local STANDING_ROW_HEIGHT = 28
 -- 진행 표시 문구. 생존형 라운드(Survival, 결승)는 통과 목표가 의미 없어서 남은 인원만 보여요.
 local function progressText(kind: Types.MapKind?, progress: Types.RoundProgress): string
 	if kind == "Survival" or kind == "Final" then
-		return `남은 인원 {progress.remaining}`
+		return Loc.t("hud.progress.left", { count = progress.remaining })
 	end
-	return `통과 {progress.passed}/{progress.target} · 남은 인원 {progress.remaining}`
+	return Loc.t(
+		"hud.progress.race",
+		{ passed = progress.passed, target = progress.target, count = progress.remaining }
+	)
 end
 
 function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myUserId: number): HudScreen
@@ -220,14 +224,14 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			}, { Kit.corner(6) })
 			Kit.label({
 				Parent = row,
-				Text = `{standing.place}등`,
+				Text = Loc.t("hud.standing.place", { place = Loc.place(standing.place) }),
 				TextSize = rowText,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				Size = UDim2.new(0, 56, 1, 0),
 			})
 			Kit.label({
 				Parent = row,
-				Text = if mine then `{standing.name} (나)` else standing.name,
+				Text = if mine then Loc.t("hud.standing.me", { name = standing.name }) else standing.name,
 				TextSize = rowText,
 				Position = UDim2.fromOffset(60, 0),
 				Size = UDim2.new(1, -68, 1, 0),
@@ -245,7 +249,9 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		if collapseAt ~= nil then
 			timerLabel.TextColor3 = Color.Error
 			local left = math.ceil(collapseAt - workspace:GetServerTimeNow())
-			timerLabel.Text = if left > 0 then `⚡ {left}초` else "⚡ 버텨요!"
+			timerLabel.Text = if left > 0
+				then Loc.t("hud.timer.overtime", { seconds = left })
+				else Loc.t("hud.timer.holdOn")
 			return
 		end
 		timerLabel.TextColor3 = Color.Salmon
@@ -254,7 +260,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			return
 		end
 		local left = math.max(0, math.ceil((endsAt :: number) - workspace:GetServerTimeNow()))
-		timerLabel.Text = `⏱ {left}초`
+		timerLabel.Text = Loc.t("hud.timer.left", { seconds = left })
 	end
 
 	-- RoomScreen의 카운트다운 표시와 같은 패턴: 매 프레임 다시 그리지 않고 짧은 간격으로만 갱신해요.
@@ -378,8 +384,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		end
 
 		if info.roundIndex and info.roundCount then
-			roundLabel.Text = `라운드 {info.roundIndex} / {info.roundCount}`
-			roundText = `라운드 {info.roundIndex}/{info.roundCount}`
+			roundLabel.Text = Loc.t("hud.round", { index = info.roundIndex, count = info.roundCount })
+			roundText = Loc.t("hud.roundShort", { index = info.roundIndex, count = info.roundCount })
 			refreshTitle()
 		end
 
@@ -387,23 +393,26 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			topBar.Visible = false
 			progressLabel.Text = ""
 			banner.Visible = true
-			bannerTitle.Text = "매치 시작!"
-			bannerSubtitle.Text = "곧 첫 라운드가 시작돼요"
+			bannerTitle.Text = Loc.t("hud.banner.start")
+			bannerSubtitle.Text = Loc.t("hud.banner.startSub")
 		elseif info.phase == "RoundIntro" then
 			topBar.Visible = true
-			mapName = info.mapName or ""
+			-- 맵 이름·규칙은 mapId로 그 언어 문구를 (서버의 mapName·rule은 한국어 폴백, m5-26)
+			local mapId = info.mapId
+			mapName = if mapId then Loc.mapName(mapId) else (info.mapName or "")
+			local rule = if mapId then Loc.mapRule(mapId) else (info.rule or "")
 			refreshTitle()
-			ruleLabel.Text = info.rule or ""
+			ruleLabel.Text = rule
 			progressLabel.Text = ""
 			banner.Visible = true
-			bannerTitle.Text = info.mapName or ""
-			bannerSubtitle.Text = info.rule or ""
+			bannerTitle.Text = mapName
+			bannerSubtitle.Text = rule
 		elseif info.phase == "RoundActive" then
 			banner.Visible = false
 		elseif info.phase == "RoundResults" then
 			banner.Visible = true
-			bannerTitle.Text = "라운드 종료!"
-			bannerSubtitle.Text = "다음 라운드를 준비하고 있어요"
+			bannerTitle.Text = Loc.t("hud.banner.roundOver")
+			bannerSubtitle.Text = Loc.t("hud.banner.roundOverSub")
 		elseif info.phase == "Victory" then
 			topBar.Visible = false
 			progressLabel.Text = ""
@@ -420,8 +429,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			end
 			local function showVictory()
 				banner.Visible = true
-				bannerTitle.Text = "🏆 우승!"
-				bannerSubtitle.Text = `{winnerName}님이 우승했어요!`
+				bannerTitle.Text = Loc.t("hud.banner.victory")
+				bannerSubtitle.Text = Loc.t("hud.banner.victorySub", { name = winnerName })
 				banner.Position = VICTORY_BANNER_POSITION
 				showStandings(info.standings)
 			end
@@ -471,8 +480,8 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		local mine = overtimeBannerToken
 		banner.Position = BANNER_POSITION
 		banner.Visible = true
-		bannerTitle.Text = "⚡ 연장전!"
-		bannerSubtitle.Text = "접시가 무너져요! 끝까지 버텨요"
+		bannerTitle.Text = Loc.t("hud.banner.overtime")
+		bannerSubtitle.Text = Loc.t("hud.banner.overtimeSub")
 		task.delay(OVERTIME_BANNER_TIME, function()
 			if overtimeBannerToken == mine then
 				banner.Visible = false
@@ -486,7 +495,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 		end
 		overtimeCollapseAt = nil
 		overtimeBannerToken += 1
-		if bannerTitle.Text == "⚡ 연장전!" then
+		if bannerTitle.Text == Loc.t("hud.banner.overtime") then
 			banner.Visible = false
 		end
 		refreshTimer()

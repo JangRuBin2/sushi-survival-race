@@ -19,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local CharacterAnimLogic = require(ReplicatedStorage.Shared.CharacterAnimLogic)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 
 local CharacterFxController = {}
@@ -134,6 +135,7 @@ local function makeNameTag(body: BasePart, displayName: string): BillboardGui
 	gui.MaxDistance = NAME_TAG_DISTANCE
 	local label = Instance.new("TextLabel")
 	label.Name = "Name"
+	label.AutoLocalize = false -- 플레이어 이름은 번역하지 않아요 (m5-26)
 	label.BackgroundTransparency = 1
 	label.Position = UDim2.fromOffset(0, TITLE_HEIGHT)
 	label.Size = UDim2.new(1, 0, 0, NAME_HEIGHT)
@@ -145,6 +147,7 @@ local function makeNameTag(body: BasePart, displayName: string): BillboardGui
 	label.Parent = gui
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
+	title.AutoLocalize = false -- Loc으로 이미 번역 (m5-26)
 	title.BackgroundTransparency = 1
 	title.Size = UDim2.new(1, 0, 0, TITLE_HEIGHT)
 	title.Font = Enum.Font.GothamBold
@@ -165,7 +168,8 @@ local function updateTitle(tag: BillboardGui, character: Model)
 		return
 	end
 	local value = character:GetAttribute(Attributes.Title)
-	local text = if type(value) == "string" then value else ""
+	-- 속성은 한국어 칭호 이름(서버 Config.Titles) → 그 사람 언어로 (m5-26)
+	local text = if type(value) == "string" and value ~= "" then Loc.titleFromName(value) else ""
 	if label.Text ~= text then
 		label.Text = text
 	end
@@ -210,6 +214,7 @@ local function makeDizzy(body: BasePart): BillboardGui
 	gui.MaxDistance = 120
 	local label = Instance.new("TextLabel")
 	label.Name = "Text"
+	label.AutoLocalize = false
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
 	label.Font = Enum.Font.FredokaOne

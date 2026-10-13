@@ -10,6 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local VictoryCutsceneLogic = require(ReplicatedStorage.Shared.VictoryCutsceneLogic)
 
+local Loc = require(script.Parent.Parent.Loc)
+
 local Layout = VictoryCutsceneLogic.Layout
 
 export type Door = {
@@ -98,7 +100,8 @@ local function buildShop(model: Model, origin: CFrame): { Door }
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1, 1)
 	text.BackgroundTransparency = 1
-	text.Text = "스시집"
+	text.AutoLocalize = false -- m5-26
+	text.Text = Loc.t("cutscene.sushiBar")
 	text.TextScaled = true
 	text.Font = Enum.Font.FredokaOne
 	text.TextColor3 = Color3.fromRGB(255, 240, 200)

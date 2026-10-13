@@ -10,6 +10,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
+
+local Loc = require(script.Parent.Parent.Loc)
 local IDLE_COLOR = Color3.fromRGB(255, 255, 255)
 local ACTIVE_COLOR = Color3.fromRGB(255, 170, 60)
 
@@ -35,7 +37,8 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 	local button = Instance.new("TextButton")
 	button.Name = "GrabButton"
 	button.AutoButtonColor = false
-	button.Text = "✊ 잡기"
+	button.AutoLocalize = false -- m5-26
+	button.Text = Loc.t("input.grab.btn")
 	button.Font = Enum.Font.GothamBold
 	button.TextScaled = true
 	button.TextColor3 = Color3.fromRGB(40, 40, 40)

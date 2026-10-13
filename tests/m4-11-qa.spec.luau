@@ -406,7 +406,10 @@ return function(t: Test.Test)
 		end
 		local client = source("src/client/ui/LobbyController.luau")
 		t.ok(string.find(client, 'Remotes.event("Notice").OnClientEvent', 1, true) ~= nil)
-		t.ok(string.find(client, 'type(message) ~= "string"', 1, true) ~= nil, "client checks type")
+		t.ok(
+			string.find(client, "Loc.text(raw)", 1, true) ~= nil,
+			"client checks type (m5-26: Loc.text가 LocText만 풀어요)"
+		)
 	end)
 
 	t.test(

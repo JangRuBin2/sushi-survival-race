@@ -426,23 +426,31 @@ return function(t: Test.Test)
 		end
 	end)
 
-	t.test("AC5: 탈의실 카드 — 재화·VIP 스킨은 비활성 '곧 열려요', 에러 없음", function()
-		local view = { coins = 99999, equippedSkin = "tamago", ownedSkins = { "tamago" } }
-		for _, id in { "ghost-tamago", "tree-maki", "vip-gold-tamago" } do
-			local state = ShopLogic.cardState(Skins.get(id), view, { fake = true })
-			t.eq(state.kind, "Soon", id)
-			t.eq(state.enabled, false, id)
-			t.eq(ShopLogic.cardButtonText(state), "곧 열려요", id)
-			t.eq(ShopLogic.robuxButtonText(state), nil, id)
+	t.test(
+		"AC5: 탈의실 카드 — 재화·VIP 스킨은 비활성 (m5-07이 진짜 카드로: 재화 0 / 80, VIP 전용), 에러 없음",
+		function()
+			local view = { coins = 99999, equippedSkin = "tamago", ownedSkins = { "tamago" } }
+			local expected = {
+				["ghost-tamago"] = { "NeedTokens", "🍬 0 / 80" },
+				["tree-maki"] = { "NeedTokens", "⭐ 0 / 80" },
+				["vip-gold-tamago"] = { "Vip", "👑 VIP 전용" },
+			}
+			for id, want in expected do
+				local state = ShopLogic.cardState(Skins.get(id), view, { fake = true })
+				t.eq(state.kind, want[1], id)
+				t.eq(state.enabled, false, id)
+				t.eq(ShopLogic.cardButtonText(state), want[2], id)
+				t.eq(ShopLogic.robuxButtonText(state), nil, id)
+			end
+			for _, skin in Skins.LIST do
+				local state = ShopLogic.cardState(skin, view)
+				t.ok(type(ShopLogic.cardButtonText(state)) == "string", skin.id)
+			end
+			-- 시즌 스킨은 코인으로 못 사요
+			local wallet = { coins = 99999, ownedSkins = { tamago = true }, equippedSkin = "tamago" }
+			t.eq(ShopLogic.canBuyWithCoins("ghost-tamago", wallet).reason, "NotForCoins")
 		end
-		for _, skin in Skins.LIST do
-			local state = ShopLogic.cardState(skin, view)
-			t.ok(type(ShopLogic.cardButtonText(state)) == "string", skin.id)
-		end
-		-- 시즌 스킨은 코인으로 못 사요
-		local wallet = { coins = 99999, ownedSkins = { tamago = true }, equippedSkin = "tamago" }
-		t.eq(ShopLogic.canBuyWithCoins("ghost-tamago", wallet).reason, "NotForCoins")
-	end)
+	)
 
 	---------------------------------------------------------------- AC8 판매 기간
 	t.test("AC8: canRequest — 시즌 기간 밖 OffSale, 안이면 통과, 재화·VIP 스킨은 NotRobux", function()
@@ -577,7 +585,7 @@ return function(t: Test.Test)
 		local src = read("src/server/AdminService.luau")
 		local canRunAt =
 			string.find(src, "AdminLogic.canRun(tier, isStudio(), Config.DEBUG.persistDataInStudio)", 1, true)
-		local runAt = string.find(src, "local ok, result = runCommand(player, name, tier, args)", 1, true)
+		local runAt = string.find(src, "local ok, result = runCommand(player, parsed)", 1, true)
 		t.ok(canRunAt and runAt and canRunAt < runAt)
 		t.ok(string.find(src, 'Remotes.fn("AdminCommand").OnServerInvoke', 1, true) ~= nil)
 	end)

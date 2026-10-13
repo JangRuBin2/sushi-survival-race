@@ -266,4 +266,199 @@ return function(t: Test.Test)
 		end
 		t.eq(ShopLogic.message("CannotSave"), "저장이 안 되는 상태예요")
 	end)
+
+	---------------------------------------------------------------- m5-07 이벤트 재화 교환·카드
+	local HALLOWEEN = 1792108800
+	local HALLOWEEN_END = 1793923200
+
+	local function tokenWallet(tokens: number, owned: { string }?): any
+		local w = wallet(0, owned)
+		w.eventTokens["halloween-2026"] = tokens
+		return w
+	end
+
+	t.test(
+		"m5-07 AC3: canBuyWithTokens — 재화 80·기간 중·미보유·잠금 아님·저장 가능이면 ok",
+		function()
+			local d = ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80), HALLOWEEN, true, false)
+			t.eq(d.ok, true)
+			t.eq(d.price, 80)
+			t.eq(d.eventId, "halloween-2026")
+		end
+	)
+
+	t.test("m5-07 AC3: 조건이 빠지면 맞는 Reason", function()
+		local d = ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(79), HALLOWEEN, true)
+		t.eq(d.reason, "NeedTokens")
+		t.eq(d.missing, 1)
+		t.eq(ShopLogic.message(d.reason, d.missing, "🍬"), "🍬 1개 더 필요해요")
+		t.eq(ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80), HALLOWEEN_END, true).reason, "EventEnded")
+		t.eq(ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80), HALLOWEEN - 1, true).reason, "EventEnded")
+		t.eq(
+			ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80, { "ghost-tamago" }), HALLOWEEN, true).reason,
+			"AlreadyOwned"
+		)
+		t.eq(ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80), HALLOWEEN, true, true).reason, "Locked")
+		t.eq(ShopLogic.canBuyWithTokens("ghost-tamago", tokenWallet(80), HALLOWEEN, false).reason, "CannotSave")
+		t.eq(ShopLogic.canBuyWithTokens("pumpkin-sushi", tokenWallet(999), HALLOWEEN, true).reason, "NotForTokens")
+		t.eq(ShopLogic.canBuyWithTokens("salmon", tokenWallet(999), HALLOWEEN, true).reason, "NotForTokens")
+		t.eq(ShopLogic.canBuyWithTokens("nope", tokenWallet(999), HALLOWEEN, true).reason, "UnknownSkin")
+		t.eq(ShopLogic.canBuyWithTokens(42, tokenWallet(999), HALLOWEEN, true).reason, "UnknownSkin")
+		-- 크리스마스 스킨은 할로윈 재화로 못 받아요 (기간도 아님)
+		t.eq(ShopLogic.canBuyWithTokens("tree-maki", tokenWallet(999), HALLOWEEN, true).reason, "EventEnded")
+		for _, reason in { "NotForTokens", "EventEnded", "NeedTokens" } do
+			local text = ShopLogic.message(reason :: any)
+			t.ok(#text > 0 and text ~= "다시 해 주세요", reason)
+		end
+	end)
+
+	t.test(
+		"m5-07 AC3: buyWithTokens 성공하면 재화 −80, 스킨 보유 + 장착 / 실패하면 그대로",
+		function()
+			local w = tokenWallet(85)
+			local d = ShopLogic.buyWithTokens(w, "ghost-tamago", HALLOWEEN, true)
+			t.eq(d.ok, true)
+			t.eq(w.eventTokens["halloween-2026"], 5)
+			t.eq(w.ownedSkins["ghost-tamago"], true)
+			t.eq(w.equippedSkin, "ghost-tamago")
+			-- 두 번째는 AlreadyOwned, 변화 없음
+			local again = ShopLogic.buyWithTokens(w, "ghost-tamago", HALLOWEEN, true)
+			t.eq(again.reason, "AlreadyOwned")
+			t.eq(w.eventTokens["halloween-2026"], 5)
+			local poor = tokenWallet(10)
+			t.eq(ShopLogic.buyWithTokens(poor, "ghost-tamago", HALLOWEEN, true).ok, false)
+			t.eq(poor.eventTokens["halloween-2026"], 10)
+			t.eq(poor.ownedSkins["ghost-tamago"], nil)
+			-- eventTokens가 없는 지갑도 에러 없이
+			local bare = { coins = 0, ownedSkins = { tamago = true }, equippedSkin = "tamago" }
+			t.eq(ShopLogic.canBuyWithTokens("ghost-tamago", bare :: any, HALLOWEEN, true).reason, "NeedTokens")
+		end
+	)
+
+	t.test("m5-07 AC4: cardState 7가지", function()
+		local function v(owned: { string }, tokens: number, equipped: string?): any
+			return {
+				coins = 0,
+				ownedSkins = owned,
+				equippedSkin = equipped or "tamago",
+				eventTokens = { ["halloween-2026"] = tokens },
+			}
+		end
+		local ghost = Skins.get("ghost-tamago")
+		local pumpkin = Skins.get("pumpkin-sushi")
+		local vip = Skins.get("vip-gold-tamago")
+		-- 1. 재화 스킨, 기간 중, 미보유, 재화 충분
+		local s1 = ShopLogic.cardState(ghost, v({ "tamago" }, 80), nil, HALLOWEEN)
+		t.eq(s1.kind, "Tokens")
+		t.eq(s1.enabled, true)
+		t.eq(ShopLogic.cardButtonText(s1), "🍬 80으로 받기")
+		-- 2. 재화 부족
+		local s2 = ShopLogic.cardState(ghost, v({ "tamago" }, 32), nil, HALLOWEEN)
+		t.eq(s2.kind, "NeedTokens")
+		t.eq(s2.enabled, false)
+		t.eq(ShopLogic.cardButtonText(s2), "🍬 32 / 80")
+		-- 3. 유료 한정, 기간 중, 미보유 → 로벅스 카드
+		local s3 = ShopLogic.cardState(pumpkin, v({ "tamago" }, 0), { fake = true, prices = {} }, HALLOWEEN)
+		t.eq(s3.kind, "Robux")
+		t.eq(s3.price, 99)
+		t.eq(s3.enabled, true)
+		local s3price =
+			ShopLogic.cardState(pumpkin, v({ "tamago" }, 0), { prices = { ["pumpkin-sushi"] = 80 } }, HALLOWEEN)
+		t.eq(s3price.price, 80, "실제 상품 가격 우선 (PriceCache)")
+		-- 4. 한정, 기간 끝, 미보유 → OffSale (목록에서 숨김은 visibleSkins)
+		for _, skin in { ghost, pumpkin } do
+			local s4 = ShopLogic.cardState(skin, v({ "tamago" }, 999), { fake = true }, HALLOWEEN_END)
+			t.eq(s4.kind, "OffSale", skin.id)
+			t.eq(s4.enabled, false, skin.id)
+		end
+		-- 5. 한정, 보유 → 입기/입는 중 + 한정 표시 (기간 끝나도)
+		local s5 = ShopLogic.cardState(ghost, v({ "tamago", "ghost-tamago" }, 0), nil, HALLOWEEN_END)
+		t.eq(s5.kind, "Equip")
+		t.eq(s5.limited, true)
+		local s5b =
+			ShopLogic.cardState(pumpkin, v({ "tamago", "pumpkin-sushi" }, 0, "pumpkin-sushi"), nil, HALLOWEEN_END)
+		t.eq(s5b.kind, "Equipped")
+		t.eq(s5b.limited, true)
+		t.eq(
+			ShopLogic.cardState(Skins.get("salmon"), v({ "tamago", "salmon" }, 0)).limited,
+			nil,
+			"일반 스킨은 한정 아님"
+		)
+		-- 6. VIP, 미보유
+		local s6 = ShopLogic.cardState(vip, v({ "tamago" }, 0), { fake = true }, HALLOWEEN)
+		t.eq(s6.kind, "Vip")
+		t.eq(s6.enabled, false)
+		t.eq(ShopLogic.cardButtonText(s6), "👑 VIP 전용")
+		-- 7. VIP, 보유
+		t.eq(ShopLogic.cardState(vip, v({ "tamago", "vip-gold-tamago" }, 0)).kind, "Equip")
+		t.eq(ShopLogic.cardState(vip, v({ "tamago", "vip-gold-tamago" }, 0, "vip-gold-tamago")).kind, "Equipped")
+	end)
+
+	t.test("m5-07 AC4: visibleSkins — 기간 끝 + 미보유 한정 스킨은 어느 탭에도 없음", function()
+		local function ids(list: { any }): { [string]: boolean }
+			local set = {}
+			for _, skin in list do
+				set[skin.id] = true
+			end
+			return set
+		end
+		local none = { coins = 0, ownedSkins = { "tamago" }, equippedSkin = "tamago" }
+		local owner = { coins = 0, ownedSkins = { "tamago", "ghost-tamago" }, equippedSkin = "tamago" }
+		for _, tab in ShopLogic.tabs(HALLOWEEN_END) do
+			local set = ids(ShopLogic.visibleSkins(none, tab, HALLOWEEN_END))
+			for _, id in { "pumpkin-sushi", "ghost-tamago", "santa-shrimp", "tree-maki" } do
+				t.eq(set[id], nil, `{tab.id} {id}`)
+			end
+		end
+		local all = ids(ShopLogic.visibleSkins(none, nil, HALLOWEEN_END))
+		t.eq(all["salmon"], true)
+		t.eq(all["vip-gold-tamago"], true, "VIP는 기간이 없어서 보여요")
+		-- 가진 한정 스킨은 원래 등급 탭(레어)에 남아요
+		local rareTab = { id = "Rare", label = "레어", tier = "Rare" }
+		t.eq(ids(ShopLogic.visibleSkins(owner, rareTab :: any, HALLOWEEN_END))["ghost-tamago"], true)
+		-- 기간 중: 이벤트 탭은 그 이벤트 스킨 2종만
+		local eventTab = ShopLogic.defaultTab(HALLOWEEN)
+		t.eq(eventTab.id, "event")
+		local list = ShopLogic.visibleSkins(none, eventTab, HALLOWEEN)
+		t.eq(#list, 2)
+		local set = ids(list)
+		t.eq(set["pumpkin-sushi"], true)
+		t.eq(set["ghost-tamago"], true)
+		-- 받기 전에는 등급 탭에 안 나오고 전체에는 나와요
+		t.eq(ids(ShopLogic.visibleSkins(none, rareTab :: any, HALLOWEEN))["ghost-tamago"], nil)
+		t.eq(ids(ShopLogic.visibleSkins(none, nil, HALLOWEEN))["ghost-tamago"], true)
+		t.eq(ids(ShopLogic.visibleSkins(none, nil, HALLOWEEN))["tree-maki"], nil, "다른 이벤트 스킨은 숨김")
+	end)
+
+	t.test("m5-07: tabs — 이벤트 중이면 이벤트 탭이 맨 앞, 아니면 등급 탭만", function()
+		local during = ShopLogic.tabs(HALLOWEEN)
+		t.eq(#during, 6)
+		t.eq(during[1].label, "🎃 할로윈")
+		t.eq(during[1].eventId, "halloween-2026")
+		t.eq(during[2].id, "all")
+		local xmas = ShopLogic.tabs(1796947200)
+		t.eq(xmas[1].label, "🎄 크리스마스")
+		local outside = ShopLogic.tabs(HALLOWEEN_END)
+		t.eq(#outside, 5)
+		t.eq(outside[1].id, "all")
+		t.eq(ShopLogic.defaultTab(HALLOWEEN_END).id, "all")
+		t.eq(#ShopLogic.tabs(nil), 5)
+	end)
+
+	t.test("m5-07 AC5: eventHeader — 끝 11/6 00:00 UTC → '11월 5일까지', 카운트다운 없음", function()
+		local Seasons = RobloxRequire.require(Shared.Seasons)
+		local halloween = Seasons.get("halloween-2026")
+		t.eq(ShopLogic.eventHeader(halloween, HALLOWEEN), "할로윈 초밥 축제 · 11월 5일까지")
+		t.eq(ShopLogic.eventHeader(halloween, HALLOWEEN, 32), "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32")
+		local christmas = Seasons.get("christmas-2026")
+		t.eq(ShopLogic.lastDayText(christmas), "1월 7일")
+		-- 남은 시간과 상관없이 같은 글씨 (초·시간 표시 없음)
+		t.eq(ShopLogic.eventHeader(halloween, HALLOWEEN_END - 5), ShopLogic.eventHeader(halloween, HALLOWEEN))
+		-- 윤년·연말 경계
+		local leap = { id = "x", name = "X", startsAt = 0, endsAt = 1709251200, token = { name = "a", icon = "a" } } -- 2024-03-01
+		t.eq(ShopLogic.lastDayText(leap :: any), "2월 29일")
+		local newYear = { id = "y", name = "Y", startsAt = 0, endsAt = 1767225600, token = { name = "a", icon = "a" } } -- 2026-01-01
+		t.eq(ShopLogic.lastDayText(newYear :: any), "12월 31일")
+		t.ok(string.find(ShopLogic.EVENT_NOTE, "다음 해에 다시 올 수도 있어요", 1, true) ~= nil)
+	end)
 end

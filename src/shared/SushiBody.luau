@@ -35,6 +35,7 @@ export type PartSpec = {
 	rotation: { number }?, -- 도 단위 {x, y, z}, CFrame.Angles 순서 (m4-13)
 	effect: Effect?, -- 이 파츠에 붙는 효과 (등급별 예산 이하, m4-13·m5-21)
 	effectColor: { number }?, -- 효과 색 {r, g, b}
+	transparency: number?, -- 0~1, 없으면 0 (m5-07 유령 천)
 }
 
 export type Bounds = {
@@ -127,6 +128,19 @@ local DRAGON_DARK = { 35, 100, 50 }
 local DRAGON_HORN = { 240, 220, 150 }
 local DRAGON_EYE = { 255, 220, 60 }
 
+-- m5-07: 시즌 한정
+local PUMPKIN = { 245, 135, 35 }
+local PUMPKIN_DARK = { 205, 100, 25 }
+local PUMPKIN_STEM = { 90, 110, 40 }
+local PUMPKIN_LEAF = { 80, 150, 60 }
+local GHOST_SHEET = { 250, 250, 255 }
+local GHOST_GLOW = { 235, 240, 255 }
+local SANTA_RED = { 210, 35, 45 }
+local SANTA_FUR = { 250, 250, 250 }
+local TREE_GREEN = { 40, 120, 60 }
+local ORNAMENT_RED = { 220, 40, 50 }
+local STAR_YELLOW = { 255, 215, 60 }
+
 -- m5-22: 스킨 1차 배치 10종
 local TAKOYAKI_BROWN = { 196, 140, 92 }
 local TAKOYAKI_DARK = { 150, 100, 60 }
@@ -175,6 +189,7 @@ type Extra = {
 	rotation: { number }?,
 	effect: Effect?,
 	effectColor: { number }?,
+	transparency: number?,
 }
 
 local function piece(
@@ -195,6 +210,7 @@ local function piece(
 		rotation = extra and extra.rotation,
 		effect = extra and extra.effect,
 		effectColor = extra and extra.effectColor,
+		transparency = extra and extra.transparency,
 	}
 end
 
@@ -468,12 +484,88 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 		piece("TailTip", { 0.3, 0.3, 0.2 }, DRAGON, { 0, 2.2, 1.4 }),
 	})),
 
-	-- 시즌·VIP 자리 표시 (m5-03): 계란초밥 모양에 토핑 색만 달라요. 진짜 생김새는 m5-07이 바꿔요
-	["pumpkin-sushi"] = withBase(join(slab({ 245, 140, 40 }), { noriBelt() })),
-	["ghost-tamago"] = withBase(join(slab({ 245, 245, 250 }), { noriBelt() })),
-	["santa-shrimp"] = withBase(join(slab({ 220, 40, 40 }), { noriBelt() })),
-	["tree-maki"] = withBase(join(slab({ 40, 150, 70 }), { noriBelt() })),
-	["vip-gold-tamago"] = withBase(join(slab(GOLD, "Foil"), { noriBelt() })),
+	-- 시즌 한정·VIP (m5-07). 외곽 상자는 계란초밥 ±15% 안 (등급 허용치보다 좁게, 스펙 AC6), 효과 1개 이하
+	-- 호박 초밥: 밥 위 주황 호박(위에 골 무늬), 앞면 잭오랜턴 눈·입, 초록 꼭지와 잎
+	["pumpkin-sushi"] = withBase({
+		noriBelt(),
+		piece("PumpkinBack", { 2.6, 1.6, 0.3 }, PUMPKIN_DARK, { 0, 0.9, 1.05 }),
+		piece("Pumpkin", { 2.6, 1.0, 2.0 }, PUMPKIN, { 0, 2.1, 0.15 }),
+		piece("PumpkinRib1", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { -0.65, 2.62, 0.15 }),
+		piece("PumpkinRib2", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { 0, 2.62, 0.15 }),
+		piece("PumpkinRib3", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { 0.65, 2.62, 0.15 }),
+		piece("JackEyeLeft", { 0.3, 0.3, 0.05 }, INK, { -0.5, 2.25, -0.875 }, nil, { rotation = { 0, 0, 45 } }),
+		piece("JackEyeRight", { 0.3, 0.3, 0.05 }, INK, { 0.5, 2.25, -0.875 }, nil, { rotation = { 0, 0, 45 } }),
+		piece("JackMouth", { 1.1, 0.14, 0.05 }, INK, { 0, 1.85, -0.875 }),
+		piece("JackTooth", { 0.18, 0.12, 0.05 }, PUMPKIN, { 0.15, 1.86, -0.9 }),
+		piece("Stem", { 0.3, 0.4, 0.3 }, PUMPKIN_STEM, { 0, 2.8, 0.15 }),
+		piece("Leaf", { 0.5, 0.06, 0.25 }, PUMPKIN_LEAF, { 0.32, 2.66, 0.35 }, nil, { rotation = { 0, -25, 0 } }),
+	}),
+	-- 유령 계란초밥: 계란초밥 위에 반투명 흰 천(0.25)과 둥근 검은 눈, 은은한 흰 빛 (효과 1)
+	["ghost-tamago"] = withBase({
+		piece("Egg", { 2.8, 0.8, 2.2 }, EGG, { 0, 2.0, 0.2 }),
+		piece("EggBack", { 2.6, 1.6, 0.3 }, EGG, { 0, 0.9, 1.05 }),
+		noriBelt(),
+		piece("SheetTop", { 2.9, 0.3, 2.3 }, GHOST_SHEET, { 0, 2.5, 0.2 }, "Fabric", {
+			transparency = 0.25,
+			effect = "Glow",
+			effectColor = GHOST_GLOW,
+		}),
+		piece("SheetLeft", { 0.12, 1.3, 2.3 }, GHOST_SHEET, { -1.39, 1.85, 0.2 }, "Fabric", { transparency = 0.25 }),
+		piece("SheetRight", { 0.12, 1.3, 2.3 }, GHOST_SHEET, { 1.39, 1.85, 0.2 }, "Fabric", { transparency = 0.25 }),
+		piece("SheetBack", { 2.9, 1.5, 0.12 }, GHOST_SHEET, { 0, 1.8, 1.29 }, "Fabric", { transparency = 0.25 }),
+		piece("SheetHem", { 2.9, 0.12, 0.12 }, GHOST_SHEET, { 0, 2.3, -0.89 }, "Fabric", { transparency = 0.25 }),
+		piece("GhostEyeLeft", { 0.06, 0.42, 0.42 }, INK, { -0.5, 2.5, -0.98 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 90, 0 },
+		}),
+		piece("GhostEyeRight", { 0.06, 0.42, 0.42 }, INK, { 0.5, 2.5, -0.98 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 90, 0 },
+		}),
+	}),
+	-- 산타 새우: 새우 초밥 + 빨간 산타 모자(흰 털 테두리, 흰 방울). 높이 상한 때문에 모자는 낮게 접혀요
+	["santa-shrimp"] = withBase(join(slab(SHRIMP), {
+		piece("ToppingBand1", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, -0.5 }),
+		piece("ToppingBand3", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, 0.9 }),
+		piece("TailLeft", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { -0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, 20 } }),
+		piece("TailRight", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { 0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, -20 } }),
+		piece("HatBrim", { 1.6, 0.22, 1.2 }, SANTA_FUR, { -0.1, 2.51, 0.15 }, "Fabric"),
+		piece("HatBase", { 1.3, 0.3, 0.95 }, SANTA_RED, { -0.1, 2.77, 0.15 }, "Fabric"),
+		piece("HatTip", { 0.7, 0.22, 0.55 }, SANTA_RED, { 0.25, 2.96, 0.15 }, "Fabric"),
+		piece("HatPompom", { 0.3, 0.3, 0.3 }, SANTA_FUR, { 0.65, 2.95, 0.15 }, "Fabric", { shape = "Ball" }),
+	})),
+	-- 트리 마키: 오이마키 위가 초록 층 3개짜리 원뿔 트리, 빨간 장식 방울, 꼭대기 노란 별 + 반짝이 (효과 1)
+	["tree-maki"] = withBase({
+		piece("NoriBack", { 2.6, 3.4, 0.2 }, NORI, { 0, 0.1, 1.0 }),
+		piece("NoriLeft", { 0.2, 3.4, 2.0 }, NORI, { -1.3, 0.1, 0.1 }),
+		piece("NoriRight", { 0.2, 3.4, 2.0 }, NORI, { 1.3, 0.1, 0.1 }),
+		piece("RiceTop", { 2.4, 0.25, 1.8 }, RICE, { 0, 1.725, 0 }),
+		piece("TreeLayer1", { 2.0, 0.3, 1.6 }, CUCUMBER, { 0, 1.95, 0 }),
+		piece("TreeLayer2", { 1.4, 0.3, 1.1 }, TREE_GREEN, { 0, 2.25, 0 }),
+		piece("TreeLayer3", { 0.8, 0.3, 0.6 }, CUCUMBER, { 0, 2.55, 0 }),
+		piece("Ornament1", { 0.18, 0.18, 0.18 }, ORNAMENT_RED, { -0.7, 1.95, -0.8 }, nil, { shape = "Ball" }),
+		piece("Ornament2", { 0.18, 0.18, 0.18 }, ORNAMENT_RED, { 0.45, 2.25, -0.55 }, nil, { shape = "Ball" }),
+		piece("Ornament3", { 0.16, 0.16, 0.16 }, ORNAMENT_RED, { -0.2, 2.55, -0.3 }, nil, { shape = "Ball" }),
+		piece("StarA", { 0.28, 0.28, 0.1 }, STAR_YELLOW, { 0, 2.88, 0 }, "Neon", {
+			rotation = { 0, 0, 45 },
+			effect = "Sparkles",
+			effectColor = STAR_YELLOW,
+		}),
+		piece("StarB", { 0.28, 0.28, 0.1 }, STAR_YELLOW, { 0, 2.88, 0 }, "Neon"),
+	}),
+	-- 금박 계란초밥 (VIP): 계란초밥 위에 금속 금박 두 장 + 김 띠 금테, 금색 반짝이 (효과 1)
+	["vip-gold-tamago"] = withBase({
+		piece("Egg", { 2.8, 0.8, 2.2 }, EGG, { 0, 2.0, 0.2 }),
+		piece("EggBack", { 2.6, 1.6, 0.3 }, EGG, { 0, 0.9, 1.05 }),
+		noriBelt(),
+		piece("GoldLeaf1", { 1.6, 0.05, 1.2 }, GOLD, { -0.2, 2.425, 0.1 }, "Foil", {
+			rotation = { 0, 15, 0 },
+			effect = "Sparkles",
+			effectColor = GOLD,
+		}),
+		piece("GoldLeaf2", { 0.8, 0.05, 0.7 }, GOLD_FAT, { 0.75, 2.43, 0.65 }, "Foil", { rotation = { 0, -20, 0 } }),
+		piece("GoldTrim", { 2.52, 0.1, 1.92 }, GOLD, { 0, 0.05, 0 }, "Foil"),
+	}),
 
 	-- 스킨 1차 배치 10종 (m5-22). 일반 3 (타코야키·에그토스트·슬라이더 버거)
 	takoyaki = withBase({
@@ -760,6 +852,7 @@ local function copySpec(spec: PartSpec): PartSpec
 		rotation = copyList(spec.rotation),
 		effect = spec.effect,
 		effectColor = copyList(spec.effectColor),
+		transparency = spec.transparency,
 	}
 end
 
@@ -901,6 +994,7 @@ function SushiBody.build(appearanceId: string): Model
 		part.Size = vec(spec.size)
 		part.Color = rgb(spec.color)
 		part.Material = (Enum.Material :: any)[spec.material] :: Enum.Material
+		part.Transparency = spec.transparency or 0
 		part.TopSurface = Enum.SurfaceType.Smooth
 		part.BottomSurface = Enum.SurfaceType.Smooth
 		local rotation = spec.rotation

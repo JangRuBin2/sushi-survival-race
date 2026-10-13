@@ -1,6 +1,8 @@
 --!strict
 -- 밥알 코인 지급 규칙 (docs/specs/m4-08-rewards-titles.md AC1~AC4)
 
+local fs = require("@lune/fs")
+
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -202,5 +204,130 @@ return function(t: Test.Test)
 		t.eq(totals[42], nil, "not a participant")
 		t.eq(totals[7], 50, "stayed spectating")
 		t.eq(totals[1], 200, "winner")
+	end)
+
+	---------------------------------------------------------------- m5-07 이벤트 재화
+	local HALLOWEEN = 1792108800 -- 2026-10-16 00:00 UTC (할로윈 첫날)
+	local HALLOWEEN_END = 1793923200 -- 2026-11-06 00:00 UTC (끝, 제외)
+	local CHRISTMAS = 1796947200
+
+	t.test(
+		"m5-07 AC1: 이벤트 중 라운드 통과 10+1, 결승 출발 30+2, 우승 100+5 (eventId halloween-2026)",
+		function()
+			local tracker = RewardLogic.newTracker()
+			t.eq(#RewardLogic.onRoundStart(tracker, 1, 3, { 1, 2 }, HALLOWEEN), 0)
+			local pass = RewardLogic.onResult(tracker, 1, "Passed", HALLOWEEN)[1]
+			t.eq(pass.reason, "RoundPass")
+			t.eq(pass.amount, 10)
+			t.eq(pass.tokens, 1)
+			t.eq(pass.eventId, "halloween-2026")
+			local final = RewardLogic.onRoundStart(tracker, 3, 3, { 1, 2 }, HALLOWEEN)
+			t.eq(#final, 2)
+			for _, grant in final do
+				t.eq(grant.reason, "FinalQualify")
+				t.eq(grant.amount, 30)
+				t.eq(grant.tokens, 2)
+				t.eq(grant.eventId, "halloween-2026")
+			end
+			local win = RewardLogic.onResult(tracker, 1, "Won", HALLOWEEN)[1]
+			t.eq(win.amount, 100)
+			t.eq(win.tokens, 5)
+			t.eq(win.eventId, "halloween-2026")
+			-- 크리스마스엔 그 이벤트 id
+			t.eq(RewardLogic.onResult(tracker, 1, "Won", CHRISTMAS)[1].eventId, "christmas-2026")
+		end
+	)
+
+	t.test("m5-07 AC1: 기간 밖·now 없음이면 재화 nil, 코인은 그대로", function()
+		for _, now in { HALLOWEEN - 1, HALLOWEEN_END, nil :: number? } do
+			local tracker = RewardLogic.newTracker()
+			RewardLogic.onRoundStart(tracker, 1, 3, { 1 }, now)
+			local pass = RewardLogic.onResult(tracker, 1, "Passed", now)[1]
+			t.eq(pass.amount, 10)
+			t.eq(pass.tokens, nil)
+			t.eq(pass.eventId, nil)
+			local final = RewardLogic.onRoundStart(tracker, 3, 3, { 1 }, now)[1]
+			t.eq(final.amount, 30)
+			t.eq(final.tokens, nil)
+			local win = RewardLogic.onResult(tracker, 1, "Won", now)[1]
+			t.eq(win.amount, 100)
+			t.eq(win.tokens, nil)
+		end
+		-- 결승 통과(Passed)는 코인도 재화도 없음
+		local tracker = RewardLogic.newTracker()
+		RewardLogic.onRoundStart(tracker, 3, 3, { 1 }, HALLOWEEN)
+		t.eq(#RewardLogic.onResult(tracker, 1, "Passed", HALLOWEEN), 0)
+		t.eq(#RewardLogic.onResult(tracker, 1, "Eliminated", HALLOWEEN), 0)
+	end)
+
+	t.test("m5-07 AC1: 재화 값은 Config.Events.Tokens", function()
+		t.eq(Config.Events.Tokens.RoundPass, 1)
+		t.eq(Config.Events.Tokens.FinalQualify, 2)
+		t.eq(Config.Events.Tokens.Win, 5)
+		t.eq(Config.Events.Tokens.MatchPlayed, 1)
+		t.eq(Config.Events.Tokens.DailyFirstMatch, 3)
+		t.eq(RewardLogic.tokensFor("Code", HALLOWEEN), nil, "이유에 값이 없으면 nil")
+	end)
+
+	t.test(
+		"m5-07 AC2: 매치 끝 — 하루 첫 판 + 이벤트 50+4, 아님 + 이벤트 0+1, 아님 + 밖 지급 없음",
+		function()
+			local first = RewardLogic.matchEndPayout(TODAY - 1, TODAY, HALLOWEEN) :: any
+			t.eq(first.reason, "DailyFirstMatch")
+			t.eq(first.amount, 50)
+			t.eq(first.tokens, 4)
+			t.eq(first.eventId, "halloween-2026")
+			t.eq(first.daily, true)
+			local played = RewardLogic.matchEndPayout(TODAY, TODAY, HALLOWEEN) :: any
+			t.eq(played.reason, "MatchPlayed")
+			t.eq(played.amount, 0)
+			t.eq(played.tokens, 1)
+			t.eq(played.eventId, "halloween-2026")
+			t.eq(played.daily, false)
+			t.eq(RewardLogic.matchEndPayout(TODAY, TODAY, HALLOWEEN_END), nil)
+			t.eq(RewardLogic.matchEndPayout(TODAY, TODAY, nil), nil)
+			-- 하루 첫 판 + 이벤트 밖: 코인만
+			local outside = RewardLogic.matchEndPayout(nil, TODAY, HALLOWEEN - 1) :: any
+			t.eq(outside.reason, "DailyFirstMatch")
+			t.eq(outside.amount, 50)
+			t.eq(outside.tokens, nil)
+			t.eq(outside.eventId, nil)
+		end
+	)
+
+	t.test(
+		"m5-07: 한 판 시뮬레이션 — 우승자 재화 1+1+2+5+4 = 13, 1라운드 탈락자 판 참가 1",
+		function()
+			local events = eightPlayerMatch({ [2] = TODAY })
+			for _, event in events do
+				event.now = HALLOWEEN
+			end
+			local coins, tokens = RewardLogic.simulate(events)
+			t.eq(coins[1], 10 + 10 + 30 + 100 + 50)
+			t.eq(tokens[1], 1 + 1 + 2 + 5 + 4)
+			t.eq(tokens[2], 1 + 1 + 2 + 1, "오늘 이미 받은 사람: 판 참가 1만")
+			t.eq(tokens[8], 1 + 3, "1라운드 탈락 + 하루 첫 판")
+			local _, none = RewardLogic.simulate(eightPlayerMatch())
+			t.eq(next(none), nil, "now 없으면 재화 없음")
+		end
+	)
+
+	t.test("m5-07: 토스트·정산 글씨", function()
+		t.eq(RewardLogic.toastText("RoundPass", 10), "+10 🍚 라운드 통과")
+		t.eq(RewardLogic.toastText("RoundPass", 10, 1, "🍬"), "+10 🍚 +1 🍬 라운드 통과")
+		t.eq(RewardLogic.toastText("MatchPlayed", 0, 1, "🍬"), "+1 🍬 판 참가")
+		t.eq(RewardLogic.toastText("DailyFirstMatch", 50, 4, "⭐"), "+50 🍚 +4 ⭐ 오늘 첫 판")
+		t.eq(RewardLogic.toastText("Win", 100, 0, "🍬"), "+100 🍚 우승!")
+		t.eq(RewardLogic.summaryText(210, 1234), "이번 판 +210 🍚 (총 1234)")
+		t.eq(RewardLogic.summaryText(210, 1234, 8, "🍬"), "이번 판 +210 🍚 +8 🍬 (총 1234)")
+		t.eq(RewardLogic.summaryText(210, 1234, 0, "🍬"), "이번 판 +210 🍚 (총 1234)")
+		t.eq(RewardLogic.matchTokenTotal({ { tokens = 1 }, {}, { tokens = 5 }, { tokens = -3 } } :: any), 6)
+	end)
+
+	t.test("m5-07: RewardService가 eventTokens에 더하고 이벤트 시각은 Seasons.now(eventNow)", function()
+		local src = fs.readFile("src/server/RewardService.luau")
+		t.ok(string.find(src, "Seasons.now(RunService:IsStudio(), Config.DEBUG.eventNow, os.time())", 1, true) ~= nil)
+		t.ok(string.find(src, "p.eventTokens[eventId] = (p.eventTokens[eventId] or 0) + tokens", 1, true) ~= nil)
+		t.ok(string.find(src, "RewardLogic.matchEndPayout(", 1, true) ~= nil)
 	end)
 end

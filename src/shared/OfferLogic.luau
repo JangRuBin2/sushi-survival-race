@@ -38,10 +38,10 @@ export type Reason =
 
 -- 판단에 필요한 프로필 부분. 목록이든 맵이든 돼요 (Types.ProfileView / ProfileSchema.Profile)
 export type ViewLike = {
-	ownedSkins: any,
-	ownedFx: any?,
-	boughtOffers: any?,
-	vip: boolean?,
+	read ownedSkins: any,
+	read ownedFx: any?,
+	read boughtOffers: any?,
+	read vip: boolean?,
 }
 
 export type RequestOptions = {

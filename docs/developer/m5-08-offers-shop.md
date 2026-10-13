@@ -1,6 +1,14 @@
 # m5-08 offers shop — 개발 작업 기록
 
-## 2026-10-08 — 착수 직후 중단 (wip, 최신)
+## 2026-10-13 — 구현 완료, in-qa (최신)
+- **브랜치**: `m5-08-offers` (origin/main 4192744 병합 위). 스펙 status `in-qa`.
+- **끝난 것**: 스펙 범위 1~6 전부. 바뀐 파일·Studio 확인 방법·남은 이슈는 스펙 "개발 메모". 아래 "꼭 지킬 제약" 세 가지를 지켰어요 (ReceiptLogic·RobuxShopService는 Offers를 모르고 `setOfferPort`로 등록, 예전 `skinFor` port 호환 — `tests/offer-logic.spec.luau` 마지막 테스트가 정적으로 확인).
+- **검증**: rojo build · stylua --check · selene(0/0) · lune 1260 passed · luau-lsp 끝 코드 0 (Windows 로컬).
+- **남은 것**: QA, 사용자 Studio 확인(AC8~AC14), 상품 5개·패스 1개 id(AC15).
+- **다음에 할 첫 단계**: QA 리포트(`docs/qa/m5-08-*.md`)가 오면 버그 수정. 병합 때 m5-09(연출 모습)와 `Attributes.EliminationFx`/`VictoryFx` 의미가 맞는지(값 = FxCatalog id, 없으면 속성 없음) 확인.
+- **막힌 점**: 없음. 메모: `OfferLogic.ViewLike`는 `read` 속성 타입(목록·맵 둘 다 받으려고) — luau-lsp 1.70 새 검사기·lune 둘 다 통과.
+
+## 2026-10-08 — 착수 직후 중단 (wip)
 - **브랜치**: `m5-08-offers` (origin/main c4ca608 기반). 스펙 status `in-dev`.
 - **끝난 것**: 관련 코드·테스트 읽기와 설계만. **코드 변경 없음.** 검증은 돌리지 않음 (바뀐 코드가 없음).
 - **남은 것**: 스펙 범위 1~6 전부 (Offers, OfferLogic, ReceiptLogic 일반화, RobuxShopService, PurchaseLog 기록 모양, OfferService, OfferScreen/Controller, ChatTagController, 이름표 👑, 테스트 2개).

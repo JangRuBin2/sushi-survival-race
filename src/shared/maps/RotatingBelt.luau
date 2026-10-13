@@ -13,6 +13,7 @@ local Chopstick = require(script.Parent.RotatingBeltChopstick)
 local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapKitLogic = require(script.Parent.MapKitLogic)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "rotating-belt"
@@ -369,6 +370,7 @@ end
 
 local RotatingBelt: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Race",
 	displayName = "회전 벨트",
 	rule = "젓가락을 피해 벨트를 거슬러 결승선까지 달려요",

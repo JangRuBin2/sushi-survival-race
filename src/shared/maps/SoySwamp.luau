@@ -10,6 +10,7 @@ local Config = require(script.Parent.Parent.Config)
 local Hazards = require(script.Parent.SoySwampHazards)
 local Layout = require(script.Parent.SoySwampLayout)
 local MapKit = require(script.Parent.MapKit)
+local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "soy-swamp"
@@ -333,6 +334,7 @@ end
 
 local SoySwamp: MapTypes.MapModule = {
 	id = ID,
+	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
 	kind = "Race",
 	displayName = "간장 늪 & 와사비 산",
 	rule = "간장 웅덩이는 피하고, 와사비 패드로 튀어 올라 결승선까지!",

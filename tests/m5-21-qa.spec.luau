@@ -267,7 +267,10 @@ return function(t: Test.Test)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Rare, 0.15)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Epic, 0.25)
 		t.eq(RealSushiBody.BOUNDS_TOLERANCE.Legendary, 0.25)
-		t.eq(string.find(SUSHI_SOURCE, "require(", 1, true), nil)
+		-- m5-27: 유일한 require는 순수(아무것도 require하지 않는) SushiConceptSample
+		local _, requires = string.gsub(SUSHI_SOURCE, "require%(", "")
+		t.eq(requires, 1)
+		t.ok(string.find(SUSHI_SOURCE, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil)
 	end)
 
 	t.test(
@@ -407,7 +410,7 @@ return function(t: Test.Test)
 	t.test(
 		"QA 공정성: Wedge·효과는 GROUND_OFFSET(이름표·단상 높이 기준)과 무관한 고정값",
 		function()
-			t.eq(RealSushiBody.GROUND_OFFSET, 2.3)
+			t.eq(RealSushiBody.GROUND_OFFSET, 2.25) -- m5-25 새 기준 몸 (예전 2.3)
 			-- 모든 스킨의 발바닥이 같은 높이 (토핑이 발보다 아래로 내려가지 않아요)
 			local Skins = RobloxRequire.require(Shared.Skins)
 			for _, skin in Skins.LIST do

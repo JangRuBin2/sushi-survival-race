@@ -18,6 +18,7 @@ local Config = require(script.Parent.Config)
 local FxCatalog = require(script.Parent.FxCatalog)
 local ProfileSchema = require(script.Parent.ProfileSchema)
 local ReceiptLogic = require(script.Parent.ReceiptLogic)
+local Skins = require(script.Parent.Skins)
 
 export type Profile = ProfileSchema.Profile
 export type Lock = { jobId: string, at: number, session: string? }
@@ -167,7 +168,7 @@ function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
 	profile.ownedSkins = owned
 
 	local equipped = source.equippedSkin
-	if type(equipped) == "string" and owned[equipped] then
+	if type(equipped) == "string" and (owned[equipped] or Skins.isFree(equipped)) then
 		profile.equippedSkin = equipped
 	elseif equipped ~= nil then
 		table.insert(notes, `equippedSkin {tostring(equipped)} not owned, set to {default}`)

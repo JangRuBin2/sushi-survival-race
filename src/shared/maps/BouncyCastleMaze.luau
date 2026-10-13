@@ -2,7 +2,7 @@
 -- Race 맵 "방방 미로" (GDD §5.3 v0.6, 스펙 m5-14).
 -- 출발(일반 바닥) → 대기실·관문(BounceFloor, 1번 레인만 열림) → 미로(BounceFloor, 레인 4개를 칸막이
 -- 3개가 S자로 갈라놓음) → 출구 통로(일반 바닥, 튕김 끝) → 결승.
--- BounceFloor 위에 있으면 쿨다운마다 자동으로 위로 튕겨서(수직 전용, 수평 성분 없음) 멈춰 설 수 없어요.
+-- BounceFloor 위에 있으면 쿨다운마다 자동으로 위로 튕겨서(세로 속도만 바꾸고 수평 속도는 유지) 멈춰 설 수 없어요.
 -- 치수·튜닝 값은 BouncyCastleMazeLayout, 포물선·격자 판정 계산은 BouncyCastleMazeLogic에 있어요.
 -- 코스는 origin의 LookVector(로컬 -Z)로 뻗어요. build/start 안에서만 Roblox API를 써서 Lune에서
 -- require해도 안전해요 (CLAUDE.md "맵 모듈 공통 인터페이스").
@@ -127,8 +127,7 @@ local function build(origin: CFrame): Model
 	end
 
 	-- 관문(입구 문): 1번 레인(Layout.GATE.openXMin~openXMax)만 비우고 나머지 폭을 막아요.
-	local gate = Layout.GATE
-	local function gateDoor(name: string, xMin: number, xMax: number)
+	local function gateDoor(name: string, gate: Layout.Gate, xMin: number, xMax: number)
 		local width = xMax - xMin
 		if width <= 0 then
 			return
@@ -141,8 +140,13 @@ local function build(origin: CFrame): Model
 			Parent = model,
 		})
 	end
-	gateDoor("GateDoorLeft", Layout.BOUNDS.xMin, gate.openXMin)
-	gateDoor("GateDoorRight", gate.openXMax, Layout.BOUNDS.xMax)
+	local gate = Layout.GATE
+	gateDoor("GateDoorLeft", gate, Layout.BOUNDS.xMin, gate.openXMin)
+	gateDoor("GateDoorRight", gate, gate.openXMax, Layout.BOUNDS.xMax)
+	-- 출구 벽(m5-14 B1): 미로 끝(z -110)에서 4번 레인만 비우고 1·2·3번 레인 끝을 막아요.
+	local exitGate = Layout.EXIT_GATE
+	gateDoor("ExitWallLeft", exitGate, Layout.BOUNDS.xMin, exitGate.openXMin)
+	gateDoor("ExitWallRight", exitGate, exitGate.openXMax, Layout.BOUNDS.xMax)
 
 	-- 스폰 24개 (6열 × 4줄, 이름순 배치)
 	local spawns = Instance.new("Folder")
@@ -192,8 +196,11 @@ local function build(origin: CFrame): Model
 end
 
 -- 바운스: HumanoidRootPart 아래로 짧게 레이캐스트해 BounceFloor에 닿았는지 보고, 쿨다운이 끝났으면
--- 위로만 튕겨요(수평 성분 없음). LinearVelocity를 BOUNCE_HOLD초 강제로 걸고 그다음은 포물선.
-local function bounceStepper(ctx: MapTypes.RoundContext): (racers: { Player }) -> ()
+-- 위로 튕겨요. LinearVelocity(Line 모드, 세로축만)를 BOUNCE_HOLD초 걸고 그다음은 포물선이에요.
+-- 세로축만 묶어서 걷던·다이브하던 수평 속도는 그대로 남아요(m5-14 B2).
+-- LinearVelocity는 루트마다 하나를 만들어 켜고 끄며 다시 써요 — 튕길 때마다 새로 만들지 않아서
+-- ctx.cleanup에 항목이 쌓이지 않아요(m5-14 B3). 돌려주는 release()는 유지 시간이 끝난 것을 꺼요.
+local function bounceStepper(ctx: MapTypes.RoundContext): ((racers: { Player }) -> (), () -> ())
 	local CollectionService = game:GetService("CollectionService")
 	local tagged: { Instance } = {}
 	for _, instance in CollectionService:GetTagged(BOUNCE_TAG) do
@@ -206,11 +213,18 @@ local function bounceStepper(ctx: MapTypes.RoundContext): (racers: { Player }) -
 	probeParams.FilterType = Enum.RaycastFilterType.Include
 	probeParams.FilterDescendantsInstances = tagged
 	local down = Vector3.new(0, -Layout.BOUNCE_RAYCAST_LENGTH, 0)
+	local horizontal = Vector3.new(1, 0, 1)
 	local upVelocity = Vector3.new(0, Layout.BOUNCE_UP_SPEED, 0)
 
 	local readyAt: { [Player]: number } = {}
+	local pushes: { [BasePart]: LinearVelocity } = {} -- 루트마다 하나 (리스폰하면 새 루트 → 새 항목)
+	local holdUntil: { [LinearVelocity]: number } = {} -- 켜져 있는 것만
 
-	local function launch(root: BasePart)
+	local function pushFor(root: BasePart): LinearVelocity
+		local existing = pushes[root]
+		if existing and existing.Parent == root then
+			return existing
+		end
 		local attachment = root:FindFirstChild("RootAttachment") or root:FindFirstChildOfClass("Attachment")
 		if attachment == nil then
 			local created = Instance.new("Attachment")
@@ -223,18 +237,35 @@ local function bounceStepper(ctx: MapTypes.RoundContext): (racers: { Player }) -
 		push.Name = "BounceLaunch"
 		push.Attachment0 = attachment :: Attachment
 		push.RelativeTo = Enum.ActuatorRelativeTo.World
-		push.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-		push.VectorVelocity = upVelocity
+		push.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+		push.LineDirection = Vector3.yAxis
+		push.LineVelocity = Layout.BOUNCE_UP_SPEED
 		push.MaxForce = math.huge
+		push.Enabled = false
 		push.Parent = root
-		root.AssemblyLinearVelocity = upVelocity
 		ctx.cleanup:add(push)
-		ctx.cleanup:add(task.delay(Layout.BOUNCE_HOLD, function()
-			push:Destroy()
-		end))
+		pushes[root] = push
+		return push
 	end
 
-	return function(racers: { Player })
+	local function launch(root: BasePart)
+		local push = pushFor(root)
+		push.Enabled = true
+		holdUntil[push] = os.clock() + Layout.BOUNCE_HOLD
+		root.AssemblyLinearVelocity = root.AssemblyLinearVelocity * horizontal + upVelocity
+	end
+
+	local function release()
+		local now = os.clock()
+		for push, untilAt in holdUntil do
+			if now >= untilAt then
+				push.Enabled = false
+				holdUntil[push] = nil
+			end
+		end
+	end
+
+	local function step(racers: { Player })
 		local now = os.clock()
 		for _, player in racers do
 			local character = player.Character
@@ -255,6 +286,8 @@ local function bounceStepper(ctx: MapTypes.RoundContext): (racers: { Player }) -
 			end
 		end
 	end
+
+	return step, release
 end
 
 local function start(ctx: MapTypes.RoundContext)
@@ -262,9 +295,11 @@ local function start(ctx: MapTypes.RoundContext)
 	local origin = ctx.origin
 	local finishProgress = -Layout.finishLineZ()
 
-	local stepBounce = bounceStepper(ctx)
+	local stepBounce, releaseBounces = bounceStepper(ctx)
 
 	ctx.cleanup:add(RunService.Heartbeat:Connect(function()
+		-- 유지 시간이 끝난 바운스는 라운드가 끝난 뒤에도 꺼요 (통과·탈락한 사람에게 남지 않게)
+		releaseBounces()
 		if not ctx.isActive() then
 			return
 		end

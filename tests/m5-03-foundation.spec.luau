@@ -27,12 +27,8 @@ local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
 -- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
 -- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 inPool = true로 바뀌어 더 이상 껍데기가 아니에요
--- (shells 밖에서 검사해요). 남은 껍데기는 m5-03 원래 3개(ikura-bombs·tempura-pot·dessert-fridge)뿐이에요.
-local SHELLS = {
-	"ikura-bombs",
-	"tempura-pot",
-	"dessert-fridge",
-}
+-- (shells 밖에서 검사해요). ikura-bombs(m5-04)·tempura-pot(m5-05)·dessert-fridge(m5-06)까지 모두 졸업해서 남은 껍데기는 없어요.
+local SHELLS: { string } = {}
 
 local function fakeRng(seed: number)
 	local state = seed
@@ -90,23 +86,8 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
-		local expected = {
-			["ikura-bombs"] = {
-				"Final",
-				"연어알 폭탄 접시",
-				"떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!",
-			},
-			["tempura-pot"] = {
-				"Survival",
-				"튀김 냄비 탈출",
-				"차오르는 기름을 피해 위로! 튀는 기름도 조심!",
-			},
-			["dessert-fridge"] = {
-				"Race",
-				"디저트 냉장고",
-				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
-			},
+	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 없음 — 모든 맵이 풀에 있어요", function()
+		local expected: { [string]: { string } } = {
 			-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
 			-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
 			-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
@@ -125,20 +106,28 @@ return function(t: Test.Test)
 				t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
 			end
 		end
-		t.eq(type(Maps.get("ikura-bombs").overtime), "function")
+		-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
+		local ikura = Maps.get("ikura-bombs")
+		t.eq(ikura.kind, "Final")
+		t.eq(ikura.displayName, "연어알 폭탄 접시")
+		t.eq(ikura.rule, "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
+		t.eq(type(ikura.overtime), "function")
 		t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
 		t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
 	end)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 12개(신규 맵 6개 전부 합류 — m5-14~19, 껍데기는 m5-03 원래 3개뿐), allInfos()는 15개",
+		"AC2: infos()는 15개(껍데기 3개 모두 합류 — m5-04·m5-05·m5-06, 신규 맵 6개 m5-14~19), allInfos()도 15개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 12)
+			t.eq(#Maps.infos(), 15)
+			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
+			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")
+			t.ok(ids["tempura-pot"], "tempura-pot joined the random pool (m5-05)")
 			t.ok(ids["bouncy-castle-maze"], "bouncy-castle-maze joined the random pool")
 			t.ok(ids["lantern-bridge"], "lantern-bridge joined the random pool")
 			t.ok(ids["giant-jenga"], "giant-jenga joined the random pool")
@@ -167,9 +156,9 @@ return function(t: Test.Test)
 			{ id = "tempura-pot", kind = "Survival" },
 			{ id = "ikura-bombs", kind = "Final" },
 		})
-		-- 랜덤 풀(infos)로는 껍데기를 못 찾아요
-		local none = Rules.resolveForcedPlan({ "dessert-fridge", "tempura-pot", "ikura-bombs" }, Maps.infos())
-		t.eq(none, nil)
+		-- 껍데기 3개가 모두 졸업해서 랜덤 풀(infos)로도 같은 순서로 찾아요
+		local fromPool = Rules.resolveForcedPlan({ "dessert-fridge", "tempura-pot", "ikura-bombs" }, Maps.infos())
+		t.eq(fromPool, plan)
 	end)
 
 	t.test("AC2: buildRoundPlan을 1,000번 돌려도 껍데기가 안 나와요", function()
@@ -347,33 +336,36 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC5 스킨 카탈로그
-	t.test("AC5: 31종(m5-22 10종 포함), order 1~31 연속, 새 5종의 얻는 길·시즌", function()
-		t.eq(#Skins.LIST, 31)
-		for i, skin in Skins.LIST do
-			t.eq(skin.order, i)
+	t.test(
+		"AC5: 32종(m5-22 10종·m5-27 실험 1종 포함), order 1~32 연속, 새 5종의 얻는 길·시즌",
+		function()
+			t.eq(#Skins.LIST, 32)
+			for i, skin in Skins.LIST do
+				t.eq(skin.order, i)
+			end
+			local ok, problems = Skins.validate(Skins.LIST)
+			t.ok(ok, table.concat(problems, "; "))
+			local rows = {
+				{ "pumpkin-sushi", "Epic", 99, nil, "halloween-2026", nil, 17 },
+				{ "ghost-tamago", "Rare", nil, 80, "halloween-2026", nil, 18 },
+				{ "santa-shrimp", "Epic", 99, nil, "christmas-2026", nil, 19 },
+				{ "tree-maki", "Rare", nil, 80, "christmas-2026", nil, 20 },
+				{ "vip-gold-tamago", "Legendary", nil, nil, nil, true, 21 },
+			}
+			for _, row in rows do
+				local skin = Skins.get(row[1])
+				t.ok(skin ~= nil, row[1])
+				t.eq(skin.tier, row[2], `{row[1]} tier`)
+				t.eq(skin.robux, row[3], `{row[1]} robux`)
+				t.eq(skin.tokens, row[4], `{row[1]} tokens`)
+				t.eq(skin.season, row[5], `{row[1]} season`)
+				t.eq(skin.vipOnly, row[6], `{row[1]} vipOnly`)
+				t.eq(skin.order, row[7], `{row[1]} order`)
+				t.eq(skin.coins, nil, `{row[1]} coins`)
+				t.eq(#skin.speech, 2, `{row[1]} speech`)
+			end
 		end
-		local ok, problems = Skins.validate(Skins.LIST)
-		t.ok(ok, table.concat(problems, "; "))
-		local rows = {
-			{ "pumpkin-sushi", "Epic", 99, nil, "halloween-2026", nil, 17 },
-			{ "ghost-tamago", "Rare", nil, 80, "halloween-2026", nil, 18 },
-			{ "santa-shrimp", "Epic", 99, nil, "christmas-2026", nil, 19 },
-			{ "tree-maki", "Rare", nil, 80, "christmas-2026", nil, 20 },
-			{ "vip-gold-tamago", "Legendary", nil, nil, nil, true, 21 },
-		}
-		for _, row in rows do
-			local skin = Skins.get(row[1])
-			t.ok(skin ~= nil, row[1])
-			t.eq(skin.tier, row[2], `{row[1]} tier`)
-			t.eq(skin.robux, row[3], `{row[1]} robux`)
-			t.eq(skin.tokens, row[4], `{row[1]} tokens`)
-			t.eq(skin.season, row[5], `{row[1]} season`)
-			t.eq(skin.vipOnly, row[6], `{row[1]} vipOnly`)
-			t.eq(skin.order, row[7], `{row[1]} order`)
-			t.eq(skin.coins, nil, `{row[1]} coins`)
-			t.eq(#skin.speech, 2, `{row[1]} speech`)
-		end
-	end)
+	)
 
 	t.test("AC5: 규칙 위반 표본을 각각 잡아요", function()
 		local function base(): { [string]: any }
@@ -562,10 +554,13 @@ return function(t: Test.Test)
 		function()
 			t.eq(AdminLogic.commandTier("info"), "Info")
 			t.eq(AdminLogic.commandTier("fx"), "Info")
-			for _, name in { "start", "plan", "coins", "tokens" } do
+			for _, name in { "start", "plan" } do
 				t.eq(AdminLogic.commandTier(name), "Test", name)
 			end
 			t.eq(AdminLogic.commandTier("resetprofile"), "StudioOnly")
+			-- 경제 명령은 저장을 켠 Studio에서도 막아요 (2026-10-13 사용자 결정)
+			t.eq(AdminLogic.commandTier("coins"), "StudioOnly")
+			t.eq(AdminLogic.commandTier("tokens"), "StudioOnly")
 			t.eq(AdminLogic.commandTier("kick"), nil)
 			t.eq(AdminLogic.commandTier(5), nil)
 

@@ -371,7 +371,8 @@ function EliminationCutsceneController.start(gui: Instance)
 		if world and position then
 			local model = cleanup:add(Instance.new("Model"))
 			model.Name = `EliminationCutscene_{result.userId}`
-			local doll = cleanup:add(SushiBody.build(appearanceId))
+			-- "Hurt" 표정은 표정이 있는 스킨(실험 스킨 concept-salmon, m5-27)만 쓰고 나머지는 무시해요
+			local doll = cleanup:add(SushiBody.build(appearanceId, "Hurt"))
 			doll.Parent = model
 			local function s(x: number): number
 				return Logic.scaled(x, duration)

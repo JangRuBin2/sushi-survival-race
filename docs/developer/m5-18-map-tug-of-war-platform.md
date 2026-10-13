@@ -1,5 +1,13 @@
 # m5-18 map-tug-of-war-platform — 개발 작업 기록
 
+## 2026-10-13 — QA 수정 (메인 세션 결정 반영)
+- **브랜치**: 워크트리 `agent-ac93d92be6e5bd2ae` → push `origin/m5-maps-fix-b` (`origin/main` `e772d23` 기준).
+- **끝난 것**: B1 연장전 `collapseDuration` 뒤 발판 충돌 끔(`platformSolid`), B2 발판 밖 토크 제외(`riderX`). 상태 `in-qa`. 테스트 `tests/m5-maps-fix-b.spec.luau`. 검증 5단계 통과(lune 1390 passed, 0 failed).
+- **건드리지 않은 것**: `*Art.luau`·장식 코드(m5-24 아트 작업과 병행 — 판정 코드만 바꿈).
+- **남은 것**: 재QA, Studio 확인(스펙 개발 메모 "QA 수정" 절).
+- **다음 첫 단계**: QA가 `m5-maps-fix-b`를 확인.
+- **막힌 점**: 없음.
+
 ## 2026-10-09 — 구현 완료, in-qa
 - **브랜치/worktree**: `.claude/worktrees/agent-af227ddbced4aa388` (브랜치 `worktree-agent-af227ddbced4aa388`). 메인 세션이 머지, push는 안 함.
 - **끝난 것**: 스펙 범위 전부.

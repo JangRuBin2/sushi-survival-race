@@ -56,10 +56,11 @@ end
 
 -- 인형: SushiBody.build로 만들고 모든 파츠를 고정·충돌 없음으로
 local function buildDoll(appearanceId: string): Model?
-	local ok, result = pcall(SushiBody.build, appearanceId)
+	-- "Happy" 표정은 표정이 있는 스킨(실험 스킨 concept-salmon, m5-27)만 써요
+	local ok, result = pcall(SushiBody.build, appearanceId, "Happy")
 	if not ok then
 		warn(`[VictoryCutscene] SushiBody.build failed: {result}`)
-		ok, result = pcall(SushiBody.build, Config.Appearance.Default)
+		ok, result = pcall(SushiBody.build, Config.Appearance.Default, nil)
 		if not ok then
 			return nil
 		end

@@ -6,35 +6,44 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 **v0.5** (v0.4: M3·M4 기본값, 맵 6개, 저장·이동 감시·플레이스 분리, 스킨 가격 A안 확정 / v0.5: 결승 연장전, 관리자 스킨 미리보기·11.7 "테스트 도구"). **M0~M4 개발 완료** — 모든 스펙(m2-01~m4-14)이 `done`. 자세한 내역은 `docs/CHANGELOG.md`.
-- **M5 진행 중 — 첫 두 스펙 완료(`done`)**: m5-01 결승 연장전(90초 → 20초 붕괴 → 늦게 떨어진 사람 우승, 150초 안전 상한), m5-02 테스트용 관리자 스킨 미리보기("🛠" 패널, 저장 안 됨). Studio 확인은 `docs/DEV-SETUP.md` 3-10. 사용자 확정(위임, 2026-10-08): 150초 상한은 가장 높이 1명 우승, 실서버 관리자 기능 켜 둠(`LiveEnabled = true`), 관리자 UserId 11402290839.
-- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7·3-8·3-9·3-10), 기본값 결정, 소리 고르기, 퍼블리시·Match 플레이스·개발자 상품 만들기, 비공개 테스트. 할 일 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)** (끝낸 항목·결정은 그 파일 "답변 기록"에 사용자가 적는다).
-- **다음 단계**: 사용자 확인·테스트 결과(`docs/USER-TODO.md` 답변 기록, `docs/playtest/m3.md`·`m4.md`)에 따른 수정(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개. 그와 함께 M5 백로그(새 맵 — 새 Final 맵은 연장전 훅 필수, 시즌 스킨, VIP·연출 팩·스타터 팩, 콘솔 UI, 관리자 명령 확장)를 planner가 스펙으로. 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
-- 맵 풀 6개: Race `rotating-belt`(회전 벨트)·`soy-swamp`(간장 늪 & 와사비 산)·`ramen-rapids`(라멘 국물 급류), Survival `hot-plate`(뜨거운 철판)·`chef-board`(셰프의 도마), Final `skewer-showdown`(회전 꼬치 쇼다운). 판정 지오메트리는 코드, 색·재질·장식(`MapKit`)도 코드, 사용자 Studio 장식은 `assets/map-art/<id>.rbxm`(장식 전용).
-- 들어간 것: 방 시스템, 한 판 전체 흐름, 관전, 계란초밥 캐릭터, 탈락·우승·라운드 소개 연출, 다이브·잡기, 소리(일부 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금), 밥알 코인·승수·칭호, 휴대폰 UI, 서버 이동 감시, 로비/매치 플레이스 분리(플레이스 id 없으면 한 플레이스 모드), 스킨 16종·탈의실·코인 해금, 로벅스 개발자 상품 결제(상품 id 입력 전이라 버튼은 "곧 열려요"), 결승 연장전(m5-01), 테스트용 관리자 스킨 미리보기(m5-02).
-- 남은 P3·보류 요약 (자세한 건 CHANGELOG M4 "알려진 한계 · 보류"):
-  - 이동 감시: 복제가 0.6초 넘게 멈추면 정상 플레이어도 되돌려질 수 있음(m4-10 R1, 허용 0.5초와 맞바꿈), 지속 속도 약 110 studs/s 미만 조작은 못 잡음(R2), 캐릭터끼리 튕김 오탐(B4).
-  - 다이브 지름길 확인 대기(m3-06 B2·B3, m4-12 AC6), 결승 소개 중 리셋 연출 잘림(m3-09 B4, 둠).
-  - 맵: 철판·결승 큰 장식의 카메라 가림(m4-03 B2, Studio 확인), 꼬치 음식 장식 서버 복제(B5), 도마 계단 모양 가장자리(m4-05 C1).
-  - 저장·서버 이동: 퇴장 저장이 10초를 넘으면 마지막 진행 유실 가능(m4-07 D6·m4-11 R4), 정원 복귀 방 10초 뒤 자동 출발(m4-11 R6, 기획 확인).
-  - 단상·연출: 우승자가 일찍 나가면 단상 칭호·승수 없음·우승 연출 인형 기본 외형(m4-13 N4), 매치 서버 늦은 프로필로 라운드 중 외형 바뀜(N2), 잡기 재전송 네트워크 흔들림(m4-12 N2).
-  - M5: 관리자 미리보기 서버 이동 직후 복원이 방금 입은 스킨을 덮을 수 있음(m5-02 B1), `AdminConfig.StudioAllAdmins = false`여도 Studio의 퍼블리시 소유자는 관리자(B2 — 주석에 명시함, 소유자 계정으로 비관리자 화면을 보려면 `IncludeOwner`도 false), `Overtime` 효과음 무음.
-- 검토 대기 제안서: `docs/proposals/robux-gameplay.md` (사용자 승인 전, GDD 미반영). 참고 자료: `docs/REFERENCE-map-production.md`(맵 제작), `docs/REFERENCE-party-royale.md`(파티 로얄 장르), `docs/REFERENCE-roblox-monetization.md`(가격·수익화, A안 근거), `docs/REFERENCE-final-overtime.md`(결승 시간 초과 처리·관리자 권한 관행, m5-01·m5-02 근거).
+- 기획서 **v0.6** 변경 이력(스킨 규칙 완화·맵 테마 확장, 2026-10-09). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- **M5 (운영 업데이트) 진행 중**
+  - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종.
+  - m5-23 맵 비주얼 키트·미리보기 렌더러: **main에 있음, `in-qa`**(QA 수정 B1~B6 반영, 재QA 전).
+  - m5-24 기존·새 맵 12개 아트 패스 v2: **진행 중**, main에 없음. wip 브랜치 `m5-24-art-a`(rotating-belt·hot-plate·skewer-showdown)·`-b`(soy-swamp·chef-board·tug-of-war-platform)·`-c`(ramen-rapids·giant-jenga·claw-machine-prize)·`-d`(bouncy-castle-maze·lantern-bridge·cat-cafe-shelves), 인계 메모는 각 브랜치의 `docs/developer/m5-24-group-<a~d>.md`.
+  - m5-12 콘솔 UI: `ready`, 시작 전.
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-11), Future 조명 확인, 기본값 결정, 소리 고르기, 코드 목록, 퍼블리시·Match 플레이스·상품 만들기, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
+- **다음 단계**: m5-23 재QA → m5-24 그룹 병합·QA → 사용자 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개.
+- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터, 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v2), 밥알 코인·승수·칭호, 휴대폰 UI, 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 31종·탈의실, 로벅스 결제, 결승 연장전, 맵 15개, 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령).
+- 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
+
+## 맵 풀 (15개, 전부 랜덤 판 풀)
+| 종류 | id |
+|---|---|
+| Race (6) | `rotating-belt` 회전 벨트 · `soy-swamp` 간장 늪 & 와사비 산 · `ramen-rapids` 라멘 국물 급류 · `dessert-fridge` 디저트 냉장고 · `bouncy-castle-maze` 방방 미로 · `lantern-bridge` 등불 다리 건너기 |
+| Survival (5) | `hot-plate` 뜨거운 철판 · `chef-board` 셰프의 도마 · `tempura-pot` 튀김 냄비 탈출 · `giant-jenga` 와르르 나무 블록 · `cat-cafe-shelves` 고양이 카페 캣타워 |
+| Final (4) | `skewer-showdown` 회전 꼬치 쇼다운 · `ikura-bombs` 연어알 폭탄 접시 · `tug-of-war-platform` 줄다리기 발판 · `claw-machine-prize` 인형뽑기 기계 속 |
 
 ## 스킨 · 상점 규칙
-- 스킨은 **겉모습만** 바꾼다(토핑·색·효과 1개 이하). 크기·히트박스·속도는 모두 같다. 능력치 판매·뽑기 없음 (GDD 9.1).
-- 캐릭터 외형은 **`AppearanceService.applyAppearance` 한 곳**에서만 입힌다. `appearanceId`가 nil이면 `ShopService`가 등록한 resolver가 장착 스킨을 고른다. `Attributes.AppearanceId`를 쓰는 곳도 여기뿐. 인형(탈락·우승 연출·단상·탈의실 미리보기)은 `SushiBody.build`로 따로 만든다.
-- 카탈로그는 `shared/Skins.luau`(16종). **가격 A안 확정**: 로벅스 일반 29 / 레어 59 / 에픽 99 / 전설 199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만. 코인을 로벅스로 파는 상품은 만들지 않는다.
-- 로벅스 결제는 `RobuxShopService`의 `ProcessReceipt` 하나. 프로필 `saveNow` 성공 → 구매 기록(`Purchases_v1`, 키 PurchaseId) 성공일 때만 `PurchaseGranted`, 아니면 `NotProcessedYet`. 판단은 순수 `ReceiptLogic`. 상품 id는 사용자가 만든 뒤 `Skins.luau`의 `productId`에.
-- 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·코인 해금을 거절한다.
+- 스킨은 **겉모습만** 바꾼다. 크기·히트박스·속도는 모두 같다(Body·눈·입·발 = 계란초밥). 능력치 판매·뽑기 없음 (GDD 9.1). 초밥이 아닌 음식·캐릭터도 세계관에 맞으면 된다(v0.6).
+- **등급별 한도**(m5-21, `SushiBody.EFFECT_BUDGET`·`BOUNDS_TOLERANCE`, `Skins.validate`가 서버 시작 때 검사): 효과 일반·레어 1개 / 에픽·전설 2개(종류 Fire·Sparkles·Smoke·Glow), 외곽 상자 일반·레어 ±15% / 에픽·전설 ±25%. 몸 파츠 모양에 Wedge 허용.
+- 캐릭터 외형은 **`AppearanceService.applyAppearance` 한 곳**에서만 입힌다. `Attributes.AppearanceId`를 쓰는 곳도 여기뿐. 인형(탈락·우승 연출·단상·탈의실)은 `SushiBody.build`로 따로 만든다.
+- 카탈로그 `shared/Skins.luau` **31종**: 기본 1(계란초밥) + 판매 25(일반 8·레어 7·에픽 5·전설 5) + 시즌 4(`season`, 기간에만 — 호박 초밥·산타 새우 R$ 99, 유령 계란초밥·트리 마키 이벤트 재화 80) + VIP 전용 1(`vip-gold-tamago`, `vipOnly`). **가격 A안**: 로벅스 29/59/99/199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만. 코인을 로벅스로 파는 상품은 만들지 않는다.
+- 로벅스 결제는 `RobuxShopService`의 `ProcessReceipt` **하나**(특별 상품도 `OfferService`가 `setOfferPort`로 "무엇을 주는지"만 등록). 프로필 `saveNow` 성공 → 구매 기록(`Purchases_v1`, 키 PurchaseId) 성공일 때만 `PurchaseGranted`. 판단은 순수 `ReceiptLogic`·`OfferLogic`. 상품 id는 사용자가 만든 뒤 `Skins.luau`·`Offers.luau`에.
+- **특별 상품**(m5-08, `shared/Offers.luau`): 스타터 팩·에픽/전설 세트·연출 2종(개발자 상품), VIP 패스(게임 패스). **VIP 영구 스킨은 `UserOwnsGamePassAsync`가 true일 때만** 지급(구매 이벤트만 믿지 않음). VIP 혜택은 겉모습뿐(👑·[VIP]·금박 스킨, 코인 배수 없음). `Attributes.Vip`·`EliminationFx`·`VictoryFx`는 서버만 달고 권한 판단에 쓰지 않는다.
+- 이벤트 재화(🍬/⭐)는 `Shared.Seasons` 기간에만 서버가 지급·차감(`BuyWithTokens`). "지금 시각"은 서버 `Seasons.now` — `DEBUG.eventNow`는 Studio에서만.
+- 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·해금·연출 장착을 거절한다(`ShopService.isLocked`).
+- Studio 가짜 결제(`fakeRobuxInStudio`)·가짜 VIP(`fakeVipInStudio`)는 `persistDataInStudio`와 같이 켜면 꺼진다(운영 저장소에 가짜 기록 금지).
 
-## 관리자 (테스트 도구) 규칙 (m5-02)
-- 관리자 판단은 **서버만**, 접속할 때 `AdminLogic.isAdmin`으로 한 번 계산해 `AdminService`의 표(`admins[UserId]`)에 두고 리모트마다 다시 본다. 입력은 `player.UserId`, `RunService:IsStudio()`, `game.CreatorType/CreatorId`, 서버 전용 `src/server/AdminConfig.luau`(ServerScriptService라 클라이언트에 복제되지 않음)뿐. 이름(Name·DisplayName)·클라이언트 속성으로는 판단하지 않는다.
-- 규칙: Studio + `StudioAllAdmins`면 누구나, 실서버는 `LiveEnabled`이고 `UserId > 0`이고 (`UserIds` 목록 또는 `IncludeOwner` + 개인 계정 소유자). 지금 목록 `{ 11402290839 }`.
-- **비밀번호·PIN·키 입력 방식은 금지**(계정 탈취 위험, Roblox 커뮤니티 기준 위반 — 사용자 원안을 거절함). 관리자 목록은 `Shared.Config`(클라이언트에 복제)에 두지 않는다.
-- `Attributes.IsAdmin`(Player)은 클라이언트가 "🛠" 패널을 만들지 말지만 정한다. 권한이 아니다. `AdminPreview`는 패널 강조용.
-- 미리보기는 **경제에 기록하지 않는다**: `ShopService`의 서버 메모리 슬롯(`setPreview`/`getPreview`)만 쓰고 `DataService`·`ShopLogic`·`ReceiptLogic`·`PurchaseLog`·`RewardService`를 부르지 않는다. 외형 순서는 `AdminLogic.pickAppearance`(미리보기 > 장착 스킨 > 계란초밥), 입히는 곳은 여전히 `applyAppearance`. 서버 간 유지는 MemoryStore `AdminPreview_v1`(키 `u_<UserId>`, 1시간), 읽는 서버가 관리자를 다시 판단한다.
-- 새 관리자 명령을 만들 때도 같은 표로 확인하고, 경제·판정에 영향을 주는 명령은 테스트 서버 전용으로 따로 기획한다(M5 백로그).
+## 코드 보상 규칙 (m5-10)
+- **진짜 코드는 커밋하지 않는다**(저장소 공개). 서버 전용 로더 `src/server/CodeConfig.luau`(커밋)가 로컬 `src/server/CodeList.luau`(`.gitignore`, 형식은 `CodeList.example.luau`)를 읽는다. 없으면 빈 목록 + 경고. 문서·테스트의 예시 코드(`SUSHI2026`, `SPOOKYSUSHI`, `EXAMPLE2026` 등)는 실제 코드로 쓰지 않는다.
+- 판단은 순수 `CodeLogic`, 지급은 `CodeService`가 `DataService.update` 한 번. 남용 방지: 요청 간격 2초, 10분 안 실패 8번이면 잠금(`Config.Codes`).
+
+## 관리자 (테스트 도구) 규칙 (m5-02, m5-11)
+- 관리자 판단은 **서버만**, 접속할 때 `AdminLogic.isAdmin`으로 한 번 계산해 `AdminService`의 표(`admins[UserId]`)에 두고 리모트마다 다시 본다. 입력은 `player.UserId`, `RunService:IsStudio()`, `game.CreatorType/CreatorId`, 서버 전용 `src/server/AdminConfig.luau`뿐. 이름·클라이언트 속성으로는 판단하지 않는다. 규칙: Studio + `StudioAllAdmins`면 누구나, 실서버는 `LiveEnabled`이고 `UserId > 0`이고 (`UserIds` 목록 또는 `IncludeOwner` + 개인 계정 소유자). 지금 목록 `{ 11402290839 }`.
+- **비밀번호·PIN·키 입력 방식은 금지**(계정 탈취 위험, Roblox 커뮤니티 기준 위반). 관리자 목록은 `Shared.Config`에 두지 않는다. `Attributes.IsAdmin`은 패널을 만들지 말지만 정하고 권한이 아니다.
+- 미리보기(스킨·연출)는 **경제에 기록하지 않는다**: `ShopService`의 메모리 슬롯(`setPreview`/`getPreview`)과 Player 속성만. 외형 순서는 `AdminLogic.pickAppearance`(미리보기 > 장착 > 계란초밥). 서버 간 유지는 MemoryStore `AdminPreview_v1`(키 `u_<UserId>`, 1시간). `AdminService` 소스에는 `DataService`·`ShopLogic`·`ReceiptLogic`·`PurchaseLog`·`RewardService`가 없어야 한다(테스트가 고정) — 경제를 건드리는 명령은 `AdminCommands`(첫 명령 때 lazy require).
+- **명령 등급**(`AdminLogic.commandTier`/`canRun`): `Info`(`info`, `fx` 미리보기) = 실서버에서도 됨 / `Test`(`start`, `plan`) = Studio만 / `StudioOnly`(`coins`, `tokens`, `resetprofile`) = Studio만이고 **`persistDataInStudio = true`면 거절**("저장을 켠 Studio에서는 쓸 수 없어요"). 실서버에서 Test·StudioOnly를 켜는 설정은 없다(사용자 결정). 명령은 부른 사람 본인에게만. 로그 `[Admin] 이름(UserId) <명령> <값> -> ok|<이유>`.
 
 ## 역할 분담 (에이전트 협업)
 기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
@@ -43,164 +52,126 @@
 - **세션이 끝날 수 있으니 커밋할 때마다 자기 브랜치를 push하고 인계 메모를 남긴다.** 로컬 세션이 끝나면 클라우드 세션(`claude --cloud`)이 이어받는다 — `docs/WORKFLOW.md` "클라우드 세션으로 인계".
 
 ## 확정된 기획 요약 (자세한 건 GDD)
-- **방 시스템**: 방장이 방을 만들 때 최대 인원(4/8/12/16/24), 공개/비공개(4자리 코드)를 설정. 최소 4명이면 방장이 시작, 정원이 차면 자동 시작.
+- **방 시스템**: 방장이 최대 인원(4/8/12/16/24), 공개/비공개(4자리 코드)를 설정. 최소 4명이면 방장이 시작, 정원이 차면 자동 시작.
 - **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~24명 → 4라운드. 한 판 4~5분.
 - **통과 인원**: `clamp(round(시작 × 비율), 2, 시작 - 1)`. 비율 3라운드 [0.60, 0.50, 결승], 4라운드 [0.65, 0.55, 0.50, 결승]. 결승 전 남은 인원 ≤ 2면 바로 결승. 코드(`Rules.qualifyCount`)는 "시작"을 **그 라운드를 시작할 때 살아 있는 인원**으로 계산한다.
-- **맵**: 라운드마다 맵이 바뀌고 맵마다 규칙이 다르다. 종류는 Race / Survival / Final. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
-- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람. 같은 묶음에 낙하와 리셋·퇴장이 섞이면 리셋·퇴장이 더 나쁜 등수. **연장전**(m5-01, 결승 = 마지막 라운드에서만): 결승 맵 시간 제한(90초)에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 그래도 안 끝나면 안전 상한(+`HardCapMargin` 40 → 150초)에 가장 높이 있는 1명 우승. 결승 맵에 훅이 없으면(디버그 강제 플랜) 연장전 없이 시간 제한에 점수 순. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
-- **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제(통과). 리셋·퇴장은 구제 없음. 결승 전 라운드에서 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
-- **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50(UTC, 매치 끝까지 방에 남은 사람). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
-- **판정은 전부 서버**(결승선, 탈락, 순위, 코인, 구매, 이동 감시). 클라이언트는 입력·UI·연출만.
+- **맵**: 라운드마다 맵이 바뀐다. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
+- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람(리셋·퇴장이 섞이면 그쪽이 더 나쁜 등수). **연장전**(결승 = 마지막 라운드에서만): 90초에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 안전 상한 150초(+`HardCapMargin` 40)에 가장 높이 있는 1명 우승. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
+- **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제. 리셋·퇴장은 구제 없음. 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
+- **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50(UTC). 이벤트 기간에는 재화도(`Config.Events.Tokens`). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
+- **판정은 전부 서버**(결승선, 탈락, 순위, 코인, 구매, 코드, 이동 감시). 클라이언트는 입력·UI·연출만(얼음 관성 이동처럼 판정 없는 이동 보정 포함).
 
 ## 기술 스택과 구조
-- Roblox Studio + **Rojo**, 언어 **Luau** (`src/`는 전부 `--!strict`, 타입 검사는 luau-lsp 새 검사기).
-- 맵 판정은 **코드로 생성한 지오메트리**(에이전트가 만들고 검증할 수 있게), 아트도 코드 장식(`MapKit`) + 선택적인 사용자 Studio 장식.
-- **플레이스**: `PlaceService.role()` = `"Single"`(Studio 또는 `Config.Places` 비어 있음 — 한 플레이스 안에서 로비와 매치) / `"Lobby"` / `"Match"`. 한 플레이스 모드에서는 방마다 아레나를 좌표를 띄워 따로 생성한다(`Config.Arena`: 높이 300, 슬롯 간격 2000 → `RoomService.getArenaOrigin`). 분리 모드는 MemoryStore 매니페스트(키 PrivateServerId)를 믿고, TeleportData는 힌트로만 쓴다.
+- Roblox Studio + **Rojo**, 언어 **Luau** (`src/`는 전부 `--!strict`, 타입 검사는 luau-lsp 새 검사기). 조명은 **Future**(`default.project.json` Lighting, Studio에서 한 번 확인 — USER-TODO B1-1).
+- 맵 판정은 **코드로 생성한 지오메트리**, 아트도 코드 장식(`MapKit`) + 선택적인 사용자 Studio 장식(`assets/map-art/<id>.rbxm`).
+- **플레이스**: `PlaceService.role()` = `"Single"`(Studio 또는 `Config.Places` 비어 있음) / `"Lobby"` / `"Match"`. 한 플레이스 모드에서는 방마다 아레나를 좌표를 띄워 따로 생성(`Config.Arena`: 높이 300, 슬롯 간격 2000). 분리 모드는 MemoryStore 매니페스트(키 PrivateServerId)를 믿는다.
 
 ```
-default.project.json     # Rojo 트리 + Workspace의 Baseplate, LobbySpawn, ServerStorage.MapArt ← assets/map-art, 가로 고정
+default.project.json     # Rojo 트리, Lighting(Future), Baseplate·LobbySpawn, ServerStorage.MapArt ← assets/map-art
 rokit.toml               # rojo 7.7.1, stylua 2.5.2, selene 0.32.0, lune 0.10.5, luau-lsp 1.70.1
-selene.toml  stylua.toml
-types/                   # globalTypes.None.d.luau (luau-lsp 1.70.1 Roblox 정의, 커밋), README.md (타입 검사 방법)
-assets/map-art/          # 사용자 Studio 장식 <맵 id>.rbxm → ServerStorage.MapArt (README.md)
+types/                   # luau-lsp Roblox 정의(커밋), README.md
+assets/map-art/          # 사용자 Studio 장식 <맵 id>.rbxm (장식 전용)
+tools/                   # render-map.luau + render/(Shims, Scene, Raster, Materials, Png) — 맵 미리보기 렌더러 (m5-23)
 src/
   server/            -> ServerScriptService.Server
-    init.server.luau     # 서비스 부트스트랩: 모든 서비스 init() 다음 start(). DataService → PlaceService → 기존 → M4 서비스
-    DataService.luau     # 프로필 DataStore(PlayerData_v1, u_<UserId>), 세션 잠금, 자동 저장. get/waitForProfile/update/onLoaded/canPersist/saveNow
-    PlaceService.luau    # 역할(Single/Lobby/Match), 로비→매치 텔레포트, 매치 서버 도착 대기, 같은 방 복귀, MatchResult
-    PlaceBackend.luau    # TeleportService·MemoryStore 래퍼 (Studio 메모리 가짜)
-    RoomDirectory.luau   # 서버 간 공개 방 목록·비공개 코드 (MemoryStore)
-    RoomService.luau     # 방 생성/참가/퇴장/방장/시작, 요청 간격 0.3초. onMatchStart/endMatch/getArenaOrigin, setPlaceHooks
-    MatchService.luau    # 방 하나의 매치 상태 머신 (MatchPhase 방송, decideWinner, finish → 로비/텔레포트)
-    MatchEvents.luau     # 매치 훅: onMatchStart/onRoundStart/onResult/onMatchEnd/onWinnerShowcase (핸들러 격리)
-    RoundService.luau    # prepareRound(args) → { run, cancel, racerCount }. setPassValidator, setPlacementListener, placedRoomOf, activeRoomOf
-    EliminationService.luau  # passed/won/left/eliminate → PlayerResult 방송
-    CharacterUtil.luau   # resetMovement, toLobby(로비 스폰 = 대기석)
-    AppearanceService.luau   # applyAppearance (외형 단일 지점), setResolver, refresh
-    GrabService.luau     # 잡기 판정 (GrabInput)
-    LobbyService.luau    # 로비 건물·조명·우승자 단상 (Match 역할이면 로비 안 지음)
-    RewardService.luau   # 코인·승수·칭호 지급 (MatchEvents 구독)
-    MovementGuardService.luau  # 서버 이동 감시: 되돌리기, 통과 막기, 로그 (킥 없음)
-    ShopService.luau     # EquipSkin, BuyWithCoins, grantSkin, 장착 resolver, 관리자 미리보기 슬롯(setPreview/getPreview)
-    RobuxShopService.luau    # RequestRobuxPurchase, ProcessReceipt, Studio 가짜 결제
-    PurchaseLog.luau     # 구매 기록 DataStore Purchases_v1 (키 PurchaseId, UserId 메타데이터)
-    AdminConfig.luau     # 관리자 목록·설정 (서버 전용, 클라이언트 복제 안 됨): UserIds, IncludeOwner, StudioAllAdmins, LiveEnabled
-    AdminService.luau    # 관리자 판단 표, AdminPreviewSkin 리모트, IsAdmin/AdminPreview 속성, MemoryStore AdminPreview_v1
+    init.server.luau     # 모든 서비스 init() 다음 start()
+    DataService          # 프로필 DataStore(PlayerData_v1), 세션 잠금, update/saveNow/onLoaded/setViewExtra
+    PlaceService  PlaceBackend  RoomDirectory  RoomService(forceStart)  MatchService(setNextPlan)  MatchEvents
+    RoundService         # prepareRound → run/cancel. 맵 Model에 Arena 태그, 결승 연장전 루프
+    EliminationService  CharacterUtil  AppearanceService  GrabService  MovementGuardService
+    LobbyService         # 로비 건물·조명·단상·시즌 장식 (Match 역할이면 안 지음)
+    RewardService        # 코인·승수·칭호·이벤트 재화 (MatchEvents 구독)
+    ShopService          # EquipSkin, BuyWithCoins, BuyWithTokens, 장착 resolver, 미리보기 슬롯, isLocked
+    RobuxShopService  PurchaseLog          # ProcessReceipt(유일), 구매 기록 Purchases_v1
+    OfferService         # RequestOfferPurchase, EquipFx, VIP 확인 (m5-08)
+    CodeService  CodeConfig  CodeList.example   # RedeemCode, 코드 로더 (CodeList.luau는 .gitignore)
+    AdminConfig  AdminService  AdminCommands    # 관리자 목록(서버 전용)·판단 표·리모트, 명령 실행
   client/            -> StarterPlayerScripts.Client
-    init.client.luau     # LobbyController.start() → 컨트롤러들 start(gui) (ProfileStore → Sfx → 나머지)
-    CameraDirector.luau  # 카메라 우선순위 중재 (관전 < 우승자 비추기 < 소개 < 탈락 연출 < 우승 연출)
-    ProfileStore.luau    # ProfileUpdated 보관: get/changed
-    Sfx.luau             # 효과음·배경음, 음소거 버튼(위쪽 바, 단계 저장)
-    ui/                  # Lobby*, Room*, RoomUiKit, Hud*(연장전 배너·타이머 포함), Spectate*, Coin*(배지·알림·정산), Shop*(탈의실), Admin*(관리자 "🛠" 패널, IsAdmin일 때만 생성), UiScaleController
-    fx/                  # CharacterFxController(이름표·칭호), EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps, LobbyFxController
-    input/               # DiveController/DiveButton, GrabController/GrabButton
+    init.client.luau  CameraDirector  ProfileStore  PriceCache(지역 가격 캐시)  Sfx
+    ui/                  # Lobby*, Room*, Hud*, Spectate*, Coin*, Shop*(탈의실·이벤트 탭), Offer*(🎁 상점), Code*(🎟 코드),
+                         # Admin*(🛠 미리보기·명령 탭), ChatTagController([VIP]), UiScaleController
+    fx/                  # CharacterFxController, EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
+                         # LobbyFxController, MapLightingController(맵별 조명), MapDecorFxController(장식 움직임)
+    input/               # Dive*, Grab*, IceController(얼음 관성, m5-06)
   shared/            -> ReplicatedStorage.Shared
-    Config.luau          # 튜닝 값 전부 + DEBUG (Roblox API 없음)
-    Rules.luau           # 순수: roundCount, qualifyCount, shouldSkipToFinal, nextRound, roundKinds, buildRoundPlan
-    RoundLogic.luau      # 라운드 판정·매치 순위 순수 로직 (Race/Survival/Final, Outcome, Standings, decideWinner, finalBatchOrder, 연장전 일정 schedule/clockPhase/loopAction)
-    RoomLogic.luau  SpectateLogic.luau
-    Remotes.luau         # RemoteFunction 10 + RemoteEvent 11 = 21개 (Remotes.fn / Remotes.event)
-    Types.luau           # 리모트로 주고받는 데이터 모양 (ProfileView, RewardGrant, RoomListing.remote 등)
-    Attributes.luau      # 공유 Instance 속성 이름 (AppearanceId, Title, MoveExemptUntil, PlaceRole, IsAdmin, AdminPreview, …)
-    AdminLogic.luau      # 순수: isAdmin, checkPreview, pickAppearance, MemoryStore 키·값 (목록은 없음 — AdminConfig에)
-    Cleanup.luau  CameraPriority.luau
-    SushiBody.luau       # 초밥 몸 레이아웃(스킨 16종)·build·bounds
-    Skins.luau  ShopLogic.luau  ReceiptLogic.luau            # 스킨 카탈로그·가격, 탈의실·코인 해금 판단, 결제 처리 판단
-    ProfileSchema.luau  ProfileLogic.luau  RewardLogic.luau  # 프로필 모양·칭호, 마이그레이션·잠금, 코인 지급
-    PlaceRole.luau  PlacePayload.luau  RoomDirectoryLogic.luau   # 역할 판단, 매니페스트·티켓 검증, 방 목록 합치기
-    MoveExempt.luau  MovementGuardLogic.luau                 # 서버가 튕긴 뒤 면제 표시, 이동 감시 판정
-    LobbyLayout.luau  UiLayout.luau  IntroLayout.luau        # 로비 배치·조명, 화면 배율·터치 버튼, "출발!" 위치
-    EliminationCutsceneLogic.luau  IntroCameraLogic.luau  VictoryCutsceneLogic.luau
-    DiveLogic.luau  GrabLogic.luau  GrabInputLogic.luau  SfxCues.luau  SfxLibrary.luau
+    Config  Remotes(RemoteFunction 15 + RemoteEvent 11 = 26)  Types  Attributes   # 공용 파일
+    Rules  RoundLogic  RoomLogic  SpectateLogic  Cleanup  CameraPriority
+    SushiBody  Skins  ShopLogic  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
+    ProfileSchema(v2)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
+    LobbyLayout  UiLayout  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
+    DiveLogic  GrabLogic  GrabInputLogic  IceLogic  SfxCues  SfxLibrary
     maps/
-      init.luau          # 맵 풀 (ALL에 맵 모듈 추가): Maps.get, Maps.infos, Maps.timeLimit
-      MapTypes.luau      # 공통 인터페이스 타입(MapModule, RoundContext) + validate
-      MapKit.luau  MapKitLogic.luau      # 장식(충돌 없음)·IntroCamera·Studio 아트, DecorSpec 검사·팔레트·예산
-      MapSfx.luau  MapSfxLogic.luau      # 장애물 소리 (그 방 사람에게만)
-      RotatingBelt.luau  (+ RotatingBeltChopstick, RotatingBeltArt)          # Race 회전 벨트
-      SoySwamp.luau      (+ SoySwampLayout, SoySwampHazards, SoySwampArt)    # Race 간장 늪 & 와사비 산
-      RamenRapids.luau   (+ RamenRapidsLayout, RamenRapidsLogic, RamenRapidsArt)  # Race 라멘 국물 급류
-      HotPlate.luau      (+ HotPlateLogic, HotPlateArt)                      # Survival 뜨거운 철판
-      ChefBoard.luau     (+ ChefBoardLogic, ChefBoardArt)                    # Survival 셰프의 도마
-      SkewerShowdown.luau (+ SkewerShowdownLogic, SkewerShowdownArt)         # Final 회전 꼬치 쇼다운 (연장전: 손 멈춤·꼬치 가속·바깥 줄부터 붕괴)
-tests/               # 순수 로직 테스트 (Studio 없이 실행, 71개 파일 1090개)
-  init.luau            # 실행기: tests/*.spec.luau
-  *.spec.luau          # 기능별 테스트 + QA가 추가한 *-qa / m*-qa 테스트 (가짜 Roblox 환경으로 서비스 소스를 직접 돌리는 것도 있음)
-  lib/Test.luau  lib/RobloxRequire.luau  lib/FakeSfxEnv.luau
+      init.luau  MapTypes.luau                     # 맵 풀(ALL), 공통 인터페이스 + validate
+      MapKit  MapKitLogic  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
+      <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 15개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
+tests/               # 순수 로직·가짜 Roblox 테스트 (112개 파일 1736개). init.luau 실행기, lib/
 docs/
-  GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md
-  REFERENCE-map-production.md  REFERENCE-party-royale.md  REFERENCE-roblox-monetization.md  REFERENCE-final-overtime.md
-  specs/  qa/  proposals/            # specs/qa는 _TEMPLATE.md에서 시작
-  planner/  developer/  docs-writer/ # 역할별 작업 기록(인계 메모)
-  playtest/                          # 사용자가 채우는 친구·비공개 테스트 기록 (m3.md, m4.md)
-.claude/agents/          # planner, developer, qa, docs-writer
+  GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md  REFERENCE-*.md
+  specs/  qa/  proposals/  renders/<mapId>/(커밋한 before/after PNG)
+  planner/  developer/  docs-writer/  playtest/
 ```
 
 ### 맵 모듈 공통 인터페이스 (`shared/maps/MapTypes.luau`)
 ```lua
 export type MapModule = {
-  id: string,
-  kind: "Race" | "Survival" | "Final",
-  displayName: string,
+  id: string, kind: "Race" | "Survival" | "Final", displayName: string,
   rule: string,                              -- 라운드 소개 한 줄 규칙
   timeLimit: number?,                        -- 없으면 Config.TimeLimit[kind]
   build: (origin: CFrame) -> Model,          -- 판정 지오메트리 + 장식 (Spawns 폴더 필수)
-  start: (ctx: RoundContext) -> (),          -- 장애물 가동, 결승선/낙하 판정 → ctx.pass / ctx.eliminate
-  cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만 정리
-  overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?,  -- 결승 연장전 (m5-01). kind == "Final"이면 필수
+  start: (ctx: RoundContext) -> (),          -- 장애물 가동, 판정 → ctx.pass / ctx.eliminate
+  cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만
+  overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?,  -- 결승 연장전. kind == "Final"이면 필수
+  inPool: boolean?,                          -- false면 랜덤 판에서 빠짐(강제 플랜·Maps.get만). 지금 15개 모두 풀
+  lighting: MapLighting.MapLighting?,        -- 맵 조명 분위기 (m5-23). 보통 Art.LIGHTING
 }
-
-export type OvertimeInfo = { collapseDuration: number }  -- 이 초 안에 설 곳을 모두 없앤다
-
+export type OvertimeInfo = { collapseDuration: number }
 export type RoundContext = {
-  model: Model, origin: CFrame, rng: Random,
-  targetCount: number,                       -- 이번 라운드 통과(Survival은 생존) 목표 인원
-  cleanup: Cleanup.Cleanup,                  -- 라운드가 끝나면 RoundService가 run()
-  isActive: () -> boolean,
-  getRacers: () -> { Player },               -- 아직 통과/탈락하지 않은 플레이어
-  pass: (player: Player) -> (),              -- 결승선 통과 (Race/Final). 이동 감시가 거부할 수 있음
-  eliminate: (player: Player) -> (),         -- 탈락 (낙하 등)
+  model: Model, origin: CFrame, rng: Random, targetCount: number,
+  cleanup: Cleanup.Cleanup, isActive: () -> boolean,
+  getRacers: () -> { Player },               -- 스폰에 배치된, 아직 통과/탈락하지 않은 플레이어
+  pass: (player: Player) -> (), eliminate: (player: Player) -> (),
 }
 ```
-- `Spawns` 폴더에는 최대 인원(24)만큼 BasePart를 둔다 (이름순 배치). **24개 모두 판정 바닥 위**여야 한다(테스트로 확인). 코스는 `origin`의 앞쪽(LookVector, 로컬 -Z)으로 뻗는다 — 시간 종료 때 "가장 멀리 간" 순위를 이 축으로 잰다.
-- 라운드 종료 판정은 `RoundLogic`(순수)이 한다. 맵은 `ctx.pass`/`ctx.eliminate`만 부르고, `ctx.eliminate`는 한 판정 틱 동안 모아서 한 묶음으로 처리된다. 결승 여부는 맵 종류가 아니라 "마지막 라운드인가"로 정한다. 규칙 요약은 `RoundLogic.luau` 맨 위 주석.
-- 점수: Race는 진행도(로컬 -Z), Survival·Final은 높이(HumanoidRootPart Y). 같은 묶음·시간 종료 때 순위를 이걸로 정한다. 낙하 탈락 위치는 마지막으로 땅을 밟은 자리.
-- `ctx.getRacers()`에는 스폰에 배치된 레이서만 나온다 (리스폰 중인 사람은 판정하지 않음).
-- 맵 상태는 모듈이 아니라 `ctx`(또는 `start` 지역 변수)에 둔다 (한 서버에서 여러 방이 같은 맵을 동시에 돌릴 수 있다).
-- 장애물은 `CollectionService` 태그를 달고, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그: `Conveyor`·`Chopstick`(회전 벨트), `SoySauce`·`Wasabi`(간장 늪), `Broth`·`Chashu`·`NoodleSweeper`(라멘), `HotTile`(철판), `ChefBoardCell`·`ChefKnife`(도마), `SkewerShowdownSkewer`·`SkewerShowdownSlice`·`SkewerShowdownHand`(꼬치).- **장식**은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 재질을 바꾸면 `CustomPhysicalProperties`로 원래 물성을 유지한다. 예산 맵당 파츠 600·파티클 8·조명 12. `build` 끝에서 `MapKit.introCamera`(소개 경로)와 `MapKit.attachStudioArt(model, id, origin)`를 부른다.
-- **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비, 젓가락 집기·놓기, 날치알, 간장 경계) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기 같은 **연속 밀기에는 달지 않는다**(기본 기준 안이고, 달면 속도 조작 구멍이 된다).
-- **연장전 훅** (m5-01): `RoundService`가 결승(마지막 라운드)에서 시간 제한이 되면 `overtime(ctx, { collapseDuration })`을 별도 스레드로 **한 번** 부른다. 맵은 그 초 안에 **어떤 레이서도 안전하게 서 있을 수 없게**(바닥 제거·치명 구역 — 매달리기·높은 곳 버티기 자리도 없게) 만들고, 낙하는 `start`에서 하던 대로 `ctx.eliminate`. 훅 안에서 `task.wait`로 기다리지 말고 일정은 `task.delay`/`task.spawn`을 `ctx.cleanup`에 넣는다. 훅이 실패해도 안전 상한이 판정을 마무리한다. `kind == "Final"`인데 훅이 없으면 `MapTypes.validate`가 에러. 결승이 아닌 라운드(강제 플랜 중간의 Final 맵)에서는 부르지 않는다.
-- GDD 11절의 인터페이스 표기는 개요이고, 실제 계약은 위 `MapTypes.luau`다.
+- `Spawns` 폴더에 24개 BasePart, **24개 모두 판정 바닥 위**(테스트로 확인). 코스는 `origin`의 앞쪽(로컬 -Z)으로 — 시간 종료 때 Race 순위 축.
+- 라운드 종료 판정은 `RoundLogic`(순수). 맵은 `ctx.pass`/`ctx.eliminate`만 부르고, 한 판정 틱의 탈락은 한 묶음. 결승 여부는 "마지막 라운드인가"로 정한다. 점수: Race 진행도(로컬 -Z), Survival·Final 높이.
+- 맵 상태는 모듈이 아니라 `ctx`/`start` 지역 변수(또는 `ctx` 키 표)에 둔다 — 한 서버에서 여러 방이 같은 맵을 동시에 돌린다. 장애물은 `CollectionService` 태그로, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그 이름은 각 맵 모듈 상단(예: `Conveyor`, `HotTile`, `IkuraTile`, `Ice`·`Jelly`·`ColdFan`, `BounceFloor`, `TugOfWarPlatform` …).
+- **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비·젤리·방방 바닥 튕김, 폭탄·기름·고양이 넉백, 젓가락 집기·놓기) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기·바람(송풍구) 같은 **연속 밀기에는 달지 않는다**.
+- **연장전 훅**: 결승에서 시간 제한이 되면 `RoundService`가 별도 스레드로 **한 번** 부른다. 맵은 `collapseDuration`초 안에 **어떤 레이서도 안전하게 설 수 없게**(바닥 제거·충돌 끄기 — 매달리기·턱·높은 곳 버티기 자리도 없게, m5-18 B1 교훈) 만든다. 훅 안에서 `task.wait` 금지, 일정은 `task.delay`/`task.spawn`을 `ctx.cleanup`에. 훅이 실패해도 안전 상한이 마무리한다.
+- GDD 11절의 인터페이스 표기는 개요이고, 실제 계약은 `MapTypes.luau`다.
+
+### 맵 장식 · 아트 규칙 (m4-01, m5-23)
+- 아트 작업 전 **`docs/REFERENCE-map-art-direction.md`**(세계 컨셉 "작은 초밥, 거대한 주방", 색·재질·조명·밀도·가독성, 11절 체크리스트 18개)를 읽는다. **렌더 → 글로 비평 → 고침 → 다시 렌더를 최소 3회**(12절), 첫/마지막 렌더는 `docs/renders/<mapId>/before-*.png`·`after-*.png`로 커밋.
+- 장식은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 목록에 하나라도 틀린 항목이 있으면 **그 맵 장식 전체를 건너뛴다**.
+- 조명·파티클·움직임은 **선언형**: `light = { kind = "Point"|"Spot"|"Surface", … }`, `particle = "<MapFxPresets 이름>"`(+`particleRate`), `anim = { kind = "Spin"|"Bob"|"Sway"|"Pulse", period, amount?, axis? }`(클라이언트 로컬 — 판정 파츠·판정 파츠와 같이 움직이는 장식에는 금지). 모양은 `MapKitShapes`(roundedBox·bevelBox·rimDisc·ring·capsule·lipTrim·scatter·transform), 색은 `MapKitLogic.PALETTE`·`shades`.
+- **SurfaceLight range ≤ 16**(Roblox가 자름, Point·Spot ≤ 60). 그림자 조명은 좁은 SpotLight에만. 빛은 보이는 원인 파츠(등·램프)에 붙인다.
+- **예산** `MapKitLogic.BUDGETS`: Standard 파츠 600·파티클 8·조명 12·그림자 조명 1·움직임 40(기본), **Extended 1500·16·24·2·80**(아트 패스 맵이 `Art.BUDGET = "Extended"`로 고르고 맵 테스트가 `checkBudget(Art.decor(), "Extended")`). 런타임 경고는 Extended 기준.
+- **맵별 조명**: 맵 모듈의 `lighting`(보통 `Art.LIGHTING`, 기존 맵은 `MapLighting.PRESETS[id]`) → 클라이언트 `MapLightingController`가 카메라가 있는 아레나(판정 파츠 상자 + 40, `IntroCamera` 점 포함) 조명으로 1.2초 섞어 바꾸고, 나오면 로비 조명. 서버 `Lighting`은 로비 값만. **소개 카메라 점은 아레나 상자 + 40 안**에 두고 지오메트리를 뚫지 않게.
+- 새 맵은 안개 패널(큰 반투명 판)을 쓰지 않는다 — Atmosphere는 `lighting`으로. `build` 끝에서 `MapKit.introCamera`와 `MapKit.attachStudioArt(model, id, origin)`.
 
 ## 규칙
-- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/Attributes.luau`, `shared/maps/init.luau`, `shared/maps/MapTypes.luau`, `default.project.json`, `src/server/init.server.luau`, `src/client/init.client.luau`, `rokit.toml`)은 **병렬 작업 중에는 스펙에 지정된 한 에이전트만 수정**한다. 다른 에이전트는 필요한 변경을 사용자에게 알린다.
-- `Rules.luau` 같은 순수 로직은 Roblox API에 의존하지 않게 분리하고 `tests/`에 테스트를 둔다.
+- **공용 파일**(`shared/Config.luau`, `shared/Remotes.luau`, `shared/Types.luau`, `shared/Attributes.luau`, `shared/maps/init.luau`, `shared/maps/MapTypes.luau`, `default.project.json`, `src/server/init.server.luau`, `src/client/init.client.luau`, `rokit.toml`)은 **병렬 작업 중에는 스펙에 지정된 한 에이전트만 수정**한다.
+- 순수 로직은 Roblox API에 의존하지 않게 분리하고 `tests/`에 테스트를 둔다.
 - 클라이언트에서 온 리모트 인자는 서버에서 항상 검증한다 (타입, 범위, 길이, 방 소속, 방장 여부, 요청 간격). 서버 → 클라이언트 이벤트는 서버가 `OnServerEvent`를 듣지 않는다.
 - 데이터 변경은 `DataService.update`(동기) 안에서만. 결제처럼 "저장된 뒤에만" 끝나야 하는 일은 `saveNow`의 결과를 본다. Studio는 기본으로 메모리 저장이다.
-- **디버그 설정** (`Config.DEBUG`, 서버는 `RunService:IsStudio()`일 때만 적용). **커밋할 때는 아래 기본값** — 테스트가 커밋 값을 고정한다. 사용법은 `docs/DEV-SETUP.md` 3-9 "디버그 설정".
-  - `minPlayersToStart = 1` — 혼자 시작 (`RoomLogic.minPlayersToStart`). 다인원은 Studio Test → Clients and Servers.
-  - `forceMapPlan = nil` — 맵 id 3~4개를 넣으면 그 순서대로 라운드 (혼자여도 끝까지).
-  - `forceMapPlans = nil` — 플랜 목록, 매치마다 다음 플랜 (`forceMapPlan`이 우선).
-  - `persistDataInStudio = false` — true면 Studio에서도 진짜 DataStore (API 접근 허용 필요).
-  - `simulateMatchServer = false` — true면 Studio를 매치 서버처럼.
-  - `logArenaStats = false` — true면 매치 끝마다 `[ArenaStats]` 한 줄.
-  - `fakeRobuxInStudio = false` — true면 상품 id 없이 가짜 영수증 결제 (`persistDataInStudio`와 같이 켜면 꺼짐).
-  - `overtimeAt = nil` — 숫자를 넣으면 결승 연장전 시작을 그 초로 당김 (m5-01).
-  - 관리자 설정은 `Config`가 아니라 `src/server/AdminConfig.luau`: 커밋 값 `StudioAllAdmins = true`(비관리자 화면 확인 때만 false), `LiveEnabled = true`(사용자 확정, 공개 출시 전 재확인). 사용법은 `docs/DEV-SETUP.md` 3-10.
+- **디버그 설정** (`Config.DEBUG`, 서버는 `RunService:IsStudio()`일 때만 적용). **커밋할 때는 아래 기본값** — 테스트가 커밋 값을 고정한다. 사용법은 `docs/DEV-SETUP.md` 3-9·3-10.
+  - `minPlayersToStart = 1`, `forceMapPlan = nil`, `forceMapPlans = nil`, `persistDataInStudio = false`, `simulateMatchServer = false`, `logArenaStats = false`, `fakeRobuxInStudio = false`, `overtimeAt = nil`, `eventNow = nil`(UTC 초, 시즌 확인), `fakeVipInStudio = false`.
+  - 관리자 설정 `src/server/AdminConfig.luau`: 커밋 값 `StudioAllAdmins = true`(비관리자 화면 확인 때만 false), `LiveEnabled = true`(사용자 확정, 공개 출시 전 재확인).
 
 ## 검증 (작업 끝내기 전에 반드시, 5단계)
 도구는 `rokit.toml`에 버전이 고정돼 있다. 처음 한 번(그리고 도구가 추가되면) `rokit install` (Windows: `~/.rokit/bin`이 PATH에 있어야 함).
 ```bash
 rojo build -o build.rbxl       # 1. 프로젝트 구조 확인 (build.rbxl은 커밋하지 않음)
-stylua --check src tests       # 2. 포맷/문법 (고칠 때는 stylua src tests)
+stylua --check src tests tools # 2. 포맷/문법 (고칠 때는 stylua src tests tools)
 selene src                     # 3. 린트
-lune run tests                 # 4. 순수 로직 테스트
+lune run tests                 # 4. 테스트 — 마지막 줄 "N passed, 0 failed"를 읽는다 (실패가 있어도 끝 코드는 0)
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사 (끝 코드 0)
 ```
+- **`lune run tests`는 실패가 있어도 끝 코드 0으로 끝난다.** 반드시 마지막 요약 줄의 `0 failed`를 확인한다.
+- 맵 모습 확인(Studio 없이): `lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all] [--quality fast|high]` → `build/renders/<mapId>/*.png` + `stats.txt`(예산·`void%`). 근사 렌더러라 최종 판단은 Studio. 사용법·한계는 `docs/DEV-SETUP.md` 2-1.
 - **도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 분명히 적는다.** 돌려 보지 않은 것을 통과로 적지 않는다.
-- 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다. 설치·Studio 연결·마일스톤별 확인 목록은 `docs/DEV-SETUP.md`. 새 마일스톤에서 확인할 항목이 생기면 거기에 추가한다. 사용자가 손으로 할 일(퍼블리시·상품·결정)은 `docs/USER-TODO.md`에 모은다.
+- 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다. 마일스톤별 확인 목록은 `docs/DEV-SETUP.md`, 사용자가 손으로 할 일은 `docs/USER-TODO.md`.
 
 ## 병렬 개발
 서로 다른 파일을 건드리는 스펙은 worktree를 나눠 동시에 개발한다 (`claude --worktree <이름>`, Rojo 포트는 worktree마다 34872, 34873, ...). 자세한 건 `docs/WORKFLOW.md`.
-M1은 3개, M4는 기반(m4-01) 뒤 9개(m4-02~m4-10) worktree로 병렬 개발했고, 공용 파일을 바꾸는 스펙(m4-01, m4-11~m4-14)은 `main`에서 순서대로 했다. 따로 QA를 통과한 브랜치가 병합에서 처음 만나 깨질 수 있으니(m4-09 B1) 병합 뒤에도 검증을 다시 돌린다.
+공용 파일을 바꾸는 기반 스펙(m4-01, m5-03, m5-13 등)은 `main`에서 먼저 하고, 맵·기능 스펙은 worktree로 나눈다. 따로 QA를 통과한 브랜치가 병합에서 처음 만나 깨질 수 있으니(m4-09 B1, m5-08 병합 뒤 m5-03-qa) 병합 뒤에도 검증을 다시 돌린다.

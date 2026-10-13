@@ -1,7 +1,7 @@
 --!strict
 -- m5-03 QA (docs/qa/m5-03-foundation.md): 개발 테스트(m5-03-foundation·seasons·fx-catalog)에 없는 경계값과
 -- 가짜 Roblox 환경에서 실제로 돌려 보는 확인.
---   맵 껍데기 3개: build(스폰 24개·바닥·결승선) / start(낙하·결승선) / ikura-bombs overtime(바로 돌아옴, 시간 뒤 판 제거)
+--   맵 껍데기 1개(tempura-pot — ikura-bombs는 m5-04, dessert-fridge는 m5-06이 실제 맵으로): build(스폰 24개·바닥·결승선) / start(낙하·결승선)
 --   (껍데기 서비스 확인은 m5-08·m5-10이 채워서 각 QA 테스트로 옮김)
 --   DataService.setViewExtra: 바뀔 때만 ProfileUpdated, 로드 전 기억, 나간 뒤 무시
 --   프로필 v2 경계: v1 두 번 migrate, 칸 모양이 틀린 v2 칸, redeemedCodes 정확히 200·201
@@ -410,9 +410,9 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- 맵 껍데기 build
 	t.test(
-		"QA 껍데기 build: tempura-pot·ikura-bombs 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상)",
+		"QA 껍데기 build: 남은 껍데기 스폰 24개가 전부 바닥 위 (지금은 껍데기 없음 — 세 맵 모두 tests/map-*.spec.luau로)",
 		function()
-			for _, case in { { "TempuraPot", "Floor" }, { "IkuraBombs", "Plate" } } do
+			for _, case in {} :: { { string } } do
 				local env = loadMap(case[1])
 				local model = env.map.build(origin())
 				t.eq(model.Name, env.map.id)
@@ -433,36 +433,14 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test(
-		"QA 껍데기 build: dessert-fridge 결승선은 출발선에서 160 앞, 혼자~12명 스폰(1~12번)은 바닥 위",
-		function()
-			-- 13~24번은 바닥 끝 걸침·밖 (QA 리포트 B1, P3 — m5-06 AC1 "스폰은 A 구간 안"이 덮어쓰며 고침).
-			-- 여기서는 고쳐질 부분을 기대값으로 고정하지 않고, 지금 맞는 부분만 확인해요.
-			local env = loadMap("DessertFridge")
-			local model = env.map.build(origin())
-			local floor = model:FindFirstChild("Floor")
-			local spawns = model:FindFirstChild("Spawns"):GetChildren()
-			table.sort(spawns, function(a, b)
-				return a.Name < b.Name
-			end)
-			t.eq(#spawns, 24)
-			for i = 1, 12 do
-				t.ok(spawnOnFloor(spawns[i], floor, 1), `{spawns[i].Name} on the floor`)
-			end
-			local finish = model:FindFirstChild("FinishLine")
-			t.ok(finish ~= nil, "FinishLine")
-			t.eq(finish.CFrame.Position.Z - ORIGIN_Z, -160)
-			t.eq(finish.CanCollide, false)
-			-- 결승선 너머에도 바닥이 있어요 (통과 직후 떨어지지 않게)
-			t.ok(floor.CFrame.Position.Z - floor.Size.Z / 2 - ORIGIN_Z < -160, "floor extends past the finish")
-		end
-	)
+	-- dessert-fridge는 m5-06이 껍데기를 실제 맵으로 덮어써서(QA B1 스폰 바닥 밖 문제도 함께 닫힘) 여기서 빠졌어요.
+	-- 실제 맵 검사는 tests/map-dessert-fridge.spec.luau (스폰 24개 A 구간 안, 결승선 z -250).
 
 	---------------------------------------------------------------- 맵 껍데기 start
 	t.test(
 		"QA 껍데기 start: 낙하 25 아래면 탈락, 판 위면 그대로, 끝난 라운드에는 판정 안 함",
 		function()
-			for _, file in { "TempuraPot", "IkuraBombs", "DessertFridge" } do
+			for _, file in {} :: { string } do -- 껍데기 없음: ikura-bombs·tempura-pot·dessert-fridge 모두 실제 맵 (tests/map-*.spec.luau)
 				local env = loadMap(file)
 				local model = env.map.build(origin())
 				local safe = racerAt("safe", 0, 3, -40)
@@ -482,59 +460,8 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("QA 껍데기 start: dessert-fridge 결승선(-Z 160)에서 통과, 159.9는 아직", function()
-		local env = loadMap("DessertFridge")
-		local model = env.map.build(origin())
-		local near = racerAt("near", 0, 3, -159.9)
-		local over = racerAt("over", 5, 3, -160)
-		local c = newCtx(model, { near, over })
-		env.map.start(c.ctx)
-		env.heartbeat:Fire()
-		t.eq(c.passed, { over })
-		t.eq(#c.eliminated, 0)
-	end)
-
-	---------------------------------------------------------------- ikura-bombs 연장전
-	t.test("QA ikura-bombs overtime: 바로 돌아오고, collapseDuration 뒤에 접시가 사라져요", function()
-		local env = loadMap("IkuraBombs")
-		local model = env.map.build(origin())
-		local c = newCtx(model, {})
-		env.map.start(c.ctx)
-		local plate = model:FindFirstChild("Plate")
-		local co = coroutine.create(env.map.overtime)
-		local ok = coroutine.resume(co, c.ctx, { collapseDuration = 20 })
-		t.ok(ok, "overtime ran")
-		t.eq(coroutine.status(co), "dead", "overtime returns without yielding (task.wait 금지)")
-		t.eq(#env.T.delayed, 1)
-		local entry = env.T.delayed[1]
-		t.eq(entry.seconds, 20)
-		t.ok(table.find(c.cleanups, entry) ~= nil, "delay thread is in ctx.cleanup")
-		t.eq(plate.CanCollide ~= false, true, "plate still there before the delay")
-		entry.fn()
-		t.eq(plate.CanCollide, false)
-		t.eq(plate.Transparency, 1)
-		-- 판이 사라진 뒤 떨어진 사람은 start의 낙하 판정으로 탈락
-		local faller = racerAt("faller", 0, -30, -40)
-		local c2 = newCtx(model, { faller })
-		env.map.start(c2.ctx)
-		env.heartbeat:Fire()
-		t.eq(c2.eliminated, { faller })
-	end)
-
-	t.test(
-		"QA ikura-bombs overtime: 라운드가 먼저 끝나면(isActive false) 접시를 건드리지 않아요",
-		function()
-			local env = loadMap("IkuraBombs")
-			local model = env.map.build(origin())
-			local c = newCtx(model, {})
-			env.map.overtime(c.ctx, { collapseDuration = 5 })
-			c.setActive(false)
-			env.T.delayed[1].fn()
-			local plate = model:FindFirstChild("Plate")
-			t.ok(plate.CanCollide ~= false, "plate kept")
-			t.ok(plate.Transparency ~= 1, "plate visible")
-		end
-	)
+	-- dessert-fridge 결승선·ikura-bombs 연장전 껍데기 테스트는 실제 맵으로 바뀌어 뺐어요
+	-- (tests/map-dessert-fridge.spec.luau·m5-06-qa, tests/map-ikura-bombs.spec.luau·m5-04-qa).
 
 	-- 껍데기 서비스: OfferService(m5-08)·CodeService(m5-10)가 채워져서 껍데기 확인은 끝났어요.
 	-- 리모트 인자 검증은 실제 서비스로 tests/m5-08-qa.spec.luau·tests/m5-10-qa.spec.luau에서 확인해요.

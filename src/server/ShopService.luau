@@ -77,6 +77,11 @@ local function equippedOf(player: Player): string?
 	local profile = DataService.get(player)
 	local equipped = if profile then profile.equippedSkin else nil
 	local owned = if profile then profile.ownedSkins else {}
+	if type(equipped) == "string" and Skins.isFree(equipped) and owned[equipped] ~= true then
+		-- 무료 스킨(실험 스킨 m5-27)은 저장된 목록에 없어도 가져요 — 복사본에만 더해요 (프로필은 안 바꿔요)
+		owned = table.clone(owned)
+		owned[equipped] = true
+	end
 	return AdminLogic.pickAppearance(previewOf[player.UserId], equipped, owned, isKnownSkin)
 end
 

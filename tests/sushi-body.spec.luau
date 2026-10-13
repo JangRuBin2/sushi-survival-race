@@ -18,17 +18,20 @@ local function byName(layout: { any }): { [string]: any }
 end
 
 return function(t: Test.Test)
-	t.test("AC1: tamago에 Body·계란·김 띠·눈 2개가 있고 이름이 겹치지 않아요", function()
-		local layout = SushiBody.layout("tamago")
-		local seen = {}
-		for _, spec in layout do
-			t.ok(seen[spec.name] == nil, `duplicate part name {spec.name}`)
-			seen[spec.name] = true
+	t.test(
+		"AC1: tamago에 Body·계란(토핑·자락)·김 띠·김 끈·눈 2개가 있고 이름이 겹치지 않아요",
+		function()
+			local layout = SushiBody.layout("tamago")
+			local seen = {}
+			for _, spec in layout do
+				t.ok(seen[spec.name] == nil, `duplicate part name {spec.name}`)
+				seen[spec.name] = true
+			end
+			for _, name in { "Body", "Topping", "ToppingBack", "Nori", "Strap", "StrapBack", "EyeLeft", "EyeRight" } do
+				t.ok(seen[name] == true, `missing {name}`)
+			end
 		end
-		for _, name in { "Body", "Egg", "Nori", "EyeLeft", "EyeRight" } do
-			t.ok(seen[name] == true, `missing {name}`)
-		end
-	end)
+	)
 
 	t.test("AC1: Body가 기준(오프셋 0)이고 모든 파츠에 크기·색·재질이 있어요", function()
 		local layout = SushiBody.layout("tamago")
@@ -48,26 +51,31 @@ return function(t: Test.Test)
 		end
 	end)
 
-	t.test("AC2: 외곽 높이 4.5~5.5, 폭·두께 3.2 이하", function()
-		local b = SushiBody.bounds(SushiBody.layout("tamago"))
-		local width = b.max[1] - b.min[1]
-		local height = b.max[2] - b.min[2]
-		local depth = b.max[3] - b.min[3]
-		t.ok(height >= 4.5 and height <= 5.5, `height {height}`)
-		t.ok(width <= 3.2, `width {width}`)
-		t.ok(depth <= 3.2, `depth {depth}`)
-	end)
+	t.test(
+		"AC2·m5-25 AC1: 넓고 낮은 몸 — 높이 4.0~4.6, 폭 3.6~4.0, 두께 3.2 이하, 폭/높이 0.8 이상",
+		function()
+			local b = SushiBody.bounds(SushiBody.layout("tamago"))
+			local width = b.max[1] - b.min[1]
+			local height = b.max[2] - b.min[2]
+			local depth = b.max[3] - b.min[3]
+			t.ok(height >= 4.0 and height <= 4.6, `height {height}`)
+			t.ok(width >= 3.6 and width <= 4.0, `width {width}`)
+			t.ok(depth <= 3.2, `depth {depth}`)
+			t.ok(width / height >= 0.8, `width/height {width / height}`)
+		end
+	)
 
 	t.test("AC2: GROUND_OFFSET은 Body 중심에서 발바닥까지", function()
 		local b = SushiBody.bounds(SushiBody.layout("tamago"))
 		t.ok(math.abs(-b.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `bottom {b.min[2]}`)
 	end)
 
-	t.test("AC1: 눈은 앞면(-Z)에, 왼쪽·오른쪽에 하나씩", function()
+	t.test("AC1: 눈은 앞면(-Z) 밖으로 나와 있고, 왼쪽·오른쪽에 하나씩", function()
 		local parts = byName(SushiBody.layout("tamago"))
 		local bodyFront = -parts.Body.size[3] / 2
-		for _, name in { "EyeLeft", "EyeRight" } do
-			t.ok(parts[name].offset[3] < bodyFront + 0.01, `{name} in front`)
+		for _, name in { "EyeLeft", "EyeRight", "EyeWhiteLeft", "EyeWhiteRight", "PupilLeft", "PupilRight" } do
+			local b = SushiBody.bounds({ parts[name] })
+			t.ok(b.min[3] < bodyFront - 0.01, `{name} in front ({b.min[3]})`)
 		end
 		t.ok(parts.EyeLeft.offset[1] < 0 and parts.EyeRight.offset[1] > 0, "eyes left/right")
 	end)
@@ -132,7 +140,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- m5-21 효과 예산·박스 허용치 테이블
 	t.test(
-		"AC3: EFFECT_BUDGET·BOUNDS_TOLERANCE 값이 맞고 SushiBody는 아무것도 require하지 않아요",
+		"AC3: EFFECT_BUDGET·BOUNDS_TOLERANCE 값이 맞고 SushiBody는 순수 SushiConceptSample만 require해요 (m5-27)",
 		function()
 			t.eq(SushiBody.EFFECT_BUDGET.Common, 1)
 			t.eq(SushiBody.EFFECT_BUDGET.Rare, 1)
@@ -143,17 +151,23 @@ return function(t: Test.Test)
 			t.eq(SushiBody.BOUNDS_TOLERANCE.Epic, 0.25)
 			t.eq(SushiBody.BOUNDS_TOLERANCE.Legendary, 0.25)
 			local source = fs.readFile("src/shared/SushiBody.luau")
-			t.ok(string.find(source, "require(", 1, true) == nil, "SushiBody should not require anything")
+			-- 유일한 예외 (m5-27): 순수 SushiConceptSample 하나만, 그 모듈은 아무것도 require하지 않아요
+			local _, count = string.gsub(source, "require%(", "")
+			t.eq(count, 1, "SushiBody requires only SushiConceptSample")
+			t.ok(string.find(source, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil, "concept require")
+			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
+			t.ok(string.find(sample, "require(", 1, true) == nil, "SushiConceptSample should not require anything")
 		end
 	)
 
 	---------------------------------------------------------------- m5-07 시즌 한정·VIP 생김새
 	local SEASON_SKINS = {
-		["pumpkin-sushi"] = { "Pumpkin", "JackEyeLeft", "JackEyeRight", "JackMouth", "Stem" },
-		["ghost-tamago"] = { "SheetTop", "GhostEyeLeft", "GhostEyeRight" },
-		["santa-shrimp"] = { "HatBrim", "HatBase", "HatPompom", "TailLeft" },
+		-- m5-25 재배치 이름 (호박 = 높은 토핑, 유령 천 = Sheet, VIP = 금 띠·금 끈)
+		["pumpkin-sushi"] = { "Topping", "JackEyeLeft", "JackEyeRight", "JackMouth", "Stem" },
+		["ghost-tamago"] = { "Sheet", "SheetBack", "GhostEyeLeft", "GhostEyeRight" },
+		["santa-shrimp"] = { "HatBrim", "HatBase", "HatPompom", "Band1" },
 		["tree-maki"] = { "TreeLayer1", "TreeLayer2", "TreeLayer3", "StarA" },
-		["vip-gold-tamago"] = { "GoldLeaf1", "GoldTrim" },
+		["vip-gold-tamago"] = { "GoldLeaf1", "Nori", "Strap" },
 	}
 
 	t.test(
@@ -204,8 +218,9 @@ return function(t: Test.Test)
 
 	t.test("m5-07: 유령 천은 반투명(0.25)이고 빛 효과, 나머지 파츠는 불투명", function()
 		local parts = byName(SushiBody.layout("ghost-tamago"))
-		t.eq(parts.SheetTop.transparency, 0.25)
-		t.eq(parts.SheetTop.effect, "Glow")
+		t.eq(parts.Sheet.transparency, 0.25)
+		t.eq(parts.SheetBack.transparency, 0.25)
+		t.eq(parts.GhostGlow.effect, "Glow")
 		t.eq(parts.Body.transparency, nil)
 		local tree = byName(SushiBody.layout("tree-maki"))
 		t.eq(tree.StarA.effect, "Sparkles")
@@ -217,7 +232,7 @@ return function(t: Test.Test)
 		for _, spec in copy do
 			spec.transparency = 1
 		end
-		t.eq(byName(SushiBody.layout("ghost-tamago")).SheetTop.transparency, 0.25)
+		t.eq(byName(SushiBody.layout("ghost-tamago")).Sheet.transparency, 0.25)
 		local source = fs.readFile("src/shared/SushiBody.luau")
 		t.ok(
 			string.find(source, "part.Transparency = spec.transparency or 0", 1, true) ~= nil,

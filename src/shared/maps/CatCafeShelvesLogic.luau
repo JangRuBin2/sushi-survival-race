@@ -6,6 +6,8 @@
 --   Logic.climbGap(tierIndex)                   tierIndex단 안쪽 가장자리 → (tierIndex+1)단 바깥쪽 가장자리 수평 거리
 --   Logic.ballOffset(shelf, t)                   t초일 때 공의 선반 축 기준(along) 위치 (사인파 왕복)
 --   Logic.isHit(diff)                            along 위치 차가 BALL_HIT_RANGE 이하면 맞음
+--   Logic.isHitAt(alongDiff, acrossDiff)         along·폭 방향 거리 둘 다 BALL_HIT_RANGE 이하면 맞음 (QA B2)
+--   Logic.pawRest(interval, spent)               경고에 쓴 시간을 뺀 나머지 대기 (실제 주기 = interval, QA B1)
 --   Logic.outwardDirection(centerX, centerZ, x, z)  중심 → (x, z) 방향 단위 벡터 (dx, dz)
 --   Logic.pawInterval(t)                         t초일 때 고양이 발 경고 간격 (그레이스면 nil)
 --   Logic.pickShelf(occupancy, previousKey, rng) 다음 고양이 발 대상 선반 (occupant 가중 랜덤, Top 제외, 연속 금지)
@@ -76,6 +78,12 @@ function Logic.isHit(diff: number): boolean
 	return diff <= Logic.BALL_HIT_RANGE + 1e-9
 end
 
+-- 공이 선반 폭 가운데에 있으니 폭 방향(across, 선반 중심선 기준) 거리도 봐요. 1·2단(폭 4)은 늘 안쪽이라
+-- 전과 같고, 꼭대기(12×12)에서 공과 멀리 떨어진 사람이 밀리지 않아요 (QA B2).
+function Logic.isHitAt(alongDiff: number, acrossDiff: number): boolean
+	return Logic.isHit(math.abs(alongDiff)) and Logic.isHit(math.abs(acrossDiff))
+end
+
 -- 중심(centerX, centerZ)에서 (x, z) 쪽으로 향하는 단위 벡터 (dx, dz). 정확히 중심이면(거리 0)
 -- 에러 없이 고정된 기본 방향(0, -1, 로컬 -Z 쪽)을 돌려줘요.
 function Logic.outwardDirection(centerX: number, centerZ: number, x: number, z: number): (number, number)
@@ -97,6 +105,12 @@ function Logic.pawInterval(t: number): number?
 		return 3.2
 	end
 	return 2
+end
+
+-- 고양이 발 한 차례가 시작된 뒤 spent초(경고 1.1초 등)를 썼으면 다음 차례까지 더 기다릴 시간.
+-- 실제 주기가 표의 간격과 같아져요(경고 시간이 간격 안에 들어가요, QA B1). 음수는 0.
+function Logic.pawRest(interval: number, spent: number): number
+	return math.max(0, interval - spent)
 end
 
 -- 다음 고양이 발 대상 선반 키. occupancy = { [shelfKey] = 그 순간 선반 위 인원 }.

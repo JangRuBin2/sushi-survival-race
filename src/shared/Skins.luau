@@ -7,6 +7,8 @@
 --   Skins.byTier(tier?)     그 등급 스킨 목록 (nil이면 전체), order 순
 --   Skins.forProduct(productId)  개발자 상품 id → 스킨 (m4-14 결제가 써요)
 --   Skins.validate(list)    카탈로그 검사: (ok, 문제 목록). 테스트와 서버 시작 때 한 번
+--   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥 + 실험 스킨). 보유 판단은 이걸로 해요
+--   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon). experimental = true는 여기 있는 id만 쓸 수 있어요
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
@@ -28,6 +30,9 @@ export type Skin = {
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
+	-- 실험 스킨 (m5-27): 모두 무료로 가진 테스트용. Basic 등급·가격 없음. SushiBody.EXPERIMENTAL의 예외(자기 몸 모양,
+	-- 파츠 상한)를 받아요. 저장된 ownedSkins에는 안 들어가고 Skins.isFree로 보유를 판단해요 (빼도 데이터가 안 남아요)
+	experimental: boolean?,
 }
 
 export type TierInfo = {
@@ -44,6 +49,9 @@ local Skins = {}
 Skins.DEFAULT_ID = Config.Appearance.Default -- "tamago"
 Skins.COMMON_COINS = 300 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
 Skins.RARE_COINS = 900 -- 레어 스킨 코인 해금 가격 (GDD 9.4)
+
+-- 실험 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.EXPERIMENTAL과 같아야 해요)
+Skins.EXPERIMENTAL_IDS = { ["concept-salmon"] = true } :: { [string]: boolean }
 
 Skins.TIERS = { "Basic", "Common", "Rare", "Epic", "Legendary" } :: { Tier }
 
@@ -328,6 +336,15 @@ Skins.LIST = {
 		speech = { "마법 같은 맛이지?", "무지갯빛 꿈을 싣고 달려!" },
 		order = 31,
 	},
+	-- 실험 스킨 (m5-27, 모두 무료): 사용자 콘셉트 시트 연어초밥을 게임에서 써 보는 테스트용
+	{
+		id = "concept-salmon",
+		displayName = "콘셉트 연어초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "새 모습 어때?", "연어 돔이 말랑말랑~" },
+		order = 32,
+	},
 } :: { Skin }
 
 table.sort(Skins.LIST, function(a: Skin, b: Skin): boolean
@@ -344,6 +361,14 @@ function Skins.get(id: unknown): Skin?
 		return nil
 	end
 	return byId[id]
+end
+
+function Skins.isFree(id: unknown): boolean
+	if id == Skins.DEFAULT_ID then
+		return true
+	end
+	local skin = Skins.get(id)
+	return skin ~= nil and skin.experimental == true and Skins.EXPERIMENTAL_IDS[skin.id] == true
 end
 
 function Skins.byTier(tier: Tier?): { Skin }
@@ -406,10 +431,30 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 			table.insert(problems, `{where}: duplicate order {skin.order}`)
 		end
 		orders[skin.order] = true
+		local experimental = skin.experimental == true
+		if skin.experimental ~= nil and skin.experimental ~= true then
+			table.insert(problems, `{where}: experimental must be true or nil`)
+		end
+		if experimental and Skins.EXPERIMENTAL_IDS[skin.id] ~= true then
+			table.insert(problems, `{where}: experimental only for Skins.EXPERIMENTAL_IDS`)
+		end
 		if skin.id == Skins.DEFAULT_ID then
 			hasDefault = true
 			if skin.tier ~= "Basic" or skin.robux ~= nil or skin.coins ~= nil then
 				table.insert(problems, `{where}: default skin must be Basic and free`)
+			end
+		elseif experimental then
+			-- 실험 스킨 (m5-27): 모두 무료로 가져요 — Basic 등급, 어떤 가격·얻는 길도 없음
+			if
+				skin.tier ~= "Basic"
+				or skin.robux ~= nil
+				or skin.coins ~= nil
+				or skin.tokens ~= nil
+				or skin.vipOnly ~= nil
+				or skin.season ~= nil
+				or skin.productId ~= nil
+			then
+				table.insert(problems, `{where}: experimental skin must be Basic and free`)
 			end
 		else
 			if skin.tier == "Basic" then
@@ -483,7 +528,15 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 					)
 				end
 			end
-			local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier]
+			-- 실험 스킨은 자기 몸 모양이라 기준 외곽 비교 대신 파츠 상한(SushiBody.EXPERIMENTAL)만 봐요
+			local exception = if experimental then SushiBody.EXPERIMENTAL[skin.id] else nil
+			if experimental and exception == nil then
+				table.insert(problems, `{where}: experimental skin needs SushiBody.EXPERIMENTAL`)
+			end
+			if exception ~= nil and #layout > exception.partBudget then
+				table.insert(problems, `{where}: parts {#layout} > experimental budget {exception.partBudget}`)
+			end
+			local tolerance = if experimental then nil else SushiBody.BOUNDS_TOLERANCE[skin.tier]
 			if tolerance ~= nil then
 				local bounds = SushiBody.bounds(layout)
 				for axis = 1, 3 do

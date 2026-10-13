@@ -93,7 +93,7 @@ local function has(collection: any, id: string): boolean
 end
 
 local function ownsSkin(view: ViewLike, skinId: string): boolean
-	return skinId == Skins.DEFAULT_ID or has(view.ownedSkins, skinId)
+	return Skins.isFree(skinId) or has(view.ownedSkins, skinId)
 end
 
 local function ownsFx(view: ViewLike, fxId: string): boolean

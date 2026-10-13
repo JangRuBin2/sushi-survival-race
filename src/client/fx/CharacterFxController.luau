@@ -8,6 +8,10 @@
 --   칭호: 캐릭터 Model의 Attributes.Title(서버 RewardService가 달아요, m4-08)이 있으면 이름 위에 작은 금색 글씨로.
 --   VIP: Player 속성 Attributes.Vip(서버 OfferService, m5-08)이면 이름 앞에 "👑 ". 칭호 줄은 그대로.
 --   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않고 이름표도 숨겨요.
+--   작은 움직임(m5-25, CharacterAnimLogic): 숨쉬기·깜빡임·점프 늘어남·착지 찌그러짐·걸음. 눈·감은 눈·발은
+--   SushiBody가 Motor6D(PART_JOINT_NAME)로 붙여 둬서 그 Transform만 바꿔요. 카메라에서 DETAIL_DISTANCE보다 멀면 꺼요.
+--   팔(m5-27): ArmLeft/ArmRight 관절이 있는 스킨(실험 스킨 concept-salmon)만 걸을 때 어깨를 축으로 앞뒤로 흔들어요.
+--   관절이 없는 파츠 이름은 그냥 건너뛰어요 (어떤 스킨이든 오류 없음).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +19,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
+local CharacterAnimLogic = require(ReplicatedStorage.Shared.CharacterAnimLogic)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Sfx = require(script.Parent.Parent.Sfx)
 
@@ -28,13 +33,13 @@ local MAX_WALK_FACTOR = 1.3
 local MIN_MOVE_SPEED = 1 -- 이보다 느리면 서 있는 것
 local MAX_AIR_SPEED_Y = 4 -- 위아래로 이보다 빠르면 공중(점프·낙하) — 튀지 않아요
 local TELEPORT_SPEED = 120 -- 한 프레임 이동이 이보다 빠르면 순간이동으로 보고 무시
-local BOUNCE_HEIGHT = 0.45
+local BOUNCE_HEIGHT = 0.3 -- m5-25: 발이 걸음을 걸어서 몸 통통은 줄였어요 (예전 0.45)
 local BOUNCE_TILT = math.rad(10)
 local BOUNCE_RATE_MIN = 9 -- rad/s (|sin|이라 튀는 횟수는 두 배)
 local BOUNCE_RATE_PER_FACTOR = 5
 local WALK_BLEND = 10
 local LIE_BLEND = 14
-local LIE_HEIGHT = 1.4 -- 누웠을 때 Body 중심 높이 (계란 폭 2.8의 절반)
+local LIE_HEIGHT = 1.8 -- 누웠을 때 Body 중심 높이 (토핑 폭 3.8의 절반, m5-25)
 local SHAKE_RATE = 45
 local SHAKE_ANGLE = math.rad(7)
 local GROUND_RAY = 8
@@ -42,13 +47,34 @@ local DEFAULT_GROUND_BELOW_ROOT = 3
 local DIZZY_TEXT = "@_@"
 local DIZZY_SPIN = 360 -- 도/초
 local HIDDEN_THRESHOLD = 0.99
-local NAME_TAG_HEIGHT = 3.6 -- Body 중심에서 이름표까지 (초밥 꼭대기 2.4 + 여유)
+local NAME_TAG_HEIGHT = SushiBody.NAME_TAG_HEIGHT -- Body 중심에서 이름표까지
 local NAME_TAG_DISTANCE = 100 -- Roblox 기본 이름표 거리와 같아요
 local NAME_HEIGHT = 24 -- 이름 줄 높이(px)
 local TITLE_HEIGHT = 16 -- 칭호 줄 높이(px, 이름 위)
 
+-- 움직이는 파츠의 관절 (눈 테두리·감은 눈 선·발). 스킨이 바뀌면 Model이 바뀌어 다시 찾아요.
+type Joints = {
+	model: Instance,
+	eyes: { Motor6D },
+	lids: { Motor6D },
+	footLeft: Motor6D?,
+	footRight: Motor6D?,
+	armLeft: Motor6D?, -- m5-27 (팔이 있는 스킨만)
+	armRight: Motor6D?,
+}
+
 type State = {
 	lastPos: Vector3?,
+	vy: number, -- 세로 속도 (위 +)
+	airborne: boolean,
+	fallSpeed: number, -- 공중에서 가장 빨리 떨어진 속도 (아래 +)
+	landTime: number?,
+	landStrength: number,
+	blinkWait: number,
+	blinkElapsed: number?,
+	clock: number,
+	idle: number,
+	joints: Joints?,
 	walk: number, -- 0~MAX_WALK_FACTOR, 부드럽게 따라가요
 	phase: number,
 	lie: number, -- 0(서 있음) ~ 1(누움)
@@ -66,6 +92,16 @@ rayParams.IgnoreWater = true
 local function newState(): State
 	return {
 		lastPos = nil,
+		vy = 0,
+		airborne = false,
+		fallSpeed = 0,
+		landTime = nil,
+		landStrength = 0,
+		blinkWait = CharacterAnimLogic.nextBlinkDelay(math.random()),
+		blinkElapsed = nil,
+		clock = math.random() * 10,
+		idle = 1,
+		joints = nil,
 		walk = 0,
 		phase = 0,
 		lie = 0,
@@ -190,6 +226,78 @@ local function makeDizzy(body: BasePart): BillboardGui
 	return gui
 end
 
+local function partJoint(model: Instance, name: string): Motor6D?
+	local part = model:FindFirstChild(name)
+	local joint = part and part:FindFirstChild(SushiBody.PART_JOINT_NAME)
+	return if joint and joint:IsA("Motor6D") then joint else nil
+end
+
+local function findJoints(model: Instance): Joints
+	local eyes, lids = {}, {}
+	for _, side in { "Left", "Right" } do
+		local eye = partJoint(model, `Eye{side}`)
+		if eye then
+			table.insert(eyes, eye)
+		end
+		local lid = partJoint(model, `Lid{side}`)
+		if lid then
+			table.insert(lids, lid)
+		end
+	end
+	return {
+		model = model,
+		eyes = eyes,
+		lids = lids,
+		footLeft = partJoint(model, "FootLeft"),
+		footRight = partJoint(model, "FootRight"),
+		armLeft = partJoint(model, "ArmLeft"),
+		armRight = partJoint(model, "ArmRight"),
+	}
+end
+
+-- 팔을 어깨(파츠 위끝)를 축으로 앞뒤로 돌려요. angle > 0이면 손이 앞(-Z)으로 (m5-27)
+local function swingArm(joint: Motor6D?, angle: number)
+	if joint == nil then
+		return
+	end
+	if angle == 0 then
+		joint.Transform = CFrame.identity
+		return
+	end
+	local part = joint.Part1
+	local half = if part then part.Size.Y / 2 else 0
+	joint.Transform = CFrame.new(0, half, 0) * CFrame.Angles(angle, 0, 0) * CFrame.new(0, -half, 0)
+end
+
+-- Body 축 이동을 관절 Transform으로 (C0에 회전이 있는 눈 테두리도 Body 축으로 움직이게)
+local function moveJoint(joint: Motor6D?, x: number, y: number, z: number)
+	if joint == nil then
+		return
+	end
+	if x == 0 and y == 0 and z == 0 then
+		joint.Transform = CFrame.identity
+	else
+		local localOffset: Vector3 = joint.C0:VectorToObjectSpace(Vector3.new(x, y, z))
+		joint.Transform = CFrame.new(localOffset.X, localOffset.Y, localOffset.Z)
+	end
+end
+
+local function resetJoints(joints: Joints?)
+	if joints == nil then
+		return
+	end
+	for _, joint in joints.eyes do
+		joint.Transform = CFrame.identity
+	end
+	for _, joint in joints.lids do
+		joint.Transform = CFrame.identity
+	end
+	moveJoint(joints.footLeft, 0, 0, 0)
+	moveJoint(joints.footRight, 0, 0, 0)
+	swingArm(joints.armLeft, 0)
+	swingArm(joints.armRight, 0)
+end
+
 local function approach(current: number, target: number, rate: number, dt: number): number
 	return current + (target - current) * math.min(1, rate * dt)
 end
@@ -238,6 +346,7 @@ local function update(character: Model, state: State, dt: number, localCharacter
 	local hidden = body.LocalTransparencyModifier >= HIDDEN_THRESHOLD
 	if hidden and character ~= localCharacter then
 		joint.Transform = CFrame.identity
+		resetJoints(state.joints)
 		removeDizzy(state)
 		state.knocked = humanoid.PlatformStand and not root.Anchored
 		state.lastPos = nil
@@ -254,6 +363,7 @@ local function update(character: Model, state: State, dt: number, localCharacter
 		if delta.Magnitude < TELEPORT_SPEED then
 			speed = Vector3.new(delta.X, 0, delta.Z).Magnitude
 			speedY = math.abs(delta.Y)
+			state.vy = delta.Y
 		end
 	end
 	state.lastPos = pos
@@ -292,11 +402,83 @@ local function update(character: Model, state: State, dt: number, localCharacter
 	if hidden then
 		-- 내 캐릭터 1인칭: 보이지 않으니 자세는 그대로 두고 표시만 정리
 		joint.Transform = CFrame.identity
+		resetJoints(state.joints)
 		removeDizzy(state)
 		return
 	end
 
-	local transform = walkCf
+	-- 작은 움직임 (m5-25): 공중·착지·깜빡임 상태를 갱신하고 CharacterAnimLogic.pose로
+	local sushiModel = sushi :: Instance
+	if state.joints == nil or (state.joints :: Joints).model ~= sushiModel then
+		state.joints = findJoints(sushiModel)
+	end
+	local joints = state.joints :: Joints
+	state.clock += dt
+	local inAir = not knocked and speedY > MAX_AIR_SPEED_Y
+	if inAir then
+		if state.vy < 0 then
+			state.fallSpeed = math.max(state.fallSpeed, -state.vy)
+		end
+	elseif state.airborne then
+		state.landStrength = CharacterAnimLogic.landStrength(state.fallSpeed)
+		state.landTime = if state.landStrength > 0 then 0 else nil
+		state.fallSpeed = 0
+	end
+	state.airborne = inAir
+	local landTime = state.landTime
+	if landTime then
+		landTime += dt
+		state.landTime = if landTime < CharacterAnimLogic.SQUASH_TIME then landTime else nil
+	end
+	state.idle = approach(state.idle, if speed > MIN_MOVE_SPEED or inAir then 0 else 1, 4, dt)
+	local blinkElapsed = state.blinkElapsed
+	if blinkElapsed then
+		blinkElapsed += dt
+		if CharacterAnimLogic.blinkClosed(blinkElapsed) then
+			state.blinkElapsed = blinkElapsed
+		else
+			state.blinkElapsed = nil
+			state.blinkWait = CharacterAnimLogic.nextBlinkDelay(math.random())
+		end
+	else
+		state.blinkWait -= dt
+		if state.blinkWait <= 0 then
+			state.blinkElapsed = 0
+		end
+	end
+
+	local camera = Workspace.CurrentCamera
+	local near = camera == nil or (camera.CFrame.Position - pos).Magnitude <= CharacterAnimLogic.DETAIL_DISTANCE
+	local bodyY = 0
+	if near then
+		local pose = CharacterAnimLogic.pose({
+			time = state.clock,
+			idle = state.idle,
+			walk = state.walk,
+			phase = state.phase,
+			bounce = math.abs(math.sin(state.phase)) * BOUNCE_HEIGHT * state.walk,
+			blinking = state.blinkElapsed ~= nil,
+			knocked = knocked,
+			riseSpeed = if inAir and state.vy > 0 then state.vy else 0,
+			landTime = state.landTime,
+			landStrength = state.landStrength,
+		})
+		bodyY = pose.bodyY
+		for _, eye in joints.eyes do
+			moveJoint(eye, 0, 0, pose.eyesBack)
+		end
+		for _, lid in joints.lids do
+			moveJoint(lid, 0, 0, -pose.lidForward)
+		end
+		moveJoint(joints.footLeft, 0, pose.footLeft.y, pose.footLeft.z)
+		moveJoint(joints.footRight, 0, pose.footRight.y, pose.footRight.z)
+		swingArm(joints.armLeft, -pose.armSwing)
+		swingArm(joints.armRight, pose.armSwing)
+	else
+		resetJoints(joints)
+	end
+
+	local transform = CFrame.new(0, bodyY, 0) * walkCf
 	if state.lie > 0 then
 		-- 바닥에 옆으로 누워 바르르: 월드 기준 목표 자세를 관절 공간으로 바꿔요
 		local shake = math.sin(state.knockTime * SHAKE_RATE) * SHAKE_ANGLE

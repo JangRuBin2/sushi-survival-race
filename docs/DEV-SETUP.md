@@ -50,10 +50,10 @@ lune run tests               # 4. 순수 로직 테스트 (라운드 규칙·판
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사
 ```
-- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M5 m5-01·m5-02 반영 기준 71개 파일, 1090개).
+- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M5 2026-10-13 반영 기준 112개 파일, 1736개). **실패가 있어도 끝 코드는 0**이라 마지막 줄의 `0 failed`를 꼭 읽어요.
 - 5단계(타입 검사)는 에러가 없으면 끝 코드 0이고 `[INFO] Loading definitions…`·`[WARN] … didChangeWatchedFiles` 같은 줄만 나와요. 에러가 있으면 `파일(줄,칸): TypeError …`와 끝 코드 1. `sourcemap.json`은 커밋 안 함(.gitignore). 정의 파일·검사기 선택 이유는 `types/README.md`.
 - 도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 적어요.
-- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요.
+- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요. 코드 보상 확인용 `src/server/CodeList.luau`는 `.gitignore`라 커밋되지 않아요(실제 코드를 문서 예시와 다르게).
 
 ### 2-1. 맵 미리보기 렌더러 (m5-23, Studio 없이 맵 모습 보기)
 맵 모듈의 `build(origin)`을 Lune에서 진짜로 돌려(`@lune/roblox` 인스턴스) 순수 Luau 소프트웨어 렌더러로 PNG를 그려요. 에이전트·개발자가 Studio 없이 구도·실루엣·빈 공중·색 비율·밀도·조명 분위기를 확인하는 도구예요.
@@ -82,16 +82,17 @@ lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all]
 
 ### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
-- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`
+- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`, `AdminCommands`, `OfferService`, `CodeService`, `CodeConfig`, `CodeList.example`(로컬에 `CodeList.luau`를 만들었으면 그것도)
 - [ ] `ServerStorage` → `MapArt` 폴더 (비어 있어도 정상, `assets/map-art`)
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 6개 `RotatingBelt*`, `SoySwamp*`, `RamenRapids*`, `HotPlate*`, `ChefBoard*`, `SkewerShowdown*` — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `Admin*`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `input` 폴더: `Dive*`, `Grab*`)
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `Seasons`, `Offers`, `OfferLogic`, `FxCatalog`, `CodeLogic`, `IceLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapKitShapes`, `MapFxPresets`, `MapDecorAnimLogic`, `MapDecorTags`, `MapLighting`, `MapLightingLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 15개 — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `PriceCache`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `Offer*`, `Code*`, `Admin*`, `ChatTagController`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `MapLightingController`, `MapDecorFxController`, `input` 폴더: `Dive*`, `Grab*`, `IceController`)
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 21개(RemoteFunction 10, RemoteEvent 11)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 26개(RemoteFunction 15, RemoteEvent 11)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
-- [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨" 버튼이 떠요 (3-4, 3-9)
+- [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼, 왼쪽 가장자리 "🛠"(Studio에서는 관리자)가 떠요 (3-4, 3-9, 3-10)
+- [ ] Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상이에요(코드 목록을 로컬에 안 만들었을 때)
 
 동기화 확인:
 - [ ] `src/shared/Config.luau`에서 아무 숫자를 바꾸고 저장 → Studio의 `Shared.Config`를 열어 보면 바뀌어 있어요 (확인 후 되돌려요)
@@ -598,18 +599,23 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M4 "알려진 한계 · 보류" 참고.
 
-### 3-10. M5 확인 (결승 연장전 · 테스트용 관리자 스킨 미리보기)
-출처: `docs/qa/m5-01-final-overtime.md`, `docs/qa/m5-02-admin-skin-preview.md`의 "사용자 Studio 확인 체크리스트". QA 뒤 고쳐진 것(m5-01 B1 훅 스레드, B2 훅 없는 결승)은 반영했어요. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요. 표시 [바로] / [C1 먼저] / [C2 먼저]는 3-9와 같아요.
+### 3-10. M5 확인 (연장전 · 관리자 · 시즌 · 상점 · 연출 · 코드 · 스킨 · 새 맵 9개)
+출처: `docs/qa/m5-01-…`~`docs/qa/m5-22-…`의 "사용자 Studio 확인 체크리스트"(맵은 재QA 절 포함). QA 뒤 고쳐진 것은 고친 뒤 동작으로 적었어요("QA 뒤 고침"). 맵 비주얼 키트(조명)는 3-11. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요. 표시 [바로] / [C1 먼저] / [C2 먼저]는 3-9와 같아요.
 
 **디버그 설정 (M5에서 추가)** — 로컬에서만 바꾸고 **커밋 금지**. 3-9 표의 설정도 그대로 써요.
 
 | 설정 | 위치 | 기본값(커밋 값) | 바꾸면 | 쓰는 절 |
 |---|---|---|---|---|
-| `overtimeAt` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 결승 연장전 시작을 그 초로 당겨요(예: `15`). Studio에서만 적용 | A |
+| `overtimeAt` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 결승 연장전 시작을 그 초로 당겨요(예: `15`). Studio에서만 적용 | A, J, R, S |
+| `eventNow` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 서버가 쓰는 "지금 시각"(UTC unix 초). 할로윈 `1792108800`~`1793923199`, 끝 `1793923200`, 크리스마스 `1796947200`. Studio에서만(실서버는 무시) | C, D, G, H |
+| `fakeVipInStudio` | `src/shared/Config.luau` `Config.DEBUG` | `false` | 게임 패스 없이 VIP로 봐요. `persistDataInStudio`와 같이 켜면 꺼지고 경고만 | E |
+| `fakeRobuxInStudio` | (3-9 표) | `false` | 시즌·특별 상품도 가짜 결제로 | D, E |
+| `persistDataInStudio` | (3-9 표) | `false` | 켜면 가짜 결제·가짜 VIP가 꺼지고, 관리자 코인·재화·프로필 초기화 명령이 거절돼요 | C3, G4, H7 |
+| `src/server/CodeList.luau` | 로컬 파일(`.gitignore`) | 없음 | `CodeList.example.luau`를 복사해 코드 목록을 적어요. 커밋되지 않아요. 실제 코드는 문서 예시와 다르게 | G |
 | `StudioAllAdmins` | `src/server/AdminConfig.luau` | `true` | `false`면 Studio에서도 UserId 목록(과 퍼블리시된 플레이스의 개인 소유자)만 관리자 — 비관리자 화면 확인용 | B5 |
 | `LiveEnabled` | `src/server/AdminConfig.luau` | `true` (확정, 2026-10-08) | `false`면 **실서버**에서 아무도 관리자가 아님. Studio에는 영향 없음. 공개 출시 전에 유지/끄기 재확인(USER-TODO A1) | B7 |
 
-**되돌리기**: 확인이 끝나면 `forceMapPlan = nil`, `overtimeAt = nil`(타입 표기 `nil :: number?` 그대로), `StudioAllAdmins = true`, `persistDataInStudio = false`. 안 되돌리면 `lune run tests`가 실패하거나(Config 커밋 값 고정 테스트) 관리자 확인이 헷갈려요.
+**되돌리기**: 확인이 끝나면 `forceMapPlan = nil`, `overtimeAt = nil`, `eventNow = nil`(타입 표기 `nil :: number?` 그대로), `fakeRobuxInStudio = false`, `fakeVipInStudio = false`, `persistDataInStudio = false`, `StudioAllAdmins = true`. 맵 Art에 잠깐 넣은 시험용 장식(3-11 4번)도 지워요. 안 되돌리면 `lune run tests`가 실패하거나(Config 커밋 값 고정 테스트) 관리자 확인이 헷갈려요. `git status`로 `src/`에 바뀐 파일이 없는지 확인하고 커밋하지 마세요.
 
 **A. 결승 연장전 (m5-01)** [바로] — 준비: `forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, 빠르게 보려면 `overtimeAt = 15`
 1. (AC11) Test → Clients and Servers 2명, 방 만들고 시작 → 결승(꼬치 쇼다운)까지 둘 다 살아남아 버티기. 15초(디버그) 또는 90초가 되면:
@@ -669,15 +675,168 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
    - [ ] 로비에서 미리보기를 켠 채 매치에 들어가면 매치 서버에서도 같은 스킨이고, 매치가 끝나 로비로 돌아와도 유지돼요.
    - [ ] 끄기(또는 1시간 뒤) 다음 접속은 내 장착 스킨.
 
+**C. M5 기반 (m5-03)** [바로] — 3번만 [C1 먼저]
+1. (AC11) Play(혼자)
+   - [ ] 로비·탈의실이 전과 같이 열리고 Output에 빨간 에러가 없어요. `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상. 이벤트 기간 밖(`eventNow = nil`이고 실제 날짜가 기간 밖)이면 안 가진 시즌 스킨 4종은 탈의실에 안 보이는 게 정상이에요(D에서 확인). 금박 계란초밥(VIP 전용)은 전설 탭에 있어요(E).
+2. (AC12) `forceMapPlan = { "dessert-fridge", "tempura-pot", "ikura-bombs" }` → 세 맵을 한 판에 끝까지 돌 수 있어요(맵별 확인은 J·K·L).
+3. (AC13, 선택) [C1 먼저] `persistDataInStudio = true`로 M4 때 저장한 계정으로 Play → 코인·스킨이 그대로, 나갔다 다시 들어와도 그대로(이제 v2로 저장). 끝나면 `false`.
+
+**D. 시즌 이벤트 (m5-07)** [바로] — 준비: `eventNow = 1792108800`(할로윈 첫날). 끝나면 `eventNow = nil`, `fakeRobuxInStudio = false`, `forceMapPlan = nil`.
+1. (AC8)
+   - [ ] 코인 배지 옆에 "🍬 0".
+   - [ ] "🍣 스킨" → "🎃 할로윈" 탭이 맨 앞에서 먼저 선택돼 있고, 머리줄 "할로윈 초밥 축제 · 11월 5일까지 · 🍬 0"과 안내 "이벤트가 끝나면 받을 수 없어요. 다음 해에 다시 올 수도 있어요." — 초 단위 카운트다운이 없어요. 카드는 호박 초밥(R$ 99), 유령 계란초밥("🍬 0 / 80", 비활성) 2개.
+2. (AC12) 로비 카운터 둘레에 호박 6개와 보라 조명 2개. 그 위를 걸어 지나갈 수 있고(충돌 없음), 카운터 양 끝 호박이 의자와 겹치지 않아요(QA 뒤 고침).
+3. (AC9) `forceMapPlan`으로 한 판 → 라운드 통과 토스트 "+10 🍚 +1 🍬 라운드 통과"(`TokenGet` 무음), 배지가 바로 늘어요. 매치 끝 "+50 🍚 +4 🍬 오늘 첫 판"(그날 첫 판) / 두 번째 판부터 "+1 🍬 판 참가". 우승하면 우승 화면 아래 "이번 판 +N 🍚 +M 🍬 (총 …)".
+4. (AC10) 관리자 "🛠 명령" 탭에서 재화 +80(또는 명령줄 `require(game.ServerScriptService.Server.DataService).update(game.Players:GetPlayers()[1], function(p) p.eventTokens["halloween-2026"] = 80 end)`) → 탈의실을 닫았다 열기 → 유령 계란초밥 "🍬 80으로 받기" → "🎉 유령 계란초밥 받았어요!", 바로 입혀지고 배지 "🍬 0". 라운드 중(소개 포함)에는 받기가 거절돼요.
+5. (AC11) `fakeRobuxInStudio = true` → 호박 초밥 "R$ 99" → 가짜 결제로 지급·장착.
+6. (AC11·AC12) `eventNow = 1793923200`(끝) → 이벤트 탭·🍬 배지·호박 장식이 없어요. 가진 호박 초밥은 에픽 탭, 유령 계란초밥은 레어 탭에 "한정"으로 남고, 안 가진 한정 스킨은 "전체" 탭에도 없어요.
+7. (AC12) `eventNow = 1796947200`(크리스마스) → "🎄 크리스마스" 탭, "⭐ 0", 머리줄 "1월 7일까지", 로비에 트리 2·선물 4·눈 내림.
+8. (AC13) 시즌 스킨 4종과 금박 계란초밥(관리자 "🛠" 미리보기)을 입어 보고 크기·겹침·빛(유령 빛·트리 별·금박 반짝이)이 과하지 않은지. (AC14) 휴대폰 에뮬레이터에서 이벤트 탭·머리줄·🍬 배지가 다른 UI와 안 겹쳐요.
+
+**E. 🎁 특별 상품 · VIP 패스 (m5-08)** [바로] — 준비: `fakeRobuxInStudio = true`(VIP 항목은 `fakeVipInStudio = true`도), **`persistDataInStudio`는 false 그대로**. 끝나면 모두 false. 9번만 [C1 + C3-1 먼저 + 실서버]
+1. (AC8) "🍣 스킨" 아래 "🎁 상점" → 카드 6개(스타터 팩·에픽 세트·전설 세트·고양이 손님·불꽃놀이·VIP — `fakeVipInStudio`가 꺼져 있으면 VIP는 "곧 열려요"), 스타터 팩 "따로 사면 R$ 146", 에픽 297·전설 597.
+2. (AC9) 스타터 팩 "R$ 79로 사기" → 결과 줄 "🎉 스타터 팩 획득! 탈의실에서 새 스킨을 입어 보세요"(초록), 로비 안내도 **오류색(빨강)이 아니에요**(QA 뒤 고침). Output `[Shop] receipt studio-… offer starter-pack -> PurchaseGranted (GrantAndRecord: granted)`. 탈의실에 연어·참치·새우·장어 보유, 입던 스킨 그대로. 스타터 팩은 아래 회색 "산 상품".
+3. (AC9 중복) 명령줄(Server) `game.ServerStorage.ShopDebug.ReplayReceipt:Invoke("<내 이름>", "starter-pack", "studio-test-1")` 두 번 → 두 번째 `AlreadyRecorded`, 스킨 개수 그대로.
+4. (AC10) Stop → 다시 Play(새 메모리 프로필) → 연어를 먼저 얻기 → 상점에 스타터 팩 카드가 **아예 없어요**.
+5. (AC11) 고양이 손님 사기 → "✨ 내 연출"에 "입는 중 · 벗기". Explorer → Players → 내 플레이어 Attributes `EliminationFx = cat-customer`. 벗기 → 속성 사라짐, 입기 → 다시 생김.
+6. (AC12) `fakeVipInStudio = true` + Clients and Servers 2명 → 상대 화면에서 내 이름표 "👑 이름", 채팅 금색 "[VIP]"(`TextChatService.ChatVersion`이 `TextChatService`일 때), 내 탈의실에 금박 계란초밥 보유(장착은 안 됨), VIP 카드는 "산 상품". (자기 이름표는 원래 안 보여요.) `persistDataInStudio`와 같이 켜면 가짜 VIP는 꺼지고 경고만 나와야 해요.
+7. (AC13) 매치 시작 → "🎁 상점" 버튼이 사라지고(소개·달리기·대기석·관전), 열려 있던 창도 닫혀요. 로비로 오면 다시 보여요.
+8. (AC14) Device(휴대폰) → 카드 1열 스크롤, 버튼 44px 이상, "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼이 다른 로비 UI와 안 겹쳐요.
+9. (AC15, 실서버) USER-TODO C3-1 상품 5개·패스 1개 id를 `src/shared/Offers.luau`에 넣고 퍼블리시 → 실제 결제 → 지급, 개발자 콘솔(F9 → Server) `PurchaseGranted`. VIP를 산 뒤 다시 접속해도 👑. 비공개 서버·테스트 계정으로.
+
+**F. 연출 팩: 고양이 손님 · 불꽃놀이 (m5-09)** [바로] — 준비: `forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, E처럼 가짜 결제로 사서 입거나 관리자 "🛠 명령" 탭 연출 미리보기
+1. (AC6) 회전 벨트에서 떨어지기 → 주황 고양이 발이 젓가락으로 집어 간장에 찍고, 고양이 얼굴(세모 귀·수염)이 "냠!" 하고 오물오물. 말풍선 "냥~ 신선하다냥!"/"생선은 역시 최고냥"/"한 접시 더 달라냥!" 중 하나.
+2. (AC6) Survival에서 떨어지기 → 아래에서 고양이 입이 받아먹음. 결승에서 떨어지기 → 줄무늬 고양이 앞발이 움켜쥐고 올라감.
+3. (AC7, 2명) 연출을 입은 Player1이 떨어지면 Player2 화면에도 고양이, Player2(안 입음)는 두 화면 모두 기본 연출.
+4. (AC8, 2명) 불꽃놀이를 입은 사람이 우승 → 풍덩 뒤 바다 위 불꽃이 좌우 번갈아(마지막 가운데 큰 금색), 두 화면이 같아요. 첫 불꽃은 다이빙 카메라 때라 안 보여도 알려진 P3.
+5. (AC9) 탈락 3초·우승 10초 그대로. 끝난 뒤 `Workspace.EliminationCutscenes`가 비고 `VictoryCutscene`(안의 `Fireworks`)이 남지 않아요. 2~3판 연달아도 남는 것 없음.
+6. (AC10, 4명 이상 모두 고양이) 한꺼번에 떨어질 때 프레임 체감(가능하면 휴대폰 에뮬레이터도).
+7. 속성에 모르는 값(`"아무거나"`, 탈락 칸에 `"fireworks"`) → 기본 연출, 에러 없음.
+8. 소리 `CatMeow`·`Fireworks`는 무음(USER-TODO A2).
+
+**G. 🎟 코드 보상 (m5-10)** [바로] — 4번만 [C1 먼저]. 준비: `src/server/CodeList.example.luau`를 같은 폴더 `CodeList.luau`로 복사하고 테스트 코드 두 개를 넣어요(커밋 안 됨). **실제 출시 코드는 문서 예시와 다른 문자열로.**
+```lua
+{ code = "SUSHI2026", coins = 200, expiresAt = 1798761600 },
+{ code = "SPOOKYSUSHI", coins = 100, tokens = 10, eventId = "halloween-2026", startsAt = 1792108800, expiresAt = 1793923200 },
+```
+1. (AC8) 로비 "🎟 코드" → "코드 넣기" 창. `  sushi2026 ` → "받기" → 초록 "🍚 200 받았어요!", 토스트 "+200 🍚 코드 보상", 배지 +200. 서버 Output `[Code] 이름(UserId) redeemed SUSHI2026 +200`.
+2. (AC9) 같은 코드 다시 → "이미 받은 코드예요". `NOPE123` → "없는 코드예요". 2초 안에 다시 → "잠시 뒤에 다시 해 주세요". 간격을 두고 틀린 코드 8번 → Output `[Code] … locked after 8 failures` 한 줄(틀린 문자열은 Output에 없음), 그 뒤 진짜 코드도 10분 동안 "잠시 뒤에 다시 해 주세요".
+3. (AC10) `eventNow = 1792108800` → 새 세션에서 `spookysushi` → "🍚 100 + 🍬 10 받았어요!". `eventNow = 1793923200` → "기간이 끝난 코드예요". 확인 뒤 `eventNow = nil`.
+4. (AC11) [C1 먼저] `persistDataInStudio = true`로 1번 → Stop → 다시 Play → 같은 코드 "이미 받은 코드예요". 확인 뒤 `false`.
+5. (AC12) 매치 중 "🎟 코드" 버튼이 사라지고 열린 창도 닫혀요. 휴대폰 에뮬레이터에서 창이 위쪽에 붙고 키보드와 안 겹쳐요. 21자 넘게 붙여 넣으면 20자로 잘리고, Enter로도 보내져요.
+6. (AC13) Explorer: `ServerScriptService.Server`에 `CodeConfig`·`CodeList`, `ReplicatedStorage.Shared`에는 `CodeLogic`만(목록 없음).
+7. `CodeList.luau`를 지우고 Play → `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄, 어떤 코드든 "없는 코드예요".
+
+**H. 관리자 명령 (m5-11)** [바로] — 9번만 실서버
+1. (AC7) "🛠" → 탭 "👕 미리보기"/"🛠 명령". `ℹ info` → "Single · 서버 … · 방 0 · 플레이어 1 · 내 방 없음 · 코인 0".
+2. (AC8) 방 만들기 → "▶ 바로 시작" → 카운트다운 → 매치. 방이 없으면 "방에 들어가 있지 않아요".
+3. (AC9) 맵 버튼 `dessert-fridge` → `tempura-pot` → `ikura-bombs` → "다음 판에 쓰기"(결승 자리가 Final이 아니면 "주의: …") → 바로 시작 → 그 순서. 다음 판은 랜덤으로 돌아오고, "비우기"가 목록을 비워요.
+4. (AC10) 코인 +1000 → 배지가 바로 올라요. −1000을 여러 번 해도 0 아래로 안 내려가요. 이벤트 밖 재화 +80 → "진행 중인 이벤트가 없어요". `eventNow = 1792108800 + 3600` → 재화 +80 → info에 재화가 보여요.
+5. (AC11) 연출 "고양이 손님" → "연출 미리보기: 고양이 손님 (저장 안 됨)". 달리는 중에는 "라운드 중에는 바꿀 수 없어요".
+6. (AC12) "프로필 초기화" 3초 안에 두 번 → 코인 0·계란초밥.
+7. **저장을 켠 Studio**: `persistDataInStudio = true` → 코인·재화·프로필 초기화가 모두 "저장을 켠 Studio에서는 쓸 수 없어요"(사용자 결정 2026-10-13). info·미리보기·바로 시작·맵 순서는 돼요. 확인 뒤 `false`.
+8. (AC13) `StudioAllAdmins = false` + Clients and Servers 2명 → 비관리자 창에 "🛠" 없음, 그 창 Command Bar(Client) `print(game.ReplicatedStorage.Remotes.AdminCommand:InvokeServer("coins", 1000))` → `false 권한이 없어요`, 서버 warn 1번, 코인 그대로. **확인 뒤 `true`로.** 서버 Output에 모든 명령이 `[Admin] 이름(UserId) <명령> <값> -> ok|<이유>`.
+9. (AC14, 퍼블리시 뒤) 실서버 관리자 계정: info·연출 미리보기만 되고 나머지는 "Studio에서만 쓸 수 있는 명령이에요", 프로필 초기화 버튼은 없어요.
+
+**I. 스킨 기반 v2 · 새 스킨 10종 (m5-21, m5-22)** [바로] — 코인이 부족하면 관리자 "🛠" 미리보기로
+1. 탈의실에 새 10종이 타코야키 → 유니콘 롤 순서로, 가격 일반 29 R$ / 300코인, 레어 59 R$ / 900코인, 에픽 99·전설 199 R$(코인 버튼 없음), 로벅스 버튼은 "곧 열려요".
+2. 10종을 입어 실루엣이 서로 다른지(타코야키 울퉁불퉁 공, 에그토스트 비대칭 노른자, 버거 층, 돈가스 사선 줄, 고양이 귀·수염, 로보 바이저·안테나, 갤럭시 별, 소프트아이스크림 소용돌이·체리, 크라운 참치 왕관·망토, 유니콘 뿔·갈기).
+3. (m5-21 AC9) 쐐기: 고양이 귀·왕관 뾰족이·유니콘 갈기가 **위로 뾰족한 쐐기**인지(뒤집혔으면 어느 쪽을 보는지 적어 주세요).
+4. (AC10) 갤럭시 롤·크라운 참치·유니콘 롤은 반짝이 + 은은한 빛 **둘 다** 보이고 산만하지 않아요. 탈락 연출 때 진짜 캐릭터의 효과가 같이 사라졌다가 끝나면 다시 켜져요.
+5. (AC11) Clients and Servers 4명 이상이 2효과 스킨을 입고 한 판 → 프레임이 눈에 띄게 안 떨어져요(View → Stats).
+6. 고양이 초밥·소프트아이스크림 롤·유니콘 롤을 계란초밥 옆에 세워 너무 커 보이지 않고 이름표가 머리 장식에 안 묻혀요. 비초밥 7종의 탈락 말풍선(예: "야옹~ 잡아봐!", "삐빅, 시스템 가동 완료!")이 어색하지 않아요.
+7. (AC12) 서버 시작 Output에 `Skins.validate`·catalog 경고가 없어요.
+
+**새 맵 확인 공통** — `forceMapPlan`으로 그 맵이 들어간 판을 돌리고(확인 뒤 `nil`), 결승 맵은 `overtimeAt = 15`로 연장전을 당겨 봐요(확인 뒤 `nil`). 모든 맵에서: 장식(벽 밖 소품·기둥·간판)에 올라설 수 없고 통과해 떨어져요, 넉백·튕김 뒤 서버 Output에 `[MovementGuard]` 되돌림 로그가 없어요, 소개가 시작되면 1~2초 안에 그 맵 조명으로 바뀌어요(3-11), 두 방 동시(Clients and Servers 4명, 방 2개)면 각자 자기 맵만 움직여요, 휴대폰 에뮬레이터에서 경고·구멍·가장자리가 보여요. 결과(특히 체감·숫자)는 `docs/playtest/`나 메인 세션에.
+
+**J. 결승 "연어알 폭탄 접시" (m5-04)** — `forceMapPlan = { "rotating-belt", "hot-plate", "ikura-bombs" }`
+1. 결승 소개: 바다 넓은 샷 → 숟가락 → 위에서 내려다보기 → 출발 자리, 해 질 녘 조명.
+2. (AC10) 출발 3초 뒤 빨간 원(흰 테두리)이 뜨고 숟가락이 그 위로, 1.5초 뒤 주황 연어알이 떨어져 터져요. 원 안이면 날아가 넘어졌다(@_@) 1초 뒤 일어나고, 원 밖이면 아무 일 없어요. 잡은 상태에서 맞으면 잡기가 풀려요.
+3. (AC11) 같은 바깥 칸에 두 번 맞으면 어두워졌다(금 줄) 빨갛게 깜빡이며 떨어져요. 가운데 원판은 금이 안 가요. 40초부터 바깥, 60초부터 가운데 고리 칸이 하나씩 떨어져요.
+4. (AC12, 2명) 연장전: 바깥 고리 깜빡임(1초) 뒤 사라짐 → 약 10초 뒤 가운데 고리 → 약 20초에 원판까지 → 설 곳이 없고 늦게 떨어진 사람이 우승. 숟가락·셰프 팔·종지·군함 탑·등 기둥에 설 수 없어요. (AC13) 혼자 결승도 붕괴로 끝나고 탈락 연출은 셰프 손.
+5. (AC18) 숟가락 그림자가 접시에 떨어지는지, 빨간 경고 원이 군함 탑·떨어지는 연어알 주황과 헷갈리지 않는지(B3), 연장전 동시 폭발 3개의 알갱이가 각자 자리에서 터지는지(B4), 와사비·생강 종지가 디딤판처럼 보이지 않는지(B2).
+
+**K. Survival "튀김 냄비 탈출" (m5-05)** — `forceMapPlan = { "rotating-belt", "tempura-pot", "skewer-showdown" }`
+1. (AC10) 출발 뒤 약 6초까지 기름 그대로, 그 뒤 눈에 보이게 올라와요. 바구니에 가만히 있으면 약 13~14초에 탈락(손님 입 연출).
+2. (AC11) 바구니 → 7층 → 나선을 따라 옆 발판으로 건너며 꼭대기(31층)까지 점프로 올라가요. 미끄러지지 않고, 머리가 위층에 부딪혀 막히는 곳이 없어요.
+3. (AC12) 10초부터 내 발밑에 주황 원 → 약 1.2초 뒤 기름이 튀며 밀려 넘어져요(1초). 원 밖으로 5 넘게 피하면 안 맞아요. 2명으로 아래층 사람 발밑에 원이 떴을 때 **바로 위층(11층) 가장자리 사람은 안 날아가요**(QA 뒤 고침, 높이 범위 3.5).
+4. (AC13) 60초 끝에 살아 있는 사람 전원 통과, 4명 이상이면 목표 인원만 남는 순간 끝.
+5. (AC17) 밤 주방 조명(어두운 청색 + 주황 기름빛), 기름이 오를 때 빛·김도 같이. 너무 어두우면 `TempuraPotArt.LIGHTING`의 Brightness·ExposureCompensation만 올려요. (선택) 냄비 바깥면이 무쇠로 보이는지, 새우 꼬리 색이 경고처럼 보이지 않는지.
+6. (AC15, 플레이테스트) 4~8명이 60초 안에 목표 인원 근처까지 줄어드는지, 처음 하는 사람도 "위로 가야 한다"를 바로 아는지.
+
+**L. Race "디저트 냉장고" (m5-06)** — `forceMapPlan = { "dessert-fridge", "hot-plate", "skewer-showdown" }`
+1. (AC9) 얼음(파란 바닥)에서 달리다 손을 떼면 약 16 studs 미끄러져 멈추고, 꺾으면 둥글게 돌아요. 출발·결승의 흰 바닥에서는 바로 멈춰요. 얼음 위 다이브는 평소보다 멀리. 얼음 큐브에 부딪혀도 떨리거나 끼지 않아요.
+2. (AC10) 구멍(왼쪽·오른쪽 하나씩)에 빠지거나 얼음 끝으로 미끄러져 떨어지면 1초 안에 탈락 연출.
+3. (AC11) 젤리 3개(빨강·초록·빨강)가 위 칸(케이크 단)까지 튕겨 줘요 — 너무 높이·오래 뜨지 않는지(실제 정점 약 24, B1). 오른쪽 쿠키 계단으로 걸어서도 올라가요. C 구간 폭 30(사용자 확정).
+4. (AC12) D 선반에서 송풍구(민트색 상자) 앞에 서리 → 2초 바람에 옆으로 밀리고, 반대로 누르면 버틸 수 있어요. 바람이 쉴 때 상자 쪽으로 미끄러지면 상자를 통과해 떨어지는데 헷갈리는지(B2).
+5. (AC13, 2명) 상대가 얼음에서 미끄러지는 모습이 자연스럽고, 얼음 위에서 잡기로 상대가 느려져요.
+6. (AC14) 혼자 60~90초 안에 완주. (AC15) 다음 맵·로비·리셋 뒤에는 바로 멈춰요(얼음 느낌이 남지 않음).
+7. (AC17) 차가운 흰-파랑 조명, 출발에서 문밖 주황 빛이 보여요. 양옆 유리 선반이 밟을 곳처럼 보이지 않는지(옆으로 다이브하면 유리를 뚫고 떨어져요, B3). 젤리 컵·체리·마카롱·병이 움직여요.
+
+**M. 맵 확장 기반 (m5-13)** [바로]
+1. `forceMapPlan = { "bouncy-castle-maze", "giant-jenga", "lantern-bridge", "tug-of-war-platform" }` → 4라운드가 그 순서, 소개 이름 "방방 미로 → 와르르 나무 블록 → 등불 다리 건너기 → 줄다리기 발판". Output에 `[MapTypes]`·`unknown map`·`duplicate map id` 에러가 없어요.
+2. `forceMapPlan = nil`로 4명 이상 랜덤 판 여러 번 → 첫 라운드 Race 6개·Survival 5개·결승 4개가 섞여 나와요(결승 4개 중 무작위라 한 맵이 약 4판에 1번).
+
+**N. Race "방방 미로" (m5-14)** — `forceMapPlan = { "rotating-belt", "bouncy-castle-maze", "skewer-showdown" }`
+1. (AC9) 대기실·미로 바닥에서는 가만히 있어도 계속 튕기고, 출발·출구·결승 바닥에서는 안 튕겨요.
+2. (AC10) 튕기면서 W를 눌러도 앞으로 가던 속도가 끊기지 않아요(QA 뒤 고침). 칸막이 틈으로 꺾어 들어갈 수 있고, 점프·다이브로 칸막이·벽 위를 못 넘어요.
+3. (AC11) 대기실에서 오른쪽 3칸(2·3·4번 레인 앞)은 빨간 문에 막혀요. 1번 레인으로 곧장 달리면 출구 벽에 막혀 2번 레인으로 꺾어야 해요(4번 레인 끝만 출구).
+4. (AC15) 혼자 60~90초 안에 완주(코스가 S자로 약 360 studs — 시간 제한 안인지 꼭 확인).
+5. (AC14) 휴대폰 에뮬레이터에서 튕기는 중 점프·다이브 버튼이 돼요. (AC16) 다음 맵·로비에서 이동이 평소와 같고 루트에 `BounceLaunch`가 남지 않아요.
+
+**O. Race "등불 다리 건너기" (m5-15)** — `forceMapPlan = { "lantern-bridge", "hot-plate", "soy-swamp", "skewer-showdown" }`
+1. (AC12) 혼자 완주. 다리 위에 가만히 있어도 약하게 흔들려요.
+2. 다리가 오른쪽으로 내려가 있을 때 몸이 **오른쪽(내려간 쪽)으로** 미끄러져요(QA 뒤 고침).
+3. (AC13, 2~3명) 같은 다리에 모이면 더 크게 흔들리고, 다른 다리는 따로 흔들려요. 다리에서 떨어지는 중인 사람은 흔들림에 안 들어가요.
+4. (AC14) 다리 3(가장 좁음)이 아슬아슬하고 다리 4가 상대적으로 여유 있는지, 3명 이상이 다리 3에 몰리면 가만히 있어도 떨어지는지(설계 유지 — 체감 의견).
+5. (AC15) 옆으로 떨어지면 1초 안에 탈락, 결승선을 넘으면 통과. (AC17) 소개 카메라가 도리이·등불에 가리지 않아요.
+
+**P. Survival "와르르 나무 블록" (m5-16)** — `forceMapPlan = { "rotating-belt", "giant-jenga", "soy-swamp", "skewer-showdown" }`
+1. (AC10) 6초쯤 바깥 칸 하나가 삐걱이며 흔들린 뒤 **맨 위 블록이 빠지며** 칸이 내려가 보여요(QA 뒤 고침). 시작할 때 칸들이 들썩이지 않아요. 가운데 3×3은 끝까지 그대로.
+2. (AC11·AC12) 빠진 칸 주변만 기울고(셰프의 도마와 다른 느낌) 낮은 쪽(구멍 쪽)으로 서서히 밀려요. 혼자 가라앉은 테두리 칸은 바깥으로 거의 안 기울어요. 칸이 완전히 사라지면 떨어져 손님 입 연출.
+3. (AC13) 48초 이후 1.5초마다 2칸씩 빨라져요. (AC14) 목표 인원 이하가 되면 바로 끝, 60초를 버티면 살아 있는 전원 통과.
+
+**Q. Survival "고양이 카페 캣타워" (m5-17)** — `forceMapPlan = { "rotating-belt", "cat-cafe-shelves", "skewer-showdown" }`
+1. (AC12) 1단 선반에 가만히 서 있으면 공·고양이 발에 안 맞는 동안 안 떨어져요.
+2. (AC13) 분홍 공이 선반을 왕복하고 닿으면 타워 바깥쪽으로 밀려요. 꼭대기에서 공과 옆으로 떨어져 서 있으면 안 밀려요(QA 뒤 고침).
+3. (AC14) 8초부터 사람이 선 선반이 주황으로 변하고 약 1.1초 뒤 크게 밀려요. 경고 시작 간격이 약 5 → 3.2 → 2초(45~60초)인지. 안쪽 끝·바깥쪽 끝에서 한 번씩 맞아 보고 떨어지는지 적어 주세요(넉백 세기 R1).
+4. (AC15) 1단 → 2단 → 꼭대기로 점프해 오를 수 있고, 꼭대기에는 주황 경고가 안 떠요. (AC16) 혼자면 60초 끝에 통과, 4명이면 목표 인원만 남는 순간 끝.
+5. (AC18) 재미·밀림 세기(너무 약함/셈) — 숫자로 알려 주면 상수만 고쳐요.
+
+**R. 결승 "줄다리기 발판" (m5-18)** — `forceMapPlan = { "rotating-belt", "hot-plate", "tug-of-war-platform" }`
+1. (AC9) 오른쪽(+X, `Spawn13`~`Spawn24` 쪽) 끝으로 가면 그쪽이 1~2초에 걸쳐 서서히 내려가요(내 쪽이 올라가면 `TILT_SIGN`을 뒤집어야 해요). 반대편으로 가면 서서히 평평해져요.
+2. (AC10, **가장 중요**) 혼자 끝에 서면 약 10°. Clients and Servers 3명 이상이 한쪽 끝에 몰려 30°가 됐을 때 **가만히 선 사람이 실제로 미끄러지는지** 꼭 적어 주세요(R1 — 안 미끄러지면 평소 결승이 너무 쉬워요). 2명이 반대편에 나뉘면 오래 버티는지.
+3. (AC11) `overtimeAt = 15` → 배너 뒤 좌우로 점점 크게 흔들리다 약 20초 뒤 수직이 되고, 그 순간 발판이 통과돼 남은 사람이 모두 떨어지고 바로 끝나요(QA 뒤 고침). 끝 모서리에 매달려도 버틸 수 없어요. (AC13) 혼자 결승도 같아요.
+4. (AC12) 미끄러질 때·연장전 스윙 때 `[MovementGuard]` 로그가 없어요. (AC15) 휴대폰에서 저울 접시·동아줄이 시야를 가리지 않고 카메라가 어지럽지 않아요.
+
+**S. 결승 "인형뽑기 기계 속" (m5-19)** — `forceMapPlan = { "rotating-belt", "hot-plate", "claw-machine-prize" }`
+1. (AC9) 5초 뒤 노란 깜빡임 구역(2×2) → 2초 뒤 그 칸들이 들려 사라져요. 그 칸 위면 떨어지고 옆 칸이면 괜찮아요. 칸 사이 높이 차에 걸려 못 피하는 곳이 없어요(높이 차 2 이하로 고침).
+2. (AC10) 30·60초 뒤 주기가 빨라지고 60초부터 3×3. 사람이 있는 쪽을 자주 노려요. `overtimeAt = nil`로 끝까지: 90초 전에 바닥이 다 사라지지 않고, 남은 칸이 적으면 집게가 작은 구역만 집거나 쉬어요. **2명 결승 길이**를 적어 주세요.
+3. (AC11, 2명, `overtimeAt = 15`) 집게가 멈추고 상자가 기울며 **낮아지는 쪽 줄부터** 노랗게 깜빡이고 사라져요(앞뒤·좌우 어느 방향이든). 상자가 위아래로 크게 떠오르거나 가라앉지 않고, 칸 위에 서 있는데 탈락하는 일이 없어요. 연장전 직전 집게가 들고 있던 칸은 떨리지 않고 멈춘 채 같이 기울어요. 유리벽·천장·레일에 못 서요.
+4. (AC12) 혼자 결승도 연장전으로 끝나고 탈락 연출은 셰프 손. (AC13) 유리벽·천장이 카메라를 가리지 않아요.
+
+**T. 기존 맵 장식 다듬기 (m5-20, 판정 불변)** [바로] — 맵 5개라 `forceMapPlans = { { "rotating-belt", "soy-swamp", "chef-board", "skewer-showdown" }, { "ramen-rapids", "hot-plate", "skewer-showdown" } }`로 두 판(강제 플랜은 3~4개만 받아요 — QA 리포트의 5개짜리 플랜은 그대로 쓰면 거절돼요). 끝나면 `forceMapPlans = nil`
+1. 회전 벨트: 머리 위 종이 등 3개 아래 주황 빛, 간장 종지 반짝임이 천천히 올라옴. 손님 눈 3쌍이 2~4초마다 따로 깜빡여요(깜빡일 때 흰 반짝임 점만 떠 보이면 B1).
+2. 간장 늪: 와사비 산 흰 밥알 2곳의 연두빛, 간장 웅덩이 3곳 보글거림. 셰프의 도마: 머리 위 등 3개, 칼이 내려찍을 때 불꽃이 **한 번만**.
+3. 라멘 급류: 양옆 다시마·통깨·젓가락 받침이 코스를 가리지 않아요. 간장 늪·라멘·도마 바깥 옅은 안개 판의 분위기가 서로 다르고, 라멘 그릇 밖으로 유리판 모서리가 삐져나와 보이거나(B2) 판 너머 국물·파티클이 사라져 보이는지(B5).
+4. 철판 맵 선반 위 간장병 3개가 천천히 흔들려요 — 서버 화면에서는 안 움직여요(로컬 전용).
+5. 회전 벨트·간장 늪 소개에 내려다보는 반전 샷, 카메라가 등·벽을 뚫거나 화면이 굴러 보이지 않는지(B3). 소개 길이 약 3초 그대로. Output에 `[MapKit] decor has`/`decor skipped` 경고가 없고, 다섯 맵 판정(낙하·결승선·시간 종료)이 전과 같아요.
+6. m5-24 아트 패스가 들어오면 이 맵들은 다시 바뀌어요.
+
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
 
 ### 3-11. M5 맵 비주얼 키트 확인 (m5-23: Future 조명 · 맵별 조명 분위기 · 움직이는 장식)
+출처: `docs/qa/m5-23-map-visual-kit.md` 체크리스트. 사용자 할 일 USER-TODO B1-1(Future 한 번 확인).
 1. **Future 조명**: Rojo 연결 뒤 Explorer → `Lighting` → Properties의 `Technology`가 `Future`인지 봐요(`LightingStyle` Realistic, `PrioritizeLightingQuality` 켬). 아니면 직접 Future로 바꾸고 플레이스를 저장해요. 로비가 너무 어둡거나 하얗게 날아가지 않는지, 회전 접시·우승자 단상에 그림자가 생기는지 봐요.
 2. **맵별 조명**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`(확인 뒤 nil로)으로 혼자 Play → 라운드 소개가 시작되면 1~2초 안에 조명이 부드럽게 바뀌어요(회전 벨트 = 저녁 노을빛, 철판 = 밤·주황 열기, 꼬치 = 축제 해질녘). 라운드가 끝나 대기석(로비)으로 오면 로비 조명으로 돌아와요. 번쩍임·깜빡임이 없어야 해요.
 3. **방 2개 동시**: Test → Clients and Servers 2명, 서로 다른 방에서 다른 맵을 돌려요 → 각 화면이 **자기 아레나** 조명이에요. 탈락 뒤 관전으로 다른 사람을 비출 때도 그 아레나 조명이에요.
 4. **움직이는 장식(anim)**: m5-24 등에서 `anim`을 단 장식이 생기면 — 제자리에서 돌거나(Spin)·오르내리거나(Bob)·흔들리거나(Sway)·숨 쉬듯 커졌다 작아지는지(Pulse), 서버 Output에 복제 경고가 없는지, 2명이 같은 장식을 같은 순간 같은 모습으로 보는지 봐요.
 5. **CornerWedge 방향**: 렌더러는 CornerWedge 꼭대기를 로컬 (+X, 위, -Z) 모서리로 그려요. `MapKitShapes.bevelBox`(깎은 상자)를 처음 쓰는 맵에서 Studio로 귀퉁이 네 개가 매끈하게 맞물리는지 한 번 봐요(어긋나면 developer에게 — `CORNER_YAW` 표만 고치면 돼요).
-6. **휴대폰 성능**: 가장 무거운 맵 소개·달리기 중 30fps 이상인지(`View → Stats`/MicroProfiler 기록). Future를 지원 안 하는 기기는 자동으로 단순한 조명으로 내려가요.
+6. **휴대폰 성능**: 가장 무거운 맵(Extended 예산 맵: 튀김 냄비·디저트 냉장고·연어알 폭탄) 소개·달리기 중 30fps 이상인지(`View → Stats`/MicroProfiler 기록). Future를 지원 안 하는 기기는 자동으로 단순한 조명으로 내려가요.
+7. **Surface 조명**: SurfaceLight는 range 16까지만 비춰요(Roblox 상한, 검사·렌더러도 16에서 자름). 간판·창 빛이 렌더 PNG와 Studio에서 비슷한 넓이인지 봐요.
+8. 소개 첫 컷부터 맵 조명인지(giant-jenga 포함, QA 뒤 고침 — 소개 카메라 점을 아레나 상자에 넣음). 서버 효과와 겹쳐 `Atmosphere`·`Bloom`이 `Lighting`에 두 개씩 생기지 않는지.
+
+> m5-23은 QA 수정 뒤 재QA 전(`in-qa`)이에요. 결과가 이상하면 메인 세션에 알려 주세요.
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |
@@ -696,7 +855,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10·3-11)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

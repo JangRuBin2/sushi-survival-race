@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-14 — 새 Race 맵: 방방 미로 (`bouncy-castle-maze`)

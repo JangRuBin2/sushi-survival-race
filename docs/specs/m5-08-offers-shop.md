@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-08 — 특별 상품: 스타터 팩·세트·연출 팩·VIP 패스 (🎁 상점)

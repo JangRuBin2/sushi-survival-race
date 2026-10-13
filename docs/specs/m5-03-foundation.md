@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-03 — M5 두 번째 묶음 기반: 공용 파일·프로필 v2·카탈로그·껍데기

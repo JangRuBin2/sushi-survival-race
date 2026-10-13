@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-16 — 새 Survival 맵: 와르르 나무 블록 (`giant-jenga`)

@@ -11,6 +11,8 @@ local SushiBody = RobloxRequire.require(Shared.SushiBody)
 local Cutscene = RobloxRequire.require(Shared.EliminationCutsceneLogic)
 
 -- 스펙 "가격·등급·speech 정리" 표 + "10종 상세"의 효과·Wedge
+-- m5-25(캐릭터 퀄리티 2단계, 사용자 확정)가 31종을 새 몸에 맞춰 재배치하며 효과·Wedge 파츠 이름을 바꿨어요.
+-- 콘셉트(갤럭시 = 반짝이+빛, 크라운 = 금관 가시+빛, 유니콘 = 뿔 반짝이+갈기 빛)는 그대로 — 표는 m5-25 스펙 기준.
 local NEW = {
 	{ id = "takoyaki", order = 22, tier = "Common", fx = {}, wedges = {} },
 	{ id = "egg-toast", order = 23, tier = "Common", fx = {}, wedges = {} },
@@ -28,7 +30,7 @@ local NEW = {
 		id = "galaxy-roll",
 		order = 28,
 		tier = "Epic",
-		fx = { SparkleCore = "Sparkles", GlowCore = "Glow" },
+		fx = { Planet = "Sparkles", GlowCore = "Glow" },
 		wedges = {},
 	},
 	{ id = "softserve-roll", order = 29, tier = "Epic", fx = {}, wedges = {} },
@@ -36,23 +38,21 @@ local NEW = {
 		id = "crown-tuna",
 		order = 30,
 		tier = "Legendary",
-		fx = { CrownSpike3 = "Sparkles", CapeLeft = "Glow" },
+		fx = { Jewel = "Sparkles", Ermine = "Glow" },
 		wedges = {
 			"CrownSpike1",
 			"CrownSpike2",
 			"CrownSpike3",
 			"CrownSpike4",
 			"CrownSpike5",
-			"CapeLeft",
-			"CapeRight",
 		},
 	},
 	{
 		id = "unicorn-roll",
 		order = 31,
 		tier = "Legendary",
-		fx = { HornTip = "Sparkles", Mane1 = "Glow" },
-		wedges = { "Mane1", "Mane2", "Mane3" },
+		fx = { HornTip = "Sparkles", Mane4 = "Glow" },
+		wedges = { "Mane1", "Mane2", "Mane3", "Mane4" },
 	},
 }
 
@@ -109,7 +109,7 @@ return function(t: Test.Test)
 			end
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.eq(ok, true, table.concat(problems, "; "))
-			t.eq(#Skins.LIST, 31)
+			t.eq(#Skins.LIST, 32) -- m5-27 실험 스킨 concept-salmon 포함
 		end
 	)
 
@@ -168,7 +168,7 @@ return function(t: Test.Test)
 			end
 			t.eq(wedgeNames, expected, `{row.id} wedge parts`)
 		end
-		t.eq(total, 14)
+		t.eq(total, 13)
 	end)
 
 	t.test(
@@ -190,8 +190,8 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("QA AC1: 등급별 개수 Basic 1 / Common 8 / Rare 9 / Epic 7 / Legendary 6", function()
-		t.eq(#Skins.byTier("Basic"), 1)
+	t.test("QA AC1: 등급별 개수 Basic 2(실험 1) / Common 8 / Rare 9 / Epic 7 / Legendary 6", function()
+		t.eq(#Skins.byTier("Basic"), 2)
 		t.eq(#Skins.byTier("Common"), 8)
 		t.eq(#Skins.byTier("Rare"), 9)
 		t.eq(#Skins.byTier("Epic"), 7)

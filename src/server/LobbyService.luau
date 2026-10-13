@@ -442,8 +442,11 @@ function LobbyService.start()
 	end
 	buildLobby()
 	MatchEvents.onWinnerShowcase(onWinnerShowcase)
-	-- 시즌 장식: 지금 한 번, 그 뒤 10분마다 (m5-07)
-	applySeasonDecor()
+	-- 시즌 장식: 지금 한 번, 그 뒤 10분마다 (m5-07). 실패해도 뒤 서비스 시작을 막지 않게 pcall (m5-07 QA 메모)
+	local firstOk, firstErr = pcall(applySeasonDecor)
+	if not firstOk then
+		warn(`[LobbyService] season decor failed: {firstErr}`)
+	end
 	task.spawn(function()
 		while true do
 			task.wait(SEASON_CHECK_INTERVAL)

@@ -60,9 +60,14 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"실제 맵 풀: 결승은 언제나 등록된 Final 맵 중 하나 (m5-18 tug-of-war-platform·m5-19 claw-machine-prize도 합류)",
+		"실제 맵 풀: 결승은 언제나 등록된 Final 맵 중 하나 (m5-18 tug-of-war-platform·m5-19 claw-machine-prize·m5-04 ikura-bombs도 합류)",
 		function()
-			local finals = { ["skewer-showdown"] = true, ["tug-of-war-platform"] = true, ["claw-machine-prize"] = true }
+			local finals = {
+				["skewer-showdown"] = true,
+				["tug-of-war-platform"] = true,
+				["claw-machine-prize"] = true,
+				["ikura-bombs"] = true,
+			}
 			for seed = 1, 100 do
 				for _, roundCount in { 3, 4 } do
 					local plan = Rules.buildRoundPlan(roundCount, Maps.infos(), fakeRng(seed))

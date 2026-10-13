@@ -432,7 +432,7 @@ return function(t: Test.Test)
 			t.ok(string.find(src, "MapKit.buildDecor(decor.specs", 1, true) ~= nil, "장식 규칙(충돌 없음)")
 			-- Match 확인이 시즌 장식보다 먼저
 			local guard = string.find(src, 'PlaceService.role() == "Match"', 1, true) :: number
-			local apply = string.find(src, "applySeasonDecor()\n", guard, true)
+			local apply = string.find(src, "pcall(applySeasonDecor)", guard, true) -- 첫 적용도 pcall (m5-07 QA 메모)
 			t.ok(apply ~= nil and apply > guard)
 			-- 장식 파츠 수: deco(…) 호출 × 반복 횟수 (할로윈 6×3 + 2, 크리스마스 2×5 + 4×3 + 1)
 			local halloween = string.match(src, "local function halloweenDecor%(%).-\nend") :: string

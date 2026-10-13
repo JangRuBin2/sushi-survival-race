@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-15 — 새 Race 맵: 등불 다리 건너기 (`lantern-bridge`)
@@ -85,9 +85,17 @@ status: qa-passed
 - 2026-10-09 · 판정 지오메트리는 처지지 않는 평평한 판으로 단순화(처짐은 장식 수준에서도 생략), 장식(등불·난간·도리이)으로 분위기를 냄 · **기본값, 수정 가능** · planner
 - 2026-10-09 · `inPool`을 이 스펙에서 `true`로 전환(m5-13 머지 후 실제 값 확인 필요 — 개발 메모에 기록) · planner
 - 2026-10-09 · `SfxCues`에 다리 흔들림/발소리에 맞는 cue가 없어서(기존 효과음 중 재사용할 만한 것도 없음) 새 cue는 만들지 않고 소리 없이 둠(GDD 범위 밖, 스펙 §4 "결정 기록에 적어 사용자에게 알린다"). 다리 흔들림·건너는 느낌에 맞는 효과음(삐걱임, 발소리 등)이 필요하면 사용자가 알려주면 planner가 `SfxCues`에 cue를 추가하는 별도 스펙으로 처리 · developer
+- 2026-10-13 · B3 다리 3(폭 4)에 3명 이상이면 가만히 서 있어도 밀려 떨어질 만큼 흔들림 · **의도한 군중 압박으로 유지**("좁을수록 더 쉽게 떨어진다"), 플레이테스트(AC14 체감) 뒤 `LanternBridgeLayout` 상수로 다시 본다. · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · B1 기울기와 미는 방향이 반대 · 판 회전 부호를 `Logic.plankRoll(angle) = -angle` 한 곳에서 뒤집어, 미는 쪽(`pushSpeedFor` 부호, +RightVector)이 낮은 쪽이 되게 했다. 미는 힘의 크기·일정은 그대로. · 메인 세션 (사용자가 맵 판단 위임), developer 구현
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### QA 수정 (2026-10-13, developer, 브랜치 `m5-maps-fix-a`)
+- **B1 (P2)** `LanternBridgeLogic.plankRoll` 추가, `LanternBridge.luau`가 `CFrame.Angles(0, 0, Logic.plankRoll(angle))`로 판을 돌림 → 기운 쪽(낮은 쪽)으로 밈. 테스트 `m5-15 B1`: `@lune/roblox` CFrame으로 다리 4개 × ±각도에서 미는 쪽 가장자리가 더 낮고, `origin.RightVector * push`가 낮은 가장자리를 향함(origin을 돌려 둔 상태).
+- **B2 (P3)** `Logic.isRiding(x, y, halfWidth)`(루트 y > −3이고 판 가장자리 + 1 안쪽) — 인원 집계와 밀기 모두 다리에 타고 있는 사람만. 테스트 `m5-15 B2`.
+- B3는 결정 기록대로 유지(코드 변경 없음). 아트 파일은 건드리지 않음.
+- 상태는 `qa-passed` 그대로 둠(메인 세션 지시: m5-14·m5-16만 `in-qa`). 판정 코드가 바뀌었으니 재QA 때 B1·B2를 함께 봐 주면 좋다. Studio: 다리가 오른쪽으로 내려가 있을 때 오른쪽으로 미끄러지는지(보이는 기울기와 미는 방향이 같은지).
 
 ### 바뀐 파일
 - `src/shared/maps/LanternBridgeLayout.luau` (새 파일) — 치수 표: 구간(출발·다리4·쉼터3·결승), 다리별 `width`/`halfWidth`/`length`/`maxSwayDeg`/`phase`, 흔들림·미는 힘 상수, 스폰 24개(5x5 격자 중 1칸 버림, 칸 사이 3 studs), `sections()`/`totalLength()`/`finishLineZ()`.

@@ -129,6 +129,18 @@ local function buildAt(mapId: string, slot: number): any
 	return built[mapId][slot]
 end
 
+-- 맵 아트 모듈의 예산 단계 (<Map>Art.BUDGET, 없으면 Standard). tools/render-map.luau budgetTier와 같은 규칙.
+local function artBudgetTier(id: string): any
+	local pascal = (string.gsub("-" .. id, "%-(%w)", string.upper))
+	local ok, art = pcall(function()
+		return RobloxRequire.require((Shared.maps :: any)[pascal .. "Art"])
+	end)
+	if ok and type(art) == "table" and type(art.BUDGET) == "string" then
+		return art.BUDGET
+	end
+	return "Standard"
+end
+
 local function allIds(): { string }
 	local ids = {}
 	for _, info in Maps.allInfos() do
@@ -450,15 +462,19 @@ return function(t: Test.Test)
 			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
 			t.eq({ l2, p2 }, { 8, 9 }, "soy-swamp lights/particles") -- m5-24 아트 패스 v2 (Extended)
-			-- 모든 맵이 조명·파티클 예산 안 (Instance.new 포함 실제 수). m5-24: 아트 패스 맵은 Extended 단계
-			local extended = MapKitLogic.budget("Extended")
+			-- 모든 맵이 자기 예산 단계(<Map>Art.BUDGET, 없으면 Standard — 렌더러 budgetTier와 같은 규칙) 조명·파티클 안
+			-- (Instance.new 포함 실제 수). 단계는 맵마다 Art 모듈에서 읽어요 (m5-05 QA: 하드코딩 목록 대신).
+			local extendedSeen = 0
 			for _, id in allIds() do
 				local l, p = count(buildAt(id, 1).model)
-				t.ok(
-					l <= extended.lights and p <= extended.particles,
-					`{id}: {l} lights {p} particles`
-				)
+				local tier = artBudgetTier(id)
+				if tier == "Extended" then
+					extendedSeen += 1
+				end
+				local budget = MapKitLogic.budget(tier)
+				t.ok(l <= budget.lights and p <= budget.particles, `{id} ({tier}): {l} lights {p} particles`)
 			end
+			t.ok(extendedSeen >= 1, "at least one Extended map (tempura-pot) is read from its Art.BUDGET")
 		end
 	)
 

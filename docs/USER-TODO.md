@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-08 (M5 첫 묶음 반영 — m5-01 결승 연장전, m5-02 테스트용 관리자 스킨 미리보기 `done`. M4는 m4-01~m4-14 전부 `done`. 기획서는 GDD v0.5)
+> 마지막 갱신: 2026-10-13 (M5 반영 — m5-01~m5-11, m5-13~m5-22 `done`: 새 맵 9개, 시즌 이벤트, 🎁 상점·VIP, 연출 팩, 🎟 코드, 관리자 명령, 스킨 31종. m5-23 맵 비주얼 키트는 재QA 대기, m5-24 아트 패스 진행 중. 기획서 GDD v0.6 변경 이력)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -31,8 +31,11 @@
   - **확정됨 (2026-10-08, 위임)**: 150초 안전 상한 판정은 **가장 높이 있는 1명 우승** (공동 우승·무승부 안 함)
   - **확정됨 (2026-10-08, 위임)**: 관리자 기능 실서버에서도 **켜 둠** (`src/server/AdminConfig.luau`의 `LiveEnabled = true`). 관리자 판단은 계정(UserId)으로만 — 비밀번호 방식은 보안상 거절됨
   - [ ] **공개 출시 전에 다시 확인**: 관리자 미리보기를 실서버에서 유지할지, 끌지(`LiveEnabled = false`). 켜 두면 관리자가 안 산 스킨을 입은 모습이 다른 사람에게 보여요(능력치 영향 없음)
+  - 새 맵 9개 수치, 이벤트 재화(판 참가 1·라운드 통과 1·결승 출발 2·우승 5·오늘 첫 판 3, 교환 80), 시즌 기간(할로윈 10-16~11-05, 크리스마스 12-11~01-07), 특별 상품 가격(스타터 팩 79·에픽 세트 249·전설 세트 499·연출 59/99·VIP 149) — 읽을 곳: [`docs/CHANGELOG.md`](CHANGELOG.md) M5 "기본값으로 정한 주요 수치". 스타터 팩 조건·지역 가격은 [`docs/specs/m5-08-offers-shop.md`](specs/m5-08-offers-shop.md) "사용자 작업"
+  - **확정됨 (2026-10-13)**: 디저트 냉장고 C 구간 폭 30, 튀김 냄비 나선 배치 그대로, 맵 아트 Extended 예산(장식 1500) 허용, 맵 세부 판단은 메인 세션에 위임, 저장을 켠 Studio에서 관리자 경제 명령(코인·재화) 막기 — 아래 "답변 기록"
+  - 플레이테스트 뒤 정할 것(Studio·친구 테스트 결과로): 줄다리기 발판이 30°에서 미끄러지는지(안 미끄러지면 각도·마찰 조정), 캣타워 넉백 세기, 인형뽑기 2명 결승 길이, 등불 다리 3번 군중 흔들림, 연어알·젤리 높이 — [`docs/DEV-SETUP.md`](DEV-SETUP.md) 3-10 J~S
 - [x] **관리자 UserId 알려 주기** — 완료 (2026-10-08): **11402290839** → `src/server/AdminConfig.luau`의 `UserIds`에 들어갔어요
-- [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. **문서·테스트에 나온 예시(`SUSHI2026`, `SPOOKYSUSHI`)는 공개돼 있으니 실제 코드는 다른 문자열로** 정하세요. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
+- [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. **문서·테스트에 나온 예시(`SUSHI2026`, `SPOOKYSUSHI`, `EXAMPLE2026`, `EXAMPLESPOOKY`)는 공개돼 있으니 실제 코드는 다른 문자열로** 정하세요. 코드 문자열은 이 파일이나 "답변 기록"에도 적지 마세요(공개 저장소) — 에이전트에게 알려 줄 필요 없이 로컬 파일에만. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
@@ -45,8 +48,9 @@
 지금은 아래가 무음이에요 (`src/shared/SfxLibrary.luau`에서 `sfx(nil, …)` / `music(nil, …)`인 것).
 
 - [ ] 배경음 4곡: `Lobby`(로비·대기실), `Round`(라운드), `Final`(결승), `Victory`(우승)
-- [ ] 효과음 9개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고), `Overtime`(결승 연장전 시작 — 경적·징 같은 짧은 소리, m5-01)
-- [ ] 효과음 3개(고양이 카페 캣타워, m5-17): `CatToyBounce`(장난감 공에 맞음), `CatPawWarn`(고양이 발 경고 시작), `CatPawSwipe`(고양이 발에 밀리는 순간)
+- [ ] 효과음 — 기본 연출 8개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고)
+- [ ] 효과음 — M5 기능 5개: `Overtime`(결승 연장전 시작 — 경적·징, m5-01), `TokenGet`(이벤트 재화 받음, m5-07), `CodeRedeemed`(코드 보상 성공, m5-10), `CatMeow`(고양이 손님 연출 "냠!" 직후, m5-09), `Fireworks`(불꽃이 터질 때, m5-09)
+- [ ] 효과음 — 새 맵 10개: `IkuraPop`(연어알 폭탄 터짐, m5-04), `OilSplash`(기름이 솟구침 — 지글·촤악, m5-05), `FanGust`(송풍구 바람, m5-06), `JellyBoing`(젤리 튕김, m5-06), `BounceBoing`(방방 바닥 튕김, m5-14), `BlockCreak`(블록탑 삐걱임, m5-16), `CatToyBounce`(장난감 공에 맞음, m5-17), `CatPawWarn`(고양이 발 경고, m5-17), `CatPawSwipe`(고양이 발에 밀림, m5-17), `ClawLift`(집게가 칸을 들어 올림, m5-19)
 - 반복 재생이 자연스러운 곡(루프), 저작권이 Roblox 라이선스인 것만 고르세요.
 
 ### A3. 출시 준비물 (m4-12 체크리스트에 들어갈 것)
@@ -79,7 +83,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 - 맵 순서 고정: `src/shared/Config.luau`의 `DEBUG.forceMapPlan`에 맵 id 3~4개 → 확인 후 **반드시 `nil`로 되돌리기**
 
 ### B3. M4·M5 확인 (기능별 QA 리포트의 "사용자 Studio 확인 체크리스트" 절)
-- [ ] M5: [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10** A(결승 연장전)·B(관리자 스킨 미리보기). 디버그·관리자 설정 표와 되돌리기 포함.
+- [ ] M5: [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10** A~T(연장전·관리자 미리보기·기반·시즌·상점·연출·코드·관리자 명령·스킨·새 맵 9개·기존 맵 다듬기)와 **3-11**(맵 비주얼 키트 — Future 조명·맵별 조명). 디버그·관리자 설정 표와 되돌리기 포함. 새 맵은 3-10 J~S — 특히 **줄다리기 발판 30° 미끄러짐(R2)**, 캣타워 넉백(Q3), 인형뽑기 2명 결승 길이(S2)를 숫자로 적어 주세요.
 - [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-9** A~O에 기능별로 모아 두었어요(QA 뒤 고쳐진 것·확정 가격 반영, 디버그 설정 표와 되돌리기 포함). 원본은 아래 QA 리포트예요.
 
 | 기능 | 읽을 파일 | 사용자 작업 먼저? |
@@ -100,8 +104,17 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 | 로벅스 상점 | [`docs/qa/m4-14-robux-shop.md`](qa/m4-14-robux-shop.md) (가격은 A안 — 리포트의 R$ 49/99는 옛 값) | 가짜 결제(`DEBUG.fakeRobuxInStudio`)는 아니요, 실제 결제 창은 **C1 + C3 먼저**, 실서버 구매는 퍼블리시 후 |
 | (M5) 결승 연장전 | [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10 A** (원본 [`docs/qa/m5-01-final-overtime.md`](qa/m5-01-final-overtime.md)) | 아니요 (`DEBUG.forceMapPlan`·`overtimeAt` 사용 후 `nil`로) |
 | (M5) 관리자 스킨 미리보기 | [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10 B** (원본 [`docs/qa/m5-02-admin-skin-preview.md`](qa/m5-02-admin-skin-preview.md)) | 1~5 아니요 (**5번은 `AdminConfig.StudioAllAdmins = false`로 2명 테스트 뒤 `true`로 되돌리기**), 6은 C1 먼저, 7·8은 실서버 |
+| (M5) 기반·시즌 이벤트 | 3-10 **C·D** (원본 [`m5-03`](qa/m5-03-foundation.md), [`m5-07`](qa/m5-07-season-events.md)) | 아니요 (`eventNow` 사용 후 `nil`). 저장 이전 확인만 C1 먼저 |
+| (M5) 🎁 특별 상품·VIP | 3-10 **E** (원본 [`m5-08`](qa/m5-08-offers-shop.md)) | 가짜 결제는 아니요(`fakeRobuxInStudio`·`fakeVipInStudio`, `persistDataInStudio`는 false). 실제 결제는 C1 + C3-1 + 퍼블리시 |
+| (M5) 연출 팩 | 3-10 **F** (원본 [`m5-09`](qa/m5-09-fx-packs.md)) | 아니요 |
+| (M5) 🎟 코드 보상 | 3-10 **G** (원본 [`m5-10`](qa/m5-10-redeem-codes.md)) | 아니요 (로컬 `CodeList.luau` 필요). 재접속 유지만 C1 먼저 |
+| (M5) 관리자 명령 | 3-10 **H** (원본 [`m5-11`](qa/m5-11-admin-commands.md)) | 아니요. 실서버 확인은 퍼블리시 뒤 |
+| (M5) 스킨 10종·스킨 규칙 v2 | 3-10 **I** (원본 [`m5-21`](qa/m5-21-skin-foundation-v2.md), [`m5-22`](qa/m5-22-skin-pack-1.md)) | 아니요 |
+| (M5) 새 맵 9개 | 3-10 **J~S** (원본 `docs/qa/m5-04-…`~`m5-06-…`, `m5-13-…`~`m5-19-…`, 재QA 절 포함) | 아니요 (`forceMapPlan`·`overtimeAt` 사용 후 `nil`). 체감은 친구 테스트 |
+| (M5) 기존 맵 다듬기 | 3-10 **T** (원본 [`m5-20`](qa/m5-20-map-quality-pass.md)) | 아니요 |
+| (M5) 맵 비주얼 키트(조명) | 3-11 (원본 [`m5-23`](qa/m5-23-map-visual-kit.md), 재QA 전) | B1-1(Future 확인) 먼저 |
 
-공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`)은 확인 후 원래 값(`nil`/`false`)으로, `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요.
+공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)은 확인 후 원래 값(`nil`/`false`)으로, `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요. `src/server/CodeList.luau`는 커밋되지 않아요.
 
 ---
 
@@ -171,7 +184,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - Studio 확인 순서: [`docs/qa/m5-08-offers-shop.md`](qa/m5-08-offers-shop.md) 체크리스트 (`fakeRobuxInStudio`·`fakeVipInStudio` 켜고, `persistDataInStudio`는 false, 확인 뒤 모두 false로)
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
-  - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 M5)
+  - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 m5-12, 아직 시작 전)
   - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
   - 개인정보 삭제 요청(Right to Erasure)이 오면 두 곳을 지워요. MemoryStore는 곧 만료되니 따로 지울 것 없음.
     1. `PlayerData_v1`: Creator Dashboard → Data Stores에서 키 `u_<UserId>` 삭제
@@ -194,5 +207,15 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 날짜와 함께 아래에 적어 주세요. 에이전트가 반영하면 "반영됨"을 붙여요.
 
 ```
+2026-10-13 VIP 패스: 코인 배수 없이 겉모습만(149 R$) — 반영됨
+2026-10-13 출시 범위: 먼저 16세 이상으로 공개(비용 없음, 계정 나이 확인만). 모든 연령(Kids·Select, 1,000 R$ 환불 보증금 또는 Premium 2개월)은 반응을 본 뒤 2단계 — 반영됨
 (예) 2026-10-09: 하루 첫 판 기준 한국 시간으로. 결승 3초 대기 삭제. Lobby 음악 id 1234567890.
 ```
+
+- 2026-10-08: 150초 안전 상한은 가장 높이 있는 1명 우승(위임). 실서버 관리자 기능 켜 둠(`LiveEnabled = true`, 공개 출시 전 재확인). 관리자 UserId 11402290839. 실서버 테스트 명령 없음(설정으로도 못 켬). — 반영됨
+- 2026-10-13 (세션 중 사용자 결정·위임) — 반영됨
+  - 디저트 냉장고 C 구간 폭 **30** 그대로 (m5-06 Q1)
+  - 튀김 냄비 **나선 배치 그대로** (m5-05 D4)
+  - 맵 아트 **Extended 예산(장식 1500·조명 24·파티클 16·그림자 조명 2·움직임 80)** 허용 (m5-23 D3, m5-24 D2)
+  - 맵 세부 판단은 **메인 세션에 위임** (연어알 폭탄 다시 뽑기, 튀는 기름 대상·높이 범위 3.5, 냉장고 송풍구 이동 감시 면제 뺌 등 — 각 스펙 결정 기록)
+  - **저장을 켠 Studio(`persistDataInStudio = true`)에서는 관리자 코인·이벤트 재화 명령을 막기** (m5-11 QA B1 → `coins`·`tokens` StudioOnly 등급)

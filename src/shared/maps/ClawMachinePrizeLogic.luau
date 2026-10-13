@@ -10,6 +10,13 @@
 --   ClawMachinePrizeLogic.overtimeTilt(collapseDuration, warnTime, rows) -> { TiltStep }
 --     낮은 쪽부터 rows줄, 각 줄 warnTime 경고 뒤 사라지고 마지막 줄이 collapseDuration에 사라져요.
 --     tiltAngle은 그 시각의 상자 기울기(0~OVERTIME_MAX_TILT도, 단조 증가).
+--   ClawMachinePrizeLogic.reserveTiles(aliveRacers) -> number     연장전 전 집게가 남겨 두는 최소 칸 수 (QA B2)
+--   ClawMachinePrizeLogic.capGrab(chosen, aliveCount, aliveRacers, racerTiles) -> { Tile }
+--     남은 칸이 reserveTiles 아래로 내려가지 않게 집을 칸을 줄여요(사람이 서 있는 칸 먼저 남겨 둬요). 0개면 그 차례 쉬어요.
+--   ClawMachinePrizeLogic.tiltRotation(dim, sign, angleRad) -> (rx, rz)   CFrame.Angles(rx, 0, rz) 인자 (QA B1)
+--   ClawMachinePrizeLogic.tiltedHeight(dim, sign, lateral, angleRad) -> number
+--     격자 중심을 축으로 돌렸을 때 격자 면 위 한 점(줄 방향 오프셋 lateral)의 높이 변화
+--   ClawMachinePrizeLogic.tiltLineOrder(dim, sign, gridSize) -> { number }   낮아지는 쪽부터 사라질 줄 번호(0~)
 
 local Logic = {}
 
@@ -150,6 +157,84 @@ function Logic.pickClawTarget(
 		end
 	end
 	return table.clone(aliveTiles)
+end
+
+-- 연장전 전(시간 제한 90초까지) 집게가 남겨 두는 최소 칸 수 (QA B2, 메인 세션 결정).
+Logic.RESERVE_MIN = 6
+Logic.RESERVE_PER_RACER = 2
+function Logic.reserveTiles(aliveRacers: number): number
+	return math.max(Logic.RESERVE_MIN, Logic.RESERVE_PER_RACER * math.max(0, aliveRacers))
+end
+
+-- 고른 칸(chosen)을 들면 남은 칸(aliveCount, 아직 경고·들어 올리는 중이 아닌 칸 수)이 reserveTiles 아래로
+-- 내려가면 그만큼만 들게 줄여요. 줄일 때는 사람이 서 있는 칸을 먼저 남겨 집고(집게가 노린 사람을 놓치지
+-- 않게), 나머지는 chosen 순서대로예요. 여유가 없으면 빈 목록(그 차례 쉼).
+function Logic.capGrab(chosen: { Tile }, aliveCount: number, aliveRacers: number, racerTiles: { Tile }?): { Tile }
+	local allowed = aliveCount - Logic.reserveTiles(aliveRacers)
+	if allowed <= 0 then
+		return {}
+	end
+	if #chosen <= allowed then
+		return chosen
+	end
+	local occupied: { Tile } = {}
+	local empty: { Tile } = {}
+	for _, tile in chosen do
+		local hasRacer = false
+		for _, racer in racerTiles or {} do
+			if racer.row == tile.row and racer.col == tile.col then
+				hasRacer = true
+				break
+			end
+		end
+		table.insert(if hasRacer then occupied else empty, tile)
+	end
+	local out: { Tile } = {}
+	for _, list in { occupied, empty } do
+		for _, tile in list do
+			if #out >= allowed then
+				return out
+			end
+			table.insert(out, tile)
+		end
+	end
+	return out
+end
+
+-- 연장전 기울기 방향(dim = "row"면 로컬 X축, "col"이면 로컬 Z축 회전, sign = ±1)과 각도(라디안)
+-- → CFrame.Angles(rx, 0, rz)에 넣을 값. 회전 중심은 격자 중심이에요(호출 쪽, QA B1).
+function Logic.tiltRotation(dim: string, sign: number, angle: number): (number, number)
+	if dim == "row" then
+		return sign * angle, 0
+	end
+	return 0, sign * angle
+end
+
+-- 격자 중심을 축으로 tiltRotation만큼 돌렸을 때, 격자 면(높이 0) 위 한 점의 높이. lateral은 회전에 영향을
+-- 받는 축의 격자 중심 기준 오프셋(row 방향이면 로컬 Z, col 방향이면 로컬 X). CFrame.Angles와 같은 공식:
+-- X축 회전 rx: y' = y·cos − z·sin, Z축 회전 rz: y' = x·sin + y·cos.
+function Logic.tiltedHeight(dim: string, sign: number, lateral: number, angle: number): number
+	local rx, rz = Logic.tiltRotation(dim, sign, angle)
+	if dim == "row" then
+		return -lateral * math.sin(rx)
+	end
+	return lateral * math.sin(rz)
+end
+
+-- 그 방향으로 기울 때 실제로 내려가는 쪽부터 줄 번호(0 ~ gridSize-1) 순서. tiltedHeight 부호로 정해서
+-- 회전 공식과 줄 순서가 어긋날 수 없어요.
+function Logic.tiltLineOrder(dim: string, sign: number, gridSize: number): { number }
+	local order: { number } = {}
+	for i = 0, gridSize - 1 do
+		table.insert(order, i)
+	end
+	local function heightOf(i: number): number
+		return Logic.tiltedHeight(dim, sign, i - (gridSize - 1) / 2, math.rad(10))
+	end
+	table.sort(order, function(a, b)
+		return heightOf(a) < heightOf(b)
+	end)
+	return order
 end
 
 -- 연장전 상자 기울기 일정 (m5-01 계약). rows줄(낮은 쪽부터 1~rows)이 순서대로 사라져요. 각 줄은

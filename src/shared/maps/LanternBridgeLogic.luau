@@ -21,7 +21,7 @@ function Logic.swayAngle(t: number, amplitudeDeg: number, period: number, phase:
 end
 
 -- 다리가 angleRad만큼 기운 동안 낮은 쪽으로 미는 목표 속도(studs/s). 0도에서 0, maxDeg에서 최고 속도이고
--- 부호는 angleRad와 같아요(기운 방향으로 밀어요).
+-- 부호는 angleRad와 같아요(기운 방향으로 밀어요 — 판은 plankRoll로 돌려서 그쪽이 낮은 쪽이에요).
 function Logic.pushSpeedFor(angleRad: number, maxDeg: number): number
 	local maxRad = math.rad(maxDeg)
 	if maxRad <= 0 then
@@ -45,6 +45,21 @@ end
 -- 다리 폭의 절반(halfWidth)을 넘어 로컬 X로 벗어났는지. 경계(±halfWidth)는 아직 벗어난 게 아니에요.
 function Logic.isOffPlank(localX: number, halfWidth: number): boolean
 	return math.abs(localX) > halfWidth
+end
+
+-- 다리 판을 돌릴 roll 각도(로컬 Z축, CFrame.Angles(0, 0, roll)). Roblox에서 Z축 +회전은 +X 가장자리를 올리므로
+-- 흔들림 각도의 부호를 뒤집어요 — 그래야 swayAngle > 0일 때 +X 쪽이 낮고, pushSpeedFor(> 0)가 +X(낮은 쪽)로
+-- 밀어요(m5-15 B1: 예전엔 높은 쪽으로 밀었어요). 부호는 여기 한 곳에서만 정해요.
+function Logic.plankRoll(swayAngleRad: number): number
+	return -swayAngleRad
+end
+
+-- 다리 위에 "타고 있는" 사람만 인원·밀기에 넣어요(m5-15 B2): 루트가 판 윗면보다 RIDER_MIN_Y 넘게 아래면
+-- 이미 떨어지는 중이고, 판 가장자리에서 RIDER_EDGE_MARGIN 넘게 벗어나도 판 밖이에요.
+Logic.RIDER_MIN_Y = -3
+Logic.RIDER_EDGE_MARGIN = 1
+function Logic.isRiding(localX: number, localY: number, halfWidth: number): boolean
+	return localY > Logic.RIDER_MIN_Y and not Logic.isOffPlank(localX, halfWidth + Logic.RIDER_EDGE_MARGIN)
 end
 
 -- 바닥은 전부 평탄(y = 0)이라 탈락선은 어디서나 같아요.

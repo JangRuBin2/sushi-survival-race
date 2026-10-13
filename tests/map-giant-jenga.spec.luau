@@ -369,4 +369,80 @@ return function(t: Test.Test)
 		end
 		t.ok(found, "giant-jenga should be in the random map pool")
 	end)
+
+	t.test(
+		"m5-16 B1: 레벨이 줄면 맨 위 블록부터 사라져요 (3→2 Block1, 2→1 Block2, 1→0 Block3)",
+		function()
+			t.eq(Logic.poppedBlockIndex(2), 1)
+			t.eq(Logic.poppedBlockIndex(1), 2)
+			t.eq(Logic.poppedBlockIndex(0), 3)
+			-- Block1이 가장 높고 번호가 커질수록 낮아요
+			for n = 1, Layout.LEVEL_MAX - 1 do
+				t.ok(Logic.blockCenterY(n) > Logic.blockCenterY(n + 1), `Block{n} above Block{n + 1}`)
+			end
+			-- 레벨 L에서 남은 블록(아직 안 숨긴 것) 중 가장 높은 블록 윗면이 그 칸 윗면(heightOf) 바로 아래예요
+			local board = Logic.newBoard()
+			for newLevel = Layout.LEVEL_MAX - 1, 1, -1 do
+				board.levels["2,0"] = newLevel
+				local topRemaining = Logic.poppedBlockIndex(newLevel) + 1
+				local blockTop = Logic.blockCenterY(topRemaining) + Layout.LEVEL_DROP / 2
+				local surface = Logic.heightOf(board, 2, 0)
+				t.ok(math.abs(blockTop - surface) < 1e-9, `level {newLevel}: block top {blockTop} vs surface {surface}`)
+			end
+			local source = fs.readFile("src/shared/maps/GiantJenga.luau")
+			t.ok(
+				string.find(source, "entry.blocks[Logic.poppedBlockIndex(newLevel)]", 1, true) ~= nil,
+				"server uses it"
+			)
+			t.ok(string.find(source, "Logic.blockCenterY(level)", 1, true) ~= nil, "build uses the same order")
+		end
+	)
+
+	t.test(
+		"m5-16 B3: 혼자 가라앉은 테두리 칸은 바깥으로 DEG_PER_UNIT의 50%까지만 기울어요",
+		function()
+			local maxOutward = math.rad(Logic.DEG_PER_UNIT * Logic.EDGE_OUTWARD_MAX_UNITS) + 1e-9
+			-- 변 칸 4곳과 모서리 칸 하나: 그 칸만 레벨 2·1로 가라앉힘 (이웃은 전부 3)
+			for _, cell in { { 2, 0 }, { -2, 0 }, { 0, 2 }, { 0, -2 }, { 2, 2 }, { -2, -2 } } do
+				for _, level in { 2, 1 } do
+					local board = Logic.newBoard()
+					board.levels[Layout.key(cell[1], cell[2])] = level
+					local tilt = Logic.tiltFor(board, cell[1], cell[2]) :: any
+					t.ok(tilt ~= nil, `{cell[1]},{cell[2]} still tilts a little`)
+					-- 바깥쪽 성분(각도 × 바깥 방향 성분)이 상한 이하
+					local outward = 0
+					if cell[1] ~= 0 then
+						outward = math.max(outward, tilt.downX * cell[1] / math.abs(cell[1]))
+					end
+					if cell[2] ~= 0 then
+						outward = math.max(outward, tilt.downZ * cell[2] / math.abs(cell[2]))
+					end
+					t.ok(
+						tilt.angle * outward <= maxOutward,
+						`{cell[1]},{cell[2]} L{level} outward {tilt.angle * outward}`
+					)
+				end
+			end
+			-- 안쪽·테두리를 따라가는 기울기는 그대로 (이웃 (2,1)이 레벨 2 → 6도, +j 쪽)
+			local board = Logic.newBoard()
+			board.levels["2,1"] = 2
+			local along = Logic.tiltFor(board, 2, 0) :: any
+			t.ok(math.abs(along.angle - math.rad(Logic.DEG_PER_UNIT)) < 1e-9, "along-edge tilt unchanged")
+		end
+	)
+
+	t.test(
+		"m5-16 B4: 서버가 칸을 놓는 높이는 build와 같아요 (윗면 = heightOf, 중심은 두께 절반 아래)",
+		function()
+			local source = fs.readFile("src/shared/maps/GiantJenga.luau")
+			t.ok(
+				string.find(source, "Logic.heightOf(board, entry.i, entry.j) - TOP_THICKNESS / 2", 1, true) ~= nil,
+				"flatCFrame offset"
+			)
+			t.ok(
+				string.find(source, "CFrame.new(column.x, -TOP_THICKNESS / 2, column.z)", 1, true) ~= nil,
+				"build offset"
+			)
+		end
+	)
 end

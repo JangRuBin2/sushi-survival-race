@@ -291,7 +291,9 @@ return function(t: Test.Test)
 	t.test("AC7: MapLighting — 프리셋·로비 검사, lerp, 시계 짧은 쪽", function()
 		for id, preset in MapLighting.PRESETS do
 			t.eq(MapLighting.validate(preset), nil, id)
-			t.ok(Maps.get(id).lighting == preset, `{id} uses its preset`)
+			-- m5-24 D4: 맵이 프리셋 초안을 Art.LIGHTING으로 옮겨 다듬으면 그쪽을 써요 (어느 쪽이든 검사 통과)
+			local lighting = Maps.get(id).lighting
+			t.ok(lighting ~= nil and MapLighting.validate(lighting) == nil, `{id} uses a valid preset`)
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
 			t.ok(MapLighting.PRESETS[id] ~= nil, `preset {id}`)

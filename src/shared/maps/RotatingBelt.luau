@@ -13,7 +13,6 @@ local Chopstick = require(script.Parent.RotatingBeltChopstick)
 local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapKitLogic = require(script.Parent.MapKitLogic)
-local MapLighting = require(script.Parent.MapLighting)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "rotating-belt"
@@ -286,7 +285,7 @@ local function build(origin: CFrame): Model
 			})
 			glint.EmissionDirection = Enum.NormalId.Top
 			glint.Parent = part
-		elseif part.Name == Art.FACE_EYE then
+		elseif part.Name == Art.FACE_EYE or part.Name == Art.GUEST_EYE then
 			CollectionService:AddTag(part, MapDecorTags.EyeBlink) -- m5-20 ④: 클라이언트가 이따금 깜빡여요
 		end
 	end
@@ -370,7 +369,7 @@ end
 
 local RotatingBelt: MapTypes.MapModule = {
 	id = ID,
-	lighting = MapLighting.PRESETS[ID], -- m5-23 맵 조명 분위기
+	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (m5-23 프리셋 초안을 Art로 옮겨 다듬음)
 	kind = "Race",
 	displayName = "회전 벨트",
 	rule = "젓가락을 피해 벨트를 거슬러 결승선까지 달려요",

@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-10 — 코드 보상: 코드 입력 창·서버 검증·남용 방지

@@ -2,6 +2,21 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-10-13 밤 — m5-24·m5-28 QA 통과, main 병합
+
+- `m5-24-merge`(4그룹 통합, QA 65a8fbc)와 `m5-28-concept-skins`(QA 12d293b)를 main에 병합. 병합 뒤 5단계: rojo OK · stylua OK · selene 0/0/0 · `lune run tests` **1842 passed, 0 failed** · luau-lsp 끝 코드 0. 두 스펙 `qa-passed`.
+- QA 리포트: `docs/qa/m5-24-map-art-pass-v2.md`, `docs/qa/m5-28-concept-skins.md`.
+
+### 특이사항 (남은 것)
+- **P2 B1 giant-jenga 소개 카메라가 탑 앞줄 블록을 뚫음** (`GiantJengaArt.luau` 경유점 2→3). `tests/m5-24-qa.spec.luau`에 "알려진 버그"로 고정 — 고치면 그 항목 삭제. developer 몫.
+- **P2 B2 claw-machine-prize 연장전 때 오락실 장식 554개가 상자와 같이 35° 기욺** (판정 영향 없음, 카펫이 낙하선 위로, 매 프레임 옮기는 파츠 ~900). 받아들일지 planner 결정.
+- **planner Q1**: 예전 m5-20 안개 패널 처리 — soy·chef는 방 밖으로(D5), ramen은 국물 아래로 옮김(결정 기록 없음). 규칙("안개 패널 안 씀")과 맞는지 정하기.
+- P3: 새우 꼬리 넘어질 때 묻힘 가능, 휴대폰 뒤 카메라에서 참치 결 안 보임(김 띠 없음으로만 연어와 구분), 연어알 Glass 재질 Future 조명 확인, 렌더러 "떠 있는 파츠" 검사가 외곽 상자 기준(회전 파츠 늘면 보강), bouncy 플레이어 시점 렌더 불가, hot-plate 플레이어 시점 왼쪽 큰 어두운 판(예전부터).
+- 예산 빠듯: lantern-bridge 조명 23/24·움직임 73/80, bouncy-castle-maze 장식 1468/1500.
+- 그룹 B·C·D 병합 커밋 일부에 Co-Authored-By 줄 빠짐(이미 push, 히스토리 안 고침).
+- docs-writer 할 일: CLAUDE.md 현재 상태(m5-24 done, m5-28 콘셉트 스킨 4종·스킨 36종, 테스트 수), CHANGELOG. 앞 절의 m5-26 관련 문서 수정과 함께.
+- **사용자 차례**: Studio 확인 — 맵은 QA 리포트 체크리스트(`forceMapPlans` 5판, 결승 `overtimeAt = 5`, 끝나면 nil), 스킨은 m5-28 QA 리포트 7개. 결정: 콘셉트 스킨 가격·등급·이름, 다음 묶음.
+
 ## 2026-10-13 저녁 (클라우드 세션 — m5-24 4그룹 + m5-28 콘셉트 스킨)
 
 모두 각 브랜치에 push, **main에는 아직 병합 안 함**(QA 전). 클라우드 검증 5단계는 전부 통과.

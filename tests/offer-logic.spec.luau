@@ -430,4 +430,35 @@ return function(t: Test.Test)
 		t.eq(#OfferLogic.contentLines(offer("vip")), 3)
 		t.eq(#OfferLogic.contentLines(offer("fx-cat-customer")), 1)
 	end)
+	t.test(
+		"결제 처리는 한 곳: ReceiptLogic·RobuxShopService는 상품 모듈을 모르고, OfferService는 port만 등록해요",
+		function()
+			local fs = require("@lune/fs")
+			local receipt = fs.readFile("src/shared/ReceiptLogic.luau")
+			local robux = fs.readFile("src/server/RobuxShopService.luau")
+			local offerService = fs.readFile("src/server/OfferService.luau")
+			for _, name in { "Offers", "OfferLogic", "FxCatalog", "OfferService" } do
+				t.eq(
+					string.find(receipt, `require(script.Parent.{name})`, 1, true),
+					nil,
+					`ReceiptLogic must not require {name}`
+				)
+				t.eq(string.find(robux, `Shared.{name})`, 1, true), nil, `RobuxShopService must not require {name}`)
+				t.eq(
+					string.find(robux, `script.Parent.{name})`, 1, true),
+					nil,
+					`RobuxShopService must not require {name}`
+				)
+			end
+			t.eq(
+				string.find(offerService, "ProcessReceipt", 1, true),
+				nil,
+				"OfferService does not touch ProcessReceipt"
+			)
+			t.ok(
+				string.find(offerService, "RobuxShopService.setOfferPort(offerPort)", 1, true) ~= nil,
+				"port registered"
+			)
+		end
+	)
 end

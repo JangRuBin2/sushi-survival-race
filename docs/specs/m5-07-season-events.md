@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-07 — 시즌 이벤트: 한정 스킨·이벤트 재화(🍬/⭐)·탈의실 이벤트 탭

@@ -106,7 +106,7 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"AC1: 꼬치 쇼다운 장식(고정·조각·음식·손 전부)이 검사를 통과하고 합쳐서 600개 이하",
+		"AC1: 꼬치 쇼다운 장식(고정·조각·음식·손 전부)이 검사를 통과하고 합쳐서 예산 안 (m5-24 D2: Art.BUDGET 단계)",
 		function()
 			t.eq(MapKitLogic.validate(SkewerArt.decor()), nil)
 			for index = 1, SkewerLogic.SLICE_COUNT do
@@ -115,7 +115,9 @@ return function(t: Test.Test)
 			t.eq(MapKitLogic.validate(SkewerArt.skewerFood(SkewerLogic.LOW_SKEWER)), nil)
 			t.eq(MapKitLogic.validate(SkewerArt.handDecor()), nil)
 			local all = skewerAll()
-			t.ok(MapKitLogic.count(all) <= MapKitLogic.DECOR_PART_BUDGET, `count {MapKitLogic.count(all)}`)
+			local tier = SkewerArt.BUDGET or "Standard"
+			t.ok(MapKitLogic.count(all) <= MapKitLogic.budget(tier).parts, `count {MapKitLogic.count(all)}`)
+			t.eq(MapKitLogic.checkBudget(all, tier), nil, `skewer-showdown {tier} budget`)
 			t.eq(shapeProblem(all), nil)
 		end
 	)

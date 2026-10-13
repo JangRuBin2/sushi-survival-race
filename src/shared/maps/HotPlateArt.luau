@@ -82,7 +82,6 @@ local COUNTER_WOOD: RGB = { r = 150, g = 100, b = 62 } -- 카운터 테두리·�
 local LACQUER = PALETTE.LacquerDark
 local TILE_WHITE: RGB = { r = 214, g = 216, b = 214 }
 local HOOD_DARK: RGB = { r = 40, g = 42, b = 46 }
-local HEAT: RGB = { r = 255, g = 168, b = 60 } -- 장식 열기 (HotTile 경고 주황 232,100,24·빨강과 다르게 노란 쪽)
 local HEAT_DEEP: RGB = { r = 240, g = 120, b = 40 }
 local GAS_BLUE: RGB = { r = 80, g = 150, b = 255 }
 local LAMP_PAPER: RGB = { r = 255, g = 214, b = 150 }

@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-04 — 두 번째 결승 맵: 연어알 폭탄 접시 (`ikura-bombs`)

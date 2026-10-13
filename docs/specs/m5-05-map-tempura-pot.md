@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-05 — 새 Survival 맵: 튀김 냄비 탈출 (`tempura-pot`)

@@ -307,22 +307,22 @@ local function eye(side: number, prefix: string): { PartSpec }
 		),
 		piece(
 			`EyeWhite{prefix}`,
-			{ 0.06, 0.84, 0.84 },
+			{ 0.05, 0.84, 0.84 },
 			WHITE,
-			{ x, EYE_Y, -1.27 },
+			{ x, EYE_Y, -1.255 },
 			nil,
 			{ shape = "Cylinder", rotation = FACING, attach = rim }
 		),
 		piece(
 			`Pupil{prefix}`,
-			{ 0.05, 0.56, 0.56 },
+			{ 0.04, 0.56, 0.56 },
 			PUPIL,
-			{ x - side * 0.04, EYE_Y - 0.06, -1.31 },
+			{ x - side * 0.04, EYE_Y - 0.06, -1.29 },
 			nil,
 			{ shape = "Cylinder", rotation = FACING, attach = rim }
 		),
 		-- 하이라이트는 두 눈 모두 왼쪽 위 (빛이 한쪽에서 오는 것처럼)
-		piece(`Shine{prefix}`, { 0.2, 0.2, 0.2 }, WHITE, { x - 0.13, EYE_Y + 0.14, -1.34 }, "Neon", {
+		piece(`Shine{prefix}`, { 0.2, 0.2, 0.2 }, WHITE, { x - 0.13, EYE_Y + 0.14, -1.3 }, "Neon", {
 			shape = "Ball",
 			attach = rim,
 		}),
@@ -335,9 +335,9 @@ local function cheek(side: number, prefix: string, color: { number }, material: 
 	local angle = math.rad(27)
 	return piece(
 		`Cheek{prefix}`,
-		{ 0.06, 0.38, 0.38 },
+		{ 0.04, 0.38, 0.38 },
 		color,
-		{ side * ((RICE_W - RICE_D) / 2 + 1.19 * math.sin(angle)), -0.2, -1.19 * math.cos(angle) },
+		{ side * ((RICE_W - RICE_D) / 2 + 1.2 * math.sin(angle)), -0.2, -1.2 * math.cos(angle) },
 		material,
 		{ shape = "Cylinder", rotation = { 0, 90 - side * 27, 0 } }
 	)
@@ -361,12 +361,12 @@ local function base(opts: BaseOpts?): { PartSpec }
 				"Mouth",
 				{ 0.1, 0.5, 0.5 },
 				MOUTH,
-				{ 0, -0.12, -1.21 },
+				{ 0, -0.12, -1.17 },
 				nil,
 				{ shape = "Cylinder", rotation = FACING }
 			),
 			-- 입 위쪽 반을 덮는 밥 → 아래 반원만 보이는 웃는 입
-			piece("MouthCover", { 0.58, 0.27, 0.08 }, RICE, { 0, 0.015, -1.25 }),
+			piece("MouthCover", { 0.58, 0.27, 0.04 }, RICE, { 0, 0.015, -1.22 }),
 			cheek(-1, "Left", cheekColor, cheekMaterial),
 			cheek(1, "Right", cheekColor, cheekMaterial),
 			ball("FootLeft", FOOT_D, foot, { -0.8, FOOT_Y, -0.15 }, footMaterial, { joint = true }),

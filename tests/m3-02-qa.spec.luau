@@ -34,6 +34,10 @@ function CFrame.new(x: any?, y: number?, z: number?): any
 	return setmetatable({ X = x or 0, Y = y or 0, Z = z or 0 }, CFrameMT)
 end
 CFrame.identity = CFrame.new()
+-- m5-25: 새 몸은 원기둥·눈을 돌려요. 가짜 CFrame은 이동만 다루니 회전은 무시해요.
+function CFrame.Angles(_x: number, _y: number, _z: number): any
+	return CFrame.new()
+end
 
 local Color3 = {}
 function Color3.fromRGB(r: number, g: number, b: number): any
@@ -47,6 +51,7 @@ local Enum = {
 		end,
 	}),
 	SurfaceType = { Smooth = "Smooth" },
+	PartType = { Ball = "Ball", Cylinder = "Cylinder" },
 	HumanoidRigType = { R15 = "R15", R6 = "R6" },
 }
 
@@ -242,6 +247,7 @@ local function baseEnv(env: Env, sharedModules: { [string]: any }): { [string]: 
 				return assert(services[name], `no fake service {name}`)
 			end,
 		},
+		script = { Parent = sharedFolder }, -- SushiBody가 형제 SushiConceptSample을 불러요 (m5-27)
 		Instance = Instance,
 		Vector3 = Vector3,
 		CFrame = CFrame,
@@ -271,7 +277,10 @@ end
 
 local function loadAll(): (any, any, Env)
 	local env: Env = { warnings = {}, starterPlayer = { LoadCharacterAppearance = true } }
-	local SushiBody = load("src/shared/SushiBody.luau", baseEnv(env, {}))
+	local SushiBody = load(
+		"src/shared/SushiBody.luau",
+		baseEnv(env, { SushiConceptSample = RobloxRequire.require(Shared.SushiConceptSample) })
+	)
 	local AppearanceService = load(
 		"src/server/AppearanceService.luau",
 		baseEnv(env, { Attributes = Attributes, Config = Config, SushiBody = SushiBody })
@@ -326,31 +335,53 @@ end
 
 return function(t: Test.Test)
 	---------------------------------------------------------------- SushiBody.build
-	t.test("build: layout 파츠 전부, PrimaryPart = Body(Anchored), 나머지는 Body에 용접", function()
-		local SushiBody = loadAll()
-		local model = SushiBody.build("tamago")
-		local layout = RealSushiBody.layout("tamago")
-		local parts = {}
-		for _, c in model:GetChildren() do
-			if c:IsA("BasePart") then
-				parts[c.Name] = c
+	t.test(
+		"build: layout 파츠 전부, PrimaryPart = Body(Anchored), 나머지는 Body에 용접 (m5-25: 움직이는 파츠는 Motor6D, 눈 속 파츠는 눈에 용접)",
+		function()
+			local SushiBody = loadAll()
+			local model = SushiBody.build("tamago")
+			local layout = RealSushiBody.layout("tamago")
+			local parts = {}
+			for _, c in model:GetChildren() do
+				if c:IsA("BasePart") then
+					parts[c.Name] = c
+				end
 			end
-		end
-		for _, spec in layout do
-			t.ok(parts[spec.name] ~= nil, `missing part {spec.name}`)
-		end
-		t.ok(model.PrimaryPart == parts.Body, "PrimaryPart")
-		t.eq(parts.Body.Anchored, true)
-		for name, part in parts do
-			if name ~= "Body" then
-				t.eq(part.Anchored, false, `{name} anchored`)
-				local weld = part:FindFirstChildOfClass("WeldConstraint")
-				t.ok(weld ~= nil, `{name} weld`)
-				t.ok(weld.Part0 == parts.Body, `{name} weld Part0`)
-				t.ok(weld.Part1 == part, `{name} weld Part1`)
+			for _, spec in layout do
+				t.ok(parts[spec.name] ~= nil, `missing part {spec.name}`)
 			end
+			t.ok(model.PrimaryPart == parts.Body, "PrimaryPart")
+			t.eq(parts.Body.Anchored, true)
+			local specs = {}
+			for _, spec in layout do
+				specs[spec.name] = spec
+			end
+			local motors = 0
+			for name, part in parts do
+				if name ~= "Body" then
+					t.eq(part.Anchored, false, `{name} anchored`)
+					local spec = specs[name]
+					if spec.joint then
+						local motor = part:FindFirstChildOfClass("Motor6D")
+						t.ok(motor ~= nil, `{name} motor`)
+						t.eq(motor.Name, RealSushiBody.PART_JOINT_NAME, `{name} motor name`)
+						t.ok(motor.Part0 == parts.Body, `{name} motor Part0`)
+						t.ok(motor.Part1 == part, `{name} motor Part1`)
+						t.eq(part:FindFirstChildOfClass("WeldConstraint"), nil, `{name} no weld`)
+						motors += 1
+					else
+						local weld = part:FindFirstChildOfClass("WeldConstraint")
+						t.ok(weld ~= nil, `{name} weld`)
+						local anchor = if spec.attach then parts[spec.attach] else parts.Body
+						t.ok(weld.Part0 == anchor, `{name} weld Part0`)
+						t.ok(weld.Part1 == part, `{name} weld Part1`)
+					end
+				end
+			end
+			-- 눈 테두리 2 + 감은 눈 2 + 발 2
+			t.eq(motors, 6)
 		end
-	end)
+	)
 
 	t.test("build: 모든 초밥 파츠가 Massless·CanCollide/CanQuery/CanTouch false (판정에 안 낌)", function()
 		local SushiBody = loadAll()
@@ -473,10 +504,10 @@ return function(t: Test.Test)
 			t.ok(math.abs(joint.C0.Y - (body.CFrame.Y - root.CFrame.Y)) < 1e-6, "C0 matches placed offset")
 			t.eq(body.CFrame.X, root.CFrame.X)
 			t.eq(body.CFrame.Z, root.CFrame.Z)
-			-- 꼭대기는 휴머노이드 기본 키(약 5) 안
+			-- 꼭대기는 휴머노이드 기본 키(약 5) 안 (m5-25: 넓고 낮은 새 몸이라 하한 4.0)
 			local b = RealSushiBody.bounds(RealSushiBody.layout("tamago"))
 			local top = body.CFrame.Y + b.max[2] - feet
-			t.ok(top >= 4.5 and top <= 5.5, `top above feet {top}`)
+			t.ok(top >= 4.0 and top <= 5.5, `top above feet {top}`)
 		end
 	)
 

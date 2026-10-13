@@ -89,3 +89,30 @@
 - 남은 것: 사용자 Studio 확인(AC12~AC18), B1·B2는 developer가 원하면 다음 배치에(블로킹 아님).
 - 다음 첫 단계: docs-writer가 CHANGELOG·DEV-SETUP 반영 → `done`. 사용자 체크리스트 결과가 오면 R1 수치 조정.
 - 막힌 점: 없음.
+
+## 재QA (2026-10-13, qa) — 브랜치 `m5-maps-fix-b` (`ae59293`)
+### 자동 검증
+| 명령 | 결과 |
+|---|---|
+| `rojo build -o build.rbxl` | 통과 |
+| `stylua --check src tests` | 통과 |
+| `selene src` | 통과 (0 errors, 0 warnings, 0 parse errors) |
+| `lune run tests` | 통과 — **1456 passed, 0 failed** (fix-b 개발 테스트 + 재QA `tests/m5-maps-fix-b-qa.spec.luau` 5개) |
+| `luau-lsp analyze ... src` | 통과 (끝 코드 0) |
+
+### 수정 확인
+| 버그 | 결과 | 근거 |
+|---|---|---|
+| B1 고양이 발 주기 | 고침 | `CatCafeShelves.luau:320-349` 차례 시작 시각에 `pawInterval`을 읽고 경고 뒤 `pawRest(interval, 쓴 시간)`만 기다림. 재QA 테스트 "m5-17 재QA B1"이 서버 루프 순서 그대로 8~60초를 돌려 경고 시작 간격이 5 / 3.2 / 2초와 같음, 45~60초에 7번 이상 확인. |
+| B2 꼭대기 공 폭 판정 | 고침 | `:278-279` `isHitAt(along, across)`. 꼭대기에서 폭 방향 2.2 초과는 안 맞음. 1·2단은 레이캐스트가 선반을 맞힌 사람의 폭 거리 ≤ 2(SHELF_WIDTH/2) ≤ 2.2라 판정이 `isHit(along)`과 같음(회귀 없음, 재QA 테스트 "m5-17 재QA B2"). |
+
+- 바뀐 곳은 공 판정·발 루프 대기뿐. 탈락 판정(`ELIMINATION_Y`), 넉백 세기, 대상 선반 고르기, 정리(Cleanup)는 그대로.
+- 남은 것: R1 넉백 세기, AC12~AC18은 그대로 사용자 Studio 확인. 추가로 45~60초에 고양이 발 경고가 약 2초마다 뜨는지, 꼭대기에서 공과 옆으로 떨어져 서 있으면 안 밀리는지.
+- 상태: `qa-passed` 유지.
+
+## 인계 메모 (2026-10-13, qa 재QA)
+- 브랜치: `m5-maps-fix-b` (QA 커밋을 같은 브랜치에 push).
+- 끝난 것: B1·B2 수정 확인, 검증 5단계, 재QA 테스트 추가.
+- 남은 것: 사용자 Studio 확인(AC12~AC18 + 위 두 가지).
+- 다음 첫 단계: `m5-maps-fix-b`를 main에 병합 → docs-writer가 CHANGELOG·DEV-SETUP 반영 → `done`.
+- 막힌 점: 없음.

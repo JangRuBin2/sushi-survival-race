@@ -47,6 +47,7 @@ local EXPECTED = {
 	{ "softserve-roll", "소프트아이스크림 롤", "Epic", 99, nil },
 	{ "crown-tuna", "크라운 참치", "Legendary", 199, nil },
 	{ "unicorn-roll", "유니콘 롤", "Legendary", 199, nil },
+	{ "concept-salmon", "콘셉트 연어초밥 (테스트)", "Basic", nil, nil }, -- m5-27 실험 스킨 (모두 무료)
 }
 
 local TOLERANCE = 0.15
@@ -67,7 +68,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 카탈로그 31종이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
+		"AC1: 카탈로그 32종(실험 스킨 1 포함)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
 		function()
 			t.eq(#Skins.LIST, #EXPECTED)
 			for i, row in EXPECTED do
@@ -80,7 +81,7 @@ return function(t: Test.Test)
 				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
 				local pid = skin.productId
 				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-				if row[1] == "tamago" then
+				if row[1] == "tamago" or row[1] == "concept-salmon" then
 					t.eq(pid, nil, "default skin has no product")
 				end
 				t.eq(Skins.get(row[1]), skin)
@@ -131,14 +132,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"byTier: 등급별 개수 (기본 1, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
+		"byTier: 등급별 개수 (기본 2 = 계란초밥 + 실험 스킨, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
 		function()
-			t.eq(#Skins.byTier("Basic"), 1)
+			t.eq(#Skins.byTier("Basic"), 2)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
 			t.eq(#Skins.byTier("Legendary"), 6)
-			t.eq(#Skins.byTier(nil), 31)
+			t.eq(#Skins.byTier(nil), 32)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -218,21 +219,37 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"AC2: 히트박스·이름표 기준이 같아요 — Body·눈·입·발은 계란초밥과 같은 값, 발바닥 높이 같음",
+		"AC2·m5-25 AC8: 히트박스·이름표 기준이 같아요 — 기준 파츠 22개(밥·눈·입·볼·발)는 계란초밥과 같은 크기·위치·회전, 발바닥 높이 같음",
 		function()
 			local base = byName(SushiBody.layout("tamago"))
+			t.eq(#SushiBody.BASE_NAMES, 22)
 			for _, skin in Skins.LIST do
+				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				if skin.experimental then
+					local sb = SushiBody.bounds(SushiBody.layout(skin.id))
+					t.ok(math.abs(-sb.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {sb.min[2]}`)
+					continue
+				end
 				local layout = SushiBody.layout(skin.id)
 				t.eq(layout[1].name, "Body", `{skin.id}: Body first`)
 				local parts = byName(layout)
-				for _, name in { "Body", "EyeLeft", "EyeRight", "Mouth", "FootLeft", "FootRight" } do
+				t.eq(parts.Body.rotation, nil, `{skin.id} Body not rotated`)
+				for _, name in SushiBody.BASE_NAMES do
 					local a, b = parts[name], base[name]
 					t.ok(a ~= nil, `{skin.id} {name}`)
 					for axis = 1, 3 do
 						t.eq(a.size[axis], b.size[axis], `{skin.id} {name} size`)
 						t.eq(a.offset[axis], b.offset[axis], `{skin.id} {name} offset`)
 					end
-					t.eq(a.rotation, nil, `{skin.id} {name} not rotated`)
+					t.eq(a.rotation, b.rotation, `{skin.id} {name} rotation`)
+					t.eq(a.shape, b.shape, `{skin.id} {name} shape`)
+					t.eq(a.joint, b.joint, `{skin.id} {name} joint`)
+					t.eq(a.attach, b.attach, `{skin.id} {name} attach`)
+					-- 발·볼은 색·재질만 바꿀 수 있어요 (뒤·옆 정보). 나머지는 색까지 같아요.
+					if not (string.find(name, "^Foot") or string.find(name, "^Cheek")) then
+						t.eq(a.color, b.color, `{skin.id} {name} color`)
+						t.eq(a.material, b.material, `{skin.id} {name} material`)
+					end
 				end
 				local bounds = SushiBody.bounds(layout)
 				t.ok(math.abs(-bounds.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {bounds.min[2]}`)
@@ -245,6 +262,9 @@ return function(t: Test.Test)
 		function()
 			local base = extents(SushiBody.layout("tamago"))
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local size = extents(SushiBody.layout(skin.id))
 				local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier] or TOLERANCE
 				for axis = 1, 3 do
@@ -390,35 +410,37 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("AC2(m5-22): Wedge를 쓰는 7개 파츠가 shape == 'Wedge'이고 size 각 축이 양수예요", function()
-		local wedgeParts: { [string]: { string } } = {
-			["cat-sushi"] = { "EarLeft", "EarRight", "EarInnerLeft", "EarInnerRight" },
-			["crown-tuna"] = {
-				"CrownSpike1",
-				"CrownSpike2",
-				"CrownSpike3",
-				"CrownSpike4",
-				"CrownSpike5",
-				"CapeLeft",
-				"CapeRight",
-			},
-			["unicorn-roll"] = { "Mane1", "Mane2", "Mane3" },
-		}
-		local total = 0
-		for skinId, names in wedgeParts do
-			local parts = byName(SushiBody.layout(skinId))
-			for _, name in names do
-				local spec = parts[name]
-				t.ok(spec ~= nil, `{skinId} {name} exists`)
-				t.eq(spec.shape, "Wedge", `{skinId} {name} shape`)
-				for axis = 1, 3 do
-					t.ok(spec.size[axis] > 0, `{skinId} {name} size axis {axis}`)
+	t.test(
+		"AC2(m5-22·m5-25): 귀·왕관 가시·갈기가 shape == 'Wedge'이고 size 각 축이 양수예요",
+		function()
+			-- m5-25 재배치: 크라운의 망토는 쐐기 대신 등 자락(벨벳), 유니콘 갈기는 4장
+			local wedgeParts: { [string]: { string } } = {
+				["cat-sushi"] = { "EarLeft", "EarRight", "EarInnerLeft", "EarInnerRight" },
+				["crown-tuna"] = {
+					"CrownSpike1",
+					"CrownSpike2",
+					"CrownSpike3",
+					"CrownSpike4",
+					"CrownSpike5",
+				},
+				["unicorn-roll"] = { "Mane1", "Mane2", "Mane3", "Mane4" },
+			}
+			local total = 0
+			for skinId, names in wedgeParts do
+				local parts = byName(SushiBody.layout(skinId))
+				for _, name in names do
+					local spec = parts[name]
+					t.ok(spec ~= nil, `{skinId} {name} exists`)
+					t.eq(spec.shape, "Wedge", `{skinId} {name} shape`)
+					for axis = 1, 3 do
+						t.ok(spec.size[axis] > 0, `{skinId} {name} size axis {axis}`)
+					end
+					total += 1
 				end
-				total += 1
 			end
+			t.eq(total, 4 + 5 + 4)
 		end
-		t.eq(total, 4 + 7 + 3)
-	end)
+	)
 
 	t.test("AC2: 모르는 id는 계란초밥 (hasLayout false)", function()
 		t.eq(SushiBody.hasLayout("no-such-skin"), false)

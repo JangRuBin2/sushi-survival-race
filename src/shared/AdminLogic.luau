@@ -92,8 +92,9 @@ AdminLogic.COMMAND_TIERS = {
 	fx = "Info",
 	start = "Test",
 	plan = "Test",
-	coins = "Test",
-	tokens = "Test",
+	-- 경제 명령은 저장을 켠 Studio에서도 막아요 (진짜 프로필에 기록되지 않게, m4-14 R4·m5-08 B3와 같은 원칙, 2026-10-13 사용자 결정)
+	coins = "StudioOnly",
+	tokens = "StudioOnly",
 	resetprofile = "StudioOnly",
 } :: { [string]: CommandTier }
 

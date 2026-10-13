@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-18 — 세 번째 결승 맵: 줄다리기 발판 (`tug-of-war-platform`)
@@ -86,6 +86,8 @@ status: qa-passed
 - 2026-10-09 · D2 연장전 끝 각도를 왜 정확히 90도로 고정했는지 · 마찰 계수를 아무리 낮춰도 "매달리거나 버틸 안전한 자리가 남으면 안 된다"(`MapTypes.luau` 연장전 약속, Fall Guys Jump Showdown infinite hang 교훈, m5-01 결정 기록 D6)는 요구를 **물리 튜닝이 아니라 기하학적으로** 만족시키기 위해서다. 완전히 수직인 발판 위에는 애초에 설 수평면이 없다. · planner
 - 2026-10-09 · D3 이동 감시 면제를 왜 안 다는지 · CLAUDE.md "이동 감시 면제" 절이 "벨트·급류·기울기 같은 연속 밀기에는 달지 않는다"(조작 구멍 방지)고 명시하고, `RamenRapidsLayout`이 같은 논리(목표 속도가 감시 상한보다 한참 낮음)로 이미 그렇게 하고 있다. 발판 기울기도 서버가 CFrame만 돌리고 실제 미끄러짐은 Roblox 물리가 만드는 연속적인 현상이라 같은 원칙을 적용했다. 다만 수치 안전망으로 Studio AC12를 넣어, 혹시 감시가 오탐하면 developer가 좁은 범위(연장전 전환 순간만)로 짧은 면제를 고려할 수 있게 열어 뒀다. · planner
 - 2026-10-09 · D4 수치 · `MAX_ANGLE` 30도(꼬치 쇼다운 급류 경사 12도보다는 훨씬 크지만, 과반수가 뭉쳐야 포화되게 `SATURATION_TORQUE` 105(끝에 3명)로 조절), `TILT_RATE` 초당 20도(무거운 저울이 서서히 움직이는 느낌, `SkewerShowdown` 꼬치 가속보다는 느림), 연장전 꺾인점 4개·30→50→70→90도(균등 4등분, 마지막이 정확히 수직). **기본값, 플레이테스트 후 조정** · planner
+- 2026-10-13 · QA B1 연장전 끝(90°) 발판 끝면이 2×22 수평 턱으로 남음 · `collapseDuration`이 지나면 발판(같이 기우는 파츠 전부) `CanCollide`·`CanTouch`·`CanQuery`를 끔. 마지막 꺾인점 90°는 그대로 · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · QA B2 발판 밖으로 떨어지는 사람도 토크에 들어감 · 로컬 X가 발판 절반 길이(35) 밖이면 토크에서 뺌 · 메인 세션 (사용자가 맵 판단 위임)
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
@@ -112,3 +114,11 @@ status: qa-passed
 ### 남은 이슈
 - 없음(알려진 버그 없음). 수치(`MAX_ANGLE`·`SATURATION_TORQUE`·`TILT_RATE`·마찰 0.35)는 전부 스펙 기본값 그대로이고, Studio 플레이테스트(AC16) 뒤 Layout/Logic 상수만 조정하면 돼요.
 - 클라우드/CI 환경에서 Studio 확인(AC9~AC16)은 수행하지 못했습니다 — 위 절차로 사용자가 직접 확인해야 합니다.
+
+### QA 수정 (2026-10-13, developer, 브랜치 `m5-maps-fix-b`)
+- B1(P2): `TugOfWarPlatform.luau` Heartbeat 루프가 연장전 `collapseDuration`이 지나면(`TugOfWarPlatformLogic.platformSolid` false) 한 번 `disablePlatform()` — 발판과 같이 기우는 파츠 전부 `CanCollide/CanTouch/CanQuery = false`. 수직 발판 끝면 턱이 남지 않아 안전 상한까지 버틸 자리가 없어요.
+- B2(P3): 토크 계산에 `Logic.riderX(x, HALF_LENGTH)` — 발판 길이 밖(|x| > 35)은 nil이라 빠져요.
+- 테스트: `tests/m5-maps-fix-b.spec.luau`의 "m5-18 B1"·"m5-18 B2" (순수 함수 경계값).
+- 검증 5단계 통과 (rojo build, stylua --check, selene 0/0/0, lune run tests **1390 passed, 0 failed**, luau-lsp analyze 끝 코드 0).
+- Studio 확인: `overtimeAt = 15`, 연장전 20초 뒤(마지막 수직) 발판 위·끝면 어디에도 설 수 없고 남은 사람이 떨어져 경기가 끝나는지.
+- 상태: `in-qa` (빠른 재QA).

@@ -1,6 +1,6 @@
 --!strict
 -- "방방 미로"의 순수 판정 로직 (m5-14). Roblox API를 쓰지 않아서 Lune 테스트에서 바로 불러요.
---   Logic.blockedAt(x, z, partitions, gate, bounds)  격자 한 점이 벽(칸막이·관문·바깥 벽) 안인지
+--   Logic.blockedAt(x, z, partitions, gate, bounds, exitGate)  격자 한 점이 벽(칸막이·관문·출구 벽·바깥 벽) 안인지
 --   Logic.bounceProfile(upSpeed, gravity)            위 속도만의 포물선: 최고 높이·비행 시간
 --   Logic.fallLineAt(z)                               낙하 판정선(origin 기준 로컬 y). 전 구간 동일 상수
 -- 치수 데이터(칸막이·관문·레인 위치 등)는 BouncyCastleMazeLayout에 있어요. 이 모듈은 그 데이터를 받아
@@ -12,21 +12,25 @@ local Logic = {}
 
 export type BounceProfile = { apex: number, flightTime: number }
 
--- 격자 판정: (x, z)가 벽(칸막이·관문·바깥 벽) 안이면 true. 1 stud 플러드필 테스트가 이걸로 길을 찾아요.
+local function gateBlocks(x: number, z: number, gate: Layout.Gate): boolean
+	return math.abs(z - gate.z) <= gate.thickness / 2 and (x < gate.openXMin or x > gate.openXMax)
+end
+
+-- 격자 판정: (x, z)가 벽(칸막이·입구 관문·출구 벽·바깥 벽) 안이면 true. 1 stud 플러드필 테스트가 이걸로
+-- 길을 찾아요. 출구 벽(exitGate, m5-14 B1)은 관문과 같은 모양이라 같은 계산으로 봐요.
 function Logic.blockedAt(
 	x: number,
 	z: number,
 	partitions: { Layout.Partition },
 	gate: Layout.Gate,
-	bounds: Layout.Bounds
+	bounds: Layout.Bounds,
+	exitGate: Layout.Gate
 ): boolean
 	if x <= bounds.xMin or x >= bounds.xMax then
 		return true
 	end
-	if math.abs(z - gate.z) <= gate.thickness / 2 then
-		if x < gate.openXMin or x > gate.openXMax then
-			return true
-		end
+	if gateBlocks(x, z, gate) or gateBlocks(x, z, exitGate) then
+		return true
 	end
 	for _, partition in partitions do
 		if math.abs(x - partition.x) <= partition.thickness / 2 then

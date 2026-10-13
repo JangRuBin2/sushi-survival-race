@@ -347,16 +347,64 @@ return function(t: Test.Test)
 		t.ok(hit.a and hit.b and hit.c, "every candidate can be picked")
 	end)
 
-	---------------------------------------------------------------- AC8
-	t.test("AC8: 장식이 MapKitLogic.validate 통과, 600개 이하, 젓가락 높이 50 이상", function()
-		local decor = Art.decor()
-		t.eq(MapKitLogic.validate(decor), nil)
-		t.ok(MapKitLogic.count(decor) <= MapKitLogic.DECOR_PART_BUDGET, `decor {MapKitLogic.count(decor)}`)
-		local bounds = MapKitLogic.bounds(decor)
-		t.ok(bounds ~= nil and bounds.max.y >= 50, "giant chopsticks reach 50+")
-	end)
+	---------------------------------------------------------------- AC8 / AC16
+	t.test(
+		"AC8·AC16: 장식이 validate 통과, Extended 예산 안, 젓가락 높이 50 이상, 조명 프리셋",
+		function()
+			local decor = Art.decor()
+			t.eq(Art.BUDGET, "Extended")
+			t.eq(MapKitLogic.validate(decor), nil)
+			t.eq(MapKitLogic.checkBudget(decor, "Extended", { lights = #Art.OIL_GLOWS, particles = 4 }), nil)
+			local bounds = MapKitLogic.bounds(decor)
+			t.ok(bounds ~= nil and bounds.max.y >= 50, "giant chopsticks reach 50+")
+			local map = Maps.get("tempura-pot")
+			t.ok(map.lighting ~= nil, "lighting preset")
+			t.eq(MapTypes.validate(map), nil)
+			-- 생동감: 파티클 2종 이상(기름 거품·김은 build가 붙임 + 장식 Steam·Embers), 움직임 3개 이상
+			t.ok(MapKitLogic.countParticles(decor) >= 2, "particles")
+			t.ok(MapKitLogic.countAnimated(decor) >= 3, "anim")
+			t.ok(MapKitLogic.countShadowedLights(decor) <= 2, "shadowed lights")
+		end
+	)
 
-	t.test("AC8: IntroCamera 4점", function()
-		t.eq(#Art.introCamera(), 4)
+	t.test(
+		"AC16: 장식 가독성 — 배경 바닥은 안전망보다 10 이상 아래, 발판 윗면 위로 올라온 장식 없음",
+		function()
+			for _, spec in Art.decor() do
+				if spec.name == "KitchenFloor" then
+					t.ok(spec.offset.y + spec.size.y / 2 <= Layout.FALL_ELIMINATION_Y - 10, "floor depth")
+				end
+			end
+			-- 튀김옷 돌기·껍질·꼬리·깻잎은 그 발판 윗면보다 낮아요 (밟는 면을 가리거나 바닥처럼 보이지 않게)
+			local raftNames = { BatterBump = true, SweetPotatoSkin = true, ShrimpTail = true, ShisoLeaf = true }
+			for _, spec in Art.decor() do
+				if raftNames[spec.name] then
+					local best: any, bestD = nil, math.huge
+					for _, raft in Layout.rafts() do
+						local d = Logic.pointDistance(raft, spec.offset.x, spec.offset.z)
+						if d < bestD then
+							best, bestD = raft, d
+						end
+					end
+					t.ok(
+						best ~= nil and spec.offset.y + spec.size.y / 2 <= best.topY + 0.05,
+						`{spec.name} under its raft top`
+					)
+				end
+			end
+		end
+	)
+
+	t.test("AC8: IntroCamera 4점, 전부 냄비(판정 경계) + 40 안", function()
+		local points = Art.introCamera()
+		t.eq(#points, 4)
+		local r = Layout.POT_INNER_RADIUS + Layout.POT_WALL_THICKNESS + 40
+		for i, p in points do
+			t.ok(
+				math.abs(p.pos.x - Layout.POT_CENTER_X) <= r and math.abs(p.pos.z - Layout.POT_CENTER_Z) <= r,
+				`intro {i} xz`
+			)
+			t.ok(p.pos.y >= Layout.POT_FLOOR_Y - 2 - 40 and p.pos.y <= Layout.POT_WALL_TOP_Y + 40, `intro {i} y`)
+		end
 	end)
 end

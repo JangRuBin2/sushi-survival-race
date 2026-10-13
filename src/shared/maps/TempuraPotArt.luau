@@ -745,7 +745,14 @@ local function addHood(list: { DecorSpec })
 	-- 덮개 (둥근 상자) + 위로 좁아지는 쐐기 + 굴뚝
 	addAll(
 		list,
-		MapKitShapes.roundedBox("HoodCanopy", v(210, 16, 92), shade(STEEL, 0.8), "Metal", P(0, HOOD_Y + 8, zc), { radius = 2.4 }),
+		MapKitShapes.roundedBox(
+			"HoodCanopy",
+			v(210, 16, 92),
+			shade(STEEL, 0.8),
+			"Metal",
+			P(0, HOOD_Y + 8, zc),
+			{ radius = 2.4 }
+		),
 		{ reflectance = 0.25 }
 	)
 	addAll(

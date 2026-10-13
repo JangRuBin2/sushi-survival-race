@@ -14,6 +14,7 @@
 local Layout = require(script.Parent.RamenRapidsLayout)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapKitShapes = require(script.Parent.MapKitShapes)
+local MapLighting = require(script.Parent.MapLighting)
 
 type DecorSpec = MapKitLogic.DecorSpec
 type Vec3 = MapKitLogic.Vec3
@@ -66,7 +67,7 @@ Art.LIGHTING = {
 	},
 	Bloom = { Intensity = 0.4, Size = 26, Threshold = 1.3 },
 	SunRays = { Intensity = 0.05, Spread = 0.7 },
-}
+} :: MapLighting.LightingPreset
 
 -- m5-20 안개 패널 이름 상수
 Art.FOG_PANEL = "FogPanel"

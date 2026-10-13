@@ -588,6 +588,7 @@ local ClawMachinePrize: MapTypes.MapModule = {
 	build = build,
 	start = start,
 	overtime = overtime,
+	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (한밤 오락실)
 }
 
 return ClawMachinePrize

@@ -19,6 +19,7 @@
 local Layout = require(script.Parent.GiantJengaLayout)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapKitShapes = require(script.Parent.MapKitShapes)
+local MapLighting = require(script.Parent.MapLighting)
 
 type DecorSpec = MapKitLogic.DecorSpec
 type RGB = MapKitLogic.RGB
@@ -100,7 +101,7 @@ Art.LIGHTING = {
 	ColorCorrection = { Brightness = 0.02, Contrast = 0.12, Saturation = 0.08, TintColor = rgb(255, 242, 226) },
 	Bloom = { Intensity = 0.55, Size = 24, Threshold = 1 },
 	SunRays = { Intensity = 0.02, Spread = 0.5 },
-}
+} :: MapLighting.LightingPreset
 
 Art.PEDESTAL_COLOR = rgb(108, 74, 44) :: RGB -- 가운데 3×3, 더 두껍고 짙은 나무
 Art.LAMP_BULB = "LampBulb"
@@ -531,18 +532,23 @@ local function shelves(specs: { DecorSpec })
 		add(specs, part("ShelfBracket", "Wedge", v(3, 14, 22), IRON, "Metal", v(x - 4, y - 9, -120), v(0, -90, 180)))
 		add(specs, part("ShelfBracket", "Wedge", v(3, 14, 22), IRON, "Metal", v(x - 4, y - 9, 40), v(0, -90, 180)))
 		-- 페인트 통 무리 (크기·색 다르게)
-		local cans = { { -110, 18, PALETTE.Porcelain }, { -90, 14, TOOL_BLUE }, { -74, 16, TOOL_GREEN } }
+		type Can = { z: number, d: number, color: RGB }
+		local cans: { Can } = {
+			{ z = -110, d = 18, color = PALETTE.Porcelain },
+			{ z = -90, d = 14, color = TOOL_BLUE },
+			{ z = -74, d = 16, color = TOOL_GREEN },
+		}
 		for n, can in cans do
-			local d = can[2] * (1 + ((k + n) % 3) * 0.08)
+			local d = can.d * (1 + ((k + n) % 3) * 0.08)
 			addAll(
 				specs,
 				MapKitShapes.rimDisc(
 					"PaintCan",
 					d,
 					d * 1.1,
-					MapKitLogic.shade(can[3], 0.9 + 0.05 * k),
+					MapKitLogic.shade(can.color, 0.9 + 0.05 * k),
 					"Metal",
-					v(x, y + 2 + d * 0.55, can[1] + k * 6),
+					v(x, y + 2 + d * 0.55, can.z + k * 6),
 					{ rimColor = STEEL, rimWidth = 0.8, rimHeight = 1, segments = 10 }
 				)
 			)
@@ -555,7 +561,7 @@ local function shelves(specs: { DecorSpec })
 				MapKitShapes.bevelBox(
 					"ShelfCrate",
 					v(s, s * 0.8, s),
-					WOOD[if n == 0 then "base" else "light"],
+					if n == 0 then WOOD.base else WOOD.light,
 					"Wood",
 					v(x, y + 2 + s * 0.4, 0 + n * 30 + k * 10),
 					1.2,
@@ -941,9 +947,14 @@ end
 local function sawdustAndCrates(specs: { DecorSpec })
 	local top = Art.BENCH_TOP_Y
 	-- 톱밥 더미 3곳 (큰 것 1 + 작은 것 2, 납작한 공 겹치기)
-	local piles = { { 60, 90, 1.0, true }, { -90, 70, 0.8, true }, { 30, -110, 0.7, false } }
+	type Pile = { x: number, z: number, s: number, dust: boolean }
+	local piles: { Pile } = {
+		{ x = 60, z = 90, s = 1.0, dust = true },
+		{ x = -90, z = 70, s = 0.8, dust = true },
+		{ x = 30, z = -110, s = 0.7, dust = false },
+	}
 	for _, pile in piles do
-		local px, pz, s, dust = pile[1], pile[2], pile[3], pile[4]
+		local px, pz, s, dust = pile.x, pile.z, pile.s, pile.dust
 		add(specs, part("Sawdust", "Ball", v(34 * s, 12 * s, 28 * s), SAWDUST, "Sand", v(px, top + 1, pz)))
 		add(
 			specs,
@@ -1035,22 +1046,23 @@ local function sawdustAndCrates(specs: { DecorSpec })
 		end
 	end
 	-- 여분 블록 더미 (탑과 같은 꿀색 3 shade, 서로 조금씩 어긋나게) — 앞 오른쪽
-	local stack = {
-		{ 70, 0, 50, 0, "base" },
-		{ 82, 0, 52, 8, "light" },
-		{ 74, 1, 49, -6, "dark" },
-		{ 78, 2, 53, 11, "base" },
-		{ 96, 0, 70, 30, "light" },
-		{ 104, 0, 62, 52, "dark" },
+	type Spare = { x: number, layer: number, z: number, yaw: number, color: RGB }
+	local stack: { Spare } = {
+		{ x = 70, layer = 0, z = 50, yaw = 0, color = WOOD.base },
+		{ x = 82, layer = 0, z = 52, yaw = 8, color = WOOD.light },
+		{ x = 74, layer = 1, z = 49, yaw = -6, color = WOOD.dark },
+		{ x = 78, layer = 2, z = 53, yaw = 11, color = WOOD.base },
+		{ x = 96, layer = 0, z = 70, yaw = 30, color = WOOD.light },
+		{ x = 104, layer = 0, z = 62, yaw = 52, color = WOOD.dark },
 	}
 	for _, b in stack do
-		local x, layer, z, yaw, tone = b[1], b[2], b[3], b[4], b[5]
+		local x, layer, z, yaw = b.x, b.layer, b.z, b.yaw
 		addAll(
 			specs,
 			MapKitShapes.roundedBox(
 				"SpareBlock",
 				v(10, 4, 10),
-				WOOD[tone],
+				b.color,
 				"WoodPlanks",
 				v(x, top + 2 + layer * 4, z),
 				{ radius = 0.4, rotation = v(0, yaw, 0) }

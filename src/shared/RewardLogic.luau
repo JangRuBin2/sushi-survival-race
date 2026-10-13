@@ -7,16 +7,35 @@
 --   dayNumber(unixTime) -> number                 UTC 날짜 번호 (ProfileSchema.lastDailyBonusDay와 같은 단위)
 --   matchTotal(grants) -> number                  받은 지급의 합계 (클라이언트 매치 정산)
 --   newTracker() / onRoundStart / onResult        방 하나의 매치 동안 지금 라운드를 기억해 지급 목록을 만들어요
---   simulate(events) -> { [userId]: coins }      한 판 시나리오의 사람별 총 코인 (테스트용)
+--   simulate(events) -> (coins, tokens)           한 판 시나리오의 사람별 총 코인·이벤트 재화 (테스트용)
+-- 이벤트 재화 (m5-07): 시즌 이벤트(Shared.Seasons)가 진행 중일 때만, 코인과 같은 순간에 Config.Events.Tokens만큼.
+--   tokensFor(reason, now?) -> (tokens?, eventId?)    now가 nil이거나 진행 중 이벤트가 없으면 nil
+--   onRoundStart / onResult의 마지막 인자 now?       nil이면 재화 없이 (예전 호출과 같아요)
+--   matchEndPayout(lastDay?, today, now?) -> Payout?  매치 끝 한 번: 하루 첫 판이면 DailyFirstMatch(코인 50 + 재화
+--       판 참가 1 + 하루 첫 판 3), 아니면 이벤트 중 MatchPlayed(코인 0 + 재화 1), 둘 다 아니면 nil
+--   matchTokenTotal(grants) -> number             받은 지급의 재화 합계 (우승 화면 정산)
+--   toastText(reason, amount, tokens?, icon?) · summaryText(total, coins, tokens?, icon?)
 
 local Config = require(script.Parent.Config)
 local ProfileLogic = require(script.Parent.ProfileLogic)
+local Seasons = require(script.Parent.Seasons)
 local Types = require(script.Parent.Types)
 
 export type Grant = {
 	userId: number,
 	reason: Types.RewardReason,
-	amount: number,
+	amount: number, -- 코인
+	tokens: number?, -- 이벤트 재화 (m5-07, 이벤트 중일 때만)
+	eventId: string?, -- 재화의 이벤트 id
+}
+
+-- 매치 끝 지급 한 번 (m5-07)
+export type Payout = {
+	reason: Types.RewardReason, -- DailyFirstMatch | MatchPlayed
+	amount: number, -- 코인 (MatchPlayed면 0)
+	tokens: number?,
+	eventId: string?,
+	daily: boolean, -- 하루 첫 판 보너스를 줬는가 (lastDailyBonusDay를 오늘로 바꿔요)
 }
 
 -- 방 하나의 매치 상태: 지금 라운드 번호 (결승 여부 판단용)
@@ -28,10 +47,10 @@ export type Tracker = {
 export type ResultKind = "Passed" | "Eliminated" | "Won"
 
 -- simulate 이벤트
---   { kind = "RoundStart", roundIndex, roundCount, userIds }
---   { kind = "Result", userId, result }
+--   { kind = "RoundStart", roundIndex, roundCount, userIds, now? }
+--   { kind = "Result", userId, result, now? }
 --   { kind = "MatchEnd", userIds (매치 끝 시점 방 멤버), participants? (있으면 userIds와 교집합만), today,
---     lastDays? ({ [userId]: day }) }
+--     lastDays? ({ [userId]: day }), now? }
 export type SimEvent = {
 	kind: "RoundStart" | "Result" | "MatchEnd",
 	roundIndex: number?,
@@ -42,6 +61,7 @@ export type SimEvent = {
 	result: ResultKind?,
 	today: number?,
 	lastDays: { [number]: number }?,
+	now: number?, -- 이벤트 재화 판단 시각 (m5-07). 없으면 재화 없음
 }
 
 local RewardLogic = {}
@@ -71,6 +91,41 @@ function RewardLogic.dailyBonus(lastDay: number?, today: number): number?
 	return Config.Rewards.DailyFirstMatch
 end
 
+-- 이벤트 재화 (m5-07): now에 진행 중인 이벤트가 있으면 (Config.Events.Tokens[reason], 이벤트 id)
+function RewardLogic.tokensFor(reason: string, now: number?): (number?, string?)
+	if type(now) ~= "number" then
+		return nil, nil
+	end
+	local event = Seasons.current(now)
+	if event == nil then
+		return nil, nil
+	end
+	local amount = (Config.Events.Tokens :: { [string]: number })[reason]
+	if type(amount) ~= "number" or amount <= 0 then
+		return nil, nil
+	end
+	return amount, event.id
+end
+
+-- 매치 끝 지급 (m5-07). 하루 첫 판이면 코인 + 재화(판 참가 + 하루 첫 판)를 한 번에, 아니면 판 참가 재화만
+function RewardLogic.matchEndPayout(lastDay: number?, today: number, now: number?): Payout?
+	local played, eventId = RewardLogic.tokensFor("MatchPlayed", now)
+	local daily = RewardLogic.dailyBonus(lastDay, today)
+	if daily then
+		local bonus, bonusEvent = RewardLogic.tokensFor("DailyFirstMatch", now)
+		local tokens: number? = nil
+		if played ~= nil or bonus ~= nil then
+			tokens = (played or 0) + (bonus or 0)
+			eventId = eventId or bonusEvent
+		end
+		return { reason = "DailyFirstMatch", amount = daily, tokens = tokens, eventId = eventId, daily = true }
+	end
+	if played ~= nil then
+		return { reason = "MatchPlayed", amount = 0, tokens = played, eventId = eventId, daily = false }
+	end
+	return nil
+end
+
 -- 하나로 모음: ProfileLogic.dayNumber (m4-07)
 RewardLogic.dayNumber = ProfileLogic.dayNumber
 
@@ -78,6 +133,18 @@ function RewardLogic.matchTotal(grants: { read [number]: { read amount: number }
 	local total = 0
 	for _, grant in grants do
 		total += grant.amount
+	end
+	return total
+end
+
+-- 받은 지급의 이벤트 재화 합계 (m5-07). 이벤트 하나만 동시에 진행하니 id는 나누지 않아요
+function RewardLogic.matchTokenTotal(grants: { read [number]: { read tokens: number? } }): number
+	local total = 0
+	for _, grant in grants do
+		local tokens = grant.tokens
+		if type(tokens) == "number" and tokens > 0 then
+			total += tokens
+		end
 	end
 	return total
 end
@@ -91,13 +158,28 @@ RewardLogic.REASON_TEXT = {
 	MatchPlayed = "판 참가", -- m5-07 (이벤트 재화)
 } :: { [Types.RewardReason]: string }
 
--- 지급 토스트 글씨: "+10 🍚 라운드 통과"
-function RewardLogic.toastText(reason: Types.RewardReason, amount: number): string
-	return `+{amount} 🍚 {RewardLogic.REASON_TEXT[reason] or reason}`
+local function hasTokens(tokens: number?): boolean
+	return type(tokens) == "number" and tokens > 0
 end
 
--- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1234)"
-function RewardLogic.summaryText(matchTotal: number, coins: number): string
+-- 지급 토스트 글씨: "+10 🍚 라운드 통과". 재화도 받으면 "+10 🍚 +1 🍬 라운드 통과", 재화만이면 "+1 🍬 판 참가" (m5-07)
+function RewardLogic.toastText(reason: Types.RewardReason, amount: number, tokens: number?, icon: string?): string
+	local label = RewardLogic.REASON_TEXT[reason] or reason
+	if not hasTokens(tokens) then
+		return `+{amount} 🍚 {label}`
+	end
+	local tokenText = `+{tokens} {icon or "🍬"}`
+	if amount > 0 then
+		return `+{amount} 🍚 {tokenText} {label}`
+	end
+	return `{tokenText} {label}`
+end
+
+-- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1234)" (m5-07)
+function RewardLogic.summaryText(matchTotal: number, coins: number, tokens: number?, icon: string?): string
+	if hasTokens(tokens) then
+		return `이번 판 +{matchTotal} 🍚 +{tokens} {icon or "🍬"} (총 {coins})`
+	end
 	return `이번 판 +{matchTotal} 🍚 (총 {coins})`
 end
 
@@ -126,45 +208,57 @@ function RewardLogic.isFinalRound(tracker: Tracker): boolean
 	return tracker.roundIndex ~= nil and tracker.roundIndex == tracker.roundCount
 end
 
--- 라운드 출발 (MatchEvents.onRoundStart). 결승이면 레이서 전원에게 FinalQualify.
+-- 라운드 출발 (MatchEvents.onRoundStart). 결승이면 레이서 전원에게 FinalQualify (이벤트 중이면 재화도).
 function RewardLogic.onRoundStart(
 	tracker: Tracker,
 	roundIndex: number,
 	roundCount: number,
-	userIds: { number }
+	userIds: { number },
+	now: number?
 ): { Grant }
 	tracker.roundIndex = roundIndex
 	tracker.roundCount = roundCount
 	local grants: { Grant } = {}
 	local amount = RewardLogic.forRoundStart(roundIndex, roundCount)
 	if amount then
+		local tokens, eventId = RewardLogic.tokensFor("FinalQualify", now)
 		for _, userId in userIds do
-			local grant: Grant = { userId = userId, reason = "FinalQualify", amount = amount }
+			local grant: Grant =
+				{ userId = userId, reason = "FinalQualify", amount = amount, tokens = tokens, eventId = eventId }
 			table.insert(grants, grant)
 		end
 	end
 	return grants
 end
 
--- PlayerResult 하나 (MatchEvents.onResult). Passed는 결승이 아닐 때만, Won은 언제나.
-function RewardLogic.onResult(tracker: Tracker, userId: number, result: ResultKind): { Grant }
+-- PlayerResult 하나 (MatchEvents.onResult). Passed는 결승이 아닐 때만, Won은 언제나 (이벤트 중이면 재화도).
+function RewardLogic.onResult(tracker: Tracker, userId: number, result: ResultKind, now: number?): { Grant }
 	if result == "Won" then
-		return { { userId = userId, reason = "Win", amount = RewardLogic.forWin() } }
+		local tokens, eventId = RewardLogic.tokensFor("Win", now)
+		return {
+			{ userId = userId, reason = "Win", amount = RewardLogic.forWin(), tokens = tokens, eventId = eventId },
+		}
 	elseif result == "Passed" then
 		local amount = RewardLogic.forPass(RewardLogic.isFinalRound(tracker))
 		if amount then
-			return { { userId = userId, reason = "RoundPass", amount = amount } }
+			local tokens, eventId = RewardLogic.tokensFor("RoundPass", now)
+			return { { userId = userId, reason = "RoundPass", amount = amount, tokens = tokens, eventId = eventId } }
 		end
 	end
 	return {}
 end
 
-function RewardLogic.simulate(events: { SimEvent }): { [number]: number }
+function RewardLogic.simulate(events: { SimEvent }): ({ [number]: number }, { [number]: number })
 	local totals: { [number]: number } = {}
+	local tokenTotals: { [number]: number } = {}
 	local tracker = RewardLogic.newTracker()
 	local function add(grants: { Grant })
 		for _, grant in grants do
 			totals[grant.userId] = (totals[grant.userId] or 0) + grant.amount
+			local tokens = grant.tokens
+			if tokens then
+				tokenTotals[grant.userId] = (tokenTotals[grant.userId] or 0) + tokens
+			end
 		end
 	end
 	for _, event in events do
@@ -174,11 +268,12 @@ function RewardLogic.simulate(events: { SimEvent }): { [number]: number }
 					tracker,
 					event.roundIndex :: number,
 					event.roundCount :: number,
-					event.userIds or {}
+					event.userIds or {},
+					event.now
 				)
 			)
 		elseif event.kind == "Result" then
-			add(RewardLogic.onResult(tracker, event.userId :: number, event.result :: ResultKind))
+			add(RewardLogic.onResult(tracker, event.userId :: number, event.result :: ResultKind, event.now))
 		elseif event.kind == "MatchEnd" then
 			local lastDays = event.lastDays or {}
 			local recipients = event.userIds or {}
@@ -186,14 +281,22 @@ function RewardLogic.simulate(events: { SimEvent }): { [number]: number }
 				recipients = RewardLogic.matchEndRecipients(event.participants, recipients)
 			end
 			for _, userId in recipients do
-				local amount = RewardLogic.dailyBonus(lastDays[userId], event.today :: number)
-				if amount then
-					add({ { userId = userId, reason = "DailyFirstMatch", amount = amount } })
+				local payout = RewardLogic.matchEndPayout(lastDays[userId], event.today :: number, event.now)
+				if payout then
+					add({
+						{
+							userId = userId,
+							reason = payout.reason,
+							amount = payout.amount,
+							tokens = payout.tokens,
+							eventId = payout.eventId,
+						},
+					})
 				end
 			end
 		end
 	end
-	return totals
+	return totals, tokenTotals
 end
 
 return RewardLogic

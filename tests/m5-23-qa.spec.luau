@@ -86,17 +86,20 @@ local function measure(model: any): (any, any)
 		end
 		local parent = d.Parent
 		local skip = false
+		local introPoint = false
 		while parent and parent ~= model do
-			if parent.Name == "Decor" or parent.Name == "IntroCamera" then
+			if parent.Name == "Decor" then
 				skip = true
 				break
+			elseif parent.Name == "IntroCamera" then
+				introPoint = true -- 소개 경유점은 크기 없이 점으로 (QA B2: 소개 첫 컷부터 맵 조명)
 			end
 			parent = parent.Parent
 		end
 		if skip then
 			continue
 		end
-		local half = d.Size.Magnitude / 2
+		local half = if introPoint then 0 else d.Size.Magnitude / 2
 		local p = d.CFrame.Position
 		local lo = p - roblox.Vector3.new(half, half, half)
 		local hi = p + roblox.Vector3.new(half, half, half)
@@ -137,9 +140,7 @@ end
 
 -- B1: MapLightingController가 판정 파츠만으로 아레나 상자를 재서, 높이 띄운 소개 경유점이 상자 + 40 밖에 있어요
 -- (소개 첫 컷이 로비 조명). MapLightingController.measure가 IntroCamera 점을 상자에 넣으면 이 표를 비워요.
-local KNOWN_INTRO_OUTSIDE: { [string]: boolean } = {
-	["giant-jenga/01"] = true,
-}
+local KNOWN_INTRO_OUTSIDE: { [string]: boolean } = {}
 
 local function read(path: string): string
 	return fs.readFile(path)

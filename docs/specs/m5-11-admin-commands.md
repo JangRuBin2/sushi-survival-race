@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-11 — 관리자 명령 확장 (테스트 서버 전용)
@@ -82,7 +82,40 @@ status: ready
 - 2026-10-08 · D2 다른 사람 대상 명령 없음 · 실수·악용 범위를 줄이고, 혼자·친구 테스트에는 필요 없음(친구에게 코인을 주면 공정성 문제). 그룹 랭크 권한은 게임을 그룹으로 옮길 때 · **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · D3 다음 판 맵 고르기 범위 · 한 플레이스 모드(Studio·PlaceId 없음)만. 플레이스 분리 때 매치 서버로 넘기려면 매니페스트(m4-11)에 칸을 더해야 해서 공용 범위가 커짐 → 후속 · planner
 - 2026-10-08 · D4 연출 미리보기를 Info 등급으로 · 스킨 미리보기(m5-02, 실서버에서도 켬)와 같은 성격(겉모습만, 저장 안 함). m5-09 확인에도 필요 · planner
+- 2026-10-13 · 개발: 본문의 `LiveTestCommands`·4인자 `canRun`·"테스트 명령이 꺼져 있어요" 문구는 아래 사용자 결정으로 대체됨 — 현재 `AdminLogic.canRun(tier, isStudio, persistInStudio)`(m5-03) 그대로 따름. 실서버 Test·StudioOnly 거절 문구는 "Studio에서만 쓸 수 있는 명령이에요", 비관리자 문구는 m5-02 그대로 "권한이 없어요"(AC13 본문의 "관리자만 쓸 수 있어요" 대신 — 기존 m5-02 테스트가 고정) · developer
 - 2026-10-08 · **사용자 결정: 실서버 테스트 명령 없음(설정으로도 못 켬)** — D1의 `LiveTestCommands`는 만들지 않음. Test·StudioOnly는 `RunService:IsStudio()`일 때만 처리, 실서버 핸들러는 무조건 거절. 틀(`AdminLogic.commandTier`·`canRun(tier, isStudio, persistInStudio)`, AdminService `onCommand` → `runCommand`)은 m5-03이 만들어 둠 · 사용자
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-13 (브랜치 `m5-11-admin2`)
+
+**바뀐 파일**
+- `src/shared/AdminLogic.luau` — `parse`, `applyCoins`/`applyTokens`, `resolvePlan`(Rules.resolveForcedPlan + forcedPlanWarning, 한국어 결과 문구), `equippedFx`, `infoLine`, `describe`, 새 Reason(BadCommandArgs·NotInRoom·NoProfile·NoEvent·SingleOnly). `canRun`은 m5-03 그대로(실서버는 Info만, 설정 없음).
+- `src/server/AdminCommands.luau` (**새 파일**, 스펙 목록 밖) — 명령 7개 실행. AdminService가 첫 명령 때 require. 이유: m5-02 테스트(`admin-logic`·`m5-02-qa`)가 AdminService 소스에 `DataService`·`ShopLogic` 등이 없음을 고정하고, 가짜 환경도 그 모듈만 준비함 → 경제 모듈 의존을 별도 파일로 뗌. 공용 파일 아님.
+- `src/server/AdminService.luau` — 순서: 관리자 표 → 요청 간격 → 모르는 명령 → `parse` → `canRun` → `AdminCommands.run`. 로그 `[Admin] 이름(UserId) <command> <args> -> ok|<reason>`. 테스트용 `setCommandRunner`.
+- `src/server/RoomService.luau` — `forceStart(roomId)`: 대기 중·카운트다운 아님이면 `beginMatch`(기존 시작 경로, 로비 역할이면 텔레포트 흐름). 매치 서버·매치 중·자동 시작 카운트다운 중 거절.
+- `src/server/MatchService.luau` — `setNextPlan(roomId, plan)`: `runMatch` 시작 때 꺼내고 지움, `DEBUG.forceMapPlan`보다 우선, 강제 플랜처럼 혼자여도 끝까지.
+- `src/client/ui/AdminPanel.luau`·`AdminController.luau` — 탭 "👕 미리보기"/"🛠 명령". 맵 버튼은 `Maps.allInfos()` 전체(껍데기·inPool=false 포함, 패널 만들 때만 require), 연출 버튼은 FxCatalog에서. resetprofile은 `RunService:IsStudio()`일 때만, 3초 안에 두 번.
+- 테스트: `tests/admin-logic.spec.luau` +23개(AC1~AC4 순수, 권한: 비관리자·실서버 Info만·Studio 전부·잘못된 인자·간격, 명령 실행 가짜 서버), `tests/m5-03-foundation.spec.luau` 소스 검사 줄 하나를 새 호출(`runCommand(player, parsed)`)로.
+
+**명령 세부**
+- `fx`: Player 속성만 바꿈. `off`·nil이면 프로필 `equippedFx[slot]`(가진 것만)으로. 잠금(`ShopService.isLocked`) 중 거절. 이 서버 메모리에도 저장 안 함 — 나가면 끝.
+- `coins`/`tokens`: `DataService.update` + `saveNow` 요청. tokens는 `Seasons.current(Seasons.now(Studio, DEBUG.eventNow, os.time()))`의 이벤트 id.
+- `plan`: `PlaceService.role() == "Single"`만. 내 방에 걸어 두고 매치 시작 때 한 번 씀.
+- `resetprofile`: canRun(저장 켠 Studio 거절) + `DataService.canPersist` 한 번 더 + 잠금 중 거절. 프로필 칸을 `ProfileSchema.new()`로 바꾸고 연출 속성·스킨 미리보기를 끄고 다시 입힘.
+
+**Studio 확인 (AC7~AC13)**
+1. Play Solo → 왼쪽 "🛠" → 탭 두 개. "🛠 명령" → `ℹ info` → "Single · 서버 … · 방 0 · 플레이어 1 · 내 방 없음 · 코인 0".
+2. 방 만들기 → "▶ 바로 시작" → 카운트다운 → 매치 (DEBUG 수정 없이).
+3. 맵 버튼 `dessert-fridge`, `tempura-pot`, `ikura-bombs` → "다음 판에 쓰기"(결승 자리가 Final 아니면 결과 줄에 "주의") → 바로 시작 → 그 순서. 다음 판은 랜덤.
+4. 코인 +1000 → 배지 즉시 증가. `Config.DEBUG.eventNow = 1792108800 + 3600`(커밋하지 말 것) → 재화 +80.
+5. 연출 "고양이 손님" → 결과 줄 "연출 미리보기: …"; 탈락 연출은 m5-09 뒤에 보임.
+6. 프로필 초기화 두 번 → 코인 0·계란초밥.
+7. `AdminConfig.StudioAllAdmins = false` + 2명 테스트 → 비관리자 패널 없음, 명령줄 `game.ReplicatedStorage...AdminCommand:InvokeServer("coins", 1000)` → "권한이 없어요" + 서버 warn. **확인 뒤 true로**.
+
+**검증**: rojo build · stylua --check · selene(0/0) · lune 1256 passed · luau-lsp analyze 끝 코드 0 — 5단계 모두 통과.
+
+**남은 이슈**
+- N1: `fx` 미리보기 속성은 m5-08이 장착 때 같은 속성을 쓰기 전까지 이 명령만 씀. m5-08이 접속·장착 때 속성을 덮으면 미리보기가 끝남(스펙 의도대로).
+- N2: `plan`을 매치 도중에 걸면 그 방의 *다음* 매치에 쓰임(지금 매치는 이미 시작). 방이 닫히면 남은 항목은 방 id가 재사용되지 않아 쓰이지 않음(작은 메모리만).
+- N3: `start`는 방장 검사 없음(스펙 "내가 있는 방") — Studio 전용이라 그대로 둠.

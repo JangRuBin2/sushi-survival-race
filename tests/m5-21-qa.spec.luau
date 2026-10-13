@@ -407,7 +407,7 @@ return function(t: Test.Test)
 	t.test(
 		"QA 공정성: Wedge·효과는 GROUND_OFFSET(이름표·단상 높이 기준)과 무관한 고정값",
 		function()
-			t.eq(RealSushiBody.GROUND_OFFSET, 2.3)
+			t.eq(RealSushiBody.GROUND_OFFSET, 2.25) -- m5-25 새 기준 몸 (예전 2.3)
 			-- 모든 스킨의 발바닥이 같은 높이 (토핑이 발보다 아래로 내려가지 않아요)
 			local Skins = RobloxRequire.require(Shared.Skins)
 			for _, skin in Skins.LIST do

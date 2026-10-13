@@ -1,25 +1,31 @@
 --!strict
--- 초밥 캐릭터 몸. 서버 캐릭터(AppearanceService)와 클라이언트 연출 인형(m3-03 탈락, m3-05 우승)이 같이 써요.
+-- 초밥 캐릭터 몸. 서버 캐릭터(AppearanceService)와 클라이언트 연출 인형(m3-03 탈락, m3-05 우승, 단상, 탈의실)이 같이 써요.
 --   layout(appearanceId)  파츠 목록 (순수 함수, lune 테스트 가능). 모르는 id면 기본(tamago).
 --   hasLayout(id)         그 id 전용 레이아웃이 있는지 (스킨 카탈로그 Shared.Skins와 맞추는 테스트용)
 --   bounds(layout)        파츠 목록 전체 외곽 (순수 함수, Body 중심 기준 min/max, 회전 반영)
 --   effectCount(layout)   효과(불꽃·반짝이·연기·빛) 개수
 --   EFFECT_BUDGET[tier]   등급별 효과 개수 상한 (m5-21). 상한 강제는 호출부(Skins.validate, 테스트)의 몫.
 --   BOUNDS_TOLERANCE[tier]  등급별 외곽 상자 허용 비율 (m5-21). 비교도 호출부의 몫 — bounds() 자체는 그대로.
--- 스킨(m4-13): 모든 스킨이 같은 밥 몸통(Body)·눈·입·발을 쓰고 위 토핑만 달라요 (GDD 6). 외곽 상자는 등급별
--- 허용치 안(일반·레어 ±15%, 에픽·전설 ±25%, m5-21)이라 이름표·연출 높이가 같아요 (tests/skins.spec.luau).
--- 판정은 휴머노이드라 스킨과 무관해요.
---   build(appearanceId)   파츠를 만들고 Body에 용접한 Model. PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
+--   BASE_NAMES            모든 스킨이 계란초밥과 똑같이 가지는 기준 파츠 이름 (밥 몸·눈·입·볼·발, m5-25)
+--   PART_BUDGET           스킨 하나의 파츠 수 상한 (m5-25, 24명·모바일 기준)
+--   build(appearanceId)   파츠를 만든 Model. PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
+--   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
---                         (서버 AppearanceService와 클라이언트 CharacterFxController가 같이 써요)
--- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 크기는 지금 휴머노이드 히트박스(약 5 studs)에 맞춰요.
--- 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음) — 판정은 휴머노이드 그대로.
+--   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
+--
+-- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
+-- 앞(-Z)에 큰 눈(테두리·흰자·눈동자·하이라이트)과 웃는 입·볼, 아래에 둥근 발 2개. 스킨은 같은 "가족 문법"을 따라요:
+--   ① 앞의 흰 밥 얼굴은 모두 같고, ② 위 토핑(Topping), ③ 등·옆을 덮는 토핑 자락(ToppingBack — 뒤에서 보는 내 화면용),
+--   ④ 머리 위 실루엣 한 가지(귀·꼬리·왕관·뿔 등), ⑤ 발 색. 크기·모양 규칙은 docs/specs/m5-25-character-quality.md.
+-- 판정은 휴머노이드라 스킨·모양과 무관해요. 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음).
+-- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 발바닥 y = -2.2, 기본 꼭대기 y = 2.3 (높이 4.5).
 
 local SushiBody = {}
 
 SushiBody.MODEL_NAME = "SushiBody"
 SushiBody.JOINT_NAME = "SushiJoint"
+SushiBody.PART_JOINT_NAME = "PartJoint"
 
 export type Shape = "Block" | "Ball" | "Cylinder" | "Wedge"
 export type Effect = "Fire" | "Sparkles" | "Smoke" | "Glow"
@@ -36,6 +42,8 @@ export type PartSpec = {
 	effect: Effect?, -- 이 파츠에 붙는 효과 (등급별 예산 이하, m4-13·m5-21)
 	effectColor: { number }?, -- 효과 색 {r, g, b}
 	transparency: number?, -- 0~1, 없으면 0 (m5-07 유령 천)
+	joint: boolean?, -- true면 WeldConstraint 대신 Motor6D(PART_JOINT_NAME)로 Body에 붙어요 — 클라이언트 움직임용 (m5-25)
+	attach: string?, -- 이 이름의 파츠에 용접 (없으면 Body). 눈동자·하이라이트가 눈 테두리를 따라 움직이게 (m5-25)
 }
 
 export type Bounds = {
@@ -45,92 +53,64 @@ export type Bounds = {
 
 local DEFAULT_ID = "tamago"
 
-local RICE = { 246, 243, 232 }
-local RICE_SHADE = { 228, 222, 206 }
+---------------------------------------------------------------- 치수 (m5-25)
+local RICE_W, RICE_H, RICE_D = 3.6, 2.4, 2.4 -- 밥 몸 (위에서 보면 알약, y -1.2~1.2)
+local BASE_Y = -1.32 -- 밥 아래 한 단 좁은 받침 (아래 모서리가 둥글어 보이게, y -1.47~-1.17)
+local TOP_Y, TOP_H, TOP_W, TOP_D, TOP_Z = 1.575, 0.9, 3.8, 2.7, 0.1 -- 위 토핑 판 (y 1.125~2.025, 앞 -1.25·뒤 1.45)
+local TOP_SURFACE = TOP_Y + TOP_H / 2 -- 2.025 (기본 꼭대기)
+local BACK_Z, BACK_D = 0.2, 2.46 -- 토핑 자락은 뒤로 밀린 알약이라 앞(얼굴)에서는 밥 속에 숨어요 (뒤 1.43, 토핑 뒤 1.45보다 살짝 안)
+local FOOT_Y, FOOT_D = -1.8, 0.9 -- 발 공 (발바닥 y -2.25)
+
+---------------------------------------------------------------- 색
+local RICE = { 247, 243, 232 }
+local FOOT = { 226, 206, 178 }
 local EGG = { 255, 204, 64 }
-local NORI = { 28, 34, 30 }
-local INK = { 20, 20, 24 }
-local MOUTH = { 130, 45, 45 }
-
--- 세워진 계란초밥: 밥 몸통 + 위·등을 덮는 계란 + 가운데 김 띠 + 앞면 눈·입 + 짧은 발.
--- 바닥(발바닥) y = -2.3, 꼭대기(계란 위) y = 2.4 → 높이 4.7
-local TAMAGO: { PartSpec } = {
-	{ name = "Body", size = { 2.4, 3.2, 1.8 }, color = RICE, material = "SmoothPlastic", offset = { 0, 0, 0 } },
-	{ name = "Egg", size = { 2.8, 0.8, 2.2 }, color = EGG, material = "SmoothPlastic", offset = { 0, 2.0, 0.2 } },
-	{ name = "EggBack", size = { 2.6, 1.6, 0.3 }, color = EGG, material = "SmoothPlastic", offset = { 0, 0.9, 1.05 } },
-	{ name = "Nori", size = { 2.5, 0.7, 1.9 }, color = NORI, material = "SmoothPlastic", offset = { 0, -0.3, 0 } },
-	{
-		name = "EyeLeft",
-		size = { 0.35, 0.5, 0.1 },
-		color = INK,
-		material = "SmoothPlastic",
-		offset = { -0.5, 1.0, -0.93 },
-	},
-	{
-		name = "EyeRight",
-		size = { 0.35, 0.5, 0.1 },
-		color = INK,
-		material = "SmoothPlastic",
-		offset = { 0.5, 1.0, -0.93 },
-	},
-	{
-		name = "Mouth",
-		size = { 0.5, 0.12, 0.1 },
-		color = MOUTH,
-		material = "SmoothPlastic",
-		offset = { 0, 0.55, -0.93 },
-	},
-	{
-		name = "FootLeft",
-		size = { 0.6, 0.7, 0.8 },
-		color = RICE_SHADE,
-		material = "SmoothPlastic",
-		offset = { -0.6, -1.95, -0.1 },
-	},
-	{
-		name = "FootRight",
-		size = { 0.6, 0.7, 0.8 },
-		color = RICE_SHADE,
-		material = "SmoothPlastic",
-		offset = { 0.6, -1.95, -0.1 },
-	},
-}
-
----------------------------------------------------------------- 스킨 (m4-13)
--- 계란초밥과 같은 Body·눈·입·발 위에 토핑만 바꿔요. 이름이 같은 파츠는 계란초밥과 같은 값이에요.
+local NORI = { 34, 42, 38 }
+local INK = { 28, 24, 30 }
+local PUPIL = { 40, 30, 36 }
+local WHITE = { 255, 255, 255 }
+local MOUTH = { 150, 50, 60 }
+local CHEEK = { 255, 158, 166 }
 
 local SALMON = { 250, 128, 88 }
 local SALMON_FAT = { 255, 236, 220 }
-local TUNA = { 178, 30, 48 }
-local SHRIMP = { 250, 232, 220 }
+local TUNA = { 196, 32, 52 }
+local TUNA_LINE = { 236, 96, 112 }
 local SHRIMP_BAND = { 245, 110, 60 }
+local SHRIMP_PALE = { 255, 212, 188 }
 local SHRIMP_TAIL = { 230, 60, 40 }
-local INARI = { 190, 128, 58 }
+local INARI = { 186, 120, 52 }
+local INARI_DARK = { 150, 92, 36 }
 local CUCUMBER = { 60, 135, 55 }
-local CUCUMBER_CORE = { 165, 210, 110 }
+local CUCUMBER_CORE = { 175, 220, 120 }
 local EEL = { 120, 66, 32 }
 local EEL_SAUCE = { 70, 36, 16 }
+local SESAME_WHITE = { 250, 245, 230 }
 local UNI = { 245, 165, 40 }
-local IKURA = { 255, 95, 30 }
-local OCTOPUS = { 230, 180, 205 }
-local OCTOPUS_RIM = { 200, 70, 90 }
+local UNI_DEEP = { 230, 130, 30 }
+local IKURA = { 255, 90, 30 }
+local LEAF_GREEN = { 90, 170, 70 }
+local OCTOPUS = { 240, 196, 214 }
+local OCTOPUS_RIM = { 176, 56, 96 }
 local AVOCADO = { 130, 175, 70 }
+local AVOCADO_DARK = { 70, 120, 40 }
 local WHITE_FISH = { 245, 240, 230 }
-local SEARED = { 225, 110, 62 }
-local CHAR = { 70, 40, 25 }
+local SEARED = { 236, 104, 56 }
+local CHAR = { 60, 34, 22 }
 local EMBER = { 255, 140, 40 }
 local TOBIKO = { 255, 120, 40 }
 local GOLD = { 255, 196, 60 }
 local GOLD_FAT = { 255, 236, 170 }
 local DIAMOND = { 150, 220, 255 }
-local DRAGON = { 60, 140, 70 }
-local DRAGON_DARK = { 35, 100, 50 }
+local SILVER = { 210, 220, 232 }
+local DRAGON = { 60, 150, 72 }
+local DRAGON_DARK = { 30, 96, 48 }
 local DRAGON_HORN = { 240, 220, 150 }
 local DRAGON_EYE = { 255, 220, 60 }
 
 -- m5-07: 시즌 한정
 local PUMPKIN = { 245, 135, 35 }
-local PUMPKIN_DARK = { 205, 100, 25 }
+local PUMPKIN_DARK = { 200, 96, 24 }
 local PUMPKIN_STEM = { 90, 110, 40 }
 local PUMPKIN_LEAF = { 80, 150, 60 }
 local GHOST_SHEET = { 250, 250, 255 }
@@ -142,54 +122,63 @@ local ORNAMENT_RED = { 220, 40, 50 }
 local STAR_YELLOW = { 255, 215, 60 }
 
 -- m5-22: 스킨 1차 배치 10종
-local TAKOYAKI_BROWN = { 196, 140, 92 }
-local TAKOYAKI_DARK = { 150, 100, 60 }
-local BONITO_GREEN = { 140, 170, 90 }
+local TAKOYAKI_BROWN = { 196, 136, 84 }
+local TAKOYAKI_SAUCE = { 96, 52, 28 }
+local BONITO = { 214, 160, 120 }
+local AONORI = { 90, 140, 50 }
 local MAYO_WHITE = { 255, 250, 235 }
-local EGGTOAST_BREAD = { 235, 205, 150 }
-local EGGTOAST_CRUST = { 200, 150, 90 }
-local YOLK_YELLOW = { 255, 200, 60 }
-local YOLK_SHADE = { 235, 170, 40 }
-local SLIDER_BUN = { 210, 150, 90 }
-local PATTY_BROWN = { 110, 70, 45 }
-local LETTUCE_GREEN = { 95, 165, 70 }
-local SESAME_WHITE = { 250, 245, 230 }
-local TONKATSU_GOLD = { 215, 165, 70 }
-local TONKATSU_RIDGE = { 180, 130, 50 }
-local CABBAGE_GREEN = { 150, 210, 120 }
-local SAUCE_BROWN = { 90, 55, 30 }
-local CAT_CREAM = { 250, 240, 225 }
-local CAT_EAR_PINK = { 255, 160, 190 }
-local CAT_EAR_INNER = { 255, 200, 215 }
-local CAT_NOSE = { 255, 120, 160 }
-local WHISKER_WHITE = { 255, 255, 255 }
-local ROBO_GRAY = { 150, 155, 165 }
-local ROBO_DARK = { 90, 95, 105 }
+local BREAD = { 242, 214, 160 }
+local CRUST = { 176, 112, 52 }
+local EGG_WHITE = { 255, 255, 250 }
+local YOLK_YELLOW = { 255, 186, 30 }
+local SLIDER_BUN = { 214, 136, 62 }
+local PATTY_BROWN = { 92, 56, 36 }
+local LETTUCE_GREEN = { 110, 190, 70 }
+local CHEESE = { 255, 200, 40 }
+local TONKATSU_GOLD = { 204, 140, 52 }
+local TONKATSU_RIDGE = { 160, 100, 36 }
+local CABBAGE_GREEN = { 170, 225, 130 }
+local SAUCE_BROWN = { 80, 46, 24 }
+local CAT_CREAM = { 252, 244, 232 }
+local CAT_GINGER = { 240, 150, 70 }
+local CAT_TABBY = { 196, 104, 40 }
+local CAT_EAR_INNER = { 255, 176, 196 }
+local CAT_NOSE = { 255, 110, 150 }
+local ROBO_GRAY = { 150, 158, 170 }
+local ROBO_DARK = { 70, 76, 88 }
 local VISOR_NEON = { 60, 220, 255 }
 local ANTENNA_TIP = { 255, 60, 90 }
-local GALAXY_NAVY = { 30, 25, 70 }
+local GALAXY_NAVY = { 34, 28, 84 }
+local GALAXY_PURPLE = { 90, 50, 150 }
 local GALAXY_STAR_WHITE = { 245, 245, 255 }
 local GALAXY_STAR_TEAL = { 90, 220, 210 }
+local PLANET = { 255, 170, 90 }
 local SOFTSERVE_CREAM = { 255, 248, 235 }
-local SOFTSERVE_SHADE = { 240, 225, 200 }
+local SOFTSERVE_PINK = { 255, 196, 214 }
 local CHERRY_RED = { 200, 30, 40 }
-local CONE_TAN = { 210, 160, 90 }
-local CROWN_TUNA_RED = { 150, 25, 40 }
+local CONE_TAN = { 214, 160, 90 }
+local CONE_DARK = { 176, 120, 60 }
+local CROWN_TUNA_RED = { 160, 24, 44 }
 local CROWN_GOLD = { 255, 205, 70 }
-local CAPE_VELVET = { 90, 20, 60 }
-local UNICORN_WHITE = { 255, 250, 250 }
-local MANE_PINK = { 255, 170, 210 }
-local MANE_LILAC = { 200, 170, 255 }
-local MANE_MINT = { 160, 230, 210 }
+local CROWN_JEWEL = { 70, 140, 255 }
+local CAPE_VELVET = { 110, 24, 80 }
+local UNICORN_WHITE = { 255, 250, 252 }
+local MANE_PINK = { 255, 160, 206 }
+local MANE_LILAC = { 196, 164, 255 }
+local MANE_MINT = { 150, 228, 206 }
+local MANE_YELLOW = { 255, 230, 140 }
 local HORN_GOLD = { 255, 215, 120 }
-local HORN_GOLD_LIGHT = { 255, 235, 180 }
+local HORN_GOLD_LIGHT = { 255, 238, 190 }
 
+---------------------------------------------------------------- 도우미
 type Extra = {
 	shape: Shape?,
 	rotation: { number }?,
 	effect: Effect?,
 	effectColor: { number }?,
 	transparency: number?,
+	joint: boolean?,
+	attach: string?,
 }
 
 local function piece(
@@ -211,92 +200,9 @@ local function piece(
 		effect = extra and extra.effect,
 		effectColor = extra and extra.effectColor,
 		transparency = extra and extra.transparency,
+		joint = extra and extra.joint,
+		attach = extra and extra.attach,
 	}
-end
-
--- 계란초밥에서 Body·눈·입·발만 (토핑 없는 밥)
-local BASE_NAMES = { Body = true, EyeLeft = true, EyeRight = true, Mouth = true, FootLeft = true, FootRight = true }
-
-local function withBase(toppings: { PartSpec }): { PartSpec }
-	local list: { PartSpec } = {}
-	for _, spec in TAMAGO do
-		if BASE_NAMES[spec.name] then
-			table.insert(list, spec)
-		end
-	end
-	for _, spec in toppings do
-		table.insert(list, spec)
-	end
-	return list
-end
-
--- 계란초밥의 계란과 같은 모양: 위 판 + 등을 덮는 판
-local function slab(color: { number }, material: string?): { PartSpec }
-	return {
-		piece("Topping", { 2.8, 0.8, 2.2 }, color, { 0, 2.0, 0.2 }, material),
-		piece("ToppingBack", { 2.6, 1.6, 0.3 }, color, { 0, 0.9, 1.05 }, material),
-	}
-end
-
--- 계란초밥과 같은 가운데 김 띠
-local function noriBelt(): PartSpec
-	return piece("Nori", { 2.5, 0.7, 1.9 }, NORI, { 0, -0.3, 0 })
-end
-
--- 토핑 위 비스듬한 줄 3개 (연어 지방, 참치 결)
-local function stripes(color: { number }, angle: number, material: string?): { PartSpec }
-	local list: { PartSpec } = {}
-	for i, x in { -0.8, 0, 0.8 } do
-		table.insert(
-			list,
-			piece(`Stripe{i}`, { 0.14, 0.04, 2.0 }, color, { x, 2.42, 0.2 }, material, { rotation = { 0, angle, 0 } })
-		)
-	end
-	return list
-end
-
--- 군함: 김 벽이 옆·뒤를 감싸고, 앞은 눈 위 테두리와 입 아래 띠만 (얼굴이 보이게)
-local function gunkan(): { PartSpec }
-	return {
-		piece("GunkanBack", { 2.6, 3.9, 0.2 }, NORI, { 0, 0.35, 1.0 }),
-		piece("GunkanLeft", { 0.2, 3.9, 2.0 }, NORI, { -1.3, 0.35, 0.1 }),
-		piece("GunkanRight", { 0.2, 3.9, 2.0 }, NORI, { 1.3, 0.35, 0.1 }),
-		piece("GunkanRim", { 2.6, 0.4, 0.2 }, NORI, { 0, 2.1, -1.0 }),
-		piece("GunkanBand", { 2.6, 0.6, 0.2 }, NORI, { 0, -0.4, -1.0 }),
-	}
-end
-
--- 군함 위 알갱이 (Ball). positions = {x, z} 아래 층, top = 위 층
-local function roe(
-	prefix: string,
-	color: { number },
-	material: string,
-	size: number,
-	lower: { { number } },
-	upper: { { number } }
-): { PartSpec }
-	local list: { PartSpec } = {}
-	local lowerY = 1.6 + size / 2
-	for i, xz in lower do
-		table.insert(
-			list,
-			piece(`{prefix}{i}`, { size, size, size }, color, { xz[1], lowerY, xz[2] }, material, { shape = "Ball" })
-		)
-	end
-	for i, xz in upper do
-		table.insert(
-			list,
-			piece(
-				`{prefix}Top{i}`,
-				{ size, size, size },
-				color,
-				{ xz[1], lowerY + size * 0.6, xz[2] },
-				material,
-				{ shape = "Ball" }
-			)
-		)
-	end
-	return list
 end
 
 local function join(...: { PartSpec }): { PartSpec }
@@ -309,514 +215,779 @@ local function join(...: { PartSpec }): { PartSpec }
 	return list
 end
 
--- 눕힌 원판: 위를 보는 단면 (Cylinder는 X축 방향이라 Z로 90도 돌려요)
-local DISC = { 0, 0, 90 }
+-- 세운 원기둥(축 Y)과 앞을 보는 원판(축 Z): Cylinder는 X축 방향이라 돌려요
+local UPRIGHT = { 0, 0, 90 }
+local FACING = { 0, 90, 0 }
+
+type PillOpts = { material: string?, transparency: number?, tilt: number? }
+
+-- 알약 판: 위에서 보면 양 끝이 둥근 상자 (가운데 Block + 양 끝 세운 원기둥). 이름 name, name.."L", name.."R".
+-- 세 파츠는 색·재질이 같아서 위·아래 면이 같은 평면이어도 깜빡임이 안 보여요 (LayoutCheck는 같은 겉모습 쌍을 빼요).
+-- tilt(도): X축으로 기울여요 (+면 뒤쪽이 내려가요). 세 파츠가 같은 X선 위라 각자 돌려도 한 덩어리로 기울어요.
+local function pill(
+	name: string,
+	center: { number },
+	w: number,
+	h: number,
+	d: number,
+	color: { number },
+	opts: PillOpts?
+): { PartSpec }
+	assert(w > d, `pill {name}: width must exceed depth`)
+	local material = opts and opts.material
+	local transparency = opts and opts.transparency
+	local tilt = opts and opts.tilt or 0
+	local half = (w - d) / 2
+	local cx, cy, cz = center[1], center[2], center[3]
+	local blockRotation = if tilt ~= 0 then { tilt, 0, 0 } else nil
+	return {
+		piece(name, { w - d, h, d }, color, { cx, cy, cz }, material, {
+			rotation = blockRotation,
+			transparency = transparency,
+		}),
+		piece(`{name}L`, { h, d, d }, color, { cx - half, cy, cz }, material, {
+			shape = "Cylinder",
+			rotation = { tilt, 0, 90 },
+			transparency = transparency,
+		}),
+		piece(`{name}R`, { h, d, d }, color, { cx + half, cy, cz }, material, {
+			shape = "Cylinder",
+			rotation = { tilt, 0, 90 },
+			transparency = transparency,
+		}),
+	}
+end
+
+-- 세운 원판 (위에서 보는 단면, 축 Y)
+local function disc(
+	name: string,
+	diameter: number,
+	height: number,
+	color: { number },
+	offset: { number },
+	material: string?
+): PartSpec
+	return piece(
+		name,
+		{ height, diameter, diameter },
+		color,
+		offset,
+		material,
+		{ shape = "Cylinder", rotation = UPRIGHT }
+	)
+end
+
+local function ball(
+	name: string,
+	diameter: number,
+	color: { number },
+	offset: { number },
+	material: string?,
+	extra: Extra?
+): PartSpec
+	local e: Extra = extra or {}
+	e.shape = "Ball"
+	return piece(name, { diameter, diameter, diameter }, color, offset, material, e)
+end
+
+-- 눈 하나 (side -1 = 왼쪽, 1 = 오른쪽): 잉크 테두리(움직이는 파츠) + 흰자 + 눈동자 + 하이라이트, 그리고 감은 눈 선.
+-- 감은 눈 선(Lid)은 평소 밥 속에 숨어 있다가 깜빡일 때 클라이언트가 앞으로 꺼내요 (눈은 그때 밥 속으로 들어가요).
+local EYE_X, EYE_Y, EYE_Z = 0.62, 0.45, -1.13
+local function eye(side: number, prefix: string): { PartSpec }
+	local x = side * EYE_X
+	local rim = `Eye{prefix}`
+	return {
+		piece(
+			rim,
+			{ 0.24, 0.98, 0.98 },
+			INK,
+			{ x, EYE_Y, EYE_Z },
+			nil,
+			{ shape = "Cylinder", rotation = FACING, joint = true }
+		),
+		piece(
+			`EyeWhite{prefix}`,
+			{ 0.05, 0.84, 0.84 },
+			WHITE,
+			{ x, EYE_Y, -1.255 },
+			nil,
+			{ shape = "Cylinder", rotation = FACING, attach = rim }
+		),
+		piece(
+			`Pupil{prefix}`,
+			{ 0.04, 0.56, 0.56 },
+			PUPIL,
+			{ x - side * 0.04, EYE_Y - 0.06, -1.29 },
+			nil,
+			{ shape = "Cylinder", rotation = FACING, attach = rim }
+		),
+		-- 하이라이트는 두 눈 모두 왼쪽 위 (빛이 한쪽에서 오는 것처럼)
+		piece(`Shine{prefix}`, { 0.2, 0.2, 0.2 }, WHITE, { x - 0.13, EYE_Y + 0.14, -1.3 }, "Neon", {
+			shape = "Ball",
+			attach = rim,
+		}),
+		piece(`Lid{prefix}`, { 0.8, 0.12, 0.1 }, INK, { x, EYE_Y - 0.08, -0.97 }, nil, { joint = true }),
+	}
+end
+
+-- 볼: 둥근 옆면을 따라 바깥으로 27° 돌린 분홍 원판
+local function cheek(side: number, prefix: string, color: { number }, material: string?): PartSpec
+	local angle = math.rad(27)
+	return piece(
+		`Cheek{prefix}`,
+		{ 0.04, 0.38, 0.38 },
+		color,
+		{ side * ((RICE_W - RICE_D) / 2 + 1.2 * math.sin(angle)), -0.2, -1.2 * math.cos(angle) },
+		material,
+		{ shape = "Cylinder", rotation = { 0, 90 - side * 27, 0 } }
+	)
+end
+
+type BaseOpts = { foot: { number }?, footMaterial: string?, cheek: { number }?, cheekMaterial: string? }
+
+-- 기준 몸: 밥(알약) + 눈 2 + 입 + 볼 2 + 발 2. 모든 스킨이 크기·위치가 같아요 (색만 발·볼을 바꿀 수 있어요).
+local function base(opts: BaseOpts?): { PartSpec }
+	local foot = opts and opts.foot or FOOT
+	local footMaterial = opts and opts.footMaterial
+	local cheekColor = opts and opts.cheek or CHEEK
+	local cheekMaterial = opts and opts.cheekMaterial
+	return join(
+		pill("Body", { 0, 0, 0 }, RICE_W, RICE_H, RICE_D, RICE),
+		pill("BodyBase", { 0, BASE_Y, 0 }, 3.3, 0.3, 2.1, RICE),
+		eye(-1, "Left"),
+		eye(1, "Right"),
+		{
+			piece(
+				"Mouth",
+				{ 0.1, 0.5, 0.5 },
+				MOUTH,
+				{ 0, -0.12, -1.17 },
+				nil,
+				{ shape = "Cylinder", rotation = FACING }
+			),
+			-- 입 위쪽 반을 덮는 밥 → 아래 반원만 보이는 웃는 입
+			piece("MouthCover", { 0.58, 0.27, 0.04 }, RICE, { 0, 0.015, -1.22 }),
+			cheek(-1, "Left", cheekColor, cheekMaterial),
+			cheek(1, "Right", cheekColor, cheekMaterial),
+			ball("FootLeft", FOOT_D, foot, { -0.8, FOOT_Y, -0.15 }, footMaterial, { joint = true }),
+			ball("FootRight", FOOT_D, foot, { 0.8, FOOT_Y, -0.15 }, footMaterial, { joint = true }),
+		}
+	)
+end
+
+-- 위 토핑: 밥보다 조금 넓은 알약 판 (앞 0.05·뒤 0.25 튀어나와 밥을 덮어요)
+local function top(color: { number }, opts: PillOpts?): { PartSpec }
+	return pill("Topping", { 0, TOP_Y, TOP_Z }, TOP_W, TOP_H, TOP_D, color, opts)
+end
+
+-- 토핑 자락: 뒤로 밀린 알약이라 등·옆(뒤에서 보는 내 화면)을 덮고 앞 얼굴에서는 밥 속에 숨어요
+-- 위끝은 토핑 판 속에 숨고, 아래끝은 bottom(기본 -0.2).
+local function back(color: { number }, opts: PillOpts?, bottom: number?): { PartSpec }
+	local lo = bottom or -0.2
+	local hi = TOP_Y - 0.05
+	return pill("ToppingBack", { 0, (lo + hi) / 2, BACK_Z }, TOP_W, hi - lo, BACK_D, color, opts)
+end
+
+-- 허리 김 띠 (계란초밥의 상징, 몸을 한 바퀴)
+local function belt(color: { number }?, material: string?): { PartSpec }
+	return pill("Nori", { 0, -0.75, 0 }, RICE_W + 0.1, 0.55, RICE_D + 0.12, color or NORI, { material = material })
+end
+
+-- 토핑 위 비스듬한 줄 (연어 지방, 참치 결) — 게임 거리에서 보이게 폭 0.24
+local function stripes(color: { number }, angle: number, material: string?): { PartSpec }
+	local list: { PartSpec } = {}
+	for i, x in { -0.8, 0, 0.8 } do
+		table.insert(
+			list,
+			piece(
+				`Stripe{i}`,
+				{ 0.24, 0.06, 2.1 },
+				color,
+				{ x, TOP_SURFACE + 0.02, 0 },
+				material,
+				{ rotation = { 0, angle, 0 } }
+			)
+		)
+	end
+	return list
+end
+
+-- 위·등을 세로로 감는 끈 (계란초밥 김 끈): 토핑 윗면 앞쪽부터 등 아래 자락 끝까지
+local function strap(color: { number }, material: string?): { PartSpec }
+	local backZ = TOP_Z + TOP_D / 2 + 0.03
+	local lo = -0.2
+	return {
+		piece("Strap", { 0.62, 0.06, TOP_D - 0.34 }, color, { 0, TOP_SURFACE + 0.02, TOP_Z + 0.15 }, material),
+		piece(
+			"StrapBack",
+			{ 0.62, TOP_SURFACE + 0.05 - lo, 0.1 },
+			color,
+			{ 0, (TOP_SURFACE + 0.05 + lo) / 2, backZ },
+			material
+		),
+	}
+end
+
+-- 군함·마키 김 벽: 등·옆을 밥 아래부터 위까지 감싸고 위로 솟아 알갱이를 담는 그릇이 돼요
+local function noriWall(topY: number): { PartSpec }
+	local lo = -1.1
+	return pill("Wall", { 0, (lo + topY) / 2, BACK_Z }, TOP_W, topY - lo, BACK_D, NORI)
+end
+
+-- 군함 위 알갱이 (Ball). points = {x, y, z}
+local function roe(
+	prefix: string,
+	color: { number },
+	material: string,
+	size: number,
+	points: { { number } }
+): { PartSpec }
+	local list: { PartSpec } = {}
+	for i, p in points do
+		table.insert(list, ball(`{prefix}{i}`, size, color, p, material))
+	end
+	return list
+end
+
+local function withBase(opts: BaseOpts?, ...: { PartSpec }): { PartSpec }
+	return join(base(opts), ...)
+end
+
+---------------------------------------------------------------- 레이아웃 (m5-25에서 31종 모두 새 몸에 맞춰 다시 배치)
+-- 자주 쓰는 높이·깊이 (m5-25)
+local ON_TOP = TOP_SURFACE + 0.02 -- 토핑 윗면에 얹는 얇은 장식 중심
+local BACK_FACE = BACK_Z + BACK_D / 2 -- 토핑 자락 뒷면 z (1.45), 평평한 폭 |x| ≤ 0.65
+local WALL_TOP = 1.75 -- 군함·마키 김 벽 윗면
+
+-- 토핑 자락 뒷면(평평한 가운데)에 붙이는 판. size[3]이 두께
+local function onBack(
+	name: string,
+	size: { number },
+	color: { number },
+	y: number,
+	material: string?,
+	extra: Extra?
+): PartSpec
+	return piece(name, size, color, { 0, y, BACK_FACE + size[3] / 2 - 0.01 }, material, extra)
+end
+
+-- 세모 쐐기를 앞에서 보이게 세워요 (side -1: 높은 쪽이 +X(안쪽), 1: 높은 쪽이 -X(안쪽)). size = {두께, 높이, 폭}
+local function triangle(
+	name: string,
+	size: { number },
+	color: { number },
+	offset: { number },
+	side: number,
+	material: string?,
+	extra: Extra?
+): PartSpec
+	local e: Extra = extra or {}
+	e.shape = "Wedge"
+	e.rotation = { 0, -side * 90, 0 }
+	return piece(name, size, color, offset, material, e)
+end
 
 local LAYOUTS: { [string]: { PartSpec } } = {
-	tamago = TAMAGO,
+	-- 기본: 노란 계란 + 등 자락 + 허리 김 띠
+	tamago = withBase(nil, top(EGG), back(EGG), belt(), strap(NORI)),
 
-	-- 일반
-	salmon = withBase(join(slab(SALMON), stripes(SALMON_FAT, 30))),
-	tuna = withBase(join(slab(TUNA), stripes({ 196, 64, 80 }, -25))),
-	shrimp = withBase(join(slab(SHRIMP), {
-		piece("ToppingBand1", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, -0.5 }),
-		piece("ToppingBand2", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, 0.2 }),
-		piece("ToppingBand3", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, 0.9 }),
-		piece("TailLeft", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { -0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, 20 } }),
-		piece("TailRight", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { 0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, -20 } }),
-	})),
-	inari = withBase({
-		piece("PouchTop", { 2.8, 0.7, 2.2 }, INARI, { 0, 1.95, 0.2 }, "Fabric"),
-		piece("PouchBack", { 2.7, 3.2, 0.3 }, INARI, { 0, 0.3, 1.05 }, "Fabric"),
-		piece("PouchLeft", { 0.2, 3.0, 1.9 }, INARI, { -1.3, 0.3, 0.1 }, "Fabric"),
-		piece("PouchRight", { 0.2, 3.0, 1.9 }, INARI, { 1.3, 0.3, 0.1 }, "Fabric"),
-		piece("PouchFold", { 2.0, 0.1, 0.15 }, { 160, 100, 40 }, { 0, 2.33, -0.5 }, "Fabric"),
+	---------------------------------------------------------------- 일반
+	salmon = withBase(nil, top(SALMON), back(SALMON), stripes(SALMON_FAT, 30), {
+		onBack("BackStripe1", { 0.22, 1.0, 0.06 }, SALMON_FAT, 0.45, nil, { rotation = { 0, 0, 30 } }),
 	}),
-	["kappa-maki"] = withBase({
-		piece("NoriBack", { 2.6, 3.4, 0.2 }, NORI, { 0, 0.1, 1.0 }),
-		piece("NoriLeft", { 0.2, 3.4, 2.0 }, NORI, { -1.3, 0.1, 0.1 }),
-		piece("NoriRight", { 0.2, 3.4, 2.0 }, NORI, { 1.3, 0.1, 0.1 }),
-		piece("RiceTop", { 2.4, 0.25, 1.8 }, RICE, { 0, 1.725, 0 }),
-		piece("Cucumber", { 0.18, 1.2, 1.2 }, CUCUMBER, { 0, 1.88, 0 }, nil, { shape = "Cylinder", rotation = DISC }),
-		piece(
-			"CucumberCore",
-			{ 0.2, 0.8, 0.8 },
-			CUCUMBER_CORE,
-			{ 0, 1.9, 0 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
+	tuna = withBase({ foot = TUNA_LINE }, top(TUNA), back(TUNA), stripes(TUNA_LINE, -25), {
+		onBack("BackStripe1", { 0.22, 1.0, 0.06 }, TUNA_LINE, 0.45, nil, { rotation = { 0, 0, -25 } }),
 	}),
-
-	-- 레어
-	eel = withBase(join(slab(EEL), {
-		piece("Sauce", { 2.82, 0.06, 2.22 }, EEL_SAUCE, { 0, 2.43, 0.2 }, "Glass"),
-		noriBelt(),
-	})),
-	uni = withBase(join(
-		gunkan(),
-		roe("Uni", UNI, "SmoothPlastic", 0.7, {
-			{ -0.7, -0.45 },
-			{ 0, -0.45 },
-			{ 0.7, -0.45 },
-			{ -0.7, 0.4 },
-			{ 0, 0.4 },
-			{ 0.7, 0.4 },
-		}, { { -0.35, 0 }, { 0.35, 0 } })
-	)),
-	ikura = withBase(join(
-		gunkan(),
-		roe("Ikura", IKURA, "Glass", 0.5, {
-			{ -0.75, -0.5 },
-			{ -0.25, -0.5 },
-			{ 0.25, -0.5 },
-			{ 0.75, -0.5 },
-			{ -0.75, 0.3 },
-			{ -0.25, 0.3 },
-			{ 0.25, 0.3 },
-			{ 0.75, 0.3 },
-		}, { { -0.5, -0.1 }, { 0, -0.1 }, { 0.5, -0.1 } })
-	)),
-	octopus = withBase(join(slab(OCTOPUS), {
-		piece("ToppingRim", { 2.82, 0.2, 0.1 }, OCTOPUS_RIM, { 0, 2.0, -0.92 }),
-		piece(
-			"Sucker1",
-			{ 0.08, 0.45, 0.45 },
-			OCTOPUS_RIM,
-			{ -0.8, 2.42, -0.3 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Sucker2",
-			{ 0.08, 0.45, 0.45 },
-			OCTOPUS_RIM,
-			{ 0, 2.42, 0.3 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Sucker3",
-			{ 0.08, 0.45, 0.45 },
-			OCTOPUS_RIM,
-			{ 0.8, 2.42, -0.3 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Sucker4",
-			{ 0.08, 0.45, 0.45 },
-			OCTOPUS_RIM,
-			{ -0.4, 2.42, 0.9 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Sucker5",
-			{ 0.08, 0.45, 0.45 },
-			OCTOPUS_RIM,
-			{ 0.5, 2.42, 0.9 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		noriBelt(),
-	})),
-
-	-- 에픽
-	["rainbow-roll"] = withBase({
-		piece("Rainbow1", { 2.8, 0.8, 0.44 }, SALMON, { 0, 2.0, -0.68 }),
-		piece("Rainbow2", { 2.8, 0.8, 0.44 }, TUNA, { 0, 2.0, -0.24 }),
-		piece("Rainbow3", { 2.8, 0.8, 0.44 }, AVOCADO, { 0, 2.0, 0.2 }),
-		piece("Rainbow4", { 2.8, 0.8, 0.44 }, WHITE_FISH, { 0, 2.0, 0.64 }),
-		piece("Rainbow5", { 2.8, 0.8, 0.44 }, EGG, { 0, 2.0, 1.08 }),
-		piece("ToppingBack", { 2.6, 1.6, 0.3 }, AVOCADO, { 0, 0.9, 1.05 }),
-		noriBelt(),
-	}),
-	["aburi-salmon"] = withBase(join(slab(SEARED), {
-		piece("Char1", { 0.5, 0.05, 0.4 }, CHAR, { -0.7, 2.42, -0.3 }),
-		piece("Char2", { 0.4, 0.05, 0.5 }, CHAR, { 0.4, 2.42, 0.3 }),
-		piece("Char3", { 0.6, 0.05, 0.3 }, CHAR, { -0.1, 2.42, 0.9 }),
-		piece("Ember", { 0.3, 0.1, 0.3 }, EMBER, { 0.5, 2.45, -0.2 }, "Neon", { effect = "Fire", effectColor = EMBER }),
-	})),
-	["california-roll"] = withBase({
-		piece("Topping", { 2.8, 0.8, 2.2 }, AVOCADO, { 0, 2.0, 0.2 }),
-		piece("ToppingBack", { 2.6, 1.6, 0.3 }, TOBIKO, { 0, 0.9, 1.05 }, "Sand"),
-		piece("Tobiko", { 2.8, 0.15, 0.4 }, TOBIKO, { 0, 2.47, 1.0 }, "Sand"),
-	}),
-
-	-- 전설
-	["golden-otoro"] = withBase(join(slab(GOLD, "Foil"), stripes(GOLD_FAT, 30, "Foil"), {
-		piece("Shine", { 0.3, 0.05, 0.3 }, GOLD_FAT, { 0, 2.43, 0.2 }, "Foil", {
-			effect = "Sparkles",
-			effectColor = { 255, 220, 90 },
+	-- 새우: 흰 바탕 + 주황 줄 3개(위·등까지) + 등 위로 솟는 빨간 꼬리 부채 (실루엣)
+	shrimp = withBase(nil, top(SHRIMP_PALE), back(SHRIMP_PALE), {
+		piece("Band1", { 0.42, 0.06, 2.0 }, SHRIMP_BAND, { -1.0, ON_TOP, TOP_Z }),
+		piece("Band2", { 0.42, 0.06, 2.6 }, SHRIMP_BAND, { 0, ON_TOP, TOP_Z }),
+		piece("Band3", { 0.42, 0.06, 2.0 }, SHRIMP_BAND, { 1.0, ON_TOP, TOP_Z }),
+		onBack("BackBand1", { 1.3, 0.3, 0.06 }, SHRIMP_BAND, 0.75),
+		onBack("BackBand2", { 1.3, 0.3, 0.06 }, SHRIMP_BAND, 0.15),
+		piece("TailLeft", { 0.26, 0.7, 0.6 }, SHRIMP_TAIL, { -0.28, TOP_SURFACE + 0.28, 1.15 }, nil, {
+			shape = "Wedge",
+			rotation = { 0, 180, 20 },
 		}),
-	})),
-	["diamond-uni"] = withBase(join(
-		gunkan(),
-		roe("Diamond", DIAMOND, "Glass", 0.7, {
-			{ -0.7, -0.45 },
-			{ 0, -0.45 },
-			{ 0.7, -0.45 },
-			{ -0.7, 0.4 },
-			{ 0, 0.4 },
-			{ 0.7, 0.4 },
-		}, { { -0.35, 0 } }),
+		piece("TailRight", { 0.26, 0.7, 0.6 }, SHRIMP_TAIL, { 0.28, TOP_SURFACE + 0.28, 1.15 }, nil, {
+			shape = "Wedge",
+			rotation = { 0, 180, -20 },
+		}),
+	}),
+	-- 유부: 튀긴 두부 주머니가 위·등·옆을 길게 감싸요 (천 재질), 위에 접힌 주름
+	inari = withBase(
+		{ foot = INARI_DARK },
+		top(INARI, { material = "Fabric" }),
+		back(INARI, { material = "Fabric" }, -0.95),
+		pill("Fold", { 0, TOP_SURFACE + 0.08, 0.4 }, 2.6, 0.2, 0.6, INARI_DARK, { material = "Fabric" })
+	),
+	-- 오이마키: 김 벽 + 위에서 보면 흰 밥 원 안의 초록 오이 (마키 단면)
+	["kappa-maki"] = withBase(nil, noriWall(WALL_TOP), {
+		disc("RiceTop", 2.3, 0.1, RICE, { 0, WALL_TOP + 0.04, 0.1 }),
+		disc("Cucumber", 1.3, 0.12, CUCUMBER, { 0, WALL_TOP + 0.1, 0.1 }),
+		disc("CucumberCore", 0.75, 0.12, CUCUMBER_CORE, { 0, WALL_TOP + 0.14, 0.1 }),
+	}),
+	-- 타코야키: 갈색 소스 자락 + 위에 둥근 볼 4개(실루엣) + 마요·가쓰오부시·파래
+	takoyaki = withBase(
+		{ foot = TAKOYAKI_SAUCE },
+		back(TAKOYAKI_SAUCE),
+		pill("Topping", { 0, 1.35, 0.1 }, 3.8, 0.3, 2.6, TAKOYAKI_SAUCE),
 		{
-			piece("DiamondTop2", { 0.7, 0.7, 0.7 }, DIAMOND, { 0.35, 1.95 + 0.42, 0 }, "Glass", {
-				shape = "Ball",
-				effect = "Sparkles",
-				effectColor = { 180, 235, 255 },
+			ball("Ball1", 1.2, TAKOYAKI_BROWN, { -0.7, 1.85, -0.45 }),
+			ball("Ball2", 1.2, TAKOYAKI_BROWN, { 0.7, 1.85, -0.45 }),
+			ball("Ball3", 1.2, TAKOYAKI_BROWN, { -0.65, 1.85, 0.6 }),
+			ball("Ball4", 1.2, TAKOYAKI_BROWN, { 0.65, 1.85, 0.6 }),
+			piece("Mayo1", { 2.4, 0.1, 0.16 }, MAYO_WHITE, { 0, 2.42, -0.45 }, nil, { rotation = { 0, 8, 0 } }),
+			piece("Mayo2", { 2.4, 0.1, 0.16 }, MAYO_WHITE, { 0, 2.42, 0.6 }, nil, { rotation = { 0, -8, 0 } }),
+			piece("Bonito1", { 0.5, 0.06, 0.34 }, BONITO, { -0.65, 2.45, 0.05 }, nil, { rotation = { 0, 35, 12 } }),
+			piece("Bonito2", { 0.5, 0.06, 0.34 }, BONITO, { 0.6, 2.45, 0.05 }, nil, { rotation = { 0, -25, -10 } }),
+			ball("Aonori", 0.22, AONORI, { 0, 2.34, 0.08 }),
+		}
+	),
+	-- 에그토스트: 연한 빵 + 진한 빵 껍질 자락 + 흰 달걀 프라이 원판 + 노른자 돔 (실루엣)
+	["egg-toast"] = withBase({ foot = CRUST }, top(BREAD), back(CRUST), {
+		disc("EggWhite", 2.2, 0.12, EGG_WHITE, { -0.15, TOP_SURFACE + 0.04, TOP_Z }),
+		ball("Yolk", 0.9, YOLK_YELLOW, { 0.05, TOP_SURFACE + 0.15, TOP_Z }),
+	}),
+	-- 슬라이더 버거: 갈색 패티·초록 상추가 이마를 한 바퀴, 노란 치즈 끝이 앞으로 늘어지고, 두툼한 번 + 참깨, 등은 번 색 자락
+	["slider-burger"] = withBase(
+		{ foot = PATTY_BROWN },
+		pill("Patty", { 0, 1.25, 0.05 }, 3.84, 0.34, 2.66, PATTY_BROWN),
+		pill("Lettuce", { 0, 1.45, 0.05 }, 3.94, 0.12, 2.78, LETTUCE_GREEN),
+		{ piece("Cheese", { 2.0, 0.08, 2.0 }, CHEESE, { 0, 1.53, 0 }, nil, { rotation = { 0, 45, 0 } }) },
+		pill("Topping", { 0, 1.82, 0.05 }, 3.7, 0.6, 2.6, SLIDER_BUN),
+		pill("ToppingBack", { 0, 0.45, BACK_Z }, TOP_W, 1.3, BACK_D, SLIDER_BUN),
+		{
+			ball("Sesame1", 0.2, SESAME_WHITE, { -0.6, 2.17, -0.3 }),
+			ball("Sesame2", 0.2, SESAME_WHITE, { 0.5, 2.17, 0.3 }),
+			ball("Sesame3", 0.2, SESAME_WHITE, { -0.1, 2.17, 0.5 }),
+			ball("Sesame4", 0.2, SESAME_WHITE, { 0.3, 2.17, -0.5 }),
+		}
+	),
+
+	---------------------------------------------------------------- 레어
+	-- 장어: 갈색 + 윤기 소스 + 허리 김 띠 + 참깨
+	eel = withBase(nil, top(EEL), back(EEL), belt(), {
+		piece("Sauce", { 2.2, 0.06, 2.0 }, EEL_SAUCE, { 0, ON_TOP, TOP_Z }, "Glass"),
+		ball("Sesame1", 0.18, SESAME_WHITE, { -0.5, TOP_SURFACE + 0.07, -0.3 }),
+		ball("Sesame2", 0.18, SESAME_WHITE, { 0.4, TOP_SURFACE + 0.07, 0.4 }),
+		ball("Sesame3", 0.18, SESAME_WHITE, { -0.1, TOP_SURFACE + 0.07, 0.8 }),
+	}),
+	-- 성게: 김 벽 그릇 + 위에 주황 성게 덩어리 6개 (두 가지 주황)
+	uni = withBase(nil, noriWall(WALL_TOP), {
+		ball("Uni1", 0.8, UNI, { -0.8, WALL_TOP + 0.2, -0.45 }),
+		ball("Uni2", 0.8, UNI_DEEP, { 0, WALL_TOP + 0.25, -0.5 }),
+		ball("Uni3", 0.8, UNI, { 0.8, WALL_TOP + 0.2, -0.45 }),
+		ball("Uni4", 0.8, UNI_DEEP, { -0.75, WALL_TOP + 0.25, 0.45 }),
+		ball("Uni5", 0.8, UNI, { 0, WALL_TOP + 0.3, 0.4 }),
+		ball("Uni6", 0.8, UNI_DEEP, { 0.75, WALL_TOP + 0.25, 0.45 }),
+	}),
+	-- 연어알: 김 벽 그릇 + 작은 유리 알이 수북 + 초록 잎 (성게와 알 크기·색·잎으로 구분)
+	ikura = withBase(
+		nil,
+		noriWall(WALL_TOP),
+		roe("Ikura", IKURA, "Glass", 0.52, {
+			{ -1.0, WALL_TOP + 0.12, -0.4 },
+			{ -0.5, WALL_TOP + 0.12, -0.5 },
+			{ 0.0, WALL_TOP + 0.12, -0.5 },
+			{ 0.5, WALL_TOP + 0.12, -0.45 },
+			{ 1.0, WALL_TOP + 0.12, -0.3 },
+			{ -0.9, WALL_TOP + 0.12, 0.45 },
+			{ -0.4, WALL_TOP + 0.12, 0.35 },
+			{ 0.15, WALL_TOP + 0.12, 0.4 },
+			{ 0.7, WALL_TOP + 0.12, 0.5 },
+			{ -0.6, WALL_TOP + 0.42, 0 },
+			{ -0.05, WALL_TOP + 0.47, 0.05 },
+			{ 0.5, WALL_TOP + 0.42, 0 },
+		}),
+		{
+			piece("Leaf", { 0.12, 0.6, 0.9 }, LEAF_GREEN, { -1.05, WALL_TOP + 0.3, 0.8 }, nil, {
+				shape = "Wedge",
+				rotation = { 0, 30, 20 },
 			}),
 		}
-	)),
-	["dragon-roll"] = withBase(join(slab(DRAGON), {
-		piece("Scale1", { 0.5, 0.15, 0.5 }, DRAGON_DARK, { -0.7, 2.47, -0.3 }),
-		piece("Scale2", { 0.5, 0.15, 0.5 }, DRAGON_DARK, { 0.7, 2.47, -0.3 }),
-		piece("Scale3", { 0.5, 0.15, 0.5 }, DRAGON_DARK, { 0, 2.47, 0.4 }),
-		piece("Scale4", { 0.5, 0.15, 0.5 }, DRAGON_DARK, { -0.7, 2.47, 1.0 }),
-		piece("Scale5", { 0.5, 0.15, 0.5 }, DRAGON_DARK, { 0.7, 2.47, 1.0 }),
-		piece("Head", { 1.0, 0.6, 0.4 }, DRAGON, { 0, 2.35, -0.8 }),
-		piece("HeadEyeLeft", { 0.15, 0.15, 0.05 }, DRAGON_EYE, { -0.25, 2.45, -1.02 }, "Neon"),
-		piece("HeadEyeRight", { 0.15, 0.15, 0.05 }, DRAGON_EYE, { 0.25, 2.45, -1.02 }, "Neon"),
-		piece("HornLeft", { 0.12, 0.3, 0.12 }, DRAGON_HORN, { -0.3, 2.8, -0.75 }),
-		piece("HornRight", { 0.12, 0.3, 0.12 }, DRAGON_HORN, { 0.3, 2.8, -0.75 }),
-		piece("Tail", { 0.5, 0.4, 0.25 }, DRAGON_DARK, { 0, 1.9, 1.35 }),
-		piece("TailTip", { 0.3, 0.3, 0.2 }, DRAGON, { 0, 2.2, 1.4 }),
-	})),
+	),
+	-- 문어: 연분홍 + 앞 가장자리 진분홍 테 + 큰 빨판 + 진분홍 자락 + 허리 김 띠
+	octopus = withBase(nil, top(OCTOPUS), back(OCTOPUS_RIM), belt(), {
+		piece("Rim", { 1.0, 0.24, 0.1 }, OCTOPUS_RIM, { 0, TOP_Y - 0.22, TOP_Z - TOP_D / 2 - 0.04 }),
+		disc("Sucker1", 0.55, 0.08, OCTOPUS_RIM, { -0.85, ON_TOP, -0.3 }),
+		disc("Sucker2", 0.55, 0.08, OCTOPUS_RIM, { 0, ON_TOP, 0.2 }),
+		disc("Sucker3", 0.55, 0.08, OCTOPUS_RIM, { 0.85, ON_TOP, -0.3 }),
+		disc("Sucker4", 0.45, 0.08, OCTOPUS_RIM, { -0.5, ON_TOP, 0.85 }),
+		disc("Sucker5", 0.45, 0.08, OCTOPUS_RIM, { 0.55, ON_TOP, 0.85 }),
+	}),
+	-- 돈가스: 바삭한 금갈색 + 진한 결 + 등 위 양배추 더미(실루엣) + 소스
+	tonkatsu = withBase(
+		{ foot = TONKATSU_RIDGE },
+		top(TONKATSU_GOLD),
+		back(TONKATSU_RIDGE),
+		stripes(TONKATSU_RIDGE, 60),
+		{
+			piece("Sauce", { 2.4, 0.08, 0.3 }, SAUCE_BROWN, { 0, TOP_SURFACE + 0.05, -0.55 }, nil, {
+				rotation = { 0, -6, 0 },
+			}),
+			ball("Cabbage1", 0.8, CABBAGE_GREEN, { -0.45, TOP_SURFACE + 0.15, 0.9 }),
+			ball("Cabbage2", 0.8, CABBAGE_GREEN, { 0.4, TOP_SURFACE + 0.15, 0.95 }),
+			ball("Cabbage3", 0.66, LETTUCE_GREEN, { 0, TOP_SURFACE + 0.26, 0.8 }),
+		}
+	),
+	-- 고양이: 크림색 + 생강색 무늬·자락 + 위로 솟은 세모 귀(실루엣) + 코 + 수염 + 등 뒤 꼬리
+	["cat-sushi"] = withBase({ foot = CAT_CREAM, cheek = CAT_EAR_INNER }, top(CAT_CREAM), back(CAT_GINGER), {
+		piece("Patch1", { 1.1, 0.06, 0.9 }, CAT_GINGER, { 0, ON_TOP, 0.75 }, nil, { rotation = { 0, 10, 0 } }),
+		triangle("EarLeft", { 0.36, 0.7, 0.8 }, CAT_GINGER, { -1.0, TOP_SURFACE + 0.25, -0.3 }, -1),
+		triangle("EarRight", { 0.36, 0.7, 0.8 }, CAT_GINGER, { 1.0, TOP_SURFACE + 0.25, -0.3 }, 1),
+		triangle("EarInnerLeft", { 0.06, 0.45, 0.5 }, CAT_EAR_INNER, { -0.85, TOP_SURFACE + 0.125, -0.5 }, -1),
+		triangle("EarInnerRight", { 0.06, 0.45, 0.5 }, CAT_EAR_INNER, { 0.85, TOP_SURFACE + 0.125, -0.5 }, 1),
+		ball("Nose", 0.22, CAT_NOSE, { 0, 0.12, -1.24 }),
+		piece("WhiskerLeft", { 0.6, 0.06, 0.06 }, INK, { -1.3, 0.02, -0.8 }, nil, { rotation = { 0, -40, 8 } }),
+		piece("WhiskerRight", { 0.6, 0.06, 0.06 }, INK, { 1.3, 0.02, -0.8 }, nil, { rotation = { 0, 40, -8 } }),
+		onBack("Tabby1", { 1.2, 0.2, 0.06 }, CAT_TABBY, 0.85),
+		onBack("Tabby2", { 1.2, 0.2, 0.06 }, CAT_TABBY, 0.45),
+		piece("Tail", { 0.9, 0.32, 0.32 }, CAT_GINGER, { 0.55, -0.75, 1.42 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 0, 60 },
+		}),
+		ball("TailTip", 0.4, CAT_TABBY, { 0.78, -0.36, 1.42 }),
+	}),
+	-- 로보: 금속 회색 + 진한 등판 + 옆 볼트 귀 + 안테나(빛) + 하늘색 LED 볼
+	["robo-roll"] = withBase(
+		{ foot = ROBO_DARK, footMaterial = "Metal", cheek = VISOR_NEON, cheekMaterial = "Neon" },
+		top(ROBO_GRAY, { material = "Metal" }),
+		back(ROBO_DARK, { material = "Metal" }),
+		{
+			piece("PanelLine", { 3.0, 0.08, 0.12 }, ROBO_DARK, { 0, ON_TOP, -0.2 }),
+			piece("BoltLeft", { 0.3, 0.6, 0.6 }, ROBO_DARK, { -1.95, 0.6, 0.15 }, "Metal", { shape = "Cylinder" }),
+			piece("BoltRight", { 0.3, 0.6, 0.6 }, ROBO_DARK, { 1.95, 0.6, 0.15 }, "Metal", { shape = "Cylinder" }),
+			piece("AntennaRod", { 0.4, 0.1, 0.1 }, ROBO_DARK, { 0, TOP_SURFACE + 0.18, 0.6 }, "Metal", {
+				shape = "Cylinder",
+				rotation = UPRIGHT,
+			}),
+			ball("AntennaTip", 0.26, ANTENNA_TIP, { 0, TOP_SURFACE + 0.48, 0.6 }, "Neon", {
+				effect = "Glow",
+				effectColor = { 255, 60, 90 },
+			}),
+		}
+	),
 
-	-- 시즌 한정·VIP (m5-07). 외곽 상자는 계란초밥 ±15% 안 (등급 허용치보다 좁게, 스펙 AC6), 효과 1개 이하
-	-- 호박 초밥: 밥 위 주황 호박(위에 골 무늬), 앞면 잭오랜턴 눈·입, 초록 꼭지와 잎
-	["pumpkin-sushi"] = withBase({
-		noriBelt(),
-		piece("PumpkinBack", { 2.6, 1.6, 0.3 }, PUMPKIN_DARK, { 0, 0.9, 1.05 }),
-		piece("Pumpkin", { 2.6, 1.0, 2.0 }, PUMPKIN, { 0, 2.1, 0.15 }),
-		piece("PumpkinRib1", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { -0.65, 2.62, 0.15 }),
-		piece("PumpkinRib2", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { 0, 2.62, 0.15 }),
-		piece("PumpkinRib3", { 0.1, 0.04, 1.9 }, PUMPKIN_DARK, { 0.65, 2.62, 0.15 }),
-		piece("JackEyeLeft", { 0.3, 0.3, 0.05 }, INK, { -0.5, 2.25, -0.875 }, nil, { rotation = { 0, 0, 45 } }),
-		piece("JackEyeRight", { 0.3, 0.3, 0.05 }, INK, { 0.5, 2.25, -0.875 }, nil, { rotation = { 0, 0, 45 } }),
-		piece("JackMouth", { 1.1, 0.14, 0.05 }, INK, { 0, 1.85, -0.875 }),
-		piece("JackTooth", { 0.18, 0.12, 0.05 }, PUMPKIN, { 0.15, 1.86, -0.9 }),
-		piece("Stem", { 0.3, 0.4, 0.3 }, PUMPKIN_STEM, { 0, 2.8, 0.15 }),
-		piece("Leaf", { 0.5, 0.06, 0.25 }, PUMPKIN_LEAF, { 0.32, 2.66, 0.35 }, nil, { rotation = { 0, -25, 0 } }),
+	---------------------------------------------------------------- 에픽
+	-- 무지개 롤: 다섯 색 띠 + 아보카도 자락 + 허리 김 띠
+	["rainbow-roll"] = withBase(nil, top(AVOCADO), back(AVOCADO), belt(), {
+		piece("Rainbow1", { 2.0, 0.08, 0.44 }, SALMON, { 0, ON_TOP, TOP_Z - 0.88 }),
+		piece("Rainbow2", { 2.4, 0.08, 0.44 }, TUNA, { 0, ON_TOP, TOP_Z - 0.44 }),
+		piece("Rainbow3", { 2.4, 0.08, 0.44 }, WHITE_FISH, { 0, ON_TOP, TOP_Z }),
+		piece("Rainbow4", { 2.4, 0.08, 0.44 }, EGG, { 0, ON_TOP, TOP_Z + 0.44 }),
+		piece("Rainbow5", { 2.0, 0.08, 0.44 }, IKURA, { 0, ON_TOP, TOP_Z + 0.88 }),
 	}),
-	-- 유령 계란초밥: 계란초밥 위에 반투명 흰 천(0.25)과 둥근 검은 눈, 은은한 흰 빛 (효과 1)
-	["ghost-tamago"] = withBase({
-		piece("Egg", { 2.8, 0.8, 2.2 }, EGG, { 0, 2.0, 0.2 }),
-		piece("EggBack", { 2.6, 1.6, 0.3 }, EGG, { 0, 0.9, 1.05 }),
-		noriBelt(),
-		piece("SheetTop", { 2.9, 0.3, 2.3 }, GHOST_SHEET, { 0, 2.5, 0.2 }, "Fabric", {
-			transparency = 0.25,
+	-- 불꽃 연어: 그을린 주황 + 큰 탄 자국 + 불꽃 + 탄 발
+	["aburi-salmon"] = withBase({ foot = CHAR }, top(SEARED), back(SEARED), {
+		piece("Char1", { 0.7, 0.06, 0.5 }, CHAR, { -0.75, ON_TOP, -0.25 }, nil, { rotation = { 0, 20, 0 } }),
+		piece("Char2", { 0.6, 0.06, 0.6 }, CHAR, { 0.5, ON_TOP, 0.4 }, nil, { rotation = { 0, -30, 0 } }),
+		piece("Char3", { 0.8, 0.06, 0.4 }, CHAR, { -0.2, ON_TOP, 0.95 }, nil, { rotation = { 0, 10, 0 } }),
+		onBack("CharBack", { 1.0, 0.5, 0.06 }, CHAR, 0.5),
+		piece("Ember", { 0.36, 0.12, 0.36 }, EMBER, { 0.6, TOP_SURFACE + 0.05, -0.3 }, "Neon", {
+			effect = "Fire",
+			effectColor = EMBER,
+		}),
+	}),
+	-- 캘리포니아롤: 초록 아보카도 조각 부채 + 주황 날치알 자락(모래 재질)
+	["california-roll"] = withBase({ foot = TOBIKO }, top(AVOCADO_DARK), back(TOBIKO, { material = "Sand" }), {
+		piece("Slice1", { 0.8, 0.12, 2.2 }, AVOCADO, { -0.9, TOP_SURFACE + 0.04, TOP_Z }, nil, {
+			rotation = { 0, 12, 0 },
+		}),
+		piece("Slice2", { 0.8, 0.12, 2.4 }, AVOCADO, { 0, TOP_SURFACE + 0.07, TOP_Z }),
+		piece("Slice3", { 0.8, 0.12, 2.2 }, AVOCADO, { 0.9, TOP_SURFACE + 0.04, TOP_Z }, nil, {
+			rotation = { 0, -12, 0 },
+		}),
+		piece("Tobiko", { 2.4, 0.16, 0.36 }, TOBIKO, { 0, TOP_SURFACE + 0.14, 1.1 }, "Sand"),
+	}),
+	-- 갤럭시 롤: 남색 + 보라 자락 + 별 + 위에 고리 행성(실루엣), 반짝이 + 은은한 빛
+	["galaxy-roll"] = withBase({ foot = GALAXY_NAVY }, top(GALAXY_NAVY), back(GALAXY_PURPLE), {
+		ball("Star1", 0.22, GALAXY_STAR_WHITE, { -0.9, TOP_SURFACE + 0.04, -0.35 }, "Neon"),
+		ball("Star2", 0.22, GALAXY_STAR_WHITE, { 0.95, TOP_SURFACE + 0.04, 0.15 }, "Neon"),
+		ball("Star3", 0.22, GALAXY_STAR_TEAL, { -0.35, TOP_SURFACE + 0.04, 0.9 }, "Neon"),
+		ball("Star4", 0.22, GALAXY_STAR_WHITE, { 0.55, TOP_SURFACE + 0.04, -0.8 }, "Neon"),
+		ball("Planet", 0.8, PLANET, { -0.15, TOP_SURFACE + 0.35, 0.25 }, nil, {
+			effect = "Sparkles",
+			effectColor = { 120, 230, 220 },
+		}),
+		piece("PlanetRing", { 0.06, 1.4, 1.4 }, GALAXY_STAR_TEAL, { -0.15, TOP_SURFACE + 0.35, 0.25 }, nil, {
+			shape = "Cylinder",
+			rotation = { 0, 20, 70 },
+		}),
+		ball("Star5", 0.2, GALAXY_STAR_TEAL, { 0.4, 0.75, BACK_FACE + 0.05 }, "Neon"),
+		ball("GlowCore", 0.26, GALAXY_STAR_WHITE, { -0.3, 0.35, BACK_FACE + 0.06 }, "Neon", {
 			effect = "Glow",
-			effectColor = GHOST_GLOW,
-		}),
-		piece("SheetLeft", { 0.12, 1.3, 2.3 }, GHOST_SHEET, { -1.39, 1.85, 0.2 }, "Fabric", { transparency = 0.25 }),
-		piece("SheetRight", { 0.12, 1.3, 2.3 }, GHOST_SHEET, { 1.39, 1.85, 0.2 }, "Fabric", { transparency = 0.25 }),
-		piece("SheetBack", { 2.9, 1.5, 0.12 }, GHOST_SHEET, { 0, 1.8, 1.29 }, "Fabric", { transparency = 0.25 }),
-		piece("SheetHem", { 2.9, 0.12, 0.12 }, GHOST_SHEET, { 0, 2.3, -0.89 }, "Fabric", { transparency = 0.25 }),
-		piece("GhostEyeLeft", { 0.06, 0.42, 0.42 }, INK, { -0.5, 2.5, -0.98 }, nil, {
-			shape = "Cylinder",
-			rotation = { 0, 90, 0 },
-		}),
-		piece("GhostEyeRight", { 0.06, 0.42, 0.42 }, INK, { 0.5, 2.5, -0.98 }, nil, {
-			shape = "Cylinder",
-			rotation = { 0, 90, 0 },
+			effectColor = { 200, 200, 255 },
 		}),
 	}),
-	-- 산타 새우: 새우 초밥 + 빨간 산타 모자(흰 털 테두리, 흰 방울). 높이 상한 때문에 모자는 낮게 접혀요
-	["santa-shrimp"] = withBase(join(slab(SHRIMP), {
-		piece("ToppingBand1", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, -0.5 }),
-		piece("ToppingBand3", { 2.82, 0.05, 0.35 }, SHRIMP_BAND, { 0, 2.41, 0.9 }),
-		piece("TailLeft", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { -0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, 20 } }),
-		piece("TailRight", { 0.5, 0.6, 0.25 }, SHRIMP_TAIL, { 0.3, 2.35, 1.42 }, nil, { rotation = { 0, 0, -20 } }),
-		piece("HatBrim", { 1.6, 0.22, 1.2 }, SANTA_FUR, { -0.1, 2.51, 0.15 }, "Fabric"),
-		piece("HatBase", { 1.3, 0.3, 0.95 }, SANTA_RED, { -0.1, 2.77, 0.15 }, "Fabric"),
-		piece("HatTip", { 0.7, 0.22, 0.55 }, SANTA_RED, { 0.25, 2.96, 0.15 }, "Fabric"),
-		piece("HatPompom", { 0.3, 0.3, 0.3 }, SANTA_FUR, { 0.65, 2.95, 0.15 }, "Fabric", { shape = "Ball" }),
-	})),
-	-- 트리 마키: 오이마키 위가 초록 층 3개짜리 원뿔 트리, 빨간 장식 방울, 꼭대기 노란 별 + 반짝이 (효과 1)
-	["tree-maki"] = withBase({
-		piece("NoriBack", { 2.6, 3.4, 0.2 }, NORI, { 0, 0.1, 1.0 }),
-		piece("NoriLeft", { 0.2, 3.4, 2.0 }, NORI, { -1.3, 0.1, 0.1 }),
-		piece("NoriRight", { 0.2, 3.4, 2.0 }, NORI, { 1.3, 0.1, 0.1 }),
-		piece("RiceTop", { 2.4, 0.25, 1.8 }, RICE, { 0, 1.725, 0 }),
-		piece("TreeLayer1", { 2.0, 0.3, 1.6 }, CUCUMBER, { 0, 1.95, 0 }),
-		piece("TreeLayer2", { 1.4, 0.3, 1.1 }, TREE_GREEN, { 0, 2.25, 0 }),
-		piece("TreeLayer3", { 0.8, 0.3, 0.6 }, CUCUMBER, { 0, 2.55, 0 }),
-		piece("Ornament1", { 0.18, 0.18, 0.18 }, ORNAMENT_RED, { -0.7, 1.95, -0.8 }, nil, { shape = "Ball" }),
-		piece("Ornament2", { 0.18, 0.18, 0.18 }, ORNAMENT_RED, { 0.45, 2.25, -0.55 }, nil, { shape = "Ball" }),
-		piece("Ornament3", { 0.16, 0.16, 0.16 }, ORNAMENT_RED, { -0.2, 2.55, -0.3 }, nil, { shape = "Ball" }),
-		piece("StarA", { 0.28, 0.28, 0.1 }, STAR_YELLOW, { 0, 2.88, 0 }, "Neon", {
+	-- 소프트아이스크림: 와플 콘 자락 + 위로 쌓인 크림 소용돌이(실루엣) + 체리
+	["softserve-roll"] = withBase(
+		{ foot = CONE_DARK },
+		back(CONE_TAN),
+		{
+			onBack("ConeLine1", { 0.12, 1.1, 0.06 }, CONE_DARK, 0.45, nil, { rotation = { 0, 0, 35 } }),
+			onBack("ConeLine2", { 0.12, 1.1, 0.06 }, CONE_DARK, 0.45, nil, { rotation = { 0, 0, -35 } }),
+		},
+		top(SOFTSERVE_CREAM),
+		{
+			disc("Swirl1", 2.6, 0.36, SOFTSERVE_PINK, { 0, TOP_SURFACE + 0.16, TOP_Z }),
+			disc("Swirl2", 1.9, 0.34, SOFTSERVE_CREAM, { 0, TOP_SURFACE + 0.49, TOP_Z }),
+			disc("Swirl3", 1.2, 0.3, SOFTSERVE_PINK, { 0, TOP_SURFACE + 0.8, TOP_Z }),
+			ball("Cherry", 0.3, CHERRY_RED, { 0.1, TOP_SURFACE + 0.91, TOP_Z }),
+		}
+	),
+	-- 호박 초밥: 주황 호박(골) + 앞 잭오랜턴 얼굴 + 꼭지·잎 + 김 띠
+	["pumpkin-sushi"] = withBase(
+		{ foot = PUMPKIN_DARK },
+		belt(),
+		back(PUMPKIN_DARK),
+		pill("Topping", { 0, 1.62, TOP_Z }, TOP_W, 1.0, TOP_D, PUMPKIN),
+		{
+			piece("Rib1", { 0.14, 0.06, 2.3 }, PUMPKIN_DARK, { -0.6, 2.12, TOP_Z }),
+			piece("Rib2", { 0.14, 0.06, 2.6 }, PUMPKIN_DARK, { 0, 2.12, TOP_Z }),
+			piece("Rib3", { 0.14, 0.06, 2.3 }, PUMPKIN_DARK, { 0.6, 2.12, TOP_Z }),
+			triangle("JackEyeLeft", { 0.12, 0.38, 0.4 }, INK, { -0.42, 1.72, TOP_Z - TOP_D / 2 - 0.04 }, -1),
+			triangle("JackEyeRight", { 0.12, 0.38, 0.4 }, INK, { 0.42, 1.72, TOP_Z - TOP_D / 2 - 0.04 }, 1),
+			piece("JackMouth", { 1.0, 0.14, 0.08 }, INK, { 0, 1.36, TOP_Z - TOP_D / 2 - 0.03 }),
+			disc("Stem", 0.36, 0.42, PUMPKIN_STEM, { 0, 2.32, TOP_Z }),
+			piece("Leaf", { 0.6, 0.08, 0.34 }, PUMPKIN_LEAF, { 0.4, 2.16, 0.35 }, nil, { rotation = { 0, -25, 10 } }),
+		}
+	),
+	-- 산타 새우: 새우 + 흰 털 테두리 빨간 모자(끝이 옆으로 접혀 방울이 달랑) + 빨간 자락.
+	-- 시즌 스킨이라 외곽은 등급 허용치보다 좁은 계란초밥 ±15% 안 (m5-07 AC6) → 모자가 낮게 접혀요
+	["santa-shrimp"] = withBase(nil, top(SHRIMP_PALE), back(SANTA_RED, { material = "Fabric" }), {
+		piece("Band1", { 0.32, 0.06, 2.2 }, SHRIMP_BAND, { -1.0, ON_TOP, TOP_Z }),
+		piece("Band3", { 0.32, 0.06, 2.2 }, SHRIMP_BAND, { 1.0, ON_TOP, TOP_Z }),
+		disc("HatBrim", 2.0, 0.26, SANTA_FUR, { 0, TOP_SURFACE + 0.1, TOP_Z }, "Fabric"),
+		disc("HatBase", 1.5, 0.3, SANTA_RED, { 0, TOP_SURFACE + 0.36, TOP_Z }, "Fabric"),
+		disc("HatMid", 0.9, 0.18, SANTA_RED, { 0.1, TOP_SURFACE + 0.58, TOP_Z }, "Fabric"),
+		piece("HatTip", { 0.6, 0.34, 0.34 }, SANTA_RED, { 0.75, TOP_SURFACE + 0.42, TOP_Z }, "Fabric", {
+			shape = "Cylinder",
+			rotation = { 0, 0, -20 },
+		}),
+		ball("HatPompom", 0.4, SANTA_FUR, { 1.15, TOP_SURFACE + 0.3, TOP_Z }, "Fabric"),
+	}),
+
+	---------------------------------------------------------------- 레어 시즌·VIP
+	-- 유령 계란초밥: 계란초밥 위에 반투명 흰 천(위·등)과 둥근 검은 눈, 은은한 흰 빛
+	["ghost-tamago"] = withBase(
+		nil,
+		top(EGG),
+		back(EGG),
+		belt(),
+		pill("Sheet", { 0, TOP_SURFACE + 0.12, TOP_Z }, 4.0, 0.26, 2.92, GHOST_SHEET, {
+			material = "Fabric",
+			transparency = 0.25,
+		}),
+		pill("SheetBack", { 0, 0.82, BACK_Z + 0.05 }, 4.0, 2.1, 2.7, GHOST_SHEET, {
+			material = "Fabric",
+			transparency = 0.25,
+		}),
+		{
+			disc("GhostEyeLeft", 0.44, 0.06, INK, { -0.55, TOP_SURFACE + 0.26, -0.5 }),
+			disc("GhostEyeRight", 0.44, 0.06, INK, { 0.55, TOP_SURFACE + 0.26, -0.5 }),
+			ball("GhostGlow", 0.2, GHOST_GLOW, { 0, TOP_SURFACE + 0.28, 0.6 }, "Neon", {
+				effect = "Glow",
+				effectColor = GHOST_GLOW,
+			}),
+		}
+	),
+	-- 트리 마키: 오이마키 위 초록 원뿔 트리 3층 + 빨간 방울 + 노란 별(반짝이)
+	["tree-maki"] = withBase(nil, noriWall(WALL_TOP), {
+		disc("RiceTop", 2.3, 0.1, RICE, { 0, WALL_TOP + 0.04, 0.1 }),
+		disc("TreeLayer1", 1.9, 0.2, CUCUMBER, { 0, 1.94, 0.1 }),
+		disc("TreeLayer2", 1.35, 0.2, TREE_GREEN, { 0, 2.12, 0.1 }),
+		disc("TreeLayer3", 0.8, 0.2, CUCUMBER, { 0, 2.3, 0.1 }),
+		ball("Ornament1", 0.24, ORNAMENT_RED, { -0.75, 1.96, -0.45 }),
+		ball("Ornament2", 0.24, ORNAMENT_RED, { 0.5, 2.14, -0.4 }),
+		ball("Ornament3", 0.2, STAR_YELLOW, { -0.3, 2.32, -0.15 }),
+		piece("StarA", { 0.2, 0.2, 0.1 }, STAR_YELLOW, { 0, 2.48, 0.1 }, "Neon", {
 			rotation = { 0, 0, 45 },
 			effect = "Sparkles",
 			effectColor = STAR_YELLOW,
 		}),
-		piece("StarB", { 0.28, 0.28, 0.1 }, STAR_YELLOW, { 0, 2.88, 0 }, "Neon"),
+		piece("StarB", { 0.18, 0.18, 0.12 }, STAR_YELLOW, { 0, 2.48, 0.1 }, "Neon"),
 	}),
-	-- 금박 계란초밥 (VIP): 계란초밥 위에 금속 금박 두 장 + 김 띠 금테, 금색 반짝이 (효과 1)
-	["vip-gold-tamago"] = withBase({
-		piece("Egg", { 2.8, 0.8, 2.2 }, EGG, { 0, 2.0, 0.2 }),
-		piece("EggBack", { 2.6, 1.6, 0.3 }, EGG, { 0, 0.9, 1.05 }),
-		noriBelt(),
-		piece("GoldLeaf1", { 1.6, 0.05, 1.2 }, GOLD, { -0.2, 2.425, 0.1 }, "Foil", {
-			rotation = { 0, 15, 0 },
+
+	---------------------------------------------------------------- 전설
+	-- 황금 참치 뱃살: 온통 금박(위·등·발) + 연한 금 지방 줄 + 반짝이
+	["golden-otoro"] = withBase(
+		{ foot = GOLD, footMaterial = "Foil" },
+		top(GOLD, { material = "Foil" }),
+		back(GOLD, { material = "Foil" }),
+		stripes(GOLD_FAT, 30, "Foil"),
+		{
+			onBack("BackStripe1", { 0.22, 1.0, 0.06 }, GOLD_FAT, 0.45, "Foil", { rotation = { 0, 0, 30 } }),
+			ball("Shine", 0.3, GOLD_FAT, { 0, TOP_SURFACE + 0.1, TOP_Z }, "Foil", {
+				effect = "Sparkles",
+				effectColor = { 255, 220, 90 },
+			}),
+		}
+	),
+	-- 다이아 성게: 은테 김 벽 그릇 + 하늘색 보석 알 + 가운데 큰 다이아(실루엣) + 반짝이
+	["diamond-uni"] = withBase({ foot = SILVER, footMaterial = "Foil" }, noriWall(WALL_TOP), {
+		onBack("Rim", { 1.2, 0.2, 0.08 }, SILVER, WALL_TOP - 0.15, "Foil"),
+		ball("Diamond1", 0.7, DIAMOND, { -0.9, WALL_TOP + 0.18, -0.4 }, "Glass"),
+		ball("Diamond2", 0.7, DIAMOND, { 0.9, WALL_TOP + 0.18, -0.4 }, "Glass"),
+		ball("Diamond3", 0.7, DIAMOND, { -0.85, WALL_TOP + 0.18, 0.55 }, "Glass"),
+		ball("Diamond4", 0.7, DIAMOND, { 0.85, WALL_TOP + 0.18, 0.55 }, "Glass"),
+		ball("Diamond5", 0.7, DIAMOND, { 0, WALL_TOP + 0.18, 0.8 }, "Glass"),
+		piece("Gem", { 0.8, 0.8, 0.8 }, DIAMOND, { 0, WALL_TOP + 0.55, -0.1 }, "Glass", {
+			rotation = { 45, 0, 45 },
 			effect = "Sparkles",
-			effectColor = GOLD,
-		}),
-		piece("GoldLeaf2", { 0.8, 0.05, 0.7 }, GOLD_FAT, { 0.75, 2.43, 0.65 }, "Foil", { rotation = { 0, -20, 0 } }),
-		piece("GoldTrim", { 2.52, 0.1, 1.92 }, GOLD, { 0, 0.05, 0 }, "Foil"),
-	}),
-
-	-- 스킨 1차 배치 10종 (m5-22). 일반 3 (타코야키·에그토스트·슬라이더 버거)
-	takoyaki = withBase({
-		piece("DomeBack", { 2.6, 1.4, 0.3 }, TAKOYAKI_DARK, { 0, 0.9, 1.0 }),
-		piece("Dome1", { 1.1, 1.1, 1.1 }, TAKOYAKI_BROWN, { -0.55, 2.05, -0.25 }, nil, { shape = "Ball" }),
-		piece("Dome2", { 1.1, 1.1, 1.1 }, TAKOYAKI_BROWN, { 0.55, 2.05, -0.25 }, nil, { shape = "Ball" }),
-		piece("Dome3", { 1.15, 1.15, 1.15 }, TAKOYAKI_BROWN, { 0, 2.1, 0.35 }, nil, { shape = "Ball" }),
-		piece("BonitoWave1", { 1.6, 0.05, 0.35 }, BONITO_GREEN, { -0.3, 2.62, 0.0 }, nil, { rotation = { 0, 15, 0 } }),
-		piece("BonitoWave2", { 1.5, 0.05, 0.35 }, BONITO_GREEN, { 0.35, 2.58, 0.2 }, nil, { rotation = { 0, -10, 0 } }),
-		piece("MayoZig1", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { -0.4, 2.65, -0.4 }, nil, { rotation = { 0, 25, 0 } }),
-		piece("MayoZig2", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { 0.3, 2.6, 0.1 }, nil, { rotation = { 0, -20, 0 } }),
-		piece("MayoZig3", { 0.9, 0.05, 0.18 }, MAYO_WHITE, { -0.1, 2.63, 0.55 }, nil, { rotation = { 0, 15, 0 } }),
-	}),
-	["egg-toast"] = withBase(join(slab(EGGTOAST_BREAD), {
-		piece("CrustEdge", { 2.82, 0.15, 2.22 }, EGGTOAST_CRUST, { 0, 2.42, 0.2 }),
-		piece("Yolk", { 0.8, 0.8, 0.8 }, YOLK_YELLOW, { 0.55, 2.5, 0.35 }, nil, { shape = "Ball" }),
-		piece("YolkShade", { 0.3, 0.3, 0.3 }, YOLK_SHADE, { 0.7, 2.65, 0.5 }, nil, { shape = "Ball" }),
-	})),
-	["slider-burger"] = withBase(join(slab(SLIDER_BUN), {
-		piece("PattyBand", { 2.82, 0.18, 2.22 }, PATTY_BROWN, { 0, 2.38, 0.2 }),
-		piece("LettuceZig1", { 2.84, 0.08, 0.4 }, LETTUCE_GREEN, { 0, 2.47, -0.75 }, nil, { rotation = { 0, 0, 8 } }),
-		piece("LettuceZig2", { 2.84, 0.08, 0.4 }, LETTUCE_GREEN, { 0, 2.44, 1.05 }, nil, { rotation = { 0, 0, -8 } }),
-		piece("Sesame1", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { -0.6, 2.47, -0.1 }, nil, { shape = "Ball" }),
-		piece("Sesame2", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { 0.5, 2.46, 0.3 }, nil, { shape = "Ball" }),
-		piece("Sesame3", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { -0.2, 2.48, 0.6 }, nil, { shape = "Ball" }),
-		piece("Sesame4", { 0.12, 0.12, 0.12 }, SESAME_WHITE, { 0.3, 2.45, -0.5 }, nil, { shape = "Ball" }),
-	})),
-
-	-- 레어 3 (돈가스·고양이 초밥·로보 롤)
-	tonkatsu = withBase(join(slab(TONKATSU_GOLD), stripes(TONKATSU_RIDGE, 20), {
-		piece(
-			"CabbageCurl1",
-			{ 0.12, 0.5, 0.5 },
-			CABBAGE_GREEN,
-			{ -0.5, 0.98, 1.15 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"CabbageCurl2",
-			{ 0.12, 0.5, 0.5 },
-			CABBAGE_GREEN,
-			{ 0, 1.0, 1.2 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"CabbageCurl3",
-			{ 0.12, 0.5, 0.5 },
-			CABBAGE_GREEN,
-			{ 0.5, 0.98, 1.15 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece("SauceDrip", { 2.4, 0.05, 0.3 }, SAUCE_BROWN, { 0, 2.43, -0.9 }),
-	})),
-	["cat-sushi"] = withBase(join(slab(CAT_CREAM), {
-		piece(
-			"EarLeft",
-			{ 0.5, 0.7, 0.35 },
-			CAT_EAR_PINK,
-			{ -0.65, 2.68, -0.45 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, 20 } }
-		),
-		piece(
-			"EarRight",
-			{ 0.5, 0.7, 0.35 },
-			CAT_EAR_PINK,
-			{ 0.65, 2.68, -0.45 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, -20 } }
-		),
-		piece(
-			"EarInnerLeft",
-			{ 0.25, 0.4, 0.15 },
-			CAT_EAR_INNER,
-			{ -0.65, 2.65, -0.5 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, 20 } }
-		),
-		piece(
-			"EarInnerRight",
-			{ 0.25, 0.4, 0.15 },
-			CAT_EAR_INNER,
-			{ 0.65, 2.65, -0.5 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, -20 } }
-		),
-		piece("Nose", { 0.25, 0.25, 0.25 }, CAT_NOSE, { 0, 0.8, -0.95 }, nil, { shape = "Ball" }),
-		piece(
-			"WhiskerLeft1",
-			{ 0.03, 0.03, 0.9 },
-			WHISKER_WHITE,
-			{ -1.0, 0.75, -0.85 },
-			nil,
-			{ shape = "Cylinder", rotation = { 0, 10, 0 } }
-		),
-		piece(
-			"WhiskerRight1",
-			{ 0.03, 0.03, 0.9 },
-			WHISKER_WHITE,
-			{ 1.0, 0.75, -0.85 },
-			nil,
-			{ shape = "Cylinder", rotation = { 0, -10, 0 } }
-		),
-	})),
-	["robo-roll"] = withBase({
-		piece("Topping", { 2.8, 0.8, 2.2 }, ROBO_GRAY, { 0, 2.0, 0.2 }),
-		piece("ToppingBack", { 2.6, 1.6, 0.3 }, ROBO_DARK, { 0, 0.9, 1.05 }),
-		piece("VisorBand", { 2.84, 0.22, 0.12 }, VISOR_NEON, { 0, 1.05, -0.97 }, "Neon"),
-		piece(
-			"AntennaRod",
-			{ 0.6, 0.08, 0.08 },
-			ROBO_DARK,
-			{ 0, 2.65, 1.0 },
-			nil,
-			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
-		),
-		piece("AntennaTip", { 0.22, 0.22, 0.22 }, ANTENNA_TIP, { 0, 2.95, 1.0 }, nil, {
-			shape = "Ball",
-			effect = "Glow",
-			effectColor = { 255, 60, 90 },
+			effectColor = { 180, 235, 255 },
 		}),
 	}),
-
-	-- 에픽 2 (갤럭시 롤·소프트아이스크림 롤)
-	["galaxy-roll"] = withBase(join(slab(GALAXY_NAVY), {
-		piece("Star1", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { -0.8, 2.46, -0.3 }, nil, { shape = "Ball" }),
-		piece("Star2", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { 0.6, 2.47, 0.1 }, nil, { shape = "Ball" }),
-		piece("Star3", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { -0.3, 2.45, 0.6 }, nil, { shape = "Ball" }),
-		piece("Star4", { 0.12, 0.12, 0.12 }, GALAXY_STAR_WHITE, { 0.4, 2.48, -0.7 }, nil, { shape = "Ball" }),
-		piece("Star5", { 0.12, 0.12, 0.12 }, GALAXY_STAR_TEAL, { -0.5, 2.47, 0.9 }, nil, { shape = "Ball" }),
-		piece("SparkleCore", { 0.15, 0.15, 0.15 }, GALAXY_STAR_TEAL, { 0, 2.5, 0.2 }, nil, {
-			shape = "Ball",
-			effect = "Sparkles",
-			effectColor = { 120, 230, 220 },
-		}),
-		piece("GlowCore", { 0.2, 0.2, 0.2 }, GALAXY_STAR_WHITE, { 0, 0.9, 1.15 }, nil, {
-			shape = "Ball",
-			effect = "Glow",
-			effectColor = { 200, 200, 255 },
-		}),
-	})),
-	["softserve-roll"] = withBase({
-		piece("ConeBand", { 2.6, 1.0, 0.3 }, CONE_TAN, { 0, 1.0, 1.05 }),
-		piece(
-			"Swirl1",
-			{ 0.45, 2.6, 2.6 },
-			SOFTSERVE_CREAM,
-			{ 0, 1.95, 0.2 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Swirl2",
-			{ 0.4, 2.0, 2.0 },
-			SOFTSERVE_SHADE,
-			{ 0, 2.3, 0.2 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece(
-			"Swirl3",
-			{ 0.35, 1.4, 1.4 },
-			SOFTSERVE_CREAM,
-			{ 0, 2.65, 0.2 },
-			nil,
-			{ shape = "Cylinder", rotation = DISC }
-		),
-		piece("SwirlTip", { 0.5, 0.5, 0.5 }, SOFTSERVE_SHADE, { 0, 2.95, 0.2 }, nil, { shape = "Ball" }),
-		piece("Cherry", { 0.3, 0.3, 0.3 }, CHERRY_RED, { 0, 3.35, 0.2 }, nil, { shape = "Ball" }),
-	}),
-
-	-- 전설 2 (크라운 참치·유니콘 롤)
-	["crown-tuna"] = withBase(join(slab(CROWN_TUNA_RED), {
-		piece("CrownBase", { 2.2, 0.3, 1.8 }, CROWN_GOLD, { 0, 2.55, 0.2 }),
-		piece("CrownSpike1", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { -0.8, 2.95, 0.2 }, nil, { shape = "Wedge" }),
-		piece("CrownSpike2", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { -0.4, 3.0, 0.2 }, nil, { shape = "Wedge" }),
-		piece("CrownSpike3", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0, 3.05, 0.2 }, nil, {
+	-- 용 롤: 초록 + 등줄기 가시(실루엣) + 앞 머리·뿔·노란 눈 + 엉덩이 꼬리
+	["dragon-roll"] = withBase({ foot = DRAGON_DARK }, top(DRAGON), back(DRAGON_DARK), {
+		piece("Spike1", { 0.3, 0.55, 0.5 }, DRAGON_DARK, { 0, TOP_SURFACE + 0.2, 0.05 }, nil, { shape = "Wedge" }),
+		piece("Spike2", { 0.3, 0.5, 0.45 }, DRAGON_DARK, { 0, TOP_SURFACE + 0.18, 0.6 }, nil, { shape = "Wedge" }),
+		piece("Spike3", { 0.3, 0.45, 0.4 }, DRAGON_DARK, { 0, TOP_SURFACE + 0.15, 1.1 }, nil, { shape = "Wedge" }),
+		piece("Head", { 1.2, 0.6, 0.6 }, DRAGON, { 0, TOP_SURFACE + 0.22, -0.75 }),
+		piece("Snout", { 0.8, 0.36, 0.3 }, DRAGON, { 0, TOP_SURFACE + 0.1, -1.15 }),
+		piece("HeadEyeLeft", { 0.2, 0.2, 0.06 }, DRAGON_EYE, { -0.32, TOP_SURFACE + 0.32, -1.07 }, "Neon"),
+		piece("HeadEyeRight", { 0.2, 0.2, 0.06 }, DRAGON_EYE, { 0.32, TOP_SURFACE + 0.32, -1.07 }, "Neon"),
+		piece("HornLeft", { 0.2, 0.5, 0.4 }, DRAGON_HORN, { -0.42, TOP_SURFACE + 0.72, -0.6 }, nil, {
 			shape = "Wedge",
-			effect = "Sparkles",
-			effectColor = { 255, 225, 140 },
+			rotation = { 0, 180, 15 },
 		}),
-		piece("CrownSpike4", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0.4, 3.0, 0.2 }, nil, { shape = "Wedge" }),
-		piece("CrownSpike5", { 0.3, 0.5, 0.3 }, CROWN_GOLD, { 0.8, 2.95, 0.2 }, nil, { shape = "Wedge" }),
-		piece("CapeLeft", { 1.0, 1.8, 0.1 }, CAPE_VELVET, { -0.7, 0.6, 1.25 }, nil, {
+		piece("HornRight", { 0.2, 0.5, 0.4 }, DRAGON_HORN, { 0.42, TOP_SURFACE + 0.72, -0.6 }, nil, {
 			shape = "Wedge",
-			rotation = { 10, 0, 15 },
-			effect = "Glow",
-			effectColor = { 160, 60, 120 },
+			rotation = { 0, 180, -15 },
 		}),
-		piece(
-			"CapeRight",
-			{ 1.0, 1.8, 0.1 },
-			CAPE_VELVET,
-			{ 0.7, 0.6, 1.25 },
-			nil,
-			{ shape = "Wedge", rotation = { 10, 0, -15 } }
-		),
-	})),
-	["unicorn-roll"] = withBase(join(slab(UNICORN_WHITE), {
-		piece(
-			"HornBase",
-			{ 0.5, 0.35, 0.35 },
-			HORN_GOLD,
-			{ 0, 2.65, -0.3 },
-			nil,
-			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
-		),
-		piece(
-			"HornMid",
-			{ 0.4, 0.22, 0.22 },
-			HORN_GOLD,
-			{ 0, 3.05, -0.35 },
-			nil,
-			{ shape = "Cylinder", rotation = { 0, 0, 90 } }
-		),
-		piece("HornTip", { 0.3, 0.1, 0.1 }, HORN_GOLD_LIGHT, { 0, 3.35, -0.4 }, nil, {
+		piece("Tail", { 0.5, 0.6, 0.8 }, DRAGON_DARK, { 0.5, -0.75, 1.5 }, nil, {
+			shape = "Wedge",
+			rotation = { 90, 0, 0 },
+		}),
+	}),
+	-- 금박 계란초밥 (VIP): 계란초밥 + 금박 두 장 + 금 허리띠 + 금 발, 반짝이
+	["vip-gold-tamago"] = withBase(
+		{ foot = GOLD, footMaterial = "Foil" },
+		top(EGG),
+		back(EGG),
+		belt(GOLD, "Foil"),
+		strap(GOLD, "Foil"),
+		{
+			piece("GoldLeaf1", { 1.0, 0.06, 1.0 }, GOLD_FAT, { -1.05, ON_TOP, -0.1 }, "Foil", {
+				rotation = { 0, 15, 0 },
+				effect = "Sparkles",
+				effectColor = GOLD,
+			}),
+			piece("GoldLeaf2", { 0.8, 0.06, 0.7 }, GOLD_FAT, { 1.05, ON_TOP, 0.6 }, "Foil", {
+				rotation = { 0, -20, 0 },
+			}),
+		}
+	),
+	-- 크라운 참치: 진홍 참치 + 금관(띠 + 가시 5 + 보석) + 벨벳 망토 자락(길게) + 흰 털 + 반짝이·빛
+	["crown-tuna"] = withBase(
+		{ foot = CROWN_GOLD, footMaterial = "Foil" },
+		top(CROWN_TUNA_RED),
+		back(CAPE_VELVET, { material = "Fabric" }, -1.05),
+		{
+			disc("CrownBand", 1.9, 0.36, CROWN_GOLD, { 0, TOP_SURFACE + 0.13, TOP_Z }, "Foil"),
+			piece("CrownSpike1", { 0.4, 0.55, 0.36 }, CROWN_GOLD, { 0, TOP_SURFACE + 0.58, TOP_Z - 0.75 }, "Foil", {
+				shape = "Wedge",
+			}),
+			piece(
+				"CrownSpike2",
+				{ 0.4, 0.55, 0.36 },
+				CROWN_GOLD,
+				{ -0.713, TOP_SURFACE + 0.58, TOP_Z - 0.232 },
+				"Foil",
+				{ shape = "Wedge", rotation = { 0, 72, 0 } }
+			),
+			piece(
+				"CrownSpike3",
+				{ 0.4, 0.55, 0.36 },
+				CROWN_GOLD,
+				{ 0.713, TOP_SURFACE + 0.58, TOP_Z - 0.232 },
+				"Foil",
+				{ shape = "Wedge", rotation = { 0, -72, 0 } }
+			),
+			piece(
+				"CrownSpike4",
+				{ 0.4, 0.55, 0.36 },
+				CROWN_GOLD,
+				{ -0.44, TOP_SURFACE + 0.58, TOP_Z + 0.607 },
+				"Foil",
+				{ shape = "Wedge", rotation = { 0, 144, 0 } }
+			),
+			piece(
+				"CrownSpike5",
+				{ 0.4, 0.55, 0.36 },
+				CROWN_GOLD,
+				{ 0.44, TOP_SURFACE + 0.58, TOP_Z + 0.607 },
+				"Foil",
+				{ shape = "Wedge", rotation = { 0, -144, 0 } }
+			),
+			ball("Jewel", 0.32, CROWN_JEWEL, { 0, TOP_SURFACE + 0.13, TOP_Z - 0.95 }, "Glass", {
+				effect = "Sparkles",
+				effectColor = { 255, 225, 140 },
+			}),
+			onBack("Ermine", { 1.2, 0.3, 0.1 }, SANTA_FUR, -0.95, "Fabric", {
+				effect = "Glow",
+				effectColor = { 160, 60, 120 },
+			}),
+		}
+	),
+	-- 유니콘 롤: 흰색 + 앞 금빛 나선 뿔(실루엣) + 등줄기 파스텔 갈기 + 라일락 발·분홍 볼, 반짝이·빛
+	["unicorn-roll"] = withBase({ foot = MANE_LILAC, cheek = MANE_PINK }, top(UNICORN_WHITE), back(MANE_LILAC), {
+		disc("HornBase", 0.5, 0.4, HORN_GOLD, { 0, TOP_SURFACE + 0.18, -0.55 }),
+		disc("HornMid", 0.34, 0.4, HORN_GOLD_LIGHT, { 0, TOP_SURFACE + 0.55, -0.57 }),
+		piece("HornTip", { 0.36, 0.18, 0.18 }, HORN_GOLD, { 0, TOP_SURFACE + 0.88, -0.59 }, nil, {
 			shape = "Cylinder",
-			rotation = { 0, 0, 90 },
+			rotation = UPRIGHT,
 			effect = "Sparkles",
 			effectColor = { 255, 210, 245 },
 		}),
-		piece("Mane1", { 0.25, 1.0, 0.6 }, MANE_PINK, { -1.1, 1.6, 0.6 }, nil, {
+		piece("Mane1", { 0.34, 0.55, 0.6 }, MANE_PINK, { 0, TOP_SURFACE + 0.22, 0.15 }, nil, { shape = "Wedge" }),
+		piece("Mane2", { 0.34, 0.5, 0.55 }, MANE_MINT, { 0, TOP_SURFACE + 0.2, 0.75 }, nil, { shape = "Wedge" }),
+		piece("Mane3", { 0.34, 0.6, 0.5 }, MANE_PINK, { 0, 0.8, BACK_FACE + 0.25 }, nil, {
 			shape = "Wedge",
-			rotation = { 0, 0, 25 },
+			rotation = { 90, 0, 0 },
+		}),
+		piece("Mane4", { 0.34, 0.6, 0.5 }, MANE_YELLOW, { 0, 0.25, BACK_FACE + 0.25 }, nil, {
+			shape = "Wedge",
+			rotation = { 90, 0, 0 },
 			effect = "Glow",
 			effectColor = { 200, 170, 255 },
 		}),
-		piece(
-			"Mane2",
-			{ 0.22, 0.9, 0.55 },
-			MANE_LILAC,
-			{ -1.15, 1.0, 0.9 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, 30 } }
-		),
-		piece(
-			"Mane3",
-			{ 0.2, 0.8, 0.5 },
-			MANE_MINT,
-			{ -1.1, 0.4, 1.1 },
-			nil,
-			{ shape = "Wedge", rotation = { 0, 0, 20 } }
-		),
-	})),
+	}),
 }
 
--- Body 중심에서 발바닥까지 (TAMAGO 바닥 y = -2.3)
-SushiBody.GROUND_OFFSET = 2.3
+-- Body 중심에서 발바닥까지 (발 공 아래 y = -2.25)
+SushiBody.GROUND_OFFSET = 2.25
+-- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
+SushiBody.NAME_TAG_HEIGHT = 3.6
+
+-- 모든 스킨이 계란초밥과 크기·위치·회전까지 같은 기준 파츠 (m5-25). 발·볼은 색만 바꿀 수 있어요.
+SushiBody.BASE_NAMES = {
+	"Body",
+	"BodyL",
+	"BodyR",
+	"BodyBase",
+	"BodyBaseL",
+	"BodyBaseR",
+	"EyeLeft",
+	"EyeWhiteLeft",
+	"PupilLeft",
+	"ShineLeft",
+	"LidLeft",
+	"EyeRight",
+	"EyeWhiteRight",
+	"PupilRight",
+	"ShineRight",
+	"LidRight",
+	"Mouth",
+	"MouthCover",
+	"CheekLeft",
+	"CheekRight",
+	"FootLeft",
+	"FootRight",
+}
+
+-- 스킨 하나의 파츠 수 상한 (m5-25: 24명 × 40 = 960, 숨긴 아바타 파츠와 합쳐도 모바일에서 감당할 범위)
+SushiBody.PART_BUDGET = 40
 
 -- 등급별 효과(이펙트) 개수 상한 (m5-21). 문자열 키라 Skins.Tier 타입을 몰라도 돼요.
 -- 강제는 여기서 안 해요 — effectCount(layout) vs 이 테이블을 비교하는 쪽(Skins.validate, 테스트)의 몫.
@@ -837,6 +1008,10 @@ SushiBody.BOUNDS_TOLERANCE = {
 	Legendary = 0.25,
 } :: { [string]: number }
 
+-- Glow(점광) 범위·밝기: 캐릭터만 은은하게, 바닥은 덜 물들게 (m5-25, 예전 범위 8·밝기 2)
+SushiBody.GLOW_RANGE = 4
+SushiBody.GLOW_BRIGHTNESS = 1.2
+
 local function copyList(value: { number }?): { number }?
 	return if value then table.clone(value) else nil
 end
@@ -853,6 +1028,8 @@ local function copySpec(spec: PartSpec): PartSpec
 		effect = spec.effect,
 		effectColor = copyList(spec.effectColor),
 		transparency = spec.transparency,
+		joint = spec.joint,
+		attach = spec.attach,
 	}
 end
 
@@ -922,6 +1099,13 @@ local function rgb(v: { number }): Color3
 	return Color3.fromRGB(v[1], v[2], v[3])
 end
 
+local function angles(rotation: { number }?): CFrame
+	if rotation == nil then
+		return CFrame.identity
+	end
+	return CFrame.Angles(math.rad(rotation[1]), math.rad(rotation[2]), math.rad(rotation[3]))
+end
+
 -- 효과 하나 (등급별 예산 이하, m5-21). 작게, 모바일 부담이 적게.
 local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 	if effect == "Sparkles" then
@@ -960,12 +1144,12 @@ local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 		emitter.EmissionDirection = Enum.NormalId.Top
 		emitter.Parent = target
 	elseif effect == "Glow" then
-		-- 은은한 빛만 (펄스 같은 애니메이션은 인프라 밖, m5-21 설계 메모)
+		-- 은은한 빛: 범위를 줄여 캐릭터 둘레만 (m5-25 — 예전엔 바닥을 크게 물들였어요)
 		local light = Instance.new("PointLight")
 		light.Name = "SkinEffect"
 		light.Color = rgb(color or { 255, 255, 255 })
-		light.Range = 8
-		light.Brightness = 2
+		light.Range = SushiBody.GLOW_RANGE
+		light.Brightness = SushiBody.GLOW_BRIGHTNESS
 		light.Parent = target
 	end
 end
@@ -974,8 +1158,9 @@ function SushiBody.build(appearanceId: string): Model
 	local model = Instance.new("Model")
 	model.Name = `SushiBody_{appearanceId}`
 
-	local body: BasePart? = nil
-	for _, spec in SushiBody.layout(appearanceId) do
+	local layout = SushiBody.layout(appearanceId)
+	local parts: { [string]: BasePart } = {}
+	for _, spec in layout do
 		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만
 		-- Enum.PartType .Shape 속성을 설정해요 (m5-21 — WedgePart에는 .Shape가 없어요)
 		local part: BasePart
@@ -997,35 +1182,45 @@ function SushiBody.build(appearanceId: string): Model
 		part.Transparency = spec.transparency or 0
 		part.TopSurface = Enum.SurfaceType.Smooth
 		part.BottomSurface = Enum.SurfaceType.Smooth
-		local rotation = spec.rotation
-		if rotation then
-			part.CFrame = CFrame.new(vec(spec.offset))
-				* CFrame.Angles(math.rad(rotation[1]), math.rad(rotation[2]), math.rad(rotation[3]))
-		else
-			part.CFrame = CFrame.new(vec(spec.offset))
-		end
+		part.CFrame = CFrame.new(vec(spec.offset)) * angles(spec.rotation)
 		part.Anchored = spec.name == "Body"
 		part.Massless = true
 		part.CanCollide = false
 		part.CanQuery = false
 		part.CanTouch = false
-		part.CastShadow = true
+		-- 얼굴 작은 파츠(테두리 안쪽)는 그림자를 안 드리워요 — 눈 위에 지저분한 그림자 방지
+		part.CastShadow = spec.attach == nil
 		part.Parent = model
 		if spec.effect then
 			addEffect(part, spec.effect, spec.effectColor)
 		end
-		if spec.name == "Body" then
-			body = part
-		end
+		parts[spec.name] = part
 	end
+	local body = parts.Body
 	assert(body, "SushiBody layout needs a Body part")
 
-	for _, child in model:GetChildren() do
-		if child ~= body and child:IsA("BasePart") then
+	-- 붙이기: joint면 Motor6D(Body 기준, 클라이언트가 Transform만 바꿔요), attach면 그 파츠에, 나머지는 Body에 용접
+	for _, spec in layout do
+		local part = parts[spec.name]
+		if part == body then
+			continue
+		end
+		if spec.joint then
+			local motor = Instance.new("Motor6D")
+			motor.Name = SushiBody.PART_JOINT_NAME
+			motor.Part0 = body
+			motor.Part1 = part
+			-- C0 = 파츠 자리(회전 포함), C1 = 원점. Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을
+			-- C0:VectorToObjectSpace로 바꿔 넣어요 (CharacterFxController)
+			motor.C0 = part.CFrame
+			motor.C1 = CFrame.identity
+			motor.Parent = part
+		else
+			local anchor = (spec.attach and parts[spec.attach]) or body
 			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = body
-			weld.Part1 = child
-			weld.Parent = child
+			weld.Part0 = anchor
+			weld.Part1 = part
+			weld.Parent = part
 		end
 	end
 

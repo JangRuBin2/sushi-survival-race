@@ -72,6 +72,18 @@ lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all]
 - **실제 Roblox 렌더와 다른 점(근사)**: 재질은 텍스처 대신 밝기·하이라이트·약한 무늬만, 그림자는 해 하나(점광 그림자 없음), 하늘 가림은 위에서 본 깊이 지도로 흉내, 파티클은 한 순간의 점 구름, 반투명은 삼각형 단위 정렬, 빛 번짐·안개·톤매핑·색 보정 수치는 "비슷해 보이게" 맞춘 값, 스카이박스·SurfaceGui·Decal·Texture·MeshPart 모양·Beam 곡선은 안 그려요(MeshPart·Union은 상자). Ball은 가장 짧은 변 지름, Cylinder 축은 로컬 X(Roblox와 같음). **CornerWedge 꼭대기 방향(로컬 +X·위·-Z 모서리)은 Studio에서 한 번 확인 필요**. 최종 판단은 Studio.
 - 맵이 shim에 없는 Roblox API를 쓰면 그 API 이름(예: `X is not a valid member of Model`)이 찍히고 그 맵만 실패해요 → `tools/render/Shims.luau`에 가짜를 보태요.
 
+### 2-2. 캐릭터 미리보기 렌더러 (m5-25, Studio 없이 스킨 모습 보기)
+게임과 같은 `SushiBody.build(id)`(서버 캐릭터·연출 인형·탈의실이 모두 쓰는 함수)로 캐릭터를 만들어 2-1과 같은 렌더러로 그려요.
+```bash
+lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|all]
+                                [--light studio|lobby|both] [--quality fast|high] [--out build/renders/characters]
+# 예) lune run tools/render-character all --quality fast     (31종 × 조명 2개, high면 약 4.5분)
+#     lune run tools/render-character cat-sushi --view turntable --light studio
+```
+- 결과 `build/renders/characters/<studio|lobby>/`: `lineup.png`(전체 격자, 앞 3/4, 칸 아래 id) + `lineup.txt`(칸 → id·등급), `turntable/<id>.png`(앞·3/4·옆·뒤·위), `face.png`(계란초밥 얼굴), `gameplay-back/front.png`(Roblox 기본 카메라: 머리 뒤 12.5 studs·시야 70°, 이름표는 픽셀 글자 흉내), `mobile-back/front.png`(480×270), 그리고 `build/renders/characters/stats.txt`(스킨별 파츠·모양·효과·재질·색 수·외곽·삼각형, `zfight=` 같은 쪽 면이 같은 평면에서 겹치는 파츠 쌍, `floating=` 아무 데도 안 닿는 파츠).
+- 조명: `studio` = 중립 회색 스튜디오, `lobby` = 로비 조명. 해가 캐릭터 앞 왼쪽 30°에서 오도록 캐릭터를 돌려 세워요.
+- 기준 그림은 `docs/renders/characters/`(`before-*.png` = m5-25 시점). 한계는 2-1과 같아요(`Sparkles`는 안 그려요).
+
 ## 3. Studio에서 게임 테스트
 
 ### 3-1. 코드 동기화 연결

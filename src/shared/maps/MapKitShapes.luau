@@ -143,6 +143,10 @@ function MapKitShapes.roundedBox(
 	local o: RoundedOptions = opts or {} :: RoundedOptions
 	local shortest = math.min(size.x, size.y, size.z)
 	local r = math.min(o.radius or shortest * 0.2, shortest / 2 - 0.01)
+	if not (r > 0.01) then
+		-- radius ≤ 0(또는 너무 작은 상자): 모서리 없이 상자 하나 (QA B6 — 크기 0 파츠로 장식 전체가 빠지지 않게)
+		return MapKitShapes.transform({ spec(name, "Block", size, color, material, v(0, 0, 0)) }, offset, o.rotation)
+	end
 	local d = 2 * r
 	local hx, hy, hz = size.x / 2 - r, size.y / 2 - r, size.z / 2 - r
 	local list: { DecorSpec } = {}

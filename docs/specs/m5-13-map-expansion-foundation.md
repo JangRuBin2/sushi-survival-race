@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-13 — 맵 확장 1차 기반: 신규 맵 6개 껍데기 + 풀 등록

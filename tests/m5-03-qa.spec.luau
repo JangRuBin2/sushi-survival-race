@@ -573,18 +573,15 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 껍데기 서비스
 	t.test(
-		"QA 껍데기 서비스: RequestOfferPurchase·EquipFx·RedeemCode는 어떤 인자에도 false, '준비 중이에요'",
+		"QA 껍데기 서비스: RequestOfferPurchase·EquipFx는 어떤 인자에도 false, '준비 중이에요' (RedeemCode는 m5-10이 채움 → m5-10-qa)",
 		function()
 			local offerFns = loadShellService("src/server/OfferService.luau")
-			local codeFns, loads = loadShellService("src/server/CodeService.luau")
-			t.eq(loads, 1, "CodeService reads the code list once at init")
 			local junk =
 				{ { "starter-pack" }, {}, { 5 }, { nil, "x" }, { { nested = true } }, { string.rep("A", 10000) } }
 			for _, case in
 				{
 					{ offerFns, "RequestOfferPurchase" },
 					{ offerFns, "EquipFx" },
-					{ codeFns, "RedeemCode" },
 				}
 			do
 				local handler = case[1][case[2]].OnServerInvoke

@@ -79,6 +79,8 @@ MapKitLogic.SHAPES = { "Block", "Ball", "Cylinder", "Wedge", "CornerWedge" }
 MapKitLogic.LIGHT_KINDS = { "Point", "Spot", "Surface" }
 MapKitLogic.NORMAL_IDS = { "Top", "Bottom", "Front", "Back", "Left", "Right" }
 MapKitLogic.SMALL_SHADOW_SIZE = 3 -- castShadow가 nil이면 가장 긴 변이 이보다 짧은 장식은 그림자를 안 만들어요
+MapKitLogic.LIGHT_MAX_RANGE = 60 -- PointLight·SpotLight.Range 상한 (Roblox)
+MapKitLogic.SURFACE_LIGHT_MAX_RANGE = 16 -- SurfaceLight.Range 상한 (Roblox가 16에서 잘라요)
 
 MapKitLogic.MATERIALS = {
 	"Plastic",
@@ -270,8 +272,11 @@ function MapKitLogic.validateExtras(spec: any): string?
 		if not isNumber(light.brightness) or light.brightness < 0 or light.brightness > 10 then
 			return "light.brightness must be 0~10"
 		end
-		if not isNumber(light.range) or light.range < 0 or light.range > 60 then
-			return "light.range must be 0~60"
+		local maxRange = if light.kind == "Surface"
+			then MapKitLogic.SURFACE_LIGHT_MAX_RANGE
+			else MapKitLogic.LIGHT_MAX_RANGE
+		if not isNumber(light.range) or light.range < 0 or light.range > maxRange then
+			return `light.range must be 0~{maxRange} for {light.kind} lights`
 		end
 		if light.angle ~= nil and (not isNumber(light.angle) or light.angle < 0 or light.angle > 180) then
 			return "light.angle must be 0~180"
@@ -351,11 +356,11 @@ end
 function MapKitLogic.checkBudget(
 	specs: { DecorSpec },
 	tier: BudgetTier?,
-	extra: { lights: number?, particles: number?, parts: number? }?
+	extra: { lights: number?, particles: number?, parts: number?, shadowedLights: number? }?
 ): string?
 	local budget = MapKitLogic.budget(tier)
 	local name = tier or "Standard"
-	type Extra = { lights: number?, particles: number?, parts: number? }
+	type Extra = { lights: number?, particles: number?, parts: number?, shadowedLights: number? }
 	local more: Extra = extra or {} :: Extra
 	local parts = #specs + (more.parts or 0)
 	if parts > budget.parts then
@@ -365,7 +370,7 @@ function MapKitLogic.checkBudget(
 	if lights > budget.lights then
 		return `{name}: {lights} lights > {budget.lights}`
 	end
-	local shadowed = MapKitLogic.countShadowedLights(specs)
+	local shadowed = MapKitLogic.countShadowedLights(specs) + (more.shadowedLights or 0)
 	if shadowed > budget.shadowedLights then
 		return `{name}: {shadowed} shadowed lights > {budget.shadowedLights}`
 	end

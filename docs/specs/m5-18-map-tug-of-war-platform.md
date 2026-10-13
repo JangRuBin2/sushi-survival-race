@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-18 — 세 번째 결승 맵: 줄다리기 발판 (`tug-of-war-platform`)

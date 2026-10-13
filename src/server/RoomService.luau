@@ -566,6 +566,26 @@ function handlers.StartRoom(player: Player): (boolean, string?)
 	return true, nil
 end
 
+-- 관리자 명령 start (m5-11): 대기 중인 방을 최소 인원·방장 검사 없이 지금과 같은 시작 흐름(beginMatch)으로.
+-- 권한은 AdminService가 봐요 (Studio 전용 Test 명령). 매치 중·자동 시작 카운트다운 중이면 거절해요.
+function RoomService.forceStart(roomId: string): (boolean, string?)
+	if hooks.matchServer then
+		return false, MATCH_SERVER_BLOCKED
+	end
+	local room = rooms[roomId]
+	if not room then
+		return false, "방이 없어요"
+	end
+	if room.state ~= "Waiting" then
+		return false, "이미 게임 중이에요"
+	end
+	if room.autoStartAt ~= nil or autoStartThreads[room.id] ~= nil then
+		return false, "곧 자동으로 시작해요"
+	end
+	beginMatch(room)
+	return true, nil
+end
+
 local function bindRequest(name: string)
 	local handler = handlers[name]
 	Remotes.fn(name).OnServerInvoke = function(player: Player, ...: any): (boolean, string?)

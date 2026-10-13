@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-10 — 코드 보상: 코드 입력 창·서버 검증·남용 방지
@@ -91,3 +91,47 @@ return {
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-13 · developer
+
+**바뀐 파일** (스펙 목록 안, 공용 파일 변경 없음)
+- 새 `src/shared/CodeLogic.luau` — 순수: `normalize`, `check(code?, entry?, now, redeemed, failures, failNow?) -> (ok, reason, countsAsFailure)`
+  (순서 Locked → Invalid(+1) → Unknown(+1) → NotStarted → Expired(`now >= expiresAt`) → AlreadyRedeemed), `recordFailure`, `isLocked`,
+  `rewardFor(entry, now, isActive?)`, `message`, `successMessage`, `validateConfig(codes) -> (valid, problems)`(문제 있는 코드만 빼요, 중복은 처음 것만).
+  `CodeEntry` 타입은 서버 `CodeConfig.CodeEntry`와 같은 모양으로 여기 따로 둠(shared가 server 모듈을 require하지 않게).
+- `src/server/CodeService.luau` — 껍데기 채움. 요청 간격(2초, 실패로 안 셈) → CodeLogic.check → 프로필 없음/저장 불가(Studio 메모리 모드는 허용)
+  → `DataService.update` 한 번에 `redeemedCodes[code] = os.time()`·코인·(이벤트 중이면) `eventTokens` (update 안에서 다시 확인) → 저장 가능하면
+  `task.spawn(DataService.saveNow)` → `RewardGranted { reason = "Code", amount, total, tokens?, tokenTotal?, eventId? }`.
+  코드 기간·이벤트 판단은 `Seasons.now`(Studio면 `DEBUG.eventNow`), 실패 기록·`redeemedCodes` 시각은 실제 `os.time()`.
+  핸들러는 pcall로 감싸 오류면 "다시 해 주세요". 플레이어 상태는 `PlayerRemoving`에서 지움.
+- 새 `src/client/ui/CodeScreen.luau` — 자기 ScreenGui `CodeGui`(DisplayOrder 20), 버튼 "🎟 코드" (12, 10 + 2 × (버튼 높이 + 6)) = 기본 y110,
+  창(제목·✕·텍스트 칸·받기·결과 한 줄·안내). 텍스트 칸은 20자 넘게 붙여 넣으면 잘라요. Enter로도 보냄. compact에서는 창을 위쪽에 붙임(화면 키보드).
+- `src/client/ui/CodeController.luau` — 껍데기 채움. 로비·방 대기실에서만 버튼(방이 InMatch거나 매치 서버면 숨기고 창 닫음),
+  보내는 동안 버튼·칸 비활성, 성공이면 칸 비우고 `Sfx.play("CodeRedeemed")`. 코인 토스트·배지는 기존 RewardGranted 흐름.
+- 새 `tests/code-logic.spec.luau` — AC1~AC6 (13개, 가짜 코드 `FAKE2026`·`FAKESPOOKY`만 — D4라서 실제 목록은 저장소에 없음).
+
+**스펙과 다른 점** (결정 기록 D4 결정대로)
+- "새 `CodeConfig.luau`" 대신 m5-03 로더 `CodeConfig.load()`를 그대로 씀. 실제 목록은 로컬 `src/server/CodeList.luau`(.gitignore). 이 브랜치는 만들지도 커밋하지도 않음.
+- AC5 "기본 CodeConfig의 두 코드 통과"는 같은 모양의 가짜 두 코드로 확인.
+- `NotSaved`/`NoProfile`/`Error`, 그리고 `successMessage`는 스펙 문구 그대로 + 내부 오류는 "다시 해 주세요".
+
+**Studio 확인 방법** (AC8~AC13)
+1. 먼저 `src/server/CodeList.example.luau`를 `src/server/CodeList.luau`로 복사하고 Codes에 넣어요 (커밋 안 됨):
+   `{ code = "SUSHI2026", coins = 200, expiresAt = 1798761600 }`,
+   `{ code = "SPOOKYSUSHI", coins = 100, tokens = 10, eventId = "halloween-2026", startsAt = 1792108800, expiresAt = 1793923200 }`.
+   파일이 없으면 Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄, 어떤 코드든 "없는 코드예요".
+2. AC8: 로비 왼쪽 위 "🎟 코드" → `  sushi2026 ` → "🍚 200 받았어요!"(초록) + 코인 토스트 "+200 🍚 코드 보상" + 배지 증가. Output `[Code] 이름(UserId) redeemed SUSHI2026 +200`.
+3. AC9: 같은 코드 다시 → "이미 받은 코드예요". 틀린 코드(`NOPE123`)를 2초 간격으로 8번 → 8번째까지 "없는 코드예요", Output `[Code] … locked after 8 failures`,
+   그 뒤 10분 동안 무엇을 넣어도 "잠시 뒤에 다시 해 주세요". 2초 안에 다시 누르면 "잠시 뒤에 다시 해 주세요"(실패로 안 셈).
+4. AC10: `Config.DEBUG.eventNow = 1792108800` → `SPOOKYSUSHI` "🍚 100 + 🍬 10 받았어요!", `1793923200` → "기간이 끝난 코드예요". **확인 뒤 nil**.
+5. AC11(선택): `persistDataInStudio = true`로 받은 뒤 재접속 → "이미 받은 코드예요".
+6. AC12: 매치 시작하면 버튼이 사라지고 열려 있던 창도 닫혀요(로비로 돌아오면 다시). 휴대폰 에뮬레이터에서 창이 위쪽에 붙고 칸을 누르면 키보드.
+7. AC13: Explorer에서 `CodeConfig`·`CodeList`가 ServerScriptService.Server 아래에만, ReplicatedStorage에는 `Shared.CodeLogic`(목록 없음)만.
+
+**검증**: rojo build / stylua --check / selene(0 errors 0 warnings) / lune run tests(1246 passed, 0 failed) / luau-lsp analyze(끝 코드 0) 모두 통과.
+
+**남은 이슈 · 메모**
+- N1: `redeemedCodes`는 m5-03 규칙대로 최근 200개만 기억 — 코드를 200개 넘게 쓰면 아주 오래된 코드를 다시 받을 수 있음(그 코드가 아직 기간 안이면). 실사용에서 문제 없음.
+- N2: 잠금·요청 간격은 서버 메모리 — 다른 서버로 옮기면 실패 횟수가 처음부터. 계정당 한 번은 프로필이라 보상 중복은 없음.
+- N3: "🎁 상점"(m5-08)이 아직 없어서 지금은 "🍣 스킨"과 "🎟 코드" 사이 한 칸(y60)이 비어 있어요. m5-08이 들어오면 그 자리.
+- N4: `m4-12-hardening`의 누수 점검이 모듈 전역 표마다 지우는 곳을 찾아서, 코드 표(`byCode`)는 init에서 `table.clear`로 채움.
+- USER-TODO A1에 "쓸 코드 정하기 → 로컬 CodeList.luau(퍼블리시하는 PC에 있어야 함)" 항목 추가가 필요해요(docs-writer/planner).

@@ -4,6 +4,7 @@
 --   VictoryProps.build(origin)            장면 Model (origin = 문 가운데 바닥, 앞 = origin.LookVector)
 --   VictoryProps.setDoorsOpen(props, a)   문 열림 0~1 (가운데에서 바깥(앞)으로 열려요)
 --   VictoryProps.poseFish(fish, cf, clap) 물고기 한 마리 놓기, clap(-1~1)만큼 지느러미 "손"을 흔들어요
+-- 불꽃놀이 연출 팩 (m5-09): buildFireworks(props) → burstFirework / poseRocket / poseFlash / poseGlow
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -213,6 +214,198 @@ function VictoryProps.poseFish(fish: Fish, cframe: CFrame, clap: number)
 			child.CFrame = cframe * CFrame.new(side * 0.4, 0.6, -0.65)
 		end
 	end
+end
+
+-- 불꽃놀이 (m5-09 우승 연출 팩) -------------------------------------------
+-- 장면 Model 밑에 짓고 장면째 지워요. 파티클 이미터 3개·조명 2개를 불꽃마다 돌려 써요 (스펙 한도).
+-- 이미터의 색·크기는 이미 날아간 불티에도 바로 적용돼서, 같은 이미터는 불티가 다 사라진 뒤(3번째 다음)에만 다시 써요.
+
+local SPARK_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
+local SPARK_DRAG = 2.6
+local SPARK_LIFETIME = NumberRange.new(0.95, 1.2)
+local EMITTER_COUNT = 3
+local LIGHT_COUNT = 2
+local ROCKET_COUNT = 2
+local WHITE = Color3.new(1, 1, 1)
+
+export type Fireworks = {
+	rig: BasePart,
+	emitters: { ParticleEmitter },
+	lights: { PointLight },
+	rockets: { { part: BasePart, trail: Trail } },
+	flash: BasePart,
+}
+
+-- 끝 무렵 깜빡이며 사라지는 투명도 (크래클)
+local SPARK_TRANSPARENCY = NumberSequence.new({
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(0.55, 0.05),
+	NumberSequenceKeypoint.new(0.66, 0.55),
+	NumberSequenceKeypoint.new(0.72, 0.1),
+	NumberSequenceKeypoint.new(0.8, 0.65),
+	NumberSequenceKeypoint.new(0.86, 0.2),
+	NumberSequenceKeypoint.new(0.93, 0.75),
+	NumberSequenceKeypoint.new(1, 1),
+})
+
+local function attachment(parent: BasePart, name: string): Attachment
+	local a = Instance.new("Attachment")
+	a.Name = name
+	a.Parent = parent
+	return a
+end
+
+function VictoryProps.buildFireworks(props: Props): Fireworks
+	local folder = Instance.new("Model")
+	folder.Name = "Fireworks"
+	folder.Parent = props.model
+
+	-- 이미터·조명이 달릴 보이지 않는 받침 (Attachment.WorldPosition으로 옮겨요)
+	local rig = part(folder, "FireworksRig", Vector3.one * 0.2, props.origin, WHITE)
+	rig.Transparency = 1
+
+	local emitters: { ParticleEmitter } = {}
+	for i = 1, EMITTER_COUNT do
+		local emitter = Instance.new("ParticleEmitter")
+		emitter.Name = `Burst{i}`
+		emitter.Enabled = false
+		emitter.Rate = 0
+		emitter.Texture = SPARK_TEXTURE
+		emitter.LightEmission = 1
+		emitter.LightInfluence = 0
+		emitter.Brightness = 3
+		emitter.Lifetime = SPARK_LIFETIME
+		emitter.Drag = SPARK_DRAG
+		emitter.SpreadAngle = Vector2.new(180, 180)
+		emitter.Rotation = NumberRange.new(0, 360)
+		emitter.RotSpeed = NumberRange.new(-90, 90)
+		emitter.Transparency = SPARK_TRANSPARENCY
+		emitter.LockedToPart = false
+		emitter.Parent = attachment(rig, `BurstAt{i}`)
+		table.insert(emitters, emitter)
+	end
+
+	local lights: { PointLight } = {}
+	for i = 1, LIGHT_COUNT do
+		local light = Instance.new("PointLight")
+		light.Name = `Glow{i}`
+		light.Brightness = 0
+		light.Range = 45
+		light.Shadows = false
+		light.Enabled = false
+		light.Parent = attachment(rig, `GlowAt{i}`)
+		table.insert(lights, light)
+	end
+
+	local rockets = {}
+	for i = 1, ROCKET_COUNT do
+		local rocket = part(folder, `Rocket{i}`, Vector3.one * 0.45, props.origin, WHITE)
+		rocket.Shape = Enum.PartType.Ball
+		rocket.Material = Enum.Material.Neon
+		rocket.Transparency = 1
+		local a0 = attachment(rocket, "TrailA")
+		a0.Position = Vector3.new(-0.18, 0, 0)
+		local a1 = attachment(rocket, "TrailB")
+		a1.Position = Vector3.new(0.18, 0, 0)
+		local trail = Instance.new("Trail")
+		trail.Attachment0 = a0
+		trail.Attachment1 = a1
+		trail.FaceCamera = true
+		trail.Lifetime = 0.32
+		trail.LightEmission = 1
+		trail.LightInfluence = 0
+		trail.Transparency = NumberSequence.new(0.1, 1)
+		trail.WidthScale = NumberSequence.new(1, 0)
+		trail.Enabled = false
+		trail.Parent = rocket
+		table.insert(rockets, { part = rocket :: BasePart, trail = trail })
+	end
+
+	local flash = part(folder, "Flash", Vector3.one, props.origin, WHITE)
+	flash.Shape = Enum.PartType.Ball
+	flash.Material = Enum.Material.Neon
+	flash.Transparency = 1
+
+	return { rig = rig, emitters = emitters, lights = lights, rockets = rockets, flash = flash }
+end
+
+-- index번째 불꽃을 at(월드)에서 터뜨려요. 바깥 큰 꽃 + 안쪽 작은 꽃 두 겹 (Speed는 새 불티에만 적용돼요).
+function VictoryProps.burstFirework(
+	fw: Fireworks,
+	index: number,
+	at: Vector3,
+	color: Color3,
+	radius: number,
+	big: boolean
+)
+	local emitter = fw.emitters[(index - 1) % #fw.emitters + 1]
+	local holder = emitter.Parent :: Attachment
+	holder.WorldPosition = at
+	local hot = color:Lerp(WHITE, 0.7)
+	emitter.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, hot),
+		ColorSequenceKeypoint.new(0.15, color),
+		ColorSequenceKeypoint.new(0.75, color),
+		ColorSequenceKeypoint.new(1, color:Lerp(Color3.new(0, 0, 0), 0.45)),
+	})
+	local spark = if big then 1.3 else 1.05
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, spark),
+		NumberSequenceKeypoint.new(0.3, spark * 0.8),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	-- 불티가 버드나무처럼 늘어져 바다로 흘러내려요 (마지막 큰 불꽃은 더 길게)
+	emitter.Acceleration = Vector3.new(0, if big then -9 else -6, 0)
+	-- 끌림(Drag)이 있으면 불티가 가는 거리 ≈ 속도 / Drag
+	local speed = radius * SPARK_DRAG
+	emitter.Speed = NumberRange.new(speed * 0.9, speed)
+	emitter:Emit(if big then 130 else 80)
+	emitter.Speed = NumberRange.new(speed * 0.35, speed * 0.45)
+	emitter:Emit(if big then 45 else 28)
+end
+
+-- 로켓 하나 놓기. at = nil이면 숨겨요. launched = 새로 쏘아 올렸으면 꼬리를 지워요.
+function VictoryProps.poseRocket(fw: Fireworks, slot: number, at: Vector3?, color: Color3, launched: boolean)
+	local rocket = fw.rockets[(slot - 1) % #fw.rockets + 1]
+	if at == nil then
+		rocket.part.Transparency = 1
+		rocket.trail.Enabled = false
+		return
+	end
+	if launched then
+		rocket.trail:Clear()
+	end
+	rocket.part.CFrame = CFrame.new(at)
+	rocket.part.Color = color:Lerp(WHITE, 0.6)
+	rocket.part.Transparency = 0
+	rocket.trail.Color = ColorSequence.new(color:Lerp(WHITE, 0.5), color)
+	rocket.trail.Enabled = true
+end
+
+-- 터지는 순간의 섬광 (size·light는 VictoryCutsceneLogic.flash, 0이면 숨김)
+function VictoryProps.poseFlash(fw: Fireworks, at: Vector3, color: Color3, radius: number, size: number, light: number)
+	if light <= 0 then
+		fw.flash.Transparency = 1
+		return
+	end
+	fw.flash.Size = Vector3.one * math.max(0.2, radius * 0.75 * size)
+	fw.flash.CFrame = CFrame.new(at)
+	fw.flash.Color = color:Lerp(WHITE, 0.55)
+	fw.flash.Transparency = 1 - light * 0.8
+end
+
+-- 불꽃 빛이 물·인형·물고기를 물들여요. at = 조명 자리(월드), light 0이면 꺼요.
+function VictoryProps.poseGlow(fw: Fireworks, slot: number, at: Vector3, color: Color3, light: number)
+	local glow = fw.lights[(slot - 1) % #fw.lights + 1]
+	if light <= 0 then
+		glow.Enabled = false
+		return
+	end
+	local holder = glow.Parent :: Attachment
+	holder.WorldPosition = at
+	glow.Color = color
+	glow.Brightness = 5 * light
+	glow.Enabled = true
 end
 
 return VictoryProps

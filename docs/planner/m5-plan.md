@@ -1,6 +1,13 @@
 # M5 기획 작업 기록 (planner)
 
-## 2026-10-08 — M5 두 번째 묶음 스펙 10개 (m5-03 ~ m5-12) (최신)
+## 2026-10-13 — 문서 정합 (docs-writer 인계 `docs/docs-writer/m5.md` "planner" 항목) (최신)
+- **브랜치**: main 작업 트리(`C:\Users\inter\sushi-survival-race`)에서 문서만 고침, 커밋 안 함(메인 세션이 커밋·push).
+- **끝난 것**: m5-10(코드 목록 = 로더 `CodeConfig.luau` + `.gitignore` `CodeList.luau`, 예시 코드 `EXAMPLE2026`·`EXAMPLESPOOKY`로 교체·"공개 예시 사용 금지"), m5-11(LiveTestCommands·4인자 canRun·"테스트 명령이 꺼져 있어요" 삭제, AC13 "권한이 없어요", 등급표 3열·coins/tokens StudioOnly), m5-04(경고 원 불투명 빨강 + 흰 테두리, 색 깜빡임), m5-22(AC2 Wedge 14개), m5-09(Sfx 같은 소리 0.05초), m5-16(rule 문구 통일 결정), GDD(제목 v0.6, 변경 이력 "v0.6 문서 정합", 5.2 맵 15개 + M5 맵 표, 5.3, 3.1, 7, 8, 9.2 스킨 31종, 9.3 상점·코드·시즌, 9.5, 10, 11.3, 11.4, 11.5, 11.7 관리자 명령, 12, 14). 각 스펙 결정 기록에 "2026-10-13 · 문서 정합" 한 줄.
+- **새 giant-jenga rule**: "블록이 빠진 쪽으로 바닥이 기울어요. 떨어지지 말고 끝까지 버텨요!" — developer가 `GiantJenga.luau` `rule`에 반영해야 함(테스트가 문자열을 고정하지 않음).
+- **남은 것 / 다른 역할**: developer — `GiantJenga.luau` rule 교체. docs-writer — `docs/DEV-SETUP.md` 719~722행이 아직 `SUSHI2026`·`SPOOKYSUSHI`를 `CodeList.luau`에 넣으라고 안내(→ `EXAMPLE2026`·`EXAMPLESPOOKY` + "퍼블리시 전 지우기"), CLAUDE.md·README의 jenga 설명은 필요 시. m5-13 표의 껍데기 rule 문구는 역사 기록이라 그대로 둠.
+- **사용자 답 기다리는 질문**: VIP 패스에 코인 1.5배를 넣을지(m5-08 D1, GDD 9.3에 "사용자 결정 대기"로 적음) — 기존 질문 그대로.
+
+## 2026-10-08 — M5 두 번째 묶음 스펙 10개 (m5-03 ~ m5-12)
 
 **브랜치**: `main` (347058a 위, 커밋 안 함 — planner는 Bash가 없음. 메인 세션이 아래 "커밋할 파일"을 커밋 + push)
 

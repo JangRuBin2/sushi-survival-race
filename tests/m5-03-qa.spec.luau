@@ -445,29 +445,27 @@ end
 
 return function(t: Test.Test)
 	---------------------------------------------------------------- 맵 껍데기 build
-	t.test(
-		"QA 껍데기 build: tempura-pot·ikura-bombs 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상)",
-		function()
-			for _, case in { { "TempuraPot", "Floor" }, { "IkuraBombs", "Plate" } } do
-				local env = loadMap(case[1])
-				local model = env.map.build(origin())
-				t.eq(model.Name, env.map.id)
-				local floor = model:FindFirstChild(case[2])
-				t.ok(floor and floor.CanCollide ~= false, `{case[1]} floor collides`)
-				local spawns = model:FindFirstChild("Spawns"):GetChildren()
-				t.eq(#spawns, 24, case[1])
-				local names = {}
-				for _, spawn in spawns do
-					t.ok(spawnOnFloor(spawn, floor, 1), `{case[1]} {spawn.Name} on the floor`)
-					t.eq(spawn.CanCollide, false, `{spawn.Name} no collision`)
-					names[spawn.Name] = true
-				end
-				for i = 1, 24 do
-					t.ok(names[string.format("Spawn%02d", i)], `{case[1]} Spawn{i} name sorts in order`)
-				end
+	t.test("QA 껍데기 build: ikura-bombs 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상)", function()
+		-- tempura-pot은 m5-05에서 실제 맵이 돼서 빠졌어요 (스폰·경로는 tests/map-tempura-pot.spec.luau)
+		for _, case in { { "IkuraBombs", "Plate" } } do
+			local env = loadMap(case[1])
+			local model = env.map.build(origin())
+			t.eq(model.Name, env.map.id)
+			local floor = model:FindFirstChild(case[2])
+			t.ok(floor and floor.CanCollide ~= false, `{case[1]} floor collides`)
+			local spawns = model:FindFirstChild("Spawns"):GetChildren()
+			t.eq(#spawns, 24, case[1])
+			local names = {}
+			for _, spawn in spawns do
+				t.ok(spawnOnFloor(spawn, floor, 1), `{case[1]} {spawn.Name} on the floor`)
+				t.eq(spawn.CanCollide, false, `{spawn.Name} no collision`)
+				names[spawn.Name] = true
+			end
+			for i = 1, 24 do
+				t.ok(names[string.format("Spawn%02d", i)], `{case[1]} Spawn{i} name sorts in order`)
 			end
 		end
-	)
+	end)
 
 	t.test(
 		"QA 껍데기 build: dessert-fridge 결승선은 출발선에서 160 앞, 혼자~12명 스폰(1~12번)은 바닥 위",
@@ -498,7 +496,8 @@ return function(t: Test.Test)
 	t.test(
 		"QA 껍데기 start: 낙하 25 아래면 탈락, 판 위면 그대로, 끝난 라운드에는 판정 안 함",
 		function()
-			for _, file in { "TempuraPot", "IkuraBombs", "DessertFridge" } do
+			-- tempura-pot은 m5-05 실제 맵(기름 높이 판정)이라 빠졌어요
+			for _, file in { "IkuraBombs", "DessertFridge" } do
 				local env = loadMap(file)
 				local model = env.map.build(origin())
 				local safe = racerAt("safe", 0, 3, -40)

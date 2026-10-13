@@ -27,6 +27,7 @@ local RAFT_TAG = "TempuraRaft"
 local OIL_TAG = "HotOil"
 local SPLASH_TAG = "OilSplash"
 local OIL_NAME = "Oil"
+local OIL_FOLLOWERS = "OilFollowers"
 local OIL_THICKNESS = 0.4
 local BASKET_THICKNESS = 2
 local POT_FLOOR_THICKNESS = 2
@@ -64,15 +65,9 @@ local function discCFrame(origin: CFrame, x: number, topY: number, z: number, th
 	return origin * CFrame.new(x, topY - thickness / 2, z) * CFrame.Angles(0, 0, UPRIGHT_Z)
 end
 
-local function raftColor(kind: Layout.Kind): Color3
-	if kind == "Shrimp" then
-		return color3(Art.COLORS.shrimp)
-	elseif kind == "Shiso" then
-		return color3(Art.COLORS.shiso)
-	elseif kind == "Basket" then
-		return color3(Art.COLORS.basket)
-	end
-	return color3(Art.COLORS.sweetPotato)
+-- 높은 층일수록 튀김옷을 한 shade씩 밝게 (Art.raftColor)
+local function raftColor(raft: Layout.Raft): Color3
+	return color3(Art.raftColor(raft.kind, raft.tier))
 end
 
 -- 발판 하나 (Disc → 세운 Cylinder, Rect → yaw만큼 돌린 Block). 튀김옷 느낌의 Sand 질감에 Plastic 물성.
@@ -95,11 +90,12 @@ local function buildRaft(raft: Layout.Raft, origin: CFrame, thickness: number): 
 				* CFrame.Angles(0, math.rad(raft.yaw), 0),
 		})
 	end
-	p.Color = raftColor(raft.kind)
+	p.Color = raftColor(raft)
 	if raft.kind == "Basket" then
 		p.Material = Enum.Material.DiamondPlate
+		p.Reflectance = 0.1
 	else
-		p.Material = Enum.Material.Sand
+		p.Material = Enum.Material.Plastic -- 오돌토돌 튀김옷 (가이드 5절)
 	end
 	p.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Plastic) -- 재질이 물성을 바꾸지 않게
 	p.CanCollide = true
@@ -142,9 +138,55 @@ local function buildPot(model: Model, origin: CFrame)
 				* CFrame.Angles(0, math.rad(angle + 90), 0),
 			Color = color3(Art.COLORS.pot),
 			Material = Enum.Material.Metal,
+			Reflectance = 0.15, -- 무쇠 안쪽 반사 (보여 주기만)
 			Parent = folder,
 		})
 	end
+	folder.Parent = model
+end
+
+-- 기름 표면을 따라 올라가는 보여주기 파츠 (OIL_FOLLOWERS 폴더): 한 겹 아래 짙은 기름(깊이감),
+-- 주황 빛 PointLight 3 (Art.OIL_GLOWS — 빛의 원인은 기름 표면), 김 2종. start가 표면과 같이 옮겨요.
+local function buildOilFollowers(model: Model, origin: CFrame, oilCFrame: CFrame)
+	local folder = Instance.new("Folder")
+	folder.Name = OIL_FOLLOWERS
+	local deep = part({
+		Name = "OilDepth",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(OIL_THICKNESS, Layout.POT_INNER_RADIUS * 2 - 0.6, Layout.POT_INNER_RADIUS * 2 - 0.6),
+		CFrame = oilCFrame * CFrame.new(-2.5, 0, 0), -- 세운 원판: 로컬 -X = 아래
+		Color = color3(Art.COLORS.oilDeep),
+		Material = Enum.Material.Glass,
+		Transparency = 0.45,
+	})
+	ghost(deep)
+	deep.Parent = folder
+	for i, glow in Art.OIL_GLOWS do
+		local holder = part({
+			Name = `OilGlow{i}`,
+			Size = Vector3.new(1, 1, 1),
+			CFrame = origin
+				* CFrame.new(Layout.POT_CENTER_X + glow.x, Logic.oilHeight(0) + 1.5, Layout.POT_CENTER_Z + glow.z),
+			Transparency = 1,
+		})
+		ghost(holder)
+		MapKit.makeLight(Art.OIL_GLOW_LIGHT).Parent = holder
+		holder.Parent = folder
+	end
+	local steam = part({
+		Name = "OilSteam",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, 50, 50),
+		CFrame = oilCFrame * CFrame.new(3, 0, 0),
+		Transparency = 1,
+	})
+	ghost(steam)
+	for name, rate in { Steam = 5, SteamThick = 2 } do
+		local emitter = MapKit.makeEmitter(name, rate)
+		emitter.EmissionDirection = Enum.NormalId.Right
+		emitter.Parent = steam
+	end
+	steam.Parent = folder
 	folder.Parent = model
 end
 
@@ -173,10 +215,18 @@ local function build(origin: CFrame): Model
 		Color = color3(Art.COLORS.oil),
 		Material = Enum.Material.Glass,
 		Transparency = 0.3,
+		Reflectance = 0.15,
 	})
 	ghost(oil)
 	CollectionService:AddTag(oil, OIL_TAG)
+	-- 보글보글 거품 (세운 원판이라 로컬 +X = 위 = NormalId.Right)
+	for _, rate in { 14, 6 } do
+		local bubbles = MapKit.makeEmitter("OilBubbles", rate)
+		bubbles.EmissionDirection = Enum.NormalId.Right
+		bubbles.Parent = oil
+	end
 	oil.Parent = model
+	buildOilFollowers(model, origin, oil.CFrame)
 
 	local spawns = Instance.new("Folder")
 	spawns.Name = "Spawns"
@@ -252,6 +302,16 @@ local function start(ctx: MapTypes.RoundContext)
 			oil = instance
 		end
 	end
+	-- 기름 표면을 따라 움직일 보여주기 파츠: 지금 표면 기준 상대 CFrame
+	local followers: { { part: BasePart, rel: CFrame } } = {}
+	local followerFolder = ctx.model:FindFirstChild(OIL_FOLLOWERS)
+	if oil and followerFolder then
+		for _, child in followerFolder:GetChildren() do
+			if child:IsA("BasePart") then
+				table.insert(followers, { part = child, rel = oil.CFrame:ToObjectSpace(child.CFrame) })
+			end
+		end
+	end
 
 	local probeParams = RaycastParams.new()
 	probeParams.FilterType = Enum.RaycastFilterType.Include
@@ -296,7 +356,11 @@ local function start(ctx: MapTypes.RoundContext)
 		sinceCheck = 0
 		local oilY = Logic.oilHeight(elapsed())
 		if oil then
-			oil.CFrame = discCFrame(origin, Layout.POT_CENTER_X, oilY, Layout.POT_CENTER_Z, OIL_THICKNESS)
+			local surface = discCFrame(origin, Layout.POT_CENTER_X, oilY, Layout.POT_CENTER_Z, OIL_THICKNESS)
+			oil.CFrame = surface
+			for _, follower in followers do
+				follower.part.CFrame = surface * follower.rel
+			end
 		end
 
 		local newStanding: { [Player]: string } = {}
@@ -453,6 +517,7 @@ local map: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "튀김 냄비 탈출",
 	rule = "차오르는 기름을 피해 위로! 튀는 기름도 조심!",
+	lighting = Art.LIGHTING, -- m5-23 맵 조명: 밤의 주방
 	build = build,
 	start = start,
 }

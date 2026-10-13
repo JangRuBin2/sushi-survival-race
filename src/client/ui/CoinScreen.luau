@@ -3,6 +3,7 @@
 --   배지·토스트: 자기 ScreenGui `CoinGui` (ScreenInsets = TopbarSafeInsets) — Roblox 위쪽 바 줄의 왼쪽 끝,
 --     음소거 버튼(SoundGui, 오른쪽 끝)의 반대편. 게임 화면(LobbyGui)은 위쪽 바 아래에만 그려져 겹치지 않아요.
 --   정산 한 줄: 위쪽 바 칸 밖이라 두 번째 ScreenGui `CoinSummaryGui` (화면 아래 15% 안, 순위표 패널 아래 여백).
+--   이벤트 재화 (m5-07): 시즌 이벤트 중이면 코인 옆에 "🍬 32" (setTokens(nil)이면 숨김).
 -- 판정·지급과 무관한 표시만 해요. 리모트 연결은 CoinController.
 
 local Kit = require(script.Parent.RoomUiKit)
@@ -20,6 +21,7 @@ local SUMMARY_BOTTOM = 20 -- 화면 아래에서 띄우는 거리(px)
 
 export type CoinScreen = {
 	setCoins: (self: CoinScreen, coins: number, persistent: boolean) -> (),
+	setTokens: (self: CoinScreen, text: string?) -> (), -- "🍬 32", nil이면 숨김 (m5-07)
 	toast: (self: CoinScreen, text: string) -> (),
 	showSummary: (self: CoinScreen, text: string) -> (),
 	hideSummary: (self: CoinScreen) -> (),
@@ -63,10 +65,22 @@ function CoinScreen.new(playerGui: Instance): CoinScreen
 		AutomaticSize = Enum.AutomaticSize.X,
 		Size = UDim2.fromScale(0, 1),
 	})
+	local tokenLabel = Kit.label({
+		Name = "Tokens",
+		Parent = badge,
+		LayoutOrder = 2,
+		Visible = false,
+		Text = "",
+		TextSize = 18,
+		TextColor3 = Color.White,
+		TextTruncate = Enum.TextTruncate.None,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromScale(0, 1),
+	})
 	local unsavedLabel = Kit.label({
 		Name = "Unsaved",
 		Parent = badge,
-		LayoutOrder = 2,
+		LayoutOrder = 3,
 		Visible = false,
 		Text = "(저장 안 됨)",
 		TextSize = 12,
@@ -122,6 +136,11 @@ function CoinScreen.new(playerGui: Instance): CoinScreen
 	function screen.setCoins(_self: CoinScreen, coins: number, persistent: boolean)
 		coinLabel.Text = `🍚 {coins}`
 		unsavedLabel.Visible = not persistent
+	end
+
+	function screen.setTokens(_self: CoinScreen, text: string?)
+		tokenLabel.Visible = text ~= nil
+		tokenLabel.Text = text or ""
 	end
 
 	function screen.toast(_self: CoinScreen, text: string)

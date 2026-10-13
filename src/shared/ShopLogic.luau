@@ -58,7 +58,7 @@ export type Wallet = {
 	coins: number,
 	ownedSkins: { [string]: boolean },
 	equippedSkin: string,
-	eventTokens: { [string]: number }?, -- 이벤트 id → 재화 (m5-07)
+	eventTokens: { [string]: number }, -- 이벤트 id → 재화 (m5-07, 프로필에는 항상 있어요)
 }
 
 -- Soon: 아직 얻을 길이 탈의실에 없는 스킨 (m5-03). m5-07: Tokens(재화로 받기)·NeedTokens(재화 부족)·
@@ -98,7 +98,7 @@ export type ViewLike = {
 	coins: number,
 	equippedSkin: string,
 	ownedSkins: { string },
-	eventTokens: { [string]: number }?, -- m5-07
+	eventTokens: { [string]: number }, -- m5-07 (Types.ProfileView에는 항상 있어요)
 }
 
 -- 탈의실 탭 (m5-07): id "event"·"all"·등급 이름
@@ -221,7 +221,7 @@ function ShopLogic.onSale(skin: Skins.Skin, now: number?): boolean
 end
 
 -- 그 이벤트 재화 (잘못된 값은 0)
-function ShopLogic.tokensOf(wallet: { eventTokens: { [string]: number }? }, eventId: string?): number
+function ShopLogic.tokensOf(wallet: { read eventTokens: { [string]: number }? }, eventId: string?): number
 	local map = wallet.eventTokens
 	if map == nil or eventId == nil then
 		return 0
@@ -279,9 +279,9 @@ function ShopLogic.buyWithTokens(
 	local skin = Skins.get(skinId) :: Skins.Skin
 	local eventId = decision.eventId :: string
 	local left = ShopLogic.tokensOf(wallet, eventId) - (decision.price :: number)
-	local map = wallet.eventTokens
+	local map: { [string]: number }? = wallet.eventTokens
 	if map == nil then
-		wallet.eventTokens = { [eventId] = left }
+		wallet.eventTokens = { [eventId] = left } -- 옛 모양 지갑 방어 (프로필은 ProfileLogic이 채워요)
 	else
 		map[eventId] = left
 	end
@@ -340,15 +340,11 @@ function ShopLogic.visibleSkins(view: ViewLike, tab: Tab?, now: number?): { Skin
 		if limited and not owned and not ShopLogic.onSale(skin, now) then
 			continue -- 기간이 끝난 미보유 한정 스킨은 어디에도 안 보여요
 		end
-		local show: boolean
-		if tab == nil or tab.id == "all" then
-			show = true
-		elseif tab.eventId then
+		local show = true -- 전체 탭(또는 탭 없음)
+		if tab ~= nil and tab.eventId ~= nil then
 			show = skin.season == tab.eventId
-		elseif tab.tier then
+		elseif tab ~= nil and tab.tier ~= nil then
 			show = skin.tier == tab.tier and (not limited or owned)
-		else
-			show = true
 		end
 		if show then
 			table.insert(list, skin)

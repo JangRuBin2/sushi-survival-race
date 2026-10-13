@@ -1,6 +1,11 @@
 # m5-23 map visual kit + preview renderer — 개발 작업 기록
 
-## 2026-10-13 — 구현 완료, in-qa (최신)
+## 2026-10-13 — QA 수정 (최신)
+- QA 리포트 B1~B6 + Lune `CFrame.lookAt` 버그 우회(렌더러 shim). 자세한 내용은 스펙 "개발 메모"의 "QA 수정". 스펙 `in-qa`로.
+- **다음 첫 단계**: QA 재확인(B1 테스트, `KNOWN_INTRO_OUTSIDE` 빈 표). 아트 에이전트는 intro 렌더를 다시 뽑아야 해요(이전 intro는 방향이 틀렸음).
+- 막힌 점 없음. CornerWedge 방향 Studio 확인은 여전히 남음.
+
+## 2026-10-13 — 구현 완료, in-qa
 - **브랜치**: `main` (worktree 없음, 메인 세션 허락으로 main에 직접 커밋·push). 코드 커밋 `3b20944`, 문서 커밋은 그다음.
 - **끝난 것**: 스펙 설계 A~D 전부, AC1~AC13(순수 로직 + 렌더러 명령 확인). Studio AC14~AC18은 사용자/QA 차례.
   - **렌더러** `tools/render-map.luau` + `tools/render/`(`Shims` 가짜 Roblox 환경·모듈 로더, `Scene` 파츠→삼각형·조명·파티클·빔 수집, `Raster` 래스터라이저·그림자 지도·하늘 가림 지도·블룸·톤매핑·색 보정, `Materials` 재질 근사, `Png` 인코더). 사용법은 `docs/DEV-SETUP.md` 2-1.

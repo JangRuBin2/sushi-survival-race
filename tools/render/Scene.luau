@@ -583,9 +583,13 @@ function Scene.addModel(scene: Scene, model: any)
 				brightness = safe(function()
 					return inst.Brightness
 				end, 1),
-				range = safe(function()
-					return inst.Range
-				end, 8),
+				-- Roblox처럼 Surface는 16, Point·Spot은 60에서 잘라요 (m5-23 QA B1)
+				range = math.min(
+					safe(function()
+						return inst.Range
+					end, 8),
+					if kind == "Surface" then 16 else 60
+				),
 				cosAngle = cosAngle,
 			})
 		elseif inst:IsA("ParticleEmitter") then

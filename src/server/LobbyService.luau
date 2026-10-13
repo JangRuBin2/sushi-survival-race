@@ -260,8 +260,8 @@ end
 
 -- 카운터(가운데 0, -40, 타원 반지름 28×10) 바깥 둘레의 바닥 자리
 local AROUND_COUNTER = {
-	vec(-35, 0, -40),
-	vec(35, 0, -40),
+	vec(-38, 0, -40), -- 끝 의자(x ±33)와 안 겹치게 (m5-07 QA B1)
+	vec(38, 0, -40),
 	vec(-20, 0, -55),
 	vec(20, 0, -55),
 	vec(-20, 0, -25),
@@ -299,7 +299,7 @@ end
 local function christmasDecor(): SeasonDecor
 	local specs: { MapKitLogic.DecorSpec } = {}
 	local trunk, green, star = rgb(110, 72, 44), rgb(40, 130, 60), rgb(255, 215, 60)
-	for i, x in { -35, 35 } do
+	for i, x in { -38, 38 } do
 		deco(specs, `TreeTrunk{i}`, "Block", vec(1, 1.5, 1), trunk, "Wood", vec(x, 0.75, -40))
 		deco(specs, `TreeLow{i}`, "Block", vec(5, 2, 5), green, "Grass", vec(x, 2.5, -40))
 		deco(specs, `TreeMid{i}`, "Block", vec(3.6, 2, 3.6), green, "Grass", vec(x, 4.5, -40))

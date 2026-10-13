@@ -982,7 +982,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA splash: 원 안이어도 발이 윗면 −1 아래거나 +6 위면 안 맞고, 위층(+4)은 맞아요 (D5 높이 범위)",
+		"QA splash: 원 안이어도 발이 윗면 −1 아래거나 +3.5 위면 안 맞고, 위층(+4)도 안 맞아요 (B1 수정: SPLASH_HEIGHT_RANGE 3.5)",
 		function()
 			local run = startRun()
 			local raft = raftByKey("T1_3")
@@ -1001,8 +1001,8 @@ return function(t: Test.Test)
 			run.advance(1.3)
 			t.eq(launchOf(target), nil, "target dodged")
 			t.eq(low.humanoid.PlatformStand, false, "below -1 not hit")
-			t.eq(high.humanoid.PlatformStand, false, "above +6 not hit")
-			t.eq(above.humanoid.PlatformStand, true, "one tier up (+4) within range is hit")
+			t.eq(high.humanoid.PlatformStand, false, "above +3.5 not hit")
+			t.eq(above.humanoid.PlatformStand, false, "one tier up (+4) is not hit (B1 fixed)")
 			run.active.value = false
 			run.env.task.cancelAll()
 		end

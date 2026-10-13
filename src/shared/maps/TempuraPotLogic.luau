@@ -41,7 +41,7 @@ Logic.SPLASH_KNOCKDOWN_TIME = 1 -- 넘어짐
 Logic.SPLASH_MOVE_EXEMPT = 1.5 -- MoveExempt.mark 초
 Logic.SPLASH_HOLD = 0.15 -- LinearVelocity로 붙잡는 시간 (그 뒤는 포물선)
 Logic.SPLASH_COOLDOWN = 0.5 -- 같은 사람 다시 맞는 최소 간격
-Logic.SPLASH_HEIGHT_RANGE = 6 -- 발판 윗면 위 이 높이 안의 발만 맞아요 (점프로 넘기 어렵게 넉넉히)
+Logic.SPLASH_HEIGHT_RANGE = 3.5 -- 발판 윗면 위 이 높이 안의 발만 맞아요. 위층(+4)은 안 맞아요 (m5-05 QA B1 P2, 메인 세션 결정)
 
 -- 경로 (스펙 AC4)
 Logic.CLIMB_MAX_RISE = 4.5

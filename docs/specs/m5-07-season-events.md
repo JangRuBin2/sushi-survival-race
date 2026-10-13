@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-07 — 시즌 이벤트: 한정 스킨·이벤트 재화(🍬/⭐)·탈의실 이벤트 탭
@@ -113,6 +113,42 @@ status: in-dev
 - 2026-10-08 · D3 남은 재화 · 코인으로 바꿔 주지 않음(MM2는 바꿔 주지만, 우리는 코인 경제를 단순하게) · **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · D4 압박 판매 피하기 · 남은 기간은 날짜로만, 초 단위 카운트다운·"마지막 기회"·깜빡임 없음, "다음 해에 다시 올 수도 있어요" 안내. 근거: 인기 로블록스 게임의 기만적 수익화 관행 연구(2025~2026)·TINA 2022, 이용층 대부분 미성년 — REFERENCE 1·8.2-4. 다시 올지는 확정이 아니라 "올 수도"로 · **기본값, 사용자 수정 가능** · planner
 - 2026-10-08 · D5 VIP 금박 계란초밥의 생김새를 이 스펙에서 · SushiBody를 한 스펙만 고치게(m5-08은 소유만 다룸) · planner
+- 2026-10-13 · DEV1 목록 밖 테스트 2개 수정 · 새 스킨에 효과가 붙고 재화·VIP 카드가 진짜 상태가 되면서 기존 테스트가 옛 기대값을 고정하고 있었어요. `tests/skins.spec.luau`의 효과 표에 `ghost-tamago`(Glow)·`tree-maki`·`vip-gold-tamago`(Sparkles)를 넣고, `tests/m5-03-foundation.spec.luau` "AC5 탈의실 카드"를 `Soon` → `NeedTokens`("🍬 0 / 80")·`Vip`("👑 VIP 전용")로 바꿨어요. 테스트 파일이라 공용 파일은 아니에요 · developer
+- 2026-10-13 · DEV2 스펙 해석(등급 탭) · "보유 → 원래 등급 탭에도 보임"을 **받기 전 한정 스킨은 등급 탭에 안 보이고 이벤트 탭·"전체" 탭에만** 보이는 것으로 해석했어요(`ShopLogic.visibleSkins`). 기간이 끝난 미보유 한정 스킨은 전체 포함 어느 탭에도 없어요. 다르게 원하면 `visibleSkins`의 tier 분기 한 줄 · **QA·기획 확인 부탁** · developer
+- 2026-10-13 · DEV3 유령 빛 · "PointLight 약하게"를 m5-21의 `Glow` 효과(PointLight, Range 8·Brightness 2, 흰색)로 했어요(효과 1개 예산 안). 더 약하게 하려면 SushiBody에 효과 세기 칸이 필요해요 · developer
+- 2026-10-13 · DEV4 생김새 크기 · 5종 모두 등급 허용치(에픽·전설 ±25%)보다 좁은 스펙 값 **±15%** 안으로 맞췄어요. 산타 모자는 높이 상한(계란초밥 4.7 × 1.15) 때문에 낮게 접힌 모양이에요 · developer
+- 2026-10-13 · DEV5 로벅스 카드 글씨 · 유료 한정 카드는 "지금 로벅스 카드와 같음"을 따라 기존 글씨(`R$ 99`, 상품 id 없으면 `R$ 99 — 곧 열려요`)를 그대로 써요. 표의 "R$ 99로 사기"로 바꾸려면 `ShopLogic.cardButtonText` 한 줄 · developer
+- 2026-10-13 · DEV6 로비 장식 데이터 위치 · 장식 숫자는 공용이 아닌 `LobbyLayout`이 아니라 수정 목록에 있는 `LobbyService` 안에 두었어요(파츠: 할로윈 20, 크리스마스 23). 순수 테스트는 소스 검사로만 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-13 구현 (브랜치 `m5-07-season`)
+**바뀐 파일** (공용 파일 수정 없음)
+- `src/shared/RewardLogic.luau` — `tokensFor(reason, now)`, `onRoundStart`/`onResult` 마지막 인자 `now?`(nil이면 예전처럼 재화 없음), `matchEndPayout(lastDay, today, now)` → DailyFirstMatch(50 + 재화 4) / MatchPlayed(0 + 1) / nil, `matchTokenTotal`, `toastText`·`summaryText`에 재화 인자, `simulate`가 (코인, 재화) 두 표.
+- `src/server/RewardService.luau` — 지급 하나에 코인·재화를 한 `update`로, `eventTokens[eventId]`에 더하고 `RewardGranted`에 `tokens`·`tokenTotal`·`eventId`. 매치 끝은 `matchEndPayout` 한 번(코인·재화 0이면 안 보냄). 시각은 `Seasons.now(Studio, Config.DEBUG.eventNow, os.time())`.
+- `src/shared/ShopLogic.luau` — Reason `NotForTokens`·`EventEnded`·`NeedTokens`, `canBuyWithTokens`/`buyWithTokens`, `tokensOf`·`isLimited`·`onSale`, `cardState(skin, view, robux?, now?)`에 `Tokens`·`NeedTokens`·`Vip`·`OffSale`·`limited`, `tabs`/`defaultTab`/`eventTab`/`visibleSkins`, `eventHeader`·`lastDayText`(os.date 없이 UTC 날짜 계산), `EVENT_TAB_LABEL`·`EVENT_NOTE`. `Wallet`·`ViewLike`에 `eventTokens`.
+- `src/server/ShopService.luau` — `BuyWithTokens` 리모트(요청 간격 공유, Studio 메모리 모드 허용, 성공 시 미리보기 끄기 + 다시 입히기 + `saveNow`).
+- `src/shared/SushiBody.luau` — PartSpec `transparency` 칸, 새 스킨 5종 진짜 생김새(호박 초밥, 유령 계란초밥 Glow, 산타 새우, 트리 마키 Sparkles, 금박 계란초밥 Sparkles).
+- `src/client/ui/ShopScreen.luau`·`ShopController.luau` — 데이터 탭(이벤트 탭 맨 앞·열 때 먼저), 이벤트 머리줄 + 안내 문구, `visibleSkins`로 카드 숨김, 보유 한정 카드 "한정" 표시, 재화 받기 → `BuyWithTokens`, 가격은 `PriceCache.product`(직접 `GetProductInfoAsync` 하던 반복 제거).
+- `src/client/ui/CoinScreen.luau`·`CoinController.luau` — 배지 옆 재화 "🍬 32"(이벤트 없으면 숨김, 1분마다 다시 봄), 토스트 "+10 🍚 +1 🍬 라운드 통과"/"+1 🍬 판 참가" + `TokenGet` 소리, 우승 정산 "+M 🍬".
+- `src/server/LobbyService.luau` — 시즌 장식(할로윈 호박 6·보라 조명 2 / 크리스마스 트리 2·눈 1·선물 4), 로비 지은 뒤와 10분마다, MapKit 장식 규칙.
+- 테스트: `tests/reward-logic.spec.luau`·`shop-logic.spec.luau`·`sushi-body.spec.luau`에 추가, 새 `tests/season-shop.spec.luau`(ShopService·RewardService를 가짜 환경으로 직접 돌림 + 클라이언트·로비 소스 검사). 목록 밖 수정 `tests/skins.spec.luau`·`tests/m5-03-foundation.spec.luau`(결정 기록 DEV1).
+- 사용하지 않은 것: `Skins.luau`(상품 id는 사용자 몫이라 그대로), `Seasons.luau`(숫자 그대로).
+
+**검증 5단계** (Windows 로컬, 2026-10-13): `rojo build` 통과, `stylua --check` 통과, `selene src` 0 errors 0 warnings, `lune run tests` 1258 passed 0 failed, `luau-lsp analyze` 끝 코드 0.
+
+**Studio 확인 방법** (AC8~AC14)
+1. `src/shared/Config.luau`의 `DEBUG.eventNow = 1792108800`(할로윈 첫날). 필요하면 `forceMapPlan`, `fakeRobuxInStudio = true`. **확인 뒤 모두 커밋 값(nil/false)으로 되돌리기.**
+2. Play Solo → 왼쪽 위 코인 배지 옆 "🍬 0", 로비 카운터 둘레에 호박 6개와 보라 조명 2개(AC8·AC12).
+3. "🍣 스킨" → "🎃 할로윈" 탭이 먼저 선택, 머리줄 "할로윈 초밥 축제 · 11월 5일까지 · 🍬 0"과 안내 문구, 카드 2개(호박 초밥 R$ 99, 유령 계란초밥 "🍬 0 / 80")(AC8).
+4. 한 판 하기 → 통과 때 "+10 🍚 +1 🍬 라운드 통과"(TokenGet은 소리 id 전이라 무음), 매치 끝 "+50 🍚 +4 🍬 오늘 첫 판"(그날 첫 판), 우승 화면 "이번 판 +N 🍚 +M 🍬 (총 …)"(AC9).
+5. 재화 80 채우기: Studio 명령줄(서버)에서 `require(game.ServerScriptService.Server.DataService).update(game.Players:GetPlayers()[1], function(p) p.eventTokens["halloween-2026"] = 80 end)` → 탈의실 "🍬 80으로 받기" → 유령 계란초밥이 바로 입혀지고 재화 0. 라운드 중에는 버튼이 숨거나 "매치가 끝나면 바꿀 수 있어요"(AC10). (ProfileUpdated가 늦으면 탈의실을 닫았다 열기)
+6. `fakeRobuxInStudio = true`로 호박 초밥 R$ 99 → 가짜 결제 지급(AC11). 그다음 `eventNow = 1793923200`(끝) → 미보유 한정 스킨이 어느 탭에도 없고 이벤트 탭·재화 배지·호박 장식도 없음, 가진 호박 초밥은 에픽 탭에 "한정" 표시(AC11·AC12).
+7. 크리스마스 `eventNow = 1796947200` → "🎄 크리스마스" 탭, ⭐ 배지, 트리·선물·눈 장식.
+8. 생김새: 탈의실 미리보기 + 관리자 "🛠" 미리보기로 5종(금박 계란초밥 포함)을 게임 속에서 확인(AC13). 휴대폰 에뮬레이터에서 이벤트 탭·머리줄·배지가 안 겹치는지(AC14).
+
+**남은 이슈 · 확인 필요**
+- 결정 기록 DEV2(등급 탭 해석)·DEV5(로벅스 카드 글씨) 확인.
+- 클라이언트 시각은 `GetServerTimeNow()`라 이벤트 경계에서 배지·탭이 서버보다 최대 1분(배지)/탈의실을 다시 그릴 때까지 늦게 바뀔 수 있어요. 교환·판매 판단은 서버라 결과는 맞아요.
+- 로비 장식은 로비를 지은 뒤 10분마다 확인 — 경계 직후 최대 10분 늦게 켜지고 꺼져요(스펙대로).
+- `TokenGet` 소리 id 없음(무음, USER-TODO A2), 상품 id 2개 없음(USER-TODO C3).

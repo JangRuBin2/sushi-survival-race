@@ -1,6 +1,14 @@
 # m5-07 season events — 개발 작업 기록
 
-## 2026-10-08 — 착수만 함, 코드 변경 없음 (최신)
+## 2026-10-13 — 구현 완료, in-qa (최신)
+- **브랜치**: `m5-07-season` (origin/main 4192744 머지 위). 스펙 status `in-qa`.
+- **끝난 것**: 스펙 범위 전부 — 재화 지급(RewardLogic·RewardService), BuyWithTokens(ShopLogic·ShopService), 탈의실 이벤트 탭·머리줄·한정 표시·PriceCache 가격, 코인 배지·토스트·정산 재화, 새 스킨 5종 생김새(m5-21·m5-22 이후 SushiBody 위에, 기존 스킨 건드리지 않음), 로비 시즌 장식. 테스트 + 새 `tests/season-shop.spec.luau`.
+- **검증**: 5단계 모두 통과 (lune 1258 passed, luau-lsp 끝 코드 0).
+- **남은 것**: QA, 사용자 Studio 확인(AC8~AC14, 스펙 "개발 메모"의 순서). 결정 기록 DEV2·DEV5 확인.
+- **다음에 할 첫 단계**: QA 리포트(`docs/qa/m5-07-*.md`)가 오면 버그 수정. 공용 파일은 건드릴 필요가 없었어요.
+- **막힌 점**: 없음.
+
+## 2026-10-08 — 착수만 함, 코드 변경 없음
 - **브랜치**: `m5-07-season` (origin/main c4ca608에서). 스펙 status `in-dev`.
 - **끝난 것**: 스펙·m5-03 인계 메모·관련 코드 읽기와 설계. `src/` 변경은 아직 없음.
 - **남은 것**: 스펙 범위 전부 (AC1~AC7 구현·테스트, 검증 5단계, 커밋, in-qa).

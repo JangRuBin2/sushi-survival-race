@@ -27,9 +27,8 @@ local CodeConfig = RobloxRequire.require(Server.CodeConfig)
 
 -- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
 -- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 inPool = true로 바뀌어 더 이상 껍데기가 아니에요
--- (shells 밖에서 검사해요). 남은 껍데기는 m5-03 원래 3개(ikura-bombs·tempura-pot·dessert-fridge)뿐이에요.
+-- (shells 밖에서 검사해요). ikura-bombs(m5-04)도 졸업해서 남은 껍데기는 tempura-pot·dessert-fridge뿐이에요.
 local SHELLS = {
-	"ikura-bombs",
 	"tempura-pot",
 	"dessert-fridge",
 }
@@ -90,55 +89,59 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 8개는 스펙 표 그대로 + inPool = false", function()
-		local expected = {
-			["ikura-bombs"] = {
-				"Final",
-				"연어알 폭탄 접시",
-				"떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!",
-			},
-			["tempura-pot"] = {
-				"Survival",
-				"튀김 냄비 탈출",
-				"차오르는 기름을 피해 위로! 튀는 기름도 조심!",
-			},
-			["dessert-fridge"] = {
-				"Race",
-				"디저트 냉장고",
-				"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
-			},
-			-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
-			-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
-			-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
-		}
-		t.eq(#Maps.allInfos(), 15)
-		for _, info in Maps.allInfos() do
-			local map = Maps.get(info.id)
-			t.eq(MapTypes.validate(map), nil, info.id)
-			local row = expected[info.id]
-			if row then
-				t.eq(map.kind, row[1], `{info.id} kind`)
-				t.eq(map.displayName, row[2], `{info.id} name`)
-				t.eq(map.rule, row[3], `{info.id} rule`)
-				t.eq(map.inPool, false, `{info.id} inPool`)
-			else
-				t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+	t.test(
+		"AC1: 맵 15개 전부 validate 통과, 남은 껍데기(tempura-pot·dessert-fridge)는 스펙 표 그대로 + inPool = false",
+		function()
+			local expected = {
+				["tempura-pot"] = {
+					"Survival",
+					"튀김 냄비 탈출",
+					"차오르는 기름을 피해 위로! 튀는 기름도 조심!",
+				},
+				["dessert-fridge"] = {
+					"Race",
+					"디저트 냉장고",
+					"미끄러운 얼음을 건너 냉장고 문까지 달려요!",
+				},
+				-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
+				-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
+				-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
+			}
+			t.eq(#Maps.allInfos(), 15)
+			for _, info in Maps.allInfos() do
+				local map = Maps.get(info.id)
+				t.eq(MapTypes.validate(map), nil, info.id)
+				local row = expected[info.id]
+				if row then
+					t.eq(map.kind, row[1], `{info.id} kind`)
+					t.eq(map.displayName, row[2], `{info.id} name`)
+					t.eq(map.rule, row[3], `{info.id} rule`)
+					t.eq(map.inPool, false, `{info.id} inPool`)
+				else
+					t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+				end
 			end
+			-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
+			local ikura = Maps.get("ikura-bombs")
+			t.eq(ikura.kind, "Final")
+			t.eq(ikura.displayName, "연어알 폭탄 접시")
+			t.eq(ikura.rule, "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
+			t.eq(type(ikura.overtime), "function")
+			t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
+			t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
 		end
-		t.eq(type(Maps.get("ikura-bombs").overtime), "function")
-		t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
-		t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
-	end)
+	)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 12개(신규 맵 6개 전부 합류 — m5-14~19, 껍데기는 m5-03 원래 3개뿐), allInfos()는 15개",
+		"AC2: infos()는 13개(신규 맵 6개 전부 합류 — m5-14~19, m5-04 ikura-bombs 합류, 껍데기는 2개뿐), allInfos()는 15개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 12)
+			t.eq(#Maps.infos(), 13)
+			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
 			t.ok(ids["bouncy-castle-maze"], "bouncy-castle-maze joined the random pool")
 			t.ok(ids["lantern-bridge"], "lantern-bridge joined the random pool")
 			t.ok(ids["giant-jenga"], "giant-jenga joined the random pool")
@@ -167,7 +170,7 @@ return function(t: Test.Test)
 			{ id = "tempura-pot", kind = "Survival" },
 			{ id = "ikura-bombs", kind = "Final" },
 		})
-		-- 랜덤 풀(infos)로는 껍데기를 못 찾아요
+		-- 랜덤 풀(infos)로는 껍데기를 못 찾아요 (ikura-bombs는 m5-04로 풀에 들어갔지만 앞의 두 껍데기 때문에 nil)
 		local none = Rules.resolveForcedPlan({ "dessert-fridge", "tempura-pot", "ikura-bombs" }, Maps.infos())
 		t.eq(none, nil)
 	end)

@@ -1,6 +1,14 @@
 # m5-04 연어알 폭탄 접시: 개발 작업 기록
 
-## 2026-10-08 — 설계만 함, 코드 없음 (최신)
+## 2026-10-13 — PHASE A 게임플레이 끝 (최신)
+- **브랜치**: `m5-04-ikura` (worktree `.claude/worktrees/agent-a31d32c4a597d9bba`, 로컬 브랜치 `worktree-agent-a31d32c4a597d9bba`를 `origin/m5-04-ikura`로 push). origin/main f88e327 병합함. 스펙 status `in-dev`.
+- **끝난 것**: Layout·Logic·Art(최소)·맵 모듈·테스트 18개, `inPool = false` 삭제, 스펙 밖 풀 개수 테스트 5개 최소 수정. 스펙 "개발 메모" PHASE A 참고.
+- **설계에서 바뀐 점**: 상태는 속성 대신 claw-machine-prize처럼 `roundStates[ctx]`(칸 상태·쿨다운·숟가락 목표). 칸 Model 속성(`Cracks`·`Falling`·`Dropped`)은 Studio에서 보기용으로만 갱신. 정해진 낙하는 `scheduleMarks`의 각 시각에 `task.delay` → `scheduledDrops(mark, alive)`. 다시 뽑기는 이미 노린 레이서를 뺌(결정 기록 D4).
+- **검증 상태**: 5단계 통과 (lune 1251/0, luau-lsp 0).
+- **다음에 할 첫 단계 (PHASE B)**: main에 m5-23 비주얼 키트가 들어오면 origin/main을 병합 → `IkuraBombsArt.luau`를 새 키트(조명·파티클·애니메이션·조명 프리셋, 높아진 예산)로 채우고 `buildSpoon`의 자리 잡기 파츠를 아트로 교체. 칸 경계 선은 칸 Model 안(같이 사라지게). 미리보기 렌더러로 확인 → status `in-qa`.
+- **막힌 점 / 주의**: 풀 개수 테스트(m5-03-foundation·maps·m4-foundation·m2-01-qa·m4-12-hardening)는 m5-05/06도 고치는 줄이라 병합 충돌 가능.
+
+## 2026-10-08 — 설계만 함, 코드 없음
 - **브랜치**: `m5-04-ikura` (origin/main c4ca608에서 분기). 스펙 status `in-dev`. `inPool = false`는 그대로 둠.
 - **끝난 것**: 스펙과 참고 코드(SkewerShowdown/Logic/Art, MapKit/Logic, MoveExempt, SoySwampHazards launch, MapTypes 연장전 계약, RoundService overtime 호출)를 읽고 아래 설계를 정함. 코드와 테스트는 아직 없음.
 - **검증 상태**: 코드를 바꾸지 않아 돌리지 않음 (main 상태 그대로).

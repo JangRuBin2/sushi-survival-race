@@ -92,7 +92,21 @@ status: in-dev
 <!-- 날짜 · 질문 · 결정 · 누가 -->
 - 2026-10-08 · D1 두 번째 결승으로 무엇을 · **연어알 폭탄 접시**(폭탄 피하기 + 넉백 + 바닥 축소). GDD 5.3의 "연어 왕관 쟁탈전(왕관 들고 30초 버티기)"은 v0.3에서 결승이 "마지막 1명 생존형"이 되며 규칙 재검토가 필요했고, 왕관 들기는 잡기("늦추기만", GDD 6)로 뺏을 수 없어 성립이 어려움 → 백로그로 둠. 근거: Fall Guys Blast Ball(넉백 폭탄 + 조각 낙하 결승), Roblox Super Bomb Survival(하늘에서 폭탄, 단계별 강도), Super Bomberman(Hurry Up 축소) — REFERENCE-m5-maps 1·2.1. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · D2 폭탄 수치 · 경고 1.5초(젓가락 1초·셰프 손 2초 사이, 서든데스 1.2), 반경 7 → 9, 간격 2.5 → 2.0 → 1.5 → 1.0, 60%는 사람을 노림(결승 인원 2~5명이라 무작위만이면 안 맞음). 넉백 50/30은 꼬치(32/20)보다 세게 — 폭탄은 피할 시간이 더 길어서. **기본값, 플레이테스트 후 조정** · planner
+- 2026-10-13 · D4 (developer, 스펙 해석) 같은 묶음 다시 뽑기 · 간격 6 미만이면 다시 뽑을 때 **이 묶음이 이미 노린 레이서(그 근처 9 안에 폭탄이 있는 사람)는 빼고** 뽑아요. 그냥 다시 뽑으면 레이서 1명 + 폭탄 3개일 때 0.6^6 확률로 계속 같은 사람 위에 겹쳐 AC4 간격 기준을 자주 못 지켜서. 1개짜리 묶음의 60% 비율은 그대로. 바꾸고 싶으면 planner 확인 · developer
 - 2026-10-08 · D3 "안전한 자리" 막기 · 가운데 원판은 연장전 전까지 남기되(설 곳 보장) 폭탄이 계속 노려서 굳히기 불가, 연장전 20초에 원판까지 사라짐. 장식은 전부 충돌 없음(Jump Showdown infinite hang 교훈, m5-01). · planner
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE A (2026-10-13, 게임플레이만 — 아트는 PHASE B, m5-23 비주얼 키트 뒤)
+- **상태**: `in-dev` 유지 (아트 PHASE B가 남아서 아직 `in-qa`로 넘기지 않아요).
+- **바뀐 파일**
+  - 새 파일 `src/shared/maps/IkuraBombsLayout.luau`: 칸 17개 표, 6도 조각(고리 칸 판정 파츠), 스폰 24개(반지름 13·19)
+  - 새 파일 `src/shared/maps/IkuraBombsLogic.luau`: `tileAt`, `bombWave`, `pickTargets`·`clampToAlive`, `knockback`·`inBlast`, `crack`, `scheduleMarks`·`scheduledDrops`, `overtimeRings`
+  - 새 파일 `src/shared/maps/IkuraBombsArt.luau`: 자리 잡기용 최소 장식(접시 몸통·굽·남색 테두리 30조각, 전부 충돌 없음), 판정 파츠 기본 색, IntroCamera 4점, 시야 상자
+  - `src/shared/maps/IkuraBombs.luau`: 껍데기 덮어쓰기. 칸 Model(태그 `IkuraTile`, 속성 `Ring`·`Index`·`TileId`·`Cracks`, 떨어지면 `Falling`·`Dropped`), 숟가락+손 Model(태그 `IkuraSpoon`, 충돌 없음, 폭탄 쪽으로 따라감), 폭탄(태그 `IkuraBomb`, `Bombs` 폴더), 넉백(LinearVelocity 0.12초 + PlatformStand 1초 + `MoveExempt.mark` 1.5초, 0.5초 쿨다운), 금 가기, 정해진 낙하, 연장전 고리 붕괴, 낙하 탈락(윗면 −30). **`inPool = false` 삭제** → 랜덤 결승 풀(Final 4개)
+  - 새 테스트 `tests/map-ikura-bombs.spec.luau` (18개, AC1~AC8)
+  - 스펙 밖 테스트 최소 수정(풀 개수·Final 목록): `tests/m5-03-foundation.spec.luau`(ikura를 껍데기 목록에서 빼고 infos 13개, id·이름·문구는 계속 확인), `tests/maps.spec.luau`(13개), `tests/m4-foundation.spec.luau`(Final 4개), `tests/m2-01-qa.spec.luau`(결승 후보에 추가), `tests/m4-12-hardening.spec.luau`(강제 플랜 `{ rotating-belt, hot-plate, ikura-bombs }` 추가)
+- **검증**: 5단계 전부 통과 (rojo build, stylua, selene 0/0/0, lune 1251 통과 0 실패, luau-lsp 끝 코드 0).
+- **Studio 확인** (`Config.DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "ikura-bombs" }`, 빠른 연장전 `overtimeAt = 15`, 확인 뒤 둘 다 nil): AC10~AC15 그대로. 판정 지오메트리는 진한 간장색 칸(두 톤 번갈아), 원판은 더 진한 색. 금 1번이면 어두워지고 검은 금 줄.
+- **남은 것 (PHASE B)**: 본격 아트(가게 앞 부두·바다, 셰프 손·은 숟가락 모델, 칸 경계 얇은 선, 고추냉이·생강, 등롱 조명) — m5-23 키트 사용. 숟가락·손은 지금 `IkuraBombs.buildSpoon`의 자리 잡기용 3파츠.
+- **알려진 한계**: 폭탄 알갱이 파티클은 ParticleEmitter 1개를 폭발 위치로 옮겨 `Emit` (같은 순간 여러 폭발이면 마지막 위치로 몰릴 수 있음, 연출만).

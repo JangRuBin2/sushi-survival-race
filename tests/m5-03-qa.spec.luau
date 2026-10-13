@@ -410,9 +410,9 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- 맵 껍데기 build
 	t.test(
-		"QA 껍데기 build: tempura-pot 스폰 24개가 전부 바닥 위(가장자리 1 stud 이상) — ikura-bombs는 m5-04가 덮어써서 map-ikura-bombs.spec AC1로",
+		"QA 껍데기 build: 남은 껍데기 스폰 24개가 전부 바닥 위 (지금은 껍데기 없음 — 세 맵 모두 tests/map-*.spec.luau로)",
 		function()
-			for _, case in { { "TempuraPot", "Floor" } } do
+			for _, case in {} :: { { string } } do
 				local env = loadMap(case[1])
 				local model = env.map.build(origin())
 				t.eq(model.Name, env.map.id)
@@ -440,7 +440,7 @@ return function(t: Test.Test)
 	t.test(
 		"QA 껍데기 start: 낙하 25 아래면 탈락, 판 위면 그대로, 끝난 라운드에는 판정 안 함",
 		function()
-			for _, file in { "TempuraPot" } do -- ikura-bombs(m5-04)·dessert-fridge(m5-06)는 실제 맵 (tests/map-*.spec.luau)
+			for _, file in {} :: { string } do -- 껍데기 없음: ikura-bombs·tempura-pot·dessert-fridge 모두 실제 맵 (tests/map-*.spec.luau)
 				local env = loadMap(file)
 				local model = env.map.build(origin())
 				local safe = racerAt("safe", 0, 3, -40)

@@ -261,6 +261,7 @@ return function(t: Test.Test)
 		{ "rotating-belt", "soy-swamp", "claw-machine-prize" }, -- m5-19
 		{ "rotating-belt", "hot-plate", "ikura-bombs" }, -- m5-04
 		{ "dessert-fridge", "hot-plate", "skewer-showdown" }, -- m5-06
+		{ "rotating-belt", "tempura-pot", "skewer-showdown" }, -- m5-05
 	}
 
 	t.test("연속 플랜 9개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()

@@ -1,7 +1,7 @@
 # QA — m5-25 캐릭터 퀄리티 개선 (2단계)
 
 - 스펙: `docs/specs/m5-25-character-quality.md`
-- 검증 커밋: `cd6368a` (+ 이 리포트와 함께 커밋한 QA 테스트 `tests/m5-25-qa.spec.luau`)
+- 검증 커밋: `c91da87` (main `68d2bd6` 병합 뒤 5단계 다시 통과 — 1767 passed, 0 failed). QA 테스트 `tests/m5-25-qa.spec.luau`는 `023e280`
 - 결과: **통과** (P0·P1 없음, P2 0, P3 5) → 스펙 상태 `qa-passed`
 
 ## 자동 검증 (2026-10-13, Windows 로컬, rokit 도구)

@@ -279,7 +279,7 @@ local function renderFace(dir: string, lighting: any)
 	local yaw = keyYaw(lighting)
 	local scene = newScene()
 	placeCharacter(scene, Skins.DEFAULT_ID, 0, 0, yaw)
-	local faceY = BODY_CENTER_Y + 0.8
+	local faceY = BODY_CENTER_Y + 0.45
 	local w, h = 800, 800
 	save(`{dir}/face.png`, render(scene, orbit(0, faceY, 0, yaw, 15, 6, 8.5, PORTRAIT_FOV, w / h), lighting, w, h))
 end
@@ -320,7 +320,7 @@ local function renderGameplay(dir: string, lighting: any, name: string, actors: 
 	for _, actor in actors do
 		local wx, wz = rx * actor.x + fx * actor.z, rz * actor.x + fz * actor.z
 		placeCharacter(scene, actor.id, wx, wz, yaw + math.rad(actor.turn))
-		table.insert(world, { tag = actor.tag, x = wx, z = wz, top = BODY_CENTER_Y + 3.6 })
+		table.insert(world, { tag = actor.tag, x = wx, z = wz, top = BODY_CENTER_Y + SushiBody.NAME_TAG_HEIGHT })
 	end
 	local pitch = math.rad(CAMERA_PITCH)
 	local eye = v3(
@@ -330,7 +330,7 @@ local function renderGameplay(dir: string, lighting: any, name: string, actors: 
 	)
 	local cam = Raster.perspective(eye, v3(0, FOCUS_Y, 0), 70, w / h)
 	local image = render(scene, cam, lighting, w, h)
-	-- 이름표 흉내 (다른 사람만, 게임처럼 Body 중심 위 3.6)
+	-- 이름표 흉내 (다른 사람만, 게임처럼 Body 중심 위 SushiBody.NAME_TAG_HEIGHT)
 	local scale = if w >= 900 then 2 else 1
 	for _, item in world do
 		local tag = item.tag

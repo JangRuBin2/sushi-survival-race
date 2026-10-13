@@ -1,7 +1,8 @@
 --!strict
 -- 초밥 몸 레이아웃(SushiBody.layout의 PartSpec 목록) 점검 (m5-25 캐릭터 렌더러). 순수 함수라 테스트할 수 있어요.
 --   LayoutCheck.zFight(layout) -> { string }    같은 쪽을 보는 면이 같은 평면에서 겹치는 파츠 쌍 ("A/B +Y")
---                                               — Roblox에서 깜빡이는(z-fighting) 자리. 회전 없는 Block끼리만 봐요.
+--                                               — Roblox에서 깜빡이는(z-fighting) 자리. 축에 나란한 Block 면과
+--                                               Cylinder 마개(m5-25)를 봐요. 색·재질·투명도가 같은 쌍은 안 보여서 빼요.
 --   LayoutCheck.floating(layout, gap?) -> { string }   다른 어떤 파츠와도 닿지 않는 파츠 이름 (gap 기본 0.02 studs,
 --                                               회전은 감싸는 축 정렬 상자로)
 --   LayoutCheck.box(spec) -> (min, max)          파츠 하나의 축 정렬 외곽 (회전 반영)
@@ -16,6 +17,8 @@ type Spec = {
 	rotation: { number }?,
 	shape: string?,
 	transparency: number?,
+	color: { number }?,
+	material: string?,
 }
 
 local EPS = 0.005
@@ -50,13 +53,43 @@ function LayoutCheck.box(spec: Spec): ({ number }, { number })
 	return lo, hi
 end
 
-local function unrotated(spec: Spec): boolean
+-- 회전이 90도 배수뿐이면 면이 축에 나란해요
+local function axisAligned(spec: Spec): boolean
 	local r = spec.rotation
-	return r == nil or (r[1] % 360 == 0 and r[2] % 360 == 0 and r[3] % 360 == 0)
+	return r == nil or (r[1] % 90 == 0 and r[2] % 90 == 0 and r[3] % 90 == 0)
 end
 
 local function visible(spec: Spec): boolean
 	return (spec.transparency or 0) < 0.99
+end
+
+-- 평평한 면이 있는 월드 축 (1~3). Block = 세 축, Cylinder = 축 방향 마개 두 면 (m5-25), 그 밖(공·쐐기·비스듬히 돈 파츠)은 없음
+local function flatAxes(spec: Spec): { [number]: boolean }
+	local shape = spec.shape or "Block"
+	if not axisAligned(spec) or not visible(spec) then
+		return {}
+	end
+	if shape == "Block" then
+		return { [1] = true, [2] = true, [3] = true }
+	elseif shape == "Cylinder" then
+		-- 로컬 X축이 월드 어느 축으로 가는지 (회전 행렬의 첫 열)
+		local m = rotationMatrix(spec.rotation)
+		for axis = 1, 3 do
+			if math.abs(m[axis][1]) > 0.5 then
+				return { [axis] = true }
+			end
+		end
+	end
+	return {}
+end
+
+-- 색·재질·투명도가 모두 같으면 같은 평면에 겹쳐도 깜빡임이 안 보여요 (알약 판의 상자·원기둥 윗면 등)
+local function sameLook(a: Spec, b: Spec): boolean
+	local ca, cb = a.color, b.color
+	if ca == nil or cb == nil or a.material == nil or a.material ~= b.material then
+		return false
+	end
+	return ca[1] == cb[1] and ca[2] == cb[2] and ca[3] == cb[3] and (a.transparency or 0) == (b.transparency or 0)
 end
 
 local AXIS_NAMES = { "X", "Y", "Z" }
@@ -65,17 +98,22 @@ function LayoutCheck.zFight(layout: { Spec }): { string }
 	local found = {}
 	for i = 1, #layout do
 		local a = layout[i]
-		if (a.shape or "Block") ~= "Block" or not unrotated(a) or not visible(a) then
+		local aAxes = flatAxes(a)
+		if next(aAxes) == nil then
 			continue
 		end
 		local alo, ahi = LayoutCheck.box(a)
 		for j = i + 1, #layout do
 			local b = layout[j]
-			if (b.shape or "Block") ~= "Block" or not unrotated(b) or not visible(b) then
+			local bAxes = flatAxes(b)
+			if next(bAxes) == nil or sameLook(a, b) then
 				continue
 			end
 			local blo, bhi = LayoutCheck.box(b)
 			for axis = 1, 3 do
+				if not (aAxes[axis] and bAxes[axis]) then
+					continue
+				end
 				local u, w = axis % 3 + 1, (axis + 1) % 3 + 1
 				local overlapU = math.min(ahi[u], bhi[u]) - math.max(alo[u], blo[u])
 				local overlapW = math.min(ahi[w], bhi[w]) - math.max(alo[w], blo[w])

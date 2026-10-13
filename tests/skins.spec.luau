@@ -218,21 +218,31 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"AC2: 히트박스·이름표 기준이 같아요 — Body·눈·입·발은 계란초밥과 같은 값, 발바닥 높이 같음",
+		"AC2·m5-25 AC8: 히트박스·이름표 기준이 같아요 — 기준 파츠 22개(밥·눈·입·볼·발)는 계란초밥과 같은 크기·위치·회전, 발바닥 높이 같음",
 		function()
 			local base = byName(SushiBody.layout("tamago"))
+			t.eq(#SushiBody.BASE_NAMES, 22)
 			for _, skin in Skins.LIST do
 				local layout = SushiBody.layout(skin.id)
 				t.eq(layout[1].name, "Body", `{skin.id}: Body first`)
 				local parts = byName(layout)
-				for _, name in { "Body", "EyeLeft", "EyeRight", "Mouth", "FootLeft", "FootRight" } do
+				t.eq(parts.Body.rotation, nil, `{skin.id} Body not rotated`)
+				for _, name in SushiBody.BASE_NAMES do
 					local a, b = parts[name], base[name]
 					t.ok(a ~= nil, `{skin.id} {name}`)
 					for axis = 1, 3 do
 						t.eq(a.size[axis], b.size[axis], `{skin.id} {name} size`)
 						t.eq(a.offset[axis], b.offset[axis], `{skin.id} {name} offset`)
 					end
-					t.eq(a.rotation, nil, `{skin.id} {name} not rotated`)
+					t.eq(a.rotation, b.rotation, `{skin.id} {name} rotation`)
+					t.eq(a.shape, b.shape, `{skin.id} {name} shape`)
+					t.eq(a.joint, b.joint, `{skin.id} {name} joint`)
+					t.eq(a.attach, b.attach, `{skin.id} {name} attach`)
+					-- 발·볼은 색·재질만 바꿀 수 있어요 (뒤·옆 정보). 나머지는 색까지 같아요.
+					if not (string.find(name, "^Foot") or string.find(name, "^Cheek")) then
+						t.eq(a.color, b.color, `{skin.id} {name} color`)
+						t.eq(a.material, b.material, `{skin.id} {name} material`)
+					end
 				end
 				local bounds = SushiBody.bounds(layout)
 				t.ok(math.abs(-bounds.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {bounds.min[2]}`)
@@ -390,35 +400,37 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("AC2(m5-22): Wedge를 쓰는 7개 파츠가 shape == 'Wedge'이고 size 각 축이 양수예요", function()
-		local wedgeParts: { [string]: { string } } = {
-			["cat-sushi"] = { "EarLeft", "EarRight", "EarInnerLeft", "EarInnerRight" },
-			["crown-tuna"] = {
-				"CrownSpike1",
-				"CrownSpike2",
-				"CrownSpike3",
-				"CrownSpike4",
-				"CrownSpike5",
-				"CapeLeft",
-				"CapeRight",
-			},
-			["unicorn-roll"] = { "Mane1", "Mane2", "Mane3" },
-		}
-		local total = 0
-		for skinId, names in wedgeParts do
-			local parts = byName(SushiBody.layout(skinId))
-			for _, name in names do
-				local spec = parts[name]
-				t.ok(spec ~= nil, `{skinId} {name} exists`)
-				t.eq(spec.shape, "Wedge", `{skinId} {name} shape`)
-				for axis = 1, 3 do
-					t.ok(spec.size[axis] > 0, `{skinId} {name} size axis {axis}`)
+	t.test(
+		"AC2(m5-22·m5-25): 귀·왕관 가시·갈기가 shape == 'Wedge'이고 size 각 축이 양수예요",
+		function()
+			-- m5-25 재배치: 크라운의 망토는 쐐기 대신 등 자락(벨벳), 유니콘 갈기는 4장
+			local wedgeParts: { [string]: { string } } = {
+				["cat-sushi"] = { "EarLeft", "EarRight", "EarInnerLeft", "EarInnerRight" },
+				["crown-tuna"] = {
+					"CrownSpike1",
+					"CrownSpike2",
+					"CrownSpike3",
+					"CrownSpike4",
+					"CrownSpike5",
+				},
+				["unicorn-roll"] = { "Mane1", "Mane2", "Mane3", "Mane4" },
+			}
+			local total = 0
+			for skinId, names in wedgeParts do
+				local parts = byName(SushiBody.layout(skinId))
+				for _, name in names do
+					local spec = parts[name]
+					t.ok(spec ~= nil, `{skinId} {name} exists`)
+					t.eq(spec.shape, "Wedge", `{skinId} {name} shape`)
+					for axis = 1, 3 do
+						t.ok(spec.size[axis] > 0, `{skinId} {name} size axis {axis}`)
+					end
+					total += 1
 				end
-				total += 1
 			end
+			t.eq(total, 4 + 5 + 4)
 		end
-		t.eq(total, 4 + 7 + 3)
-	end)
+	)
 
 	t.test("AC2: 모르는 id는 계란초밥 (hasLayout false)", function()
 		t.eq(SushiBody.hasLayout("no-such-skin"), false)

@@ -140,7 +140,8 @@ function LobbyController.start(): ScreenGui
 	end)
 
 	-- 서버의 짧은 안내 (m4-11: 텔레포트 실패, 다른 서버로 이동 중 등)
-	Remotes.event("Notice").OnClientEvent:Connect(function(message: string)
+	-- 두 번째 인자 kind (m5-08 QA B2): "success"/"info"면 오류색이 아니고, "error"면 오류색. 없으면 예전 판단("…" 진행 안내)
+	Remotes.event("Notice").OnClientEvent:Connect(function(message: string, kind: unknown)
 		if type(message) ~= "string" then
 			return
 		end
@@ -148,7 +149,11 @@ function LobbyController.start(): ScreenGui
 			statusLabel.Text = message
 			statusLabel.Visible = true
 		else
-			local isError = string.find(message, "…", 1, true) == nil -- "이동하고 있어요…" 같은 진행 안내는 오류가 아니에요
+			local isError = if kind == "success" or kind == "info"
+				then false
+				elseif kind == "error" then true
+				else string.find(message, "…", 1, true)
+					== nil -- "이동하고 있어요…" 같은 진행 안내는 오류가 아니에요
 			if currentRoom then
 				roomScreen:showMessage(message, isError)
 			else

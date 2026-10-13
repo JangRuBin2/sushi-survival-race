@@ -275,8 +275,8 @@ local function start(ctx: MapTypes.RoundContext)
 				local toy = toyParts[shelfKey]
 				if shelf and toy then
 					local along = if shelf.axis == "X" then rel.X - shelf.centerX else rel.Z - shelf.centerZ
-					local diff = math.abs(along - Logic.ballOffset(shelf, elapsed))
-					if Logic.isHit(diff) then
+					local across = if shelf.axis == "X" then rel.Z - shelf.centerZ else rel.X - shelf.centerX
+					if Logic.isHitAt(along - Logic.ballOffset(shelf, elapsed), across) then
 						local readyAt = ballCooldown[player]
 						if readyAt == nil or now >= readyAt then
 							ballCooldown[player] = now + Logic.BALL_COOLDOWN
@@ -317,6 +317,9 @@ local function start(ctx: MapTypes.RoundContext)
 	ctx.cleanup:add(task.spawn(function()
 		task.wait(Logic.PAW_GRACE)
 		while ctx.isActive() do
+			-- 한 차례 시작 시각 기준으로 간격을 재요: 경고(1.1초)도 간격 안에 들어가요 (QA B1)
+			local cycleStart = os.clock()
+			local interval = Logic.pawInterval(cycleStart - startedAt) or 2
 			local key = Logic.pickShelf(occupancy, previousPaw, ctx.rng)
 			local shelfPart = if key then shelfParts[key] else nil
 			if key and shelfPart then
@@ -343,8 +346,7 @@ local function start(ctx: MapTypes.RoundContext)
 					end
 				end
 			end
-			local interval = Logic.pawInterval(os.clock() - startedAt) or 2
-			task.wait(interval)
+			task.wait(math.max(0.05, Logic.pawRest(interval, os.clock() - cycleStart)))
 		end
 	end))
 end

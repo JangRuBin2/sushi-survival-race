@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-08 — 특별 상품: 스타터 팩·세트·연출 팩·VIP 패스 (🎁 상점)
@@ -118,3 +118,34 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-13 · 구현 완료 (브랜치 `m5-08-offers`)
+**바뀐 파일** (스펙 목록 안, 공용 파일 변경 없음)
+- 새 `src/shared/Offers.luau` — 상품 6개(스펙 표 그대로, `productId`·`gamePassId` 전부 nil), `get`·`forProduct`·`forPass`·`fxSlot`·`validate(list, skins?)`. 카드 한 줄 설명용 선택 칸 `blurb`을 더했어요.
+- 새 `src/shared/OfferLogic.luau` — `visible`·`canRequest`·`grantsFor`·`ownedParts`·`delivered`(영수증 owns: 묶음은 `boughtOffers`, 연출은 보유, 패스는 VIP)·`applyGrant`(DataService.update 안)·`canEquipFx`·`message`·`valueText`·`contentLines`·`cardState`/`buttonText`/`screenList`(화면). view는 ProfileView(목록)와 서버 프로필(맵) 둘 다 받아요.
+- `src/shared/ReceiptLogic.luau` — 대상 `Target = { kind = "Skin" | "Offer", id }`. port에 `targetFor`(새) 또는 `skinFor`(m4-14 호환) 중 하나, 선택 `ownedParts`. `Outcome`에 `target`·`offerId`, `Record`는 `{ userId, productId, skinId?, offerId?, at }`. 원칙 그대로(지급 → saveNow 성공 → 기록 성공 → Granted). 묶음 일부를 이미 가졌으면 note `granted (already owned: salmon, gave the rest)`. **Offers를 require하지 않아요** (m4-14 QA 하네스가 `{ Skins, Seasons }`만으로 불러요).
+- `src/server/RobuxShopService.luau` — `setOfferPort(port)`(OfferService가 등록), `fakeOfferReceipt(player, offerId)`, 영수증 대상 해석(스킨 → 상품 port), 로그 `offer <id>`, warn 조건에 "already owned" note 추가, 새로 지급한 상품은 `port.onGranted`. `ReplayReceipt`가 상품 id도 받아요. **Offers·OfferService를 require하지 않아요** (하네스 제약).
+- `src/server/PurchaseLog.luau` — 주석만 (기록 모양 `skinId?`·`offerId?`, 예전 기록 그대로 읽힘).
+- `src/server/OfferService.luau` — RequestOfferPurchase(간격 → canRequest → 가짜 결제/PromptProductPurchase/PromptGamePassPurchase), EquipFx(간격 → canEquipFx(잠금 = ShopService.isLocked) → 저장 + 속성), 영수증 port(묶음은 장착 안 함 + Notice "탈의실에서 새 스킨을 입어 보세요", 연출은 그 칸 장착 — 라운드·연출 잠금 중이면 보유만), VIP 확인(UserOwnsGamePassAsync pcall, 5초 뒤 한 번 더, 실패면 warn + 이번 접속 VIP 아님 / PromptGamePassPurchaseFinished / Studio `fakeVipInStudio`) → 속성 `Vip`, `setViewExtra({ vip = true })`, `vip-gold-tamago` 지급(장착 안 함, saveNow). 프로필 로드 때 `EliminationFx`/`VictoryFx` 속성.
+- 새 `src/client/ui/OfferScreen.luau`, `src/client/ui/OfferController.luau` — "🎁 상점" 버튼(12, 60 · 배율이 커지면 "🍣 스킨" 바로 아래로 따라 내려가요), 1열 스크롤 카드(살 수 있는 것 order 순 → 산 상품 회색), "✨ 내 연출" 칸, 결과 줄, PriceCache 가격. 로비·방 대기실에서만(방이 `InMatch`면 숨김, 매치 서버는 늘 숨김).
+- `src/client/ui/ChatTagController.luau` — `OnIncomingMessage`에서 보낸 사람 `Vip`이면 금색 `[VIP] ` (새 채팅일 때만).
+- `src/client/fx/CharacterFxController.luau` — 이름표 이름 줄에 `Vip`이면 "👑 " (칭호 줄 그대로).
+- 테스트: 새 `tests/offer-logic.spec.luau`(17개: AC1~AC4, 지급·EquipFx·화면 순서·결제 처리 한 곳 정적 검사), `tests/receipt-logic.spec.luau`에 상품 영수증 10개 추가(AC5·AC6, 같은 PurchaseId, 저장 실패·기록 실패 뒤 재시도, 기록 있음 + 프로필 되돌려짐, 연출 중복 구매 RecordOnly, 묶음 전부 보유, 준비 안 됨, Target 방식 스킨 호환). 기존 테스트 전부 그대로 통과.
+
+**검증 5단계** (Windows 로컬, rokit 도구): rojo build OK · stylua --check OK · selene 0 errors 0 warnings · lune 1260 passed 0 failed · luau-lsp analyze 끝 코드 0.
+
+**Studio 확인 방법** (AC8~AC14, `Config.DEBUG.fakeRobuxInStudio = true`, VIP는 `fakeVipInStudio = true` — **확인 뒤 false로**)
+1. Play → 왼쪽 위 "🍣 스킨" 아래 "🎁 상점". 열면 스타터 팩·에픽 세트·전설 세트·연출 2개·VIP 카드, 스타터 팩에 "따로 사면 R$ 146" (가짜 결제가 꺼져 있으면 버튼은 "곧 열려요", VIP는 `fakeVipInStudio` 없이는 늘 "곧 열려요").
+2. 스타터 팩 "R$ 79로 사기" → 결과 줄 "🎉 스타터 팩 획득! 탈의실에서 새 스킨을 입어 보세요" + 로비 Notice, Output `[Shop] receipt studio-… offer starter-pack -> PurchaseGranted (GrantAndRecord: granted)`. 탈의실에 연어·참치·새우·장어가 생기고 입은 스킨은 그대로. 상점 카드는 아래로 회색 "산 상품".
+3. 같은 영수증 다시: 명령줄(Server) `game.ServerStorage.ShopDebug.ReplayReceipt:Invoke("이름", "starter-pack", "studio-test-1")` 두 번 → 두 번째 AlreadyRecorded, 스킨 중복 없음.
+4. AC10: 새 프로필에서 탈의실의 연어를 먼저 얻으면(코인 해금, 또는 가짜 결제의 "R$ 29로 사기") → 상점에서 스타터 팩 카드가 사라져요(산 상품 줄에도 없음).
+5. AC11: 고양이 손님을 사면 "✨ 내 연출"에 "입는 중 · 벗기". Explorer에서 Players.<나>의 속성 `EliminationFx = cat-customer`. 벗기·입기, 라운드 중에는 "매치가 끝나면 바꿀 수 있어요"(상점 버튼은 매치 중 숨겨지니 방에서 시작 직후 빠르게 확인하거나 서버 명령줄로 `EquipFx` 확인).
+6. AC12: `fakeVipInStudio = true` → 다른 사람 이름표 "👑 이름"(Clients and Servers 2명), 채팅 "[VIP]", 탈의실에 금박 계란초밥 보유(장착 안 됨), 상점의 VIP 카드는 "산 상품" 회색.
+7. AC13: 방에서 매치 시작 → 버튼 사라짐(대기석·관전 포함), 로비로 돌아오면 다시 보임.
+8. AC14: 휴대폰 에뮬레이터 → 카드 1열 스크롤, 버튼 44px 이상.
+
+**남은 이슈 · 확인 요청**
+- N1 (작음, 남의 파일): 로비 Notice는 `LobbyController`가 "…"가 없으면 빨간 오류색으로 보여 줘서 "탈의실에서 새 스킨을 입어 보세요"가 로비 화면에서는 빨간 글씨예요. 상점 창 결과 줄에는 초록으로 따로 나와요. 고치려면 LobbyController(담당 밖) 수정 필요.
+- N2: 산 연출 카드는 스펙에 정해진 처리가 없어 묶음·VIP처럼 "산 상품" 회색으로 아래에 둬요("내 연출"에도 보임).
+- N3: VIP 구매 직후는 `PromptGamePassPurchaseFinished`(서버 이벤트)를 믿고 바로 VIP로 해요 (UserOwnsGamePassAsync는 산 직후 캐시로 false일 수 있어서). 스펙의 "산 경우 확인"을 이렇게 해석했어요.
+- N4: 자기 이름표는 원래 안 보이는 구조라 👑는 다른 사람 화면에서만 보여요(AC12 2명 테스트).
+- 실제 결제(AC15)는 사용자가 상품 5개·패스 1개를 만들고 `Offers.luau`에 id를 넣은 뒤. USER-TODO C3에 상품 5개·패스 1개를 더하는 일은 문서 담당에게 부탁해요.

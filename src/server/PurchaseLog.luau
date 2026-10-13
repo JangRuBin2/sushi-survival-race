@@ -1,7 +1,8 @@
 --!strict
 -- 구매 기록 (m4-14, GDD 13 "구매 기록 별도 저장"). 결제 하나 = 한 줄, 프로필과 따로 저장해요.
 -- 저장소 Config.Shop.PurchaseLogStore ("Purchases_v1"), 키 = PurchaseId, 값 = ReceiptLogic.Record
--- { userId, productId, skinId, at }. 메타데이터에 userId를 달아요 (개인정보 삭제 요청 때 찾기 쉽게).
+-- { userId, productId, skinId?, offerId?, at } (스킨이면 skinId, m5-08 상품이면 offerId — 예전 기록은 skinId만 있어요).
+-- 메타데이터에 userId를 달아요 (개인정보 삭제 요청 때 찾기 쉽게).
 --
 --   PurchaseLog.init()
 --   PurchaseLog.lookup(purchaseId) -> boolean?          있으면 true, 없으면 false, 읽지 못하면 nil (yield)

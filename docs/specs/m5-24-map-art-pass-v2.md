@@ -166,3 +166,11 @@ status: in-dev
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### 그룹 A …). 바뀐 파일, 바꾼 아트 수량 단언 목록, 전/후 PNG 경로, 휴대폰 성능 메모, Studio 확인 방법, 남은 이슈 -->
+
+### 그룹 D (bouncy-castle-maze · lantern-bridge · cat-cafe-shelves)
+- 자세한 기록(반복별 비평·체크리스트·Studio 확인 순서·특이사항): [`docs/developer/m5-24-group-d.md`](../developer/m5-24-group-d.md)
+- 바뀐 파일: `BouncyCastleMazeArt.luau`·`BouncyCastleMaze.luau`(`lighting` 줄), `LanternBridgeArt.luau`·`LanternBridge.luau`(`lighting` 줄), `CatCafeShelvesArt.luau`·`CatCafeShelves.luau`(`lighting` 줄). 판정 파츠·Layout·Logic 안 고침.
+- 새 테스트 `tests/m5-24-group-d.spec.luau`(7개). 바꾼 아트 수량 단언 3곳(D2): `map-bouncy-castle-maze` AC7, `map-lantern-bridge` AC10, `map-cat-cafe-shelves` AC10 — `count <= DECOR_PART_BUDGET` → `Art.BUDGET == "Extended"` + `checkBudget(..., "Extended") == nil`. 공용 `m5-23-qa`는 수정 없이 통과.
+- 전/후 PNG: `docs/renders/{bouncy-castle-maze,lantern-bridge,cat-cafe-shelves}/before-*.png` → `after-*.png`. 장식 291→1468 / 102→1412 / 39→842, void% 최대 87→4 / 97→0 / 78→2.
+- 휴대폰: 그림자 조명 맵당 1, 큰 반투명 판 추가 없음, 가장 무거운 뷰 tris 127k / 112k / 79k.
+- 남은 이슈: selene은 클라우드 환경(Roblox API 덤프 403)에서 못 돌림 — 로컬 확인 필요. Studio AC12~15 사용자 확인.

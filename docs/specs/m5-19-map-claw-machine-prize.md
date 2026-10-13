@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-19 — 세 번째 결승 맵: 인형뽑기 기계 속 (`claw-machine-prize`)

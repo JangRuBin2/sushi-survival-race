@@ -68,6 +68,19 @@ export type ProfileLike = {
 
 local OfferLogic = {}
 
+-- VIP 패스를 산 뒤(PromptGamePassPurchaseFinished) 영구 스킨을 주기 전에 UserOwnsGamePassAsync로 다시 묻는 간격(초,
+-- 누적 아님: 차례로 기다려요). 끝까지 확인이 안 되면 다음 접속의 확인이 줘요 (m5-08 QA B1)
+OfferLogic.VIP_PURCHASE_RECHECK = { 0, 2, 5, 10 }
+
+-- Notice 종류 (m5-08 QA B2): 두 번째 인자. "success"면 클라이언트가 오류색을 쓰지 않아요
+export type NoticeKind = "success" | "error" | "info"
+
+-- Studio 가짜 VIP가 켜졌는가. 진짜 저장소를 쓰는 동안(persistDataInStudio)은 꺼요 —
+-- VIP 스킨이 진짜 프로필에 저장되지 않게 (ShopLogic.fakeRobuxActive와 같은 규칙, m5-08 QA B3)
+function OfferLogic.fakeVipActive(isStudio: boolean, fakeVip: boolean?, persistInStudio: boolean?): boolean
+	return isStudio and fakeVip == true and persistInStudio ~= true
+end
+
 local function has(collection: any, id: string): boolean
 	if type(collection) ~= "table" then
 		return false
@@ -362,6 +375,14 @@ function OfferLogic.screenList(view: ViewLike, opts: ScreenOptions?, list: { Off
 		table.insert(open, entry)
 	end
 	return open
+end
+
+-- 상품을 새로 받았을 때 보낼 안내 (문구, 종류). 늘 성공 안내예요
+function OfferLogic.grantNotice(offer: Offers.Offer): (string, NoticeKind)
+	if offer.kind == "Bundle" then
+		return "탈의실에서 새 스킨을 입어 보세요", "success"
+	end
+	return `🎉 {offer.displayName} 획득!`, "success"
 end
 
 return OfferLogic

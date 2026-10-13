@@ -149,3 +149,11 @@ status: qa-passed
 - N3: VIP 구매 직후는 `PromptGamePassPurchaseFinished`(서버 이벤트)를 믿고 바로 VIP로 해요 (UserOwnsGamePassAsync는 산 직후 캐시로 false일 수 있어서). 스펙의 "산 경우 확인"을 이렇게 해석했어요.
 - N4: 자기 이름표는 원래 안 보이는 구조라 👑는 다른 사람 화면에서만 보여요(AC12 2명 테스트).
 - 실제 결제(AC15)는 사용자가 상품 5개·패스 1개를 만들고 `Offers.luau`에 id를 넣은 뒤. USER-TODO C3에 상품 5개·패스 1개를 더하는 일은 문서 담당에게 부탁해요.
+
+### 2026-10-13 · QA 수정 (docs/qa/m5-08-offers-shop.md B1·B2·B3)
+- **B1 (P2)** `OfferService`: `PromptGamePassPurchaseFinished`는 이번 접속 표시(속성 `Vip`·보기 `vip` → 👑·[VIP])만 바로 켜요. 영구 스킨 `vip-gold-tamago` 지급·저장은 `UserOwnsGamePassAsync`가 true일 때만 — `OfferLogic.VIP_PURCHASE_RECHECK = { 0, 2, 5, 10 }`초 간격으로 다시 묻고, 끝까지 확인이 안 되면 warn("not confirmed yet")하고 다음 접속의 확인이 줘요. 접속 확인·Studio 가짜 VIP는 예전처럼 바로 확정. (표시용 `vipOf`와 확정 `vipConfirmed` 표를 나눔)
+- **B2 (P3)** Notice에 두 번째 인자 `kind`("success" | "error" | "info", `OfferLogic.NoticeKind`). 상품 획득 안내는 `OfferLogic.grantNotice` → "success". `LobbyController`는 kind가 있으면 그걸로 색을 정하고, 없으면 예전 "…" 판단 그대로(다른 Notice는 바뀌지 않음). 공용 `Remotes.luau`는 고치지 않았어요 — 그 파일의 Notice 주석(`Notice(message: string)`)에 `kind?`를 더하는 건 공용 파일 담당에게 부탁.
+- **B3 (P3)** `OfferLogic.fakeVipActive(isStudio, fakeVip, persistInStudio)` — `persistDataInStudio`가 켜져 있으면 가짜 VIP 꺼짐 + 시작할 때 warn. 서버(`OfferService`)·클라이언트(`OfferController`) 둘 다 이걸로.
+- 테스트: `tests/m5-08-qa.spec.luau` 끝에 서비스 테스트 3개(B1 확인 안 됨 → 스킨 없음·warn·묻기 횟수, B1 2초 뒤 확인 → 지급·저장·묻기 멈춤, B3 persist와 같이 켜면 VIP 아님 + warn), `tests/offer-logic.spec.luau`에 3개(fakeVipActive, 다시 묻기 간격, grantNotice + 로비·서비스가 kind를 주고받는지 정적 확인).
+- 검증 5단계: rojo build OK · stylua OK · selene 0/0 · lune **1436 passed, 0 failed** · luau-lsp 끝 코드 0. 세 가지 모두 테스트로 확인돼서 status는 `qa-passed` 그대로.
+

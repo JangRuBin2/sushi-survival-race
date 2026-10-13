@@ -457,4 +457,37 @@ return function(t: Test.Test)
 			)
 		end
 	)
+	t.test("QA B3: fakeVipActive는 Studio + fakeVip + 진짜 저장소 아님일 때만", function()
+		t.eq(OfferLogic.fakeVipActive(true, true, false), true)
+		t.eq(OfferLogic.fakeVipActive(true, true, nil), true)
+		t.eq(OfferLogic.fakeVipActive(true, true, true), false, "persistDataInStudio wins")
+		t.eq(OfferLogic.fakeVipActive(false, true, false), false, "live server")
+		t.eq(OfferLogic.fakeVipActive(true, false, false), false)
+		t.eq(OfferLogic.fakeVipActive(true, nil, false), false)
+	end)
+
+	t.test("QA B1: 산 뒤 다시 묻기 간격은 0초부터 몇 번, 늘어나는 순서", function()
+		local delays = OfferLogic.VIP_PURCHASE_RECHECK
+		t.ok(#delays >= 3, "a few tries")
+		t.eq(delays[1], 0, "ask right away first")
+		for i = 2, #delays do
+			t.ok(delays[i] > delays[i - 1], "backoff grows")
+		end
+	end)
+
+	t.test("QA B2: 획득 안내는 success 종류, 로비는 종류를 보고 오류색을 정해요", function()
+		local fs = require("@lune/fs")
+		t.eq(
+			table.pack(OfferLogic.grantNotice(offer("starter-pack"))),
+			table.pack("탈의실에서 새 스킨을 입어 보세요", "success")
+		)
+		t.eq(
+			table.pack(OfferLogic.grantNotice(offer("fx-cat-customer"))),
+			table.pack("🎉 탈락 연출: 고양이 손님 획득!", "success")
+		)
+		local offerSrc = fs.readFile("src/server/OfferService.luau")
+		t.ok(string.find(offerSrc, ":FireClient(player, message, kind)", 1, true) ~= nil, "kind sent with the notice")
+		local lobby = fs.readFile("src/client/ui/LobbyController.luau")
+		t.ok(string.find(lobby, 'kind == "success"', 1, true) ~= nil, "lobby reads the kind")
+	end)
 end

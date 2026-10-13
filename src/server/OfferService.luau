@@ -11,7 +11,10 @@
 --   (지급 = OfferLogic.applyGrant: 묶음은 남은 스킨 + boughtOffers, 장착 안 함 / 연출은 보유 + 그 칸 장착).
 --   묶음을 새로 받으면 Notice "탈의실에서 새 스킨을 입어 보세요".
 -- VIP: 접속할 때 UserOwnsGamePassAsync (실패하면 VIP_RETRY초 뒤 한 번 더, 그래도 실패면 이번 접속은 VIP 아님 + warn),
---   PromptGamePassPurchaseFinished로 산 경우 바로. Studio + Config.DEBUG.fakeVipInStudio면 VIP.
+--   Studio + Config.DEBUG.fakeVipInStudio면 VIP (persistDataInStudio와 같이 켜면 꺼지고 warn, QA B3).
+--   PromptGamePassPurchaseFinished(산 경우)는 이번 접속 표시(👑·[VIP]·보기 vip)만 바로 켜고, 영구 스킨은
+--   UserOwnsGamePassAsync가 true를 줄 때만 넣어요 (OfferLogic.VIP_PURCHASE_RECHECK 간격으로 다시 묻기, QA B1).
+--   끝까지 확인이 안 되면 다음 접속의 확인이 넣어요.
 --   VIP면 Player 속성 Vip = true, DataService.setViewExtra({ vip = true }), 프로필이 있으면 VIP 전용 스킨 지급(장착 안 함,
 --   저장 요청). 한 번 받은 스킨은 패스가 없어져도 남아요. 코인 배수 없음 (스펙 D1).
 
@@ -34,11 +37,11 @@ local ShopService = require(script.Parent.ShopService)
 local OfferService = {}
 
 local VIP_RETRY = 5 -- UserOwnsGamePassAsync 실패 뒤 다시 묻기까지(초)
-local BUNDLE_NOTICE = "탈의실에서 새 스킨을 입어 보세요"
 
 local lastPurchaseAt: { [Player]: number } = {}
 local lastEquipAt: { [Player]: number } = {}
-local vipOf: { [Player]: boolean } = {}
+local vipOf: { [Player]: boolean } = {} -- 이번 접속 VIP 표시 (👑·[VIP]·보기 vip)
+local vipConfirmed: { [Player]: boolean } = {} -- 패스 보유가 Roblox 확인으로 확정됨 → 영구 스킨 지급 가능
 
 local function fakeMode(): boolean
 	return ShopLogic.fakeRobuxActive(
@@ -49,7 +52,11 @@ local function fakeMode(): boolean
 end
 
 local function fakeVip(): boolean
-	return RunService:IsStudio() and Config.DEBUG.fakeVipInStudio == true
+	return OfferLogic.fakeVipActive(
+		RunService:IsStudio(),
+		Config.DEBUG.fakeVipInStudio,
+		Config.DEBUG.persistDataInStudio
+	)
 end
 
 local function vipOffer(): Offers.Offer?
@@ -75,9 +82,9 @@ local function viewOf(player: Player): OfferLogic.ViewLike?
 	}
 end
 
-local function notice(player: Player, message: string)
+local function notice(player: Player, message: string, kind: OfferLogic.NoticeKind)
 	if player.Parent == Players then
-		Remotes.event("Notice"):FireClient(player, message)
+		Remotes.event("Notice"):FireClient(player, message, kind)
 	end
 end
 
@@ -93,7 +100,7 @@ end
 
 -- VIP 전용 스킨을 넣어요 (장착 안 함). 프로필이 없으면 나중에 onLoaded에서
 local function grantVipSkins(player: Player)
-	if not vipOf[player] then
+	if not vipConfirmed[player] then
 		return
 	end
 	local offer = vipOffer()
@@ -116,13 +123,26 @@ local function grantVipSkins(player: Player)
 	end
 end
 
-local function setVip(player: Player)
+-- 이번 접속 표시만 (구매 이벤트로 바로 켜도 돼요)
+local function showVip(player: Player)
 	if player.Parent ~= Players or vipOf[player] then
 		return
 	end
 	vipOf[player] = true
 	player:SetAttribute(Attributes.Vip, true)
 	DataService.setViewExtra(player, { vip = true })
+end
+
+-- Roblox 소유 확인(또는 Studio 가짜 VIP)이 끝났어요: 표시 + 영구 스킨
+local function confirmVip(player: Player)
+	if player.Parent ~= Players then
+		return
+	end
+	showVip(player)
+	if vipConfirmed[player] then
+		return
+	end
+	vipConfirmed[player] = true
 	grantVipSkins(player)
 end
 
@@ -139,7 +159,7 @@ end
 
 local function checkVip(player: Player)
 	if fakeVip() then
-		setVip(player)
+		confirmVip(player)
 		return
 	end
 	local offer = vipOffer()
@@ -160,8 +180,26 @@ local function checkVip(player: Player)
 		end
 	end
 	if owned then
-		setVip(player)
+		confirmVip(player)
 	end
+end
+
+-- 산 직후: 표시는 바로, 스킨은 확인될 때까지 몇 번 다시 물어요 (UserOwnsGamePassAsync는 산 직후 캐시로 false일 수 있어요)
+local function confirmPurchasedVip(player: Player, passId: number)
+	showVip(player)
+	for _, delay in OfferLogic.VIP_PURCHASE_RECHECK do
+		if delay > 0 then
+			task.wait(delay)
+		end
+		if player.Parent ~= Players or vipConfirmed[player] then
+			return
+		end
+		if ownsPass(player, passId) == true then
+			confirmVip(player)
+			return
+		end
+	end
+	warn(`[Offer] VIP pass purchase by {player.Name} not confirmed yet, skin will be granted on next join`)
 end
 
 ---------------------------------------------------------------- 영수증 port (RobuxShopService)
@@ -219,11 +257,8 @@ local offerPort: RobuxShopService.OfferPort = {
 		if offer == nil then
 			return
 		end
-		if offer.kind == "Bundle" then
-			notice(player, BUNDLE_NOTICE)
-		else
-			notice(player, `🎉 {offer.displayName} 획득!`)
-		end
+		local message, kind = OfferLogic.grantNotice(offer)
+		notice(player, message, kind)
 	end,
 }
 
@@ -248,7 +283,7 @@ local function onRequestOffer(player: Player, offerId: unknown): (boolean, strin
 	local offer = Offers.get(offerId) :: Offers.Offer
 	if offer.kind == "Pass" then
 		if fakeVip() then
-			setVip(player)
+			confirmVip(player)
 			return true, nil
 		end
 		MarketplaceService:PromptGamePassPurchase(player, offer.gamePassId :: number)
@@ -287,6 +322,11 @@ function OfferService.init()
 		warn(`[Offer] offer catalog problems: {table.concat(problems, "; ")}`)
 	end
 	RobuxShopService.setOfferPort(offerPort)
+	if RunService:IsStudio() and Config.DEBUG.fakeVipInStudio and Config.DEBUG.persistDataInStudio then
+		warn(
+			"[Offer] fakeVipInStudio is ignored while persistDataInStudio is on (would save the VIP skin to the real store)"
+		)
+	end
 	Remotes.fn("RequestOfferPurchase").OnServerInvoke = function(player: Player, offerId: unknown): (boolean, string?)
 		local ok, success, err = pcall(onRequestOffer, player, offerId)
 		if not ok then
@@ -314,7 +354,7 @@ function OfferService.start()
 		function(player: Player, passId: number, purchased: boolean)
 			local offer = vipOffer()
 			if purchased and offer ~= nil and offer.gamePassId == passId then
-				setVip(player) -- 서버 이벤트라 믿어요 (UserOwnsGamePassAsync는 산 직후 캐시 때문에 false일 수 있어요)
+				task.spawn(confirmPurchasedVip, player, passId) -- 표시는 바로, 스킨은 확인 뒤 (QA B1)
 			end
 		end
 	)
@@ -329,6 +369,7 @@ function OfferService.start()
 		lastPurchaseAt[player] = nil
 		lastEquipAt[player] = nil
 		vipOf[player] = nil
+		vipConfirmed[player] = nil
 	end)
 end
 

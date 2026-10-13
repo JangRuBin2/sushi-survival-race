@@ -46,7 +46,11 @@ function OfferController.start(_gui: Instance)
 			Config.DEBUG.fakeRobuxInStudio,
 			Config.DEBUG.persistDataInStudio
 		),
-		fakeVip = RunService:IsStudio() and Config.DEBUG.fakeVipInStudio == true,
+		fakeVip = OfferLogic.fakeVipActive(
+			RunService:IsStudio(),
+			Config.DEBUG.fakeVipInStudio,
+			Config.DEBUG.persistDataInStudio
+		),
 	}
 
 	local view: Types.ProfileView? = ProfileStore.get()

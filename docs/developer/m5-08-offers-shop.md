@@ -1,6 +1,13 @@
 # m5-08 offers shop — 개발 작업 기록
 
-## 2026-10-13 — 구현 완료, in-qa (최신)
+## 2026-10-13 — QA 수정 B1·B2·B3 (최신)
+- **브랜치**: `m5-08-offers` (QA 커밋 cdfc0b1 위). 스펙 status `qa-passed` 유지.
+- **끝난 것**: B1(VIP 영구 스킨은 UserOwnsGamePassAsync 확인 뒤만), B2(Notice kind "success", LobbyController 최소 수정), B3(fakeVip은 persistDataInStudio와 같이 켜면 꺼짐). 테스트 6개 추가, 검증 5단계 통과(lune 1436/0).
+- **남은 것**: 사용자 Studio 확인, 병합. 공용 `Remotes.luau` Notice 주석에 `kind?` 추가(공용 파일 담당).
+- **다음에 할 첫 단계**: 병합 뒤 검증 다시.
+- **막힌 점**: 없음.
+
+## 2026-10-13 — 구현 완료, in-qa
 - **브랜치**: `m5-08-offers` (origin/main 4192744 병합 위). 스펙 status `in-qa`.
 - **끝난 것**: 스펙 범위 1~6 전부. 바뀐 파일·Studio 확인 방법·남은 이슈는 스펙 "개발 메모". 아래 "꼭 지킬 제약" 세 가지를 지켰어요 (ReceiptLogic·RobuxShopService는 Offers를 모르고 `setOfferPort`로 등록, 예전 `skinFor` port 호환 — `tests/offer-logic.spec.luau` 마지막 테스트가 정적으로 확인).
 - **검증**: rojo build · stylua --check · selene(0/0) · lune 1260 passed · luau-lsp 끝 코드 0 (Windows 로컬).

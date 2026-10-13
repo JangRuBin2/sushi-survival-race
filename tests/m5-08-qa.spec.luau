@@ -1199,4 +1199,59 @@ return function(t: Test.Test)
 			t.eq(string.find(offerSrc, "coins", 1, true), nil, "no coin grant in offers")
 		end
 	)
+	---------------------------------------------------------------- 개발 QA 수정 (B1·B3)
+	t.test(
+		"dev B1: 산 이벤트만으로는 영구 VIP 스킨을 주지 않아요 (확인 안 되면 표시만, warn)",
+		function()
+			local env = loadServer({ passOwners = { [20] = false } })
+			local p = env.join(20)
+			env.run(10)
+			env.market.PromptGamePassPurchaseFinished:Fire(p, PASS_ID, true)
+			env.run(2)
+			t.eq(p:GetAttribute("Vip"), true, "session perks right away")
+			t.eq(env.OfferService.isVip(p), true)
+			t.eq(env.DataService.get(p).ownedSkins["vip-gold-tamago"], nil, "no skin before confirmation")
+			env.run(200) -- 20초: 0/2/5/10초 다시 묻기 끝
+			t.eq(env.DataService.get(p).ownedSkins["vip-gold-tamago"], nil, "never confirmed → no skin")
+			t.ok(env.warned("not confirmed yet"), "warn")
+			t.eq(env.ownsCalls, 1 + #RealOfferLogic.VIP_PURCHASE_RECHECK, "join check + rechecks")
+			local saved = env.saved(20)
+			t.ok(saved == nil or saved.ownedSkins["vip-gold-tamago"] == nil, "not saved")
+		end
+	)
+
+	t.test(
+		"dev B1: 산 뒤 다시 물어서 true가 나오면 그때 스킨 지급·저장 (장착 안 함)",
+		function()
+			local env = loadServer({ passOwners = { [21] = { false, false, true } } })
+			local p = env.join(21)
+			env.run(10) -- 접속 확인: false
+			env.market.PromptGamePassPurchaseFinished:Fire(p, PASS_ID, true)
+			env.run(10) -- 0초 다시 묻기: false (캐시)
+			t.eq(p:GetAttribute("Vip"), true)
+			t.eq(env.DataService.get(p).ownedSkins["vip-gold-tamago"], nil)
+			env.run(20) -- 2초 다시 묻기: true
+			t.eq(env.DataService.get(p).ownedSkins["vip-gold-tamago"], true)
+			t.eq(env.DataService.get(p).equippedSkin, "tamago")
+			t.eq(env.saved(21).ownedSkins["vip-gold-tamago"], true, "saved")
+			t.eq(env.ownsCalls, 3)
+			env.run(200)
+			t.eq(env.ownsCalls, 3, "stops asking once confirmed")
+			t.eq(env.warned("not confirmed yet"), false)
+		end
+	)
+
+	t.test("dev B3: Studio에서 persistDataInStudio와 같이 켜면 fakeVipInStudio는 꺼지고 warn", function()
+		local env = loadServer({ studio = true, fakeVip = true, persistInStudio = true, passOwners = { [22] = false } })
+		local p = env.join(22)
+		env.run(20)
+		t.eq(p:GetAttribute("Vip"), nil, "no fake VIP")
+		t.eq(env.DataService.get(p).ownedSkins["vip-gold-tamago"], nil, "no VIP skin in the real store")
+		t.ok(env.warned("fakeVipInStudio is ignored while persistDataInStudio is on"), "startup warn")
+		-- 따로 켜면 그대로 가짜 VIP (QA "Studio 가짜 결제" 케이스와 같음)
+		local env2 = loadServer({ studio = true, fakeVip = true })
+		local p2 = env2.join(23)
+		env2.run(10)
+		t.eq(p2:GetAttribute("Vip"), true)
+	end)
 end

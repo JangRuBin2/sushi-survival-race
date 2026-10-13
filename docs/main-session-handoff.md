@@ -2,6 +2,33 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-10-13 저녁 (클라우드 세션 — m5-24 4그룹 + m5-28 콘셉트 스킨)
+
+모두 각 브랜치에 push, **main에는 아직 병합 안 함**(QA 전). 클라우드 검증 5단계는 전부 통과.
+
+| 작업 | 브랜치 · 커밋 | 테스트 | 다음 첫 단계 |
+|---|---|---|---|
+| m5-24 그룹 A (rotating-belt·hot-plate·skewer-showdown) | `m5-24-art-a` d5d2781 | 1795/0 | QA → main 병합 |
+| m5-24 그룹 B (soy-swamp·chef-board·tug-of-war-platform) | `m5-24-art-b` 81f7bf3 | 1794/0 | QA → 병합 |
+| m5-24 그룹 C (ramen-rapids·giant-jenga·claw-machine-prize) | `m5-24-art-c` 79a7807 | 1793/0 | QA → 병합 |
+| m5-24 그룹 D (bouncy-castle-maze·lantern-bridge·cat-cafe-shelves) | `m5-24-art-d` 33b749f | 1794/0 | QA → 병합 |
+| m5-28 콘셉트 스킨 4종(참치·새우·계란·연어알 군함, 무료 실험 스킨) | `m5-28-concept-skins` 68283e1 | 1800/0 | 스펙 `in-qa` → QA → 병합 |
+
+### 특이사항
+- **병합 충돌 예상: `tests/m5-23-qa.spec.luau`.** A·B·C가 같은 단언("기존 6개는 프리셋을 씀"·조명/파티클 고정 수)을 각자 다르게 고침. **A의 `artModule(id)` 방식(Art 모듈을 직접 읽음)을 기준으로** 합치고 B의 soy-swamp 수치 줄만 확인. 4그룹 다 병합한 뒤 검증 5단계 다시.
+- 스펙 `m5-24-map-art-pass-v2.md` `status:` 줄은 그룹마다 ready/in-dev로 제각각 — 병합 담당이 한 번에 정리. 개발 메모 그룹 B·C·D 절은 스펙에 추가됨, A는 `docs/developer/m5-24-group-a.md`가 원본.
+- **planner 확인 필요 (B, D5 제안)**: m5-20 안개 패널을 지우지 않고 방 벽 밖으로 옮김(soy ±680, chef ±312). 새 맵 규칙("안개 패널 안 씀")과 맞는지 결정.
+- B: `TugOfWarPlatform.luau` 아트 부착부의 `p.CastShadow = false` 한 줄 삭제(장식 그림자 기본 규칙 적용). chef-board 방 반경 300으로 키움.
+- C: claw-machine-prize는 연장전에 상자가 기울어 Spin/Sway 장식이 어긋나서 **Pulse만** 씀 → 스펙의 "미러볼 회전" 빠짐. 젠가 블록 모서리 장식은 판정 코드라 안 함, 망치 흔들림 → 앞치마 흔들림.
+- D: lantern-bridge 입구 도리이 기둥이 m5-15부터 원기둥 축이 뒤집혀 원판이었음 → 고침(장식만). lantern 조명 23/24로 여유 1. 소개 카메라 점 좌표 변경(lantern ③, cat ②·③).
+- A: hot-plate 후드 램프 PointLight 2 → SpotLight 2(왼쪽만 그림자). skewer 셰프를 화로 뒤(+Z 72)로, 장식이 반경 640까지 퍼짐(아레나 간격 2000 안). 렌더러 Neon 번짐이 Studio보다 셀 수 있음 — skewer 거리 창 밝기 Studio 확인.
+- 렌더러 한계: bouncy 플레이어 시점은 렌더러 카메라가 출발 벽 뒤라 벽만 보임, cat-cafe overview는 천장이 없어 하늘이 보임(게임 카메라는 방 안).
+- m5-28: concept-salmon은 리팩터 전후 레이아웃·렌더가 바이트 단위로 같음. m5-27 테스트 기대값 "실험 스킨 1종" → "정확히 5종", 카탈로그 32 → 36. 렌더 도구에 `--sample concept-<name>` 추가. Studio에서 연어알 Glass 재질(Future 조명)·새우 꼬리(꼭대기 2.69)가 넘어질 때 묻히는지 볼 것.
+- **사용자 결정 대기 (m5-28)**: 콘셉트 스킨 5종 가격·등급(무료 테스트 유지 vs 판매 — 판매면 콘셉트 몸 검사 규칙 스펙 필요), "(테스트)" 이름 정리·기존 같은 초밥 스킨과 이름 구분, 다음 묶음(장어·성게·문어 등).
+- **m5-26 현지화 병합 시**: 콘셉트 스킨 5종 이름·대사 CSV 키 추가 필요(새 4종은 이름 4 + 대사 8줄).
+- **클라우드 환경 메모**: rokit 설치 스크립트가 403이라 5개 도구를 GitHub 릴리스 zip으로 직접 받아 `/root/.local/bin`에 둠. selene은 프록시 인증서 때문에 Roblox 표준 라이브러리를 못 받아 curl로 받은 `~/.cache/selene/roblox.yml` 캐시로 돌림(0.32.0 그대로). Windows 로컬은 해당 없음.
+- Studio 확인(각 맵 AC12~15, 스킨 확인 순서)은 전부 아직 — 순서는 각 브랜치 `docs/developer/m5-24-group-<a~d>.md`, `docs/developer/m5-28-concept-skins.md`. `forceMapPlan(s)`는 확인 뒤 nil로.
+
 ## 2026-10-13 (사용량 한도로 중단)
 
 main은 깨끗하고 push돼 있다(3ed86cb). 진행 중이던 일은 각자 브랜치에 wip로 push했다.

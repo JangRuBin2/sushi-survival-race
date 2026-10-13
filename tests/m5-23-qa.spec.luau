@@ -224,7 +224,9 @@ return function(t: Test.Test)
 			t.eq(MapTypes.validate(map), nil, id)
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
-			t.ok(Maps.get(id).lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			-- m5-24: 기존 6개는 PRESETS를 출발점으로 Art.LIGHTING에 옮겨 다듬을 수 있어요
+			local lighting = Maps.get(id).lighting
+			t.ok(lighting ~= nil and MapLighting.validate(lighting) == nil, `{id} has a valid lighting preset`)
 		end
 	end)
 
@@ -447,12 +449,13 @@ return function(t: Test.Test)
 			local l1, p1 = count(buildAt("rotating-belt", 1).model)
 			t.eq({ l1, p1 }, { 3, 2 }, "rotating-belt lights/particles")
 			local l2, p2 = count(buildAt("soy-swamp", 1).model)
-			t.eq({ l2, p2 }, { 2, 3 }, "soy-swamp lights/particles")
-			-- 모든 맵이 Standard 조명·파티클 예산 안 (Instance.new 포함 실제 수)
+			t.eq({ l2, p2 }, { 8, 9 }, "soy-swamp lights/particles") -- m5-24 아트 패스 v2 (Extended)
+			-- 모든 맵이 조명·파티클 예산 안 (Instance.new 포함 실제 수). m5-24: 아트 패스 맵은 Extended 단계
+			local extended = MapKitLogic.budget("Extended")
 			for _, id in allIds() do
 				local l, p = count(buildAt(id, 1).model)
 				t.ok(
-					l <= MapKitLogic.LIGHT_BUDGET and p <= MapKitLogic.PARTICLE_BUDGET,
+					l <= extended.lights and p <= extended.particles,
 					`{id}: {l} lights {p} particles`
 				)
 			end

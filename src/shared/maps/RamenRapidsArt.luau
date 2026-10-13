@@ -51,12 +51,12 @@ Art.LIGHTING = {
 	OutdoorAmbient = { r = 160, g = 146, b = 120 },
 	EnvironmentSpecularScale = 0.8,
 	Atmosphere = {
-		Density = 0.26,
+		Density = 0.2,
 		Offset = 0.15,
 		Color = { r = 255, g = 236, b = 196 },
 		Decay = { r = 170, g = 136, b = 96 },
 		Glare = 0.1,
-		Haze = 1.3,
+		Haze = 1,
 	},
 	ColorCorrection = {
 		Brightness = 0.02,
@@ -513,7 +513,7 @@ end
 
 -- m5-24 ③ 반숙 계란 반쪽 둘: 흰자 단면 원판 + 테두리 + 노른자 (Glass 반사)
 local function softEggs(list: { DecorSpec })
-	for i, at in { { 96, -118, 12 }, { -104, -262, -14 } } do
+	for i, at in { { 96, -118, 0 }, { -104, -262, 0 } } do
 		local x, z, tilt = at[1], at[2], at[3]
 		local y = Layout.BROTH_Y + 2
 		add(
@@ -545,9 +545,8 @@ local function softEggs(list: { DecorSpec })
 			shape = "Ball",
 			size = v(26, 26, 26),
 			color = YOLK,
-			material = "Glass",
-			offset = v(x, y - 6, z),
-			transparency = 0.05,
+			material = "SmoothPlastic",
+			offset = v(x, y - 1.5, z),
 			reflectance = 0.2,
 		})
 		add(

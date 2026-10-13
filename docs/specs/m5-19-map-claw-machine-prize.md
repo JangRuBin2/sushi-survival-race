@@ -1,4 +1,4 @@
-status: qa-passed
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-19 — 세 번째 결승 맵: 인형뽑기 기계 속 (`claw-machine-prize`)
@@ -88,6 +88,10 @@ status: qa-passed
 - 2026-10-09 · D3 집게가 캐릭터를 직접 붙잡는지 · **아니요.** "인형을 집어서 들어 올리는" 집게가 사람까지 붙잡으면 결승 탈락 사유가 복잡해지고(`ctx.eliminate` 외의 새 처리 필요) 기존 "셰프 손은 탈락 연출 전용, 장애물이 직접 캐릭터를 들고 가지 않음" 원칙(GDD 7)과 충돌한다. 집게는 바닥(칸)만 들어 올리고, 그 위에 있던 사람은 "바닥이 사라져 떨어짐"으로 처리한다(꼬치 쇼다운 `grabSlice`와 같은 패턴). · planner
 - 2026-10-09 · D4 연장전 기울기 방향 · 매 라운드 `ctx.rng`로 4방향(+X/-X/+Z/-Z) 중 하나를 무작위로 고른다(고정 방향이면 플레이어가 미리 외워서 재미가 줄어듦). developer가 구현 중 더 간단한 대안(예: 항상 -Z로 기울고 줄 순서만 그 축 기준)이 필요하면 결정 기록에 적고 진행해도 된다. · planner
 - 2026-10-09 · D5 격자 8×8(64칸) 대 꼬치 쇼다운 8조각 × 8띠(64개) · 우연히 숫자가 같지만 설계 의도가 다름(격자 vs 부채꼴) — 혼동 방지로 여기 명시. `STRIP_ATTRIBUTE`류 이름은 이 맵에서 `Row`/`Col`로 분리해 재사용. · planner
+- 2026-10-13 · QA B1 연장전 행 방향 기울기(피벗 origin, 높은 줄부터 사라짐) · 회전 중심을 격자 중심으로, 4방향 모두 실제로 내려가는 쪽 줄부터 사라지게. 가만히 선 사람이 기울기만으로 낙하선 아래로 가면 안 됨 · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · QA B2 90초 전에 바닥이 거의 다 사라짐(밸런스) · 시간 제한(90초)까지 집게는 남은 칸이 `RESERVE = max(6, 2 × 살아 있는 인원)` 아래로 가게 들지 않는다. 넘치면 집을 칸을 줄이고, 여유가 없으면 그 차례를 쉰다. 연장전이 시작되면 기존 연장전 붕괴 규칙 · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · QA B3 이웃 칸 높이 차 최대 2.9 · 이웃 칸 높이 차 ≤ 2 studs (`HEIGHT_RANGE` 1.5 → 1, 스펙 "±1.5" 수치를 ±1로) · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · QA B4 집게 연출 스레드 정리·연장전 PivotTo와 다툼 · 집게 hover·descend 스레드를 `ctx.cleanup`에 넣고, 연장전이 시작되면 집게·칸 들어 올리기 위치 연출을 멈춤 · 메인 세션 (사용자가 맵 판단 위임)
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
@@ -98,3 +102,15 @@ status: qa-passed
 - **검증 5단계 전부 통과**: rojo build, stylua --check, selene(0/0/0), lune run tests(1163 passed), luau-lsp analyze(0 에러).
 - **Studio 확인 방법**: developer 기록의 "Studio 확인 방법" 절(AC9~AC16) 그대로.
 - **남은 이슈**: 없음(결정 기록에 추가 질문 없음). 집게 과녁 선정 주기가 정밀한 절대 시각표가 아니라 "집게가 비는 즉시 다음 interval 대기" 방식이라 표보다 살짝 늘어질 수 있음 — 플레이테스트 체감(AC16)에 따라 `ClawMachinePrize.luau`의 `CLAW_HOVER_TIME`/`CLAW_LIFT_TIME`이나 `Logic.clawWave` 상수 조정 여지.
+
+### QA 수정 (2026-10-13, developer, 브랜치 `m5-maps-fix-b`)
+- B1(P2): `overtime`이 `gridCenter * CFrame.Angles(rx, 0, rz) * gridCenter⁻¹ * origin`으로 모델 피벗을 옮겨요(회전 중심 = 격자 중심 `origin * (0, 0, CENTER_Z)`). 줄 순서는 새 순수 함수 `ClawMachinePrizeLogic.tiltLineOrder(dim, sign)`(회전 공식 `tiltRotation`·`tiltedHeight`의 높이 부호로 정렬)라 4방향 모두 낮아지는 줄부터 사라져요. 35°에서 가장 낮은 모서리는 격자 중심 아래 약 13.8(+칸 높이 −1) — 낙하선 −25까지 여유.
+- B2(P2): 집게 루프가 `Logic.pickClawTarget` 뒤 `Logic.capGrab(chosen, 남은 칸 수, 살아 있는 인원, 사람 칸)`을 거쳐요. `Logic.reserveTiles(n) = max(6, 2n)`. 줄일 때는 사람이 서 있는 칸을 먼저 남겨 집고, 여유가 0이면 그 차례 쉼. 연장전(`state.overtimeAt`)이 시작되면 루프가 멈추고 기존 연장전 줄 붕괴가 마무리해요.
+  - 시뮬레이션(테스트, 400판 · 매 차례 남은 칸에 무작위로 선 사람 · 집힌 칸 위면 25% 확률로 탈락): 90초 전 바닥 0칸 **0판**(2·4·8명), 남은 칸 < reserve 0번, 모든 판이 90초 도달(연장전) 또는 탈락으로 1명 남음. 2명 7/400 연장전·393 탈락, 4명 51·349, 8명 232·168, 연장전까지 간 판의 90초 때 평균 남은 칸 약 7.4~7.8.
+- B3(P3): `ClawMachinePrizeLayout.HEIGHT_RANGE` 1.5 → 1 (이웃 칸 높이 차 ≤ 2, 테스트로 전수 확인).
+- B4(P3): 집게 hover·descend `movePivot` 스레드도 `ctx.cleanup`에. `movePivot`에 `shouldStop`을 받아 연장전이 시작되면(또는 라운드가 끝나면) 집게·들어 올리는 칸의 월드 좌표 연출을 멈춰요 — 모델 전체 `PivotTo`와 서로 덮어쓰지 않아요(칸 충돌은 이미 꺼져 있어 판정 영향 없음).
+- 아트 파일(`ClawMachinePrizeArt.luau`)은 건드리지 않았어요. 그 파일 주석의 "칸 윗면 변화폭 ±1.5"는 이제 ±1이에요(값에는 영향 없음 — 아트 담당이 고치면 됨).
+- 테스트: `tests/m5-maps-fix-b.spec.luau`의 "m5-19 B1"(회전 행렬 독립 확인 · 4방향 줄 순서 · 낙하선 여유), "m5-19 B2"(reserve·capGrab, 400판 시뮬레이션), "m5-19 B3".
+- 검증 5단계 통과 (rojo build, stylua --check, selene 0/0/0, lune run tests **1390 passed, 0 failed**, luau-lsp analyze 끝 코드 0).
+- Studio 확인: QA 체크리스트 3(`overtimeAt = 15`, 여러 번 해서 앞뒤로 기울 때도 낮은 쪽 줄부터 사라지고 상자가 크게 위아래로 움직이지 않는지, 칸 위에 서 있는데 탈락하지 않는지), 체크리스트 2·8(90초 전에 바닥이 바닥나지 않고 남은 칸이 적을 때 집게가 작은 구역만 집거나 쉬는지, 연장전까지 가는지), 칸 높이 차에 걸리지 않는지.
+- 상태: `in-qa` (빠른 재QA).

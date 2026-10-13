@@ -18,6 +18,24 @@ Logic.TILT_RATE = math.rad(20) -- 초당 이만큼만 목표 쪽으로 움직여
 -- 연장전 (m5-01 계약)
 Logic.LETHAL_ANGLE = math.rad(90) -- 완전 수직. 마지막 꺾인점은 항상 이 크기예요 (기하학적 보장, 결정 기록 D2)
 
+-- 레이서의 로컬 X → 토크에 넣을 위치. 발판 길이 밖(|x| > halfLength, 미끄러져 떨어지는 중)이면 nil이라
+-- 토크에서 빠져요 (QA B2). 기울어진 발판 위의 사람은 로컬 X가 항상 halfLength 안이에요.
+function Logic.riderX(x: number, halfLength: number): number?
+	if math.abs(x) > halfLength then
+		return nil
+	end
+	return x
+end
+
+-- 연장전이 시작된 지 sinceOvertime초일 때 발판이 아직 서 있을 수 있는 면인지. collapseDuration이 지나면
+-- false — 발판 충돌을 꺼서 수직이 된 끝면(2×22) 턱도 남지 않게 해요 (QA B1, m5-01 계약).
+function Logic.platformSolid(sinceOvertime: number?, collapseDuration: number): boolean
+	if sinceOvertime == nil then
+		return true
+	end
+	return sinceOvertime < collapseDuration
+end
+
 local function lerp(a: number, b: number, alpha: number): number
 	return a + (b - a) * alpha
 end

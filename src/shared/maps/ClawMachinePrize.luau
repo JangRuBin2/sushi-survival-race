@@ -122,7 +122,7 @@ local function build(origin: CFrame): Model
 	local model = Instance.new("Model")
 	model.Name = ID
 
-	-- 모델 전체를 origin 기준으로 정확히 회전시키려고(연장전 기울기), 피벗을 origin에 고정해요.
+	-- 모델 피벗을 origin에 고정해요. 연장전 기울기는 이 피벗을 기준으로 격자 중심 축 회전을 계산해요(overtime).
 	local anchor = makePart({
 		Name = "PivotAnchor",
 		Size = Vector3.new(1, 1, 1),
@@ -187,13 +187,17 @@ local function taggedInModel(model: Model, tag: string): { Instance }
 	return found
 end
 
--- Model을 duration 동안 to로 옮겨요 (Anchored 파츠라 Heartbeat마다 PivotTo).
-local function movePivot(target: Model, to: CFrame, duration: number)
+-- Model을 duration 동안 to로 옮겨요 (Anchored 파츠라 Heartbeat마다 PivotTo). shouldStop()이 true가 되면
+-- 그 자리에서 멈춰요 — 연장전 상자 기울기(모델 전체 PivotTo)와 서로 덮어쓰지 않게 (QA B4).
+local function movePivot(target: Model, to: CFrame, duration: number, shouldStop: (() -> boolean)?)
 	local RunService = game:GetService("RunService")
 	local from = target:GetPivot()
 	local elapsed = 0
 	while elapsed < duration do
 		elapsed += RunService.Heartbeat:Wait()
+		if shouldStop and shouldStop() then
+			return
+		end
 		local alpha = math.min(elapsed / duration, 1)
 		target:PivotTo(from:Lerp(to, 1 - (1 - alpha) * (1 - alpha))) -- ease-out
 	end
@@ -278,12 +282,20 @@ local function liftWindow(
 	end
 	local center = sum / #parts
 
+	-- 연장전이 시작되면 상자 전체가 기울어요(모델 PivotTo). 집게·칸의 월드 좌표 연출은 거기서 멈춰요 (QA B4).
+	local function overtimeStarted(): boolean
+		return state.overtimeAt ~= nil or not ctx.isActive()
+	end
+
 	if claw then
-		task.spawn(
-			movePivot,
-			claw,
-			CFrame.new(center + Vector3.new(0, Art.RAIL_HEIGHT - 2, 0)),
-			math.min(CLAW_HOVER_TIME, warnTime)
+		ctx.cleanup:add(
+			task.spawn(
+				movePivot,
+				claw,
+				CFrame.new(center + Vector3.new(0, Art.RAIL_HEIGHT - 2, 0)),
+				math.min(CLAW_HOVER_TIME, warnTime),
+				overtimeStarted
+			)
 		)
 	end
 
@@ -308,11 +320,14 @@ local function liftWindow(
 		blinkOn = not blinkOn
 		if claw and not descending and warnTime - warned <= CLAW_DESCEND_LEAD then
 			descending = true
-			task.spawn(
-				movePivot,
-				claw,
-				CFrame.new(center + Vector3.new(0, Art.RAIL_HEIGHT - 2 - CLAW_DESCEND_DROP, 0)),
-				CLAW_DESCEND_LEAD
+			ctx.cleanup:add(
+				task.spawn(
+					movePivot,
+					claw,
+					CFrame.new(center + Vector3.new(0, Art.RAIL_HEIGHT - 2 - CLAW_DESCEND_DROP, 0)),
+					CLAW_DESCEND_LEAD,
+					overtimeStarted
+				)
 			)
 		end
 		warned += task.wait(WARN_BLINK)
@@ -334,7 +349,13 @@ local function liftWindow(
 
 	local liftThread: thread? = nil
 	if claw then
-		liftThread = task.spawn(movePivot, claw, claw:GetPivot() + Vector3.new(0, CLAW_LIFT_HEIGHT, 0), CLAW_LIFT_TIME)
+		liftThread = task.spawn(
+			movePivot,
+			claw,
+			claw:GetPivot() + Vector3.new(0, CLAW_LIFT_HEIGHT, 0),
+			CLAW_LIFT_TIME,
+			overtimeStarted
+		)
 		ctx.cleanup:add(liftThread :: thread)
 	end
 	local RunService = game:GetService("RunService")
@@ -346,6 +367,9 @@ local function liftWindow(
 	while elapsed < CLAW_LIFT_TIME do
 		elapsed += RunService.Heartbeat:Wait()
 		local alpha = math.min(elapsed / CLAW_LIFT_TIME, 1)
+		if overtimeStarted() then
+			break -- 기울기가 칸을 같이 옮겨요. 충돌은 이미 꺼져 있어서 판정 영향 없음 (QA B4)
+		end
 		for _, part in parts do
 			if part.Parent then
 				part.Position = starts[part] + Vector3.new(0, CLAW_LIFT_HEIGHT * alpha, 0)
@@ -422,9 +446,15 @@ local function start(ctx: MapTypes.RoundContext)
 			end
 			local alive = aliveIndices(state)
 			if #alive > 0 then
-				local chosen = Logic.pickClawTarget(ctx.rng, racerTiles(ctx), alive, wave.size, GRID_SIZE)
-				setPending(state, chosen, true)
-				ctx.cleanup:add(task.spawn(liftWindow, ctx, state, chosen, wave.warnTime, claw))
+				-- 연장전 전에는 바닥을 reserveTiles(살아 있는 인원)만큼 남겨 둬요 (QA B2, 메인 세션 결정).
+				-- 넘으면 집을 칸을 줄이고, 줄일 여유도 없으면 그 차례는 쉬어요.
+				local occupied = racerTiles(ctx)
+				local chosen = Logic.pickClawTarget(ctx.rng, occupied, alive, wave.size, GRID_SIZE)
+				chosen = Logic.capGrab(chosen, #alive, #ctx.getRacers(), occupied)
+				if #chosen > 0 then
+					setPending(state, chosen, true)
+					ctx.cleanup:add(task.spawn(liftWindow, ctx, state, chosen, wave.warnTime, claw))
+				end
 			end
 			task.wait(wave.interval)
 		end
@@ -525,6 +555,11 @@ local function overtime(ctx: MapTypes.RoundContext, info: MapTypes.OvertimeInfo)
 	}
 	local dir = DIRS[ctx.rng:NextInteger(1, #DIRS)]
 	local origin = ctx.origin
+	-- 회전 중심은 격자 중심이에요(QA B1). origin 축으로 돌리면 행 방향 기울기에서 격자 전체가 위아래로
+	-- 크게 움직여 멀쩡한 칸 위에 선 사람도 낙하선 아래로 내려가요. 모델 피벗(origin)은
+	-- gridCenter * R * gridCenter⁻¹ * origin으로 옮겨요.
+	local gridCenter = origin * CFrame.new(0, 0, Layout.CENTER_Z)
+	local gridCenterInverse = gridCenter:Inverse()
 
 	ctx.cleanup:add(task.spawn(function()
 		local RunService = game:GetService("RunService")
@@ -532,15 +567,15 @@ local function overtime(ctx: MapTypes.RoundContext, info: MapTypes.OvertimeInfo)
 		while ctx.isActive() and elapsed < info.collapseDuration do
 			elapsed += RunService.Heartbeat:Wait()
 			local angle = math.rad(Logic.OVERTIME_MAX_TILT) * math.clamp(elapsed / info.collapseDuration, 0, 1)
-			local rx = if dir.dim == "row" then dir.sign * angle else 0
-			local rz = if dir.dim == "col" then dir.sign * angle else 0
-			ctx.model:PivotTo(origin * CFrame.Angles(rx, 0, rz))
+			local rx, rz = Logic.tiltRotation(dir.dim, dir.sign, angle)
+			ctx.model:PivotTo(gridCenter * CFrame.Angles(rx, 0, rz) * gridCenterInverse * origin)
 		end
 	end))
 
+	-- 실제로 내려가는 쪽 줄부터 사라져요 (Logic.tiltLineOrder, 4방향 모두 테스트로 고정)
+	local order = Logic.tiltLineOrder(dir.dim, dir.sign, GRID_SIZE)
 	for _, step in Logic.overtimeTilt(info.collapseDuration, OVERTIME_WARN_TIME, GRID_SIZE) do
-		-- step.row(1..GRID_SIZE, 낮은 쪽부터) → 실제 격자 row/col 번호
-		local gridIndex = if dir.sign == 1 then step.row - 1 else GRID_SIZE - step.row
+		local gridIndex = order[step.row]
 		ctx.cleanup:add(task.delay(step.warnAt, collapseLine, ctx, state, dir.dim, gridIndex, now + step.dropAt))
 	end
 end

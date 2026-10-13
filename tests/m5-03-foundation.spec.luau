@@ -562,10 +562,13 @@ return function(t: Test.Test)
 		function()
 			t.eq(AdminLogic.commandTier("info"), "Info")
 			t.eq(AdminLogic.commandTier("fx"), "Info")
-			for _, name in { "start", "plan", "coins", "tokens" } do
+			for _, name in { "start", "plan" } do
 				t.eq(AdminLogic.commandTier(name), "Test", name)
 			end
 			t.eq(AdminLogic.commandTier("resetprofile"), "StudioOnly")
+			-- 경제 명령은 저장을 켠 Studio에서도 막아요 (2026-10-13 사용자 결정)
+			t.eq(AdminLogic.commandTier("coins"), "StudioOnly")
+			t.eq(AdminLogic.commandTier("tokens"), "StudioOnly")
 			t.eq(AdminLogic.commandTier("kick"), nil)
 			t.eq(AdminLogic.commandTier(5), nil)
 

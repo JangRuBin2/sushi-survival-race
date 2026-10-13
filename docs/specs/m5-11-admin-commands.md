@@ -85,6 +85,8 @@ status: qa-passed
 - 2026-10-13 · 개발: 본문의 `LiveTestCommands`·4인자 `canRun`·"테스트 명령이 꺼져 있어요" 문구는 아래 사용자 결정으로 대체됨 — 현재 `AdminLogic.canRun(tier, isStudio, persistInStudio)`(m5-03) 그대로 따름. 실서버 Test·StudioOnly 거절 문구는 "Studio에서만 쓸 수 있는 명령이에요", 비관리자 문구는 m5-02 그대로 "권한이 없어요"(AC13 본문의 "관리자만 쓸 수 있어요" 대신 — 기존 m5-02 테스트가 고정) · developer
 - 2026-10-08 · **사용자 결정: 실서버 테스트 명령 없음(설정으로도 못 켬)** — D1의 `LiveTestCommands`는 만들지 않음. Test·StudioOnly는 `RunService:IsStudio()`일 때만 처리, 실서버 핸들러는 무조건 거절. 틀(`AdminLogic.commandTier`·`canRun(tier, isStudio, persistInStudio)`, AdminService `onCommand` → `runCommand`)은 m5-03이 만들어 둠 · 사용자
 
+- 2026-10-13 · QA B1 저장을 켠 Studio에서 경제 명령 · **`coins`·`tokens`를 StudioOnly 등급으로** — `persistDataInStudio = true`면 "저장을 켠 Studio에서는 쓸 수 없어요"로 거절 (m4-14 R4 가짜 로벅스·m5-08 B3 가짜 VIP와 같은 원칙) · 사용자
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
 2026-10-13 (브랜치 `m5-11-admin2`)

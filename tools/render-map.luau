@@ -123,7 +123,7 @@ end
 local function addDummy(scene: Scene.Scene, spawn: any, forward: V3)
 	local top = spawn.CFrame.Position.Y + spawn.Size.Y / 2
 	local pos = spawn.CFrame.Position
-	local base = roblox.CFrame.lookAt(
+	local base = Shims.lookAt(
 		roblox.Vector3.new(pos.X, top + 1.6, pos.Z),
 		roblox.Vector3.new(pos.X + forward.x, top + 1.6, pos.Z + forward.z)
 	)
@@ -330,7 +330,7 @@ local function renderMap(mapId: string): boolean
 			local w = (beam.width0 + beam.width1) / 2
 			Scene.addBox(
 				scene,
-				roblox.CFrame.lookAt((a + b) / 2, b),
+				Shims.lookAt((a + b) / 2, b),
 				roblox.Vector3.new(w, w, len),
 				{ beam.r ^ (1 / 2.2), beam.g ^ (1 / 2.2), beam.b ^ (1 / 2.2) },
 				if beam.lightEmission > 0.5 then "Neon" else "SmoothPlastic",

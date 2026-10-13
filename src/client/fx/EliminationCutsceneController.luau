@@ -9,6 +9,9 @@
 --   월드 연출은 동시에 MAX_CONCURRENT개까지. 넘으면 캐릭터만 숨겼다가 풀어요 (본인 연출은 한도와 무관).
 --   cause가 Left·nil이면 연출 없음 (시간 종료·정원 마감은 Timeout으로 와서 연출해요, m3-09). 위치가 없으면 본인은 스탬프만, 남은 아무것도 안 봐요.
 --   매치가 끝나거나(RoomUpdated) Victory가 시작되면 재생 중인 연출을 모두 지워요.
+--   연출 팩 (m5-09): 탈락한 사람의 Player 속성 EliminationFx가 고양이 손님이면(Logic.skinFor) 먹는 쪽만
+--     고양이로 바꿔요 (젓가락 → 고양이 발이 쥔 젓가락 + 고양이 얼굴, 손님 입 → 고양이 입, 셰프 손 → 고양이 앞발).
+--     흐름·박자·길이는 그대로, 대사는 고양이 대사, Chomp 뒤 CatMeow. 소유 판단은 서버가 속성을 달 때 해요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -59,16 +62,24 @@ local function placeDoll(doll: Model, at: Vector3, rotation: CFrame?)
 end
 
 -- 젓가락이 집어 → 버둥 → 간장 퐁당 → 손님 입 "냠!" (0~2.4초, 3초 기준)
-local function chopsticks(model: Model, doll: Model, origin: Vector3, s: (number) -> number, rng: Random): Animation
-	local sticks = Props.chopsticks()
+local function chopsticks(
+	model: Model,
+	doll: Model,
+	origin: Vector3,
+	s: (number) -> number,
+	rng: Random,
+	cat: boolean
+): Animation
+	local sticks = if cat then Props.catChopsticks() else Props.chopsticks()
 	sticks.Parent = model
 	local dishTop = origin + Vector3.new(6, 0, 0)
 	Props.soyDish(dishTop).Parent = model
 	local mouthAt = origin + Vector3.new(-7, 7, 0)
 	local mouthCFrame = CFrame.lookAt(mouthAt, mouthAt + Vector3.new(1, 0, 0))
-	local mouth = Props.mouth()
+	local mouth = if cat then Props.catHead() else Props.mouth()
 	mouth.Parent = model
-	local speaker = Props.anchor(mouthAt + Vector3.new(0, 4, 0))
+	-- 고양이는 머리가 입 위로 솟아 있어서 말풍선을 조금 더 위에
+	local speaker = Props.anchor(mouthAt + Vector3.new(0, if cat then 7 else 4, 0))
 	speaker.Parent = model
 
 	local lifted = origin + Vector3.new(0, 6, 0)
@@ -137,14 +148,26 @@ local function chopsticks(model: Model, doll: Model, origin: Vector3, s: (number
 		if not eaten then
 			placeDoll(doll, dollAt, rotation)
 		end
-		Props.poseChopsticks(sticks, tip, open)
+		if cat then
+			Props.poseCatChopsticks(sticks, tip, open, t)
+		else
+			Props.poseChopsticks(sticks, tip, open)
+		end
 
 		-- 입: 기다리는 동안 조금 벌림 → 1.8초부터 크게 → 2.2초에 앙
 		local mouthOpen = 0.35 + math.sin(t * 6) * 0.08
 		if t >= s(1.8) then
 			mouthOpen = if t < s(2.2) then 1 else 1 - a(t, s(2.2), s(2.3))
 		end
-		Props.poseMouth(mouth, mouthCFrame, mouthOpen)
+		if cat then
+			-- 고양이는 다 먹은 뒤 오물오물
+			if t >= s(2.35) then
+				mouthOpen = 0.1 + math.abs(math.sin(t * 11)) * 0.18
+			end
+			Props.poseCatHead(mouth, mouthCFrame, mouthOpen, t)
+		else
+			Props.poseMouth(mouth, mouthCFrame, mouthOpen)
+		end
 
 		return if t < s(1.8) then dollAt else lerp(dollAt, mouthAt, a(t, s(1.8), s(2.3)))
 	end
@@ -153,10 +176,10 @@ local function chopsticks(model: Model, doll: Model, origin: Vector3, s: (number
 end
 
 -- 아래에서 입 벌린 손님 입으로 떨어져 "냠!" (Survival 낙하)
-local function mouthFall(model: Model, doll: Model, origin: Vector3, s: (number) -> number): Animation
+local function mouthFall(model: Model, doll: Model, origin: Vector3, s: (number) -> number, cat: boolean): Animation
 	local mouthAt = origin - Vector3.new(0, 10, 0)
 	local mouthCFrame = CFrame.new(mouthAt) * CFrame.Angles(math.rad(90), 0, 0) -- 위를 향해 벌어져요
-	local mouth = Props.mouth()
+	local mouth = if cat then Props.catHead() else Props.mouth()
 	mouth.Parent = model
 	local speaker = Props.anchor(mouthAt + Vector3.new(0, 5, 0))
 	speaker.Parent = model
@@ -177,7 +200,11 @@ local function mouthFall(model: Model, doll: Model, origin: Vector3, s: (number)
 		if t >= s(1.5) then
 			open = 0.15 + math.abs(math.sin(t * 10)) * 0.2
 		end
-		Props.poseMouth(mouth, mouthCFrame, open)
+		if cat then
+			Props.poseCatHead(mouth, mouthCFrame, open, t)
+		else
+			Props.poseMouth(mouth, mouthCFrame, open)
+		end
 		return lerp(origin, mouthAt, math.min(1, fall * 1.2))
 	end
 
@@ -185,8 +212,8 @@ local function mouthFall(model: Model, doll: Model, origin: Vector3, s: (number)
 end
 
 -- 셰프의 거대한 손이 내려와 움켜쥐고 위로 사라져요 (결승)
-local function chefHand(model: Model, doll: Model, origin: Vector3, s: (number) -> number): Animation
-	local hand = Props.chefHand()
+local function chefHand(model: Model, doll: Model, origin: Vector3, s: (number) -> number, cat: boolean): Animation
+	local hand = if cat then Props.catPaw() else Props.chefHand()
 	hand.Parent = model
 	local speaker = Props.anchor(origin + Vector3.new(0, 9, 0))
 	speaker.Parent = model
@@ -212,7 +239,11 @@ local function chefHand(model: Model, doll: Model, origin: Vector3, s: (number) 
 			grip = 1
 		end
 		local wobble = if t >= s(0.8) then CFrame.Angles(0, 0, math.sin(t * 30) * 0.3) else CFrame.identity
-		Props.poseChefHand(hand, CFrame.new(palm), grip)
+		if cat then
+			Props.poseCatPaw(hand, CFrame.new(palm), grip, t)
+		else
+			Props.poseChefHand(hand, CFrame.new(palm), grip)
+		end
 		local dollAt = if t < s(1.2) then origin else palm + dollOffset
 		placeDoll(doll, dollAt, wobble)
 		return lerp(origin, dollAt, 0.45)
@@ -300,6 +331,9 @@ function EliminationCutsceneController.start(gui: Instance)
 		local info = phase
 		local isFinal = info ~= nil and Logic.isFinalRound(info.roundIndex, info.roundCount)
 		local variant = Logic.variantFor(info and info.mapKind, isFinal, result.cause)
+		-- 연출 팩: 탈락한 사람이 입은 것 (이미 나갔으면 기본)
+		local fxSkin = Logic.skinFor(subject and subject:GetAttribute(Attributes.EliminationFx))
+		local cat = fxSkin == "Cat"
 		local world = position ~= nil and (isMe or Logic.canStartWorld(worldCount))
 
 		local cleanup = Cleanup.new()
@@ -331,9 +365,9 @@ function EliminationCutsceneController.start(gui: Instance)
 		end
 
 		local animation: Animation? = nil
-		local beats = Logic.timeline(variant, duration)
+		local beats = Logic.timeline(variant, duration, fxSkin)
 		local nextBeat = 1
-		local line = Logic.pickLine(appearanceId, variant, rng)
+		local line = Logic.pickLine(appearanceId, variant, rng, fxSkin)
 		if world and position then
 			local model = cleanup:add(Instance.new("Model"))
 			model.Name = `EliminationCutscene_{result.userId}`
@@ -343,11 +377,11 @@ function EliminationCutsceneController.start(gui: Instance)
 				return Logic.scaled(x, duration)
 			end
 			if variant == "ChefHand" then
-				animation = chefHand(model, doll, position, s)
+				animation = chefHand(model, doll, position, s, cat)
 			elseif variant == "Mouth" then
-				animation = mouthFall(model, doll, position, s)
+				animation = mouthFall(model, doll, position, s, cat)
 			else
-				animation = chopsticks(model, doll, position, s, rng)
+				animation = chopsticks(model, doll, position, s, rng, cat)
 			end
 			if animation then
 				animation.update(0)

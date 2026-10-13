@@ -6,7 +6,9 @@
 --   BuyWithCoins(skinId)  일반·레어 스킨만, 미보유, 코인 ≥ 가격 → 한 번의 DataService.update 안에서 차감 + 보유 + 장착.
 --                         라운드·연출 중이면 거절 (바로 입혀야 해서). 실제 서버에서 프로필 로드에 실패했으면
 --                         (canPersist = false) 거절, Studio 메모리 모드는 허용.
---   두 요청은 Config.Shop.RequestCooldown 간격 제한을 같이 써요. 판단은 Shared.ShopLogic (순수).
+--   BuyWithTokens(skinId) 이벤트 재화로 시즌 무료 스킨 받기 (m5-07): 이벤트 진행 중(Seasons.now — Studio면
+--                         Config.DEBUG.eventNow 우선)·미보유·잠금 아님·저장 가능·재화 ≥ 가격 → 차감 + 보유 + 자동 장착.
+--   세 요청은 Config.Shop.RequestCooldown 간격 제한을 같이 써요. 판단은 Shared.ShopLogic (순수).
 -- 외형은 AppearanceService.applyAppearance 한 곳에서만 입혀요: 여기서는 장착 스킨을 고르는 함수(setResolver)를
 -- 등록하고, 바뀌면 AppearanceService.refresh를 불러요. 프로필이 캐릭터보다 늦게 로드되면 로드된 뒤 다시 입혀요.
 --
@@ -35,6 +37,7 @@ local AdminLogic = require(ReplicatedStorage.Shared.AdminLogic)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -128,6 +131,13 @@ local function fail(reason: ShopLogic.Reason, missing: number?): (boolean, strin
 	return false, ShopLogic.message(reason, missing)
 end
 
+-- 재화 스킨의 재화 아이콘 (거절 글씨 "⭐ 3개 더 필요해요")
+local function tokenIcon(skinId: string): string?
+	local skin = Skins.get(skinId)
+	local event = if skin and skin.season then Seasons.get(skin.season) else nil
+	return if event then event.token.icon else nil
+end
+
 local function onEquip(player: Player, skinId: unknown): (boolean, string?)
 	if not allowRequest(player) then
 		return fail("TooFast")
@@ -193,6 +203,43 @@ local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, string
 	return true, nil
 end
 
+-- 이벤트 재화로 무료 한정 스킨 받기 (m5-07). 순서는 ShopLogic.canBuyWithTokens: 카탈로그 → 이벤트 진행 중 →
+-- 미보유 → 잠금 → 저장 가능 → 재화 ≥ 가격. 성공하면 한 번의 update 안에서 재화 차감 + 보유 + 장착.
+local function onBuyWithTokens(player: Player, skinId: unknown): (boolean, string?)
+	if not allowRequest(player) then
+		return fail("TooFast")
+	end
+	if type(skinId) ~= "string" then
+		return fail("UnknownSkin")
+	end
+	local profile = DataService.get(player)
+	if profile == nil then
+		return fail("NoProfile")
+	end
+	local now = Seasons.now(RunService:IsStudio(), Config.DEBUG.eventNow, os.time())
+	local canSave = DataService.canPersist(player) or RunService:IsStudio()
+	local locked = ShopService.isLocked(player)
+	local icon = tokenIcon(skinId)
+	local check = ShopLogic.canBuyWithTokens(skinId, profile, now, canSave, locked)
+	if not check.ok then
+		return false, ShopLogic.message(check.reason, check.missing, icon)
+	end
+	local decision: ShopLogic.Decision = { ok = false, reason = "NoProfile" }
+	local updated = DataService.update(player, function(p)
+		decision = ShopLogic.buyWithTokens(p, skinId, now, canSave, locked)
+	end)
+	if not updated or not decision.ok then
+		return false, ShopLogic.message(decision.reason, decision.missing, icon)
+	end
+	print(`[ShopService] {player.Name} got {skinId} for {decision.price} event tokens`)
+	clearPreview(player)
+	AppearanceService.refresh(player)
+	if DataService.canPersist(player) then
+		task.spawn(DataService.saveNow, player) -- 재화를 쓴 건 바로 저장해요
+	end
+	return true, nil
+end
+
 -- 로벅스 결제 대기 중인 스킨을 알려 주는 함수 (RobuxShopService.init). 코인 해금이 그 스킨이면 거절해요.
 function ShopService.setCoinBlocker(fn: ((player: Player, skinId: string) -> boolean)?)
 	coinBlocker = fn
@@ -241,6 +288,7 @@ function ShopService.init()
 	AppearanceService.setResolver(equippedOf)
 	bind("EquipSkin", onEquip)
 	bind("BuyWithCoins", onBuyWithCoins)
+	bind("BuyWithTokens", onBuyWithTokens)
 end
 
 function ShopService.start()

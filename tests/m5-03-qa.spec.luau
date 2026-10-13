@@ -2,7 +2,7 @@
 -- m5-03 QA (docs/qa/m5-03-foundation.md): 개발 테스트(m5-03-foundation·seasons·fx-catalog)에 없는 경계값과
 -- 가짜 Roblox 환경에서 실제로 돌려 보는 확인.
 --   맵 껍데기 3개: build(스폰 24개·바닥·결승선) / start(낙하·결승선) / ikura-bombs overtime(바로 돌아옴, 시간 뒤 판 제거)
---   껍데기 서비스: OfferService·CodeService 리모트가 아무 인자에도 false, "준비 중이에요"
+--   (껍데기 서비스 확인은 m5-08·m5-10이 채워서 각 QA 테스트로 옮김)
 --   DataService.setViewExtra: 바뀔 때만 ProfileUpdated, 로드 전 기억, 나간 뒤 무시
 --   프로필 v2 경계: v1 두 번 migrate, 칸 모양이 틀린 v2 칸, redeemedCodes 정확히 200·201
 --   관리자 명령 등급: canRun 12칸 전부, commandTier 대소문자·특수 키
@@ -394,42 +394,6 @@ local function loadDataService(): DataEnv
 	}
 end
 
----------------------------------------------------------------- 껍데기 서비스
-
-local function loadShellService(path: string): ({ [string]: any }, any)
-	local fns: { [string]: any } = {}
-	local codeConfigLoads = 0
-	local service = load(path, {
-		game = {
-			GetService = function(_, name: string)
-				assert(name == "ReplicatedStorage", name)
-				return { Shared = sharedFolder() }
-			end,
-		},
-		script = { Parent = { CodeConfig = { __shared = "CodeConfig" } } },
-		require = fakeRequire({
-			Remotes = {
-				fn = function(name: string)
-					fns[name] = fns[name] or {}
-					return fns[name]
-				end,
-				event = function(name: string)
-					error(`shell service should not touch RemoteEvent {name}`)
-				end,
-			},
-			CodeConfig = {
-				load = function()
-					codeConfigLoads += 1
-					return {}
-				end,
-			},
-		}),
-	})
-	service.init()
-	service.start()
-	return fns, codeConfigLoads
-end
-
 local function v1Profile(): { [string]: any }
 	return {
 		version = 1,
@@ -572,32 +536,8 @@ return function(t: Test.Test)
 		end
 	)
 
-	---------------------------------------------------------------- 껍데기 서비스
-	t.test(
-		"QA 껍데기 서비스: RequestOfferPurchase·EquipFx·RedeemCode는 어떤 인자에도 false, '준비 중이에요'",
-		function()
-			local offerFns = loadShellService("src/server/OfferService.luau")
-			local codeFns, loads = loadShellService("src/server/CodeService.luau")
-			t.eq(loads, 1, "CodeService reads the code list once at init")
-			local junk =
-				{ { "starter-pack" }, {}, { 5 }, { nil, "x" }, { { nested = true } }, { string.rep("A", 10000) } }
-			for _, case in
-				{
-					{ offerFns, "RequestOfferPurchase" },
-					{ offerFns, "EquipFx" },
-					{ codeFns, "RedeemCode" },
-				}
-			do
-				local handler = case[1][case[2]].OnServerInvoke
-				t.eq(type(handler), "function", case[2])
-				for _, args in junk do
-					local ok, err = handler({ UserId = 1 }, table.unpack(args))
-					t.eq(ok, false, case[2])
-					t.eq(err, "준비 중이에요", case[2])
-				end
-			end
-		end
-	)
+	-- 껍데기 서비스: OfferService(m5-08)·CodeService(m5-10)가 채워져서 껍데기 확인은 끝났어요.
+	-- 리모트 인자 검증은 실제 서비스로 tests/m5-08-qa.spec.luau·tests/m5-10-qa.spec.luau에서 확인해요.
 
 	---------------------------------------------------------------- DataService.setViewExtra
 	t.test("QA setViewExtra: vip가 바뀔 때만 ProfileUpdated 한 번, boolean이 아니면 false", function()

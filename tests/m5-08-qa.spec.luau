@@ -77,7 +77,7 @@ local function patchedCatalog(withIds: boolean): { [string]: any }
 	end
 	local OfferLogic = loadSharedFresh("OfferLogic", { FxCatalog = FxCatalog, Offers = Offers, Skins = Skins })
 	local ReceiptLogic = loadSharedFresh("ReceiptLogic", { Skins = Skins, Seasons = Seasons })
-	local ShopLogic = loadSharedFresh("ShopLogic", { Skins = Skins })
+	local ShopLogic = loadSharedFresh("ShopLogic", { Skins = Skins, Seasons = Seasons })
 	return {
 		Seasons = Seasons,
 		Skins = Skins,

@@ -682,6 +682,7 @@ end
 
 -- 같은 방을 다시 만들어요 (설정·키 그대로, 방장 = 원래 방장이 있으면 그 사람, 아니면 players의 첫 사람).
 -- filterWith가 있으면 그 사람 기준으로 이름을 다시 필터해요 (로비 복귀, 실패하면 기본 이름). yield할 수 있어요.
+-- 기본 이름(nameIsDefault) 방이면 티켓의 이름은 버리고 방장 DisplayName으로 다시 만들어요 (m5-26 QA B1).
 -- players 중 이미 방이 있거나 나간 사람은 빼요. 아무도 없거나 코드를 못 만들면 nil.
 function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterWith: Player?): Room?
 	local function keyTaken(): boolean
@@ -693,7 +694,18 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 	end
 	local name = spec.settings.name
 	local nameIsDefault = spec.settings.nameIsDefault == true
-	if filterWith and not nameIsDefault then
+	if filterWith and nameIsDefault then
+		-- 복귀 티켓(TeleportData)은 바꿀 수 있어요: 기본 이름 표시를 믿지 않고 이름을 서버가 아는
+		-- 방장(없으면 filterWith) DisplayName으로 다시 만들어요 (m5-26 QA B1). DisplayName은 Roblox가 이미 거른 이름.
+		local source: Player = filterWith
+		for _, player in players do
+			if player.UserId == spec.hostUserId and player.Parent ~= nil then
+				source = player
+				break
+			end
+		end
+		name = RoomLogic.defaultName(source.DisplayName)
+	elseif filterWith then
 		local filtered = filterRoomName(name, filterWith)
 		if filtered == nil then
 			name = RoomLogic.defaultName(filterWith.DisplayName)

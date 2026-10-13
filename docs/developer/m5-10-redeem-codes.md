@@ -1,6 +1,15 @@
 # m5-10 redeem codes — 개발 작업 기록
 
-## 2026-10-08 — 시작만 함, 세션 종료로 중단 (최신)
+## 2026-10-13 — 구현 끝, in-qa (최신)
+- **브랜치**: `m5-10-codes` (origin/main `4192744` 병합 위). push는 `HEAD:m5-10-codes`.
+- **끝난 것**: CodeLogic(순수) + tests/code-logic.spec.luau(13개), CodeService(검증·간격·잠금·한 번 지급·RewardGranted·로그),
+  CodeScreen/CodeController("🎟 코드" 창, 로비·대기실만). 스펙 status `in-qa`, 개발 메모 작성.
+- **검증**: 5단계 모두 통과 (lune 1246 passed / 0 failed, selene 0/0, luau-lsp 끝 코드 0).
+- **남은 것**: QA, Studio 확인(AC8~AC13 — 스펙 개발 메모의 순서), USER-TODO A1에 코드 항목 추가(문서 담당).
+- **다음에 할 첫 단계**: QA 리포트(`docs/qa/m5-10-*.md`)가 오면 버그 수정.
+- **막힌 점**: 없음. 공용 파일 변경 없음. CodeList.luau는 만들지 않음(.gitignore).
+
+## 2026-10-08 — 시작만 함, 세션 종료로 중단
 - **브랜치**: `m5-10-codes` (origin/main `c4ca608` 기반). 커밋: `wip: m5-10 ...` (스펙 status in-dev + 이 메모만).
 - **끝난 것**: 스펙·m5-03 인계 읽기, 관련 코드 조사. 코드 변경은 아직 없음.
 - **검증 상태**: 코드 변경이 없어 돌리지 않음.

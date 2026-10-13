@@ -3,6 +3,7 @@
 --   B 얼음 쟁반·D 찬바람 선반 바닥은 Ice 태그 — 미끄러짐은 클라이언트 IceController(+ 순수 IceLogic)가 해요.
 --   C 젤리 발판(Jelly 태그)은 서버가 위·앞으로 튕겨요 (와사비와 같은 방식, LinearVelocity 잠깐 + MoveExempt).
 --   D 송풍구(ColdFan 태그)는 4초 주기(0.5 경고 → 2 불기 → 1.5 쉼)로 구역 안 레이서를 옆으로 밀어요.
+--   송풍구 밀기는 연속 밀기라 MoveExempt를 달지 않아요 (CLAUDE.md 규칙, 스펙 결정 Q2 — 밀기 14는 상한 80보다 한참 낮음).
 -- 치수는 DessertFridgeLayout, 계산은 DessertFridgeLogic, 장식은 DessertFridgeArt.
 -- 태그 파츠는 ctx.model 하위의 것만 쓰고, 상태는 전부 start 안 지역 변수에 둬요(여러 방 동시 진행).
 -- id·kind·displayName·rule은 m5-03에서 확정이에요 (바꾸지 않아요).
@@ -28,7 +29,7 @@ local TAG_FAN = "ColdFan"
 local function palette()
 	return {
 		floor = Color3.fromRGB(236, 240, 246), -- 냉장고 안 흰 바닥
-		ice = Color3.fromRGB(176, 222, 248), -- 밝은 하늘색 얼음
+		ice = Color3.fromRGB(184, 230, 255), -- 밝은 하늘색 얼음 (코스에서 가장 밝고 깨끗하게)
 		cube = Color3.fromRGB(206, 236, 252),
 		jellies = {
 			Color3.fromRGB(230, 60, 72), -- 딸기 젤리
@@ -96,6 +97,7 @@ local function build(origin: CFrame): Model
 		part.Material = Enum.Material.Ice
 		part.Color = COLORS.ice
 		-- 미끄러짐은 IceController가 해요. 물성은 SmoothPlastic 그대로(재질 기본 마찰이 다른 물리에 섞이지 않게).
+		part.Reflectance = 0.12 -- 얼음 광택 (아트, 판정 무관)
 		part.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic)
 		CollectionService:AddTag(part, TAG_ICE)
 	end
@@ -163,7 +165,7 @@ local function build(origin: CFrame): Model
 			CFrame = at(jelly.x, (Layout.LOW_Y + Layout.JELLY_TOP) / 2, jelly.z),
 			Color = COLORS.jellies[i] or COLORS.jellies[1],
 			Material = Enum.Material.Glass,
-			Transparency = 0.25,
+			Transparency = 0.1, -- 휴대폰에서도 빨강·초록이 읽히게
 			CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic),
 			Parent = model,
 		})
@@ -237,8 +239,7 @@ local function build(origin: CFrame): Model
 	})
 
 	-- 장식(충돌 없음) + 소개 카메라 + 사용자 Studio 아트 자리
-	local decor = MapKit.decorFolder(model)
-	MapKit.buildDecor(Art.decor(), origin, decor)
+	MapKit.buildDecor(Art.decor(), origin, MapKit.decorFolder(model))
 	MapKit.introCamera(model, Art.introCamera(), origin)
 	MapKit.attachStudioArt(model, ID, origin)
 
@@ -322,8 +323,6 @@ local function start(ctx: MapTypes.RoundContext)
 
 	local jellyVelocity = Vector3.new(0, Layout.JELLY_UP, 0) + origin.LookVector * Layout.JELLY_FORWARD
 	local jellyReadyAt: { [Player]: number } = {}
-	-- 이번 불기 동안 이미 이동 감시 면제를 단 사람 (불기마다 한 번만 표시해요 — 매 프레임 속성 복제를 피해요)
-	local fanMarked: { [number]: { [Player]: boolean } } = {}
 
 	ctx.cleanup:add(RunService.Heartbeat:Connect(function(dt: number)
 		if not ctx.isActive() then
@@ -358,7 +357,6 @@ local function start(ctx: MapTypes.RoundContext)
 				end
 				if state == "Blow" then
 					MapSfx.play(fan.vent, "FanGust")
-					fanMarked[index] = {}
 				end
 				fan.last = state
 			end
@@ -393,11 +391,6 @@ local function start(ctx: MapTypes.RoundContext)
 				local velocity = root.AssemblyLinearVelocity
 				local add = Logic.pushDelta(velocity:Dot(right), target, Layout.FAN_PUSH_ACCEL, dt)
 				if add ~= 0 then
-					local marked = fanMarked[fanIndex]
-					if marked and not marked[player] then
-						marked[player] = true
-						MoveExempt.mark(character, Layout.FAN_BLOW + 0.5)
-					end
 					root.AssemblyLinearVelocity = velocity + right * add
 				end
 			end
@@ -410,6 +403,7 @@ local map: MapTypes.MapModule = {
 	kind = "Race",
 	displayName = "디저트 냉장고",
 	rule = "미끄러운 얼음을 건너 냉장고 문까지 달려요!",
+	lighting = Art.LIGHTING, -- m5-23 맵 조명: 차가운 냉장고 안
 	build = build,
 	start = start,
 }

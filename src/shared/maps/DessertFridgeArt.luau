@@ -930,11 +930,17 @@ local function addDesserts(list: { DecorSpec })
 	end
 	add(list, post("EggNori", 5.8, 1.2, P.Nori, "Fabric", v(ex + 3.2, shelf + 6.2, ez + 9.6)))
 	-- 요거트 컵 무리
-	for i, p in { { 52, -64, P.PastelPink }, { 56, -71, P.PastelYellow }, { 50, -74, P.PastelLavender } } do
-		add(list, post("YogurtCup", 7, 8, P.Rice, "SmoothPlastic", v(p[1], shelf + 4, p[2])))
-		add(list, post("YogurtLid", 7.6, 0.6, p[3], "Foil", v(p[1], shelf + 8.3, p[2])))
+	for i, p in
+		{
+			{ x = 52, z = -64, c = P.PastelPink },
+			{ x = 56, z = -71, c = P.PastelYellow },
+			{ x = 50, z = -74, c = P.PastelLavender },
+		}
+	do
+		add(list, post("YogurtCup", 7, 8, P.Rice, "SmoothPlastic", v(p.x, shelf + 4, p.z)))
+		add(list, post("YogurtLid", 7.6, 0.6, p.c, "Foil", v(p.x, shelf + 8.3, p.z)))
 		if i == 1 then
-			add(list, post("YogurtLabel", 7.2, 3, p[3], "SmoothPlastic", v(p[1], shelf + 4, p[2])))
+			add(list, post("YogurtLabel", 7.2, 3, p.c, "SmoothPlastic", v(p.x, shelf + 4, p.z)))
 		end
 	end
 
@@ -1062,15 +1068,21 @@ local function addDesserts(list: { DecorSpec })
 	})
 
 	-- 왼쪽 출발 옆: 잼 병 무리 (딸기·자두·살구) + 버터 상자
-	for i, p in { { -46, -22, P.Strawberry, 10, 12 }, { -54, -30, P.Plum, 8, 10 }, { -40, -34, P.Caramel, 7, 9 } } do
-		local d, h = p[4], p[5]
+	for i, p in
+		{
+			{ x = -46, z = -22, c = P.Strawberry, d = 10, h = 12 },
+			{ x = -54, z = -30, c = P.Plum, d = 8, h = 10 },
+			{ x = -40, z = -34, c = P.Caramel, d = 7, h = 9 },
+		}
+	do
+		local d, h = p.d, p.h
 		add(list, {
 			name = "JamJar",
 			shape = "Cylinder",
 			size = v(h, d, d),
-			color = p[3],
+			color = p.c,
 			material = "Glass",
-			offset = v(p[1], shelf + h / 2, p[2]),
+			offset = v(p.x, shelf + h / 2, p.z),
 			rotation = v(0, 0, 90),
 			transparency = 0.15,
 			reflectance = 0.2,
@@ -1083,10 +1095,10 @@ local function addDesserts(list: { DecorSpec })
 				2,
 				if i == 1 then P.PastelPink else P.Rice,
 				"SmoothPlastic",
-				v(p[1], shelf + h + 1, p[2])
+				v(p.x, shelf + h + 1, p.z)
 			)
 		)
-		add(list, post("JamLabel", d + 0.2, h * 0.35, P.Cream, "SmoothPlastic", v(p[1], shelf + h * 0.45, p[2])))
+		add(list, post("JamLabel", d + 0.2, h * 0.35, P.Cream, "SmoothPlastic", v(p.x, shelf + h * 0.45, p.z)))
 	end
 	addAll(
 		list,
@@ -1232,11 +1244,11 @@ local function addDesserts(list: { DecorSpec })
 	-- 위 선반: 병·통 무리 (BG 디테일, 적게)
 	for i, p in
 		{
-			{ -48, -40, P.Sea },
-			{ -54, -46, P.Mint },
-			{ 50, -130, P.PastelPink },
-			{ 46, -138, P.Rice },
-			{ -50, -200, P.Matcha },
+			{ x = -48, z = -40, c = P.Sea },
+			{ x = -54, z = -46, c = P.Mint },
+			{ x = 50, z = -130, c = P.PastelPink },
+			{ x = 46, z = -138, c = P.Rice },
+			{ x = -50, z = -200, c = P.Matcha },
 		}
 	do
 		local h = 14 + (i % 3) * 3
@@ -1244,14 +1256,14 @@ local function addDesserts(list: { DecorSpec })
 			name = "UpperJar",
 			shape = "Cylinder",
 			size = v(h, 9, 9),
-			color = p[3],
+			color = p.c,
 			material = "Glass",
-			offset = v(p[1], high + h / 2, p[2]),
+			offset = v(p.x, high + h / 2, p.z),
 			rotation = v(0, 0, 90),
 			transparency = 0.2,
 			reflectance = 0.15,
 		})
-		add(list, post("UpperJarLid", 9.6, 2, P.Rice, "SmoothPlastic", v(p[1], high + h + 1, p[2])))
+		add(list, post("UpperJarLid", 9.6, 2, P.Rice, "SmoothPlastic", v(p.x, high + h + 1, p.z)))
 	end
 	addAll(
 		list,

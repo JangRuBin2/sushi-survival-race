@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-06 — 새 Race 맵: 디저트 냉장고 (`dessert-fridge`) + 얼음 이동
@@ -105,6 +105,14 @@ status: in-dev
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### PHASE B (아트, 2026-10-13) — in-qa
+- 바뀐 파일: `src/shared/maps/DessertFridgeArt.luau`(전면 작성 — `BUDGET = "Extended"`, `LIGHTING`, `decor()`, `courseVolume()`, `introCamera()`), `DessertFridge.luau`(`lighting = Art.LIGHTING`, 얼음 바닥 Reflectance 0.12·색 조금 밝게, 판정 젤리 Transparency 0.25 → 0.1 — 크기·위치·충돌은 그대로, **송풍구 `MoveExempt` 제거**(결정 Q2)), 테스트 `tests/map-dessert-fridge.spec.luau`(AC7·AC16: validate·`checkBudget(..,"Extended")`·그림자 ≤ 2·SurfaceLight range ≤ 16·코스 시야 상자·배경 바닥 높이·조명 프리셋, MoveExempt는 젤리 한 곳), `tests/m5-23-qa.spec.luau`(조명·파티클 예산을 맵의 `Art.BUDGET` 단계로 — Extended 맵이 처음이라), `tests/m5-03-qa.spec.luau`(dessert-fridge 껍데기 검사 3개 제거 — 실제 맵은 map-dessert-fridge가 검사. **m5-03 QA B1(껍데기 스폰 13~24번 바닥 밖)은 이 재작성으로 닫힘**: 스폰 24개가 출발 바닥 A 안, AC1 테스트), `docs/renders/dessert-fridge/`(before-*·after-* PNG + after-stats.txt)
+- 세계: 거대한 업소용 냉장고(안쪽 폭 124·높이 122·깊이 308) 한가운데 코스가 떠 있고, 끝은 활짝 열린 양문 너머 따뜻한 주방. 1 stud ≈ 1 cm. 히어로 ① 뒷벽 LED 패널 + 송풍구 그릴 ② 푸딩(캐러멜 흘러내림)·딸기 쇼트케이크 ③ 오른쪽 문 선반 아이스크림 콘 탑 ④ 우유팩 + 계란판(김 띠 두른 계란 하나) ⑤ 열린 양문(병·간장병·소스) + 주방(노을 창·매달린 등·조리대·초밥 접시). BG 바닥 = 채소 서랍(윗면 y -37, 낙하선보다 12 아래)·주방 마루(y -62)
+- 렌더 통계(최종): `decor=1199/1500 lights=16/24 (shadowed 2/2) particles=12/16 anim=23/80 void=intro 0%·eye 0%·mobile 0%` (overview 21%는 냉장고 밖에서 본 모습 — 아래)
+- 최종 PNG: `docs/renders/dessert-fridge/after-eye.png`, `after-intro-01.png`, `after-intro-02.png`, `after-intro-03.png`, `after-intro-04.png`, `after-mobile.png`, `after-overview.png`, `after-top.png` (전: `before-*.png`). 반복 기록·체크리스트는 `docs/developer/m5-06-map-dessert-fridge.md`
+- Studio 확인 (AC17, `forceMapPlan = { "dessert-fridge", "hot-plate", "skewer-showdown" }`, 확인 뒤 nil): 라운드 소개 때 조명이 차가운 흰-파랑으로 바뀌는지, 출발 자리에서 멀리 문밖 주황 빛(노을 창·매달린 등·문 앞 스포트라이트)이 보이는지, 휴대폰 에뮬레이터에서 남색 구멍(흰 림)·얼음 가장자리(흰·민트 립)가 보이는지. 양옆 유리 선반(y -10)이 "밟을 수 있는 곳"처럼 보이지 않는지, 천장 LED·문 앞 스포트라이트 그림자가 너무 무겁지 않은지, `MapDecorAnim`(젤리 컵 Pulse·체리 Bob·마카롱 Spin·병 Sway)이 움직이는지
+- 남은 이슈(아트): overview(3/4 위 뷰)는 닫힌 냉장고 바깥(스테인리스 겉판 + 주방)만 보여요 — 실내 맵이라 의도, 히어로는 intro·eye 뷰에서 확인. 렌더러 근사라 실제 Studio는 더 대비가 클 수 있음(Atmosphere Density 0.22). 장식 딸기·딸기잼·빨간 젤리 컵이 빨강 계열 — 이 맵에는 빨간 위험물이 없어서 헷갈림은 적다고 봤어요(판정 젤리도 빨강·초록)
+
 ### PHASE A (게임플레이, 2026-10-13) — 아트는 PHASE B(m5-23 비주얼 키트 이후)에서
 - 바뀐 파일
   - 새 파일: `src/shared/IceLogic.luau`(순수 얼음 관성 계산), `src/shared/maps/DessertFridgeLayout.luau`(치수·튜닝), `DessertFridgeLogic.luau`(진행도·낙하선·송풍구 주기·젤리/송풍구 구역·길 찾기용 판정), `DessertFridgeArt.luau`(**자리 표시용 최소 장식** — 결승 문틀·문짝 4개 + IntroCamera 4점)
@@ -121,6 +129,6 @@ status: in-dev
   6. 다음 맵(hot-plate)·로비에서 이동이 평소와 같은지 (AC15)
 - 남은 이슈
   - 아트(PHASE B): 냉장고 벽·유리 선반·차가운 조명·디저트 장식·젤리 출렁임 애니메이션·결승 주방 불빛. 판정 파츠는 실루엣이 읽히게 이미 색·재질만 정해 둠
-  - Q1·Q2 planner 확인
+  - Q1·Q2 → 결정됨 (C 폭 30, 송풍구 MoveExempt 뺌 — PHASE B에서 반영)
   - IceController의 제약 힘(질량 × 600)과 Studio 체감은 미확인 — 너무 끈적이거나 벽(큐브)에서 떨리면 `GLIDE_ACCEL`만 조절
   - 이 브랜치와 병렬인 m5-04·m5-05가 같은 테스트(`m5-03-foundation`·`maps`·`m4-foundation`·`m4-12-hardening`)의 맵 개수를 바꾸면 병합 때 충돌 — 숫자를 합쳐 맞추면 돼요

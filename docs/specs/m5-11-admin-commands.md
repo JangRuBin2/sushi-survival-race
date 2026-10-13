@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-11 — 관리자 명령 확장 (테스트 서버 전용)

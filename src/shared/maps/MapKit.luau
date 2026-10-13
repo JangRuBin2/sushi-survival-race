@@ -9,8 +9,12 @@
 --   MapKit.introCamera(model, points, origin)  "IntroCamera" 폴더에 01, 02, … 투명 앵커 파츠 (m3-04 규칙)
 --   MapKit.attachStudioArt(model, mapId, origin)  ServerStorage.MapArt[mapId]가 있으면 Decor/StudioArt로 복제
 --   MapKit.applyDecorRules(part)               파츠 하나를 장식 규칙으로 (Anchored, 충돌·쿼리·터치 없음)
+--   MapKit.makeEmitter(preset, rate?) -> ParticleEmitter   MapFxPresets 프리셋 (m5-23)
+--   MapKit.makeLight(lightSpec) -> Light                  DecorSpec.light 모양 (m5-23)
 -- Roblox API는 함수 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
+local MapDecorTags = require(script.Parent.MapDecorTags)
+local MapFxPresets = require(script.Parent.MapFxPresets)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 
 local MapKit = {}
@@ -54,23 +58,102 @@ local function materialOf(name: string): Enum.Material
 	return Enum.Material.SmoothPlastic
 end
 
+local function enumItem(enum: any, name: string?, fallback: string): any
+	local ok, item = pcall(function()
+		return enum[name or fallback]
+	end)
+	if ok and item then
+		return item
+	end
+	return enum[fallback]
+end
+
+local function keypoints(list: { MapFxPresets.Key }): NumberSequence
+	local points = {}
+	for _, key in list do
+		table.insert(points, NumberSequenceKeypoint.new(key.t, key.v))
+	end
+	if #points == 1 then
+		return NumberSequence.new(points[1].Value)
+	end
+	return NumberSequence.new(points)
+end
+
+-- MapFxPresets 프리셋으로 ParticleEmitter를 만들어요 (부모는 부르는 쪽이 정해요). rate가 있으면 Rate를 덮어써요.
+function MapKit.makeEmitter(presetName: string, rate: number?): ParticleEmitter
+	local preset = assert(MapFxPresets.PRESETS[presetName], `unknown particle preset {presetName}`)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Name = presetName
+	emitter.Texture = preset.Texture
+	emitter.Rate = rate or preset.Rate
+	emitter.Lifetime = NumberRange.new(preset.Lifetime[1], preset.Lifetime[2])
+	emitter.Speed = NumberRange.new(preset.Speed[1], preset.Speed[2])
+	emitter.SpreadAngle = Vector2.new(preset.SpreadAngle[1], preset.SpreadAngle[2])
+	emitter.Size = keypoints(preset.Size)
+	emitter.Transparency = keypoints(preset.Transparency)
+	local colors = {}
+	for _, key in preset.Color do
+		table.insert(colors, ColorSequenceKeypoint.new(key.t, Color3.fromRGB(key.c.r, key.c.g, key.c.b)))
+	end
+	if #colors == 1 then
+		emitter.Color = ColorSequence.new(colors[1].Value)
+	else
+		emitter.Color = ColorSequence.new(colors)
+	end
+	emitter.LightEmission = preset.LightEmission
+	emitter.LightInfluence = preset.LightInfluence
+	emitter.Acceleration = Vector3.new(preset.Acceleration[1], preset.Acceleration[2], preset.Acceleration[3])
+	emitter.Drag = preset.Drag
+	emitter.Rotation = NumberRange.new(preset.Rotation[1], preset.Rotation[2])
+	emitter.RotSpeed = NumberRange.new(preset.RotSpeed[1], preset.RotSpeed[2])
+	emitter.EmissionDirection = enumItem(Enum.NormalId, preset.EmissionDirection, "Top")
+	return emitter
+end
+
+-- LightSpec으로 PointLight/SpotLight/SurfaceLight를 만들어요 (부모는 부르는 쪽이 정해요).
+function MapKit.makeLight(spec: MapKitLogic.LightSpec): Light
+	local light: Light
+	if spec.kind == "Spot" then
+		local spot = Instance.new("SpotLight")
+		spot.Angle = spec.angle or 90
+		spot.Face = enumItem(Enum.NormalId, spec.face, "Front")
+		light = spot
+	elseif spec.kind == "Surface" then
+		local surface = Instance.new("SurfaceLight")
+		surface.Angle = spec.angle or 90
+		surface.Face = enumItem(Enum.NormalId, spec.face, "Front")
+		light = surface
+	else
+		light = Instance.new("PointLight")
+	end
+	light.Color = Color3.fromRGB(spec.color.r, spec.color.g, spec.color.b)
+	light.Brightness = spec.brightness
+	light.Shadows = spec.shadows == true
+	(light :: any).Range = spec.range
+	return light
+end
+
 -- 장식을 만들어요. 목록이 MapKitLogic.validate를 통과하지 못하면 경고하고 아무것도 만들지 않아요
 -- (장식 때문에 라운드가 깨지지 않게). 만든 파츠 목록을 돌려줘요.
+-- m5-23: CornerWedge, reflectance, castShadow(nil이면 작은 소품은 끔), light, particle, anim(태그·속성만 — 움직임은 클라이언트)
 function MapKit.buildDecor(specs: { MapKitLogic.DecorSpec }, origin: CFrame, parent: Instance): { BasePart }
 	local problem = MapKitLogic.validate(specs)
 	if problem then
 		warn(`[MapKit] decor skipped: {problem}`)
 		return {}
 	end
-	local count = MapKitLogic.count(specs)
-	if count > MapKitLogic.DECOR_PART_BUDGET then
-		warn(`[MapKit] decor has {count} parts (budget {MapKitLogic.DECOR_PART_BUDGET})`)
+	local over = MapKitLogic.checkBudget(specs, "Extended")
+	if over then
+		warn(`[MapKit] decor over budget: {over}`)
 	end
+	local CollectionService = game:GetService("CollectionService")
 	local parts: { BasePart } = {}
 	for _, spec in specs do
 		local part: BasePart
 		if spec.shape == "Wedge" then
 			part = Instance.new("WedgePart")
+		elseif spec.shape == "CornerWedge" then
+			part = Instance.new("CornerWedgePart")
 		else
 			local block = Instance.new("Part")
 			if spec.shape == "Ball" then
@@ -85,6 +168,8 @@ function MapKit.buildDecor(specs: { MapKitLogic.DecorSpec }, origin: CFrame, par
 		part.Color = Color3.fromRGB(spec.color.r, spec.color.g, spec.color.b)
 		part.Material = materialOf(spec.material)
 		part.Transparency = spec.transparency or 0
+		part.Reflectance = spec.reflectance or 0
+		part.CastShadow = MapKitLogic.resolveCastShadow(spec)
 		part.TopSurface = Enum.SurfaceType.Smooth
 		part.BottomSurface = Enum.SurfaceType.Smooth
 		local rotation = spec.rotation
@@ -94,6 +179,22 @@ function MapKit.buildDecor(specs: { MapKitLogic.DecorSpec }, origin: CFrame, par
 		end
 		part.CFrame = origin * placement
 		MapKit.applyDecorRules(part)
+		if spec.light then
+			MapKit.makeLight(spec.light).Parent = part
+		end
+		if spec.particle then
+			MapKit.makeEmitter(spec.particle, spec.particleRate).Parent = part
+		end
+		local anim = spec.anim
+		if anim then
+			part:SetAttribute(MapDecorTags.AnimKind, anim.kind)
+			part:SetAttribute(MapDecorTags.AnimPeriod, anim.period)
+			part:SetAttribute(MapDecorTags.AnimAmount, anim.amount or 0)
+			if anim.axis then
+				part:SetAttribute(MapDecorTags.AnimAxis, anim.axis)
+			end
+			CollectionService:AddTag(part, MapDecorTags.Anim)
+		end
 		part.Parent = parent
 		table.insert(parts, part)
 	end

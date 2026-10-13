@@ -32,6 +32,7 @@
   - **확정됨 (2026-10-08, 위임)**: 관리자 기능 실서버에서도 **켜 둠** (`src/server/AdminConfig.luau`의 `LiveEnabled = true`). 관리자 판단은 계정(UserId)으로만 — 비밀번호 방식은 보안상 거절됨
   - [ ] **공개 출시 전에 다시 확인**: 관리자 미리보기를 실서버에서 유지할지, 끌지(`LiveEnabled = false`). 켜 두면 관리자가 안 산 스킨을 입은 모습이 다른 사람에게 보여요(능력치 영향 없음)
 - [x] **관리자 UserId 알려 주기** — 완료 (2026-10-08): **11402290839** → `src/server/AdminConfig.luau`의 `UserIds`에 들어갔어요
+- [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
@@ -65,6 +66,12 @@ rojo serve                              # Studio의 Rojo 플러그인 → Connec
 ```
 처음이라면 [`docs/DEV-SETUP.md`](DEV-SETUP.md) 1절(설치), 3-1(연결), 3-3(여러 명 테스트).
 M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 한 번 `rokit install`을 다시 실행하세요.
+
+### B1-1. Future 조명 켜기 (한 번만, m5-23)
+`Lighting.Technology`(조명 방식)는 스크립트로 바꿀 수 없는 속성이라 `default.project.json`에 `Future`로 넣어 뒀어요. Rojo 동기화가 이 값을 못 바꾸는 경우가 있어서 한 번 확인해 주세요.
+- [ ] Studio 탐색기에서 **Lighting** 선택 → 속성 창 **Technology**가 `Future`인지 확인. 아니면 `Future`로 바꾸고 **File → Save / Publish** (플레이스 파일에 저장돼야 실서버에도 적용돼요)
+- [ ] 확인: 맵의 등불·조명 아래에 그림자가 생기고 빛이 주변을 물들이면 성공. 로비 → 맵 들어갈 때 맵마다 조명 분위기가 바뀌는지도 같이 봐 주세요(m5-23 맵별 조명).
+- 휴대폰이 느려지면 알려 주세요. 저사양 기기는 Roblox가 자동으로 품질을 낮춰요.
 
 ### B2. M3 확인 (캐릭터·연출·다이브/잡기·소리)
 - [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-8** 체크리스트 A~N

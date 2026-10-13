@@ -17,6 +17,13 @@
         "$path": "assets/map-art"
       }
     },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": true
+      }
+    },
     "StarterGui": {
       "$properties": {
         "ScreenOrientation": "LandscapeSensor"

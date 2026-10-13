@@ -27,6 +27,7 @@
 -- Conveyor·Chopstick, SoySauce·Wasabi, Broth·Chashu·NoodleSweeper, HotTile, ChefBoardCell·ChefKnife, SkewerShowdown*).
 
 local Cleanup = require(script.Parent.Parent.Cleanup)
+local MapLighting = require(script.Parent.MapLighting)
 local Rules = require(script.Parent.Parent.Rules)
 
 export type MapKind = Rules.MapKind
@@ -60,6 +61,9 @@ export type MapModule = {
 	overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?, -- Final 맵은 필수 (m5-01)
 	-- false면 랜덤 판(Maps.infos)에 안 나오고 Maps.get·디버그 강제 플랜으로만 돌아요 (m5-03, 미완성 껍데기). nil·true면 풀에 들어가요
 	inPool: boolean?,
+	-- 맵 조명 분위기 (m5-23). 있으면 그 아레나를 보는 클라이언트가 Lighting을 이 값으로 바꿔요 (빠진 키는 로비 값).
+	-- nil이면 로비 조명 그대로. 기존 맵은 MapLighting.PRESETS[id]
+	lighting: MapLighting.MapLighting?,
 }
 
 local KINDS = { Race = true, Survival = true, Final = true }
@@ -102,6 +106,12 @@ function MapTypes.validate(map: any): string?
 	end
 	if map.inPool ~= nil and type(map.inPool) ~= "boolean" then
 		return `{id}: inPool must be a boolean`
+	end
+	if map.lighting ~= nil then
+		local problem = MapLighting.validate(map.lighting)
+		if problem then
+			return `{id}: {problem}`
+		end
 	end
 	return nil
 end

@@ -33,6 +33,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Cleanup = require(ReplicatedStorage.Shared.Cleanup)
 local Maps = require(ReplicatedStorage.Shared.maps)
+local MapDecorTags = require(ReplicatedStorage.Shared.maps.MapDecorTags)
 local MapSfx = require(ReplicatedStorage.Shared.maps.MapSfx)
 local MapSfxLogic = require(ReplicatedStorage.Shared.maps.MapSfxLogic)
 local MapTypes = require(ReplicatedStorage.Shared.maps.MapTypes)
@@ -191,6 +192,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		model:SetAttribute(Attributes.RoomId, roomId)
 		model:SetAttribute(Attributes.RoundIndex, args.roundIndex)
 		model:SetAttribute(Attributes.MapId, map.id)
+		game:GetService("CollectionService"):AddTag(model, MapDecorTags.Arena) -- m5-23 클라이언트 맵 조명이 이 아레나를 찾아요
 		model.Parent = workspace
 
 		-- 결승은 맵 종류가 아니라 매치의 마지막 라운드예요 (B8).

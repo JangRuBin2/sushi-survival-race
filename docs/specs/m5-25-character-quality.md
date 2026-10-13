@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-25 — 캐릭터 퀄리티 개선 (2단계: 새 기준 몸·얼굴·31종 재배치·작은 움직임)

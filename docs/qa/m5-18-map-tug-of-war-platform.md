@@ -88,3 +88,31 @@
 - 남은 것: B1(P2) 수정 — developer, 제안 ①은 스펙 수치를 안 바꿔요. 사용자 Studio 확인 AC9~AC16(특히 R1 "30°에서 미끄러지는가").
 - 다음 첫 단계: developer가 B1 ①(`collapseDuration` 뒤 `Platform.CanCollide = false`)을 넣고 QA 재확인, 또는 사용자 확인 결과를 보고 함께.
 - 막힌 점: 없음.
+
+## 재QA (2026-10-13, qa) — 브랜치 `m5-maps-fix-b` (`ae59293`)
+### 자동 검증
+| 명령 | 결과 |
+|---|---|
+| `rojo build -o build.rbxl` | 통과 |
+| `stylua --check src tests` | 통과 |
+| `selene src` | 통과 (0 errors, 0 warnings, 0 parse errors) |
+| `lune run tests` | 통과 — **1456 passed, 0 failed** |
+| `luau-lsp analyze ... src` | 통과 (끝 코드 0) |
+
+### 수정 확인
+| 버그 | 결과 | 근거 |
+|---|---|---|
+| B1 90° 끝면 턱 | 고침 | `TugOfWarPlatform.luau:190-198, 231-236` 연장전 `collapseDuration`이 지나면 Heartbeat에서 한 번 `disablePlatform()` — `PlatformGroup`의 BasePart 전부(발판 + 무게추 장식) `CanCollide/CanTouch/CanQuery = false`. 모델의 다른 파츠는 장식(`MapKit.buildDecor`, 충돌 없음)과 스폰(충돌 없음)뿐이라 설 곳이 0. 재QA 테스트 "m5-18 재QA B1": collapseDuration 8·20·40 × 시작 각도 3개에서 `since ≥ collapseDuration`이면 각도가 정확히 ±90°이고 같은 순간 `platformSolid = false`, 직전(−0.01)은 true — 턱이 수평으로 남는 틱이 없음(각도·충돌이 같은 Heartbeat에서 바뀜). 스펙 수치(마지막 꺾인점 90°)는 그대로. |
+| B2 발판 밖 토크 | 고침 | `:224-227` `Logic.riderX` — \|x\| > 35는 토크에서 뺌. 30° 기운 발판 끝에 선 사람도 origin 기준 X ≈ 35·cos30 + 3·sin30 ≈ 31.8로 안쪽이라 정상 레이서는 빠지지 않음. |
+
+- 바뀐 곳은 토크 입력 필터와 연장전 끝 충돌 끄기뿐. 낙하 판정(origin 기준 Y < −25), 기울기 공식, 연장전 각도 일정은 그대로.
+- 연장전 끝 동작: 20초 시점에 남은 사람이 동시에 떨어지면 같은 묶음 → 높이 순(기존 결승 규칙). 안전 상한(150초)까지 가지 않음.
+- 사용자 Studio 확인(추가): `overtimeAt = 15`, 연장전 20초 뒤 수직 발판이 통과돼 남은 사람이 모두 떨어지고 경기가 바로 끝나는지, 발판 끝 모서리에 매달려도 버틸 수 없는지. 나머지 AC9~AC16은 원래 체크리스트대로.
+- 상태: `in-qa` → **`qa-passed`**.
+
+## 인계 메모 (2026-10-13, qa 재QA)
+- 브랜치: `m5-maps-fix-b`.
+- 끝난 것: B1(P2)·B2(P3) 수정 확인, 검증 5단계, 재QA 테스트, 스펙 `qa-passed`.
+- 남은 것: 사용자 Studio 확인(AC9~AC16 + 위 추가 항목, 특히 R1 "30°에서 미끄러지는가").
+- 다음 첫 단계: main 병합 → docs-writer 반영 → `done`.
+- 막힌 점: 없음.

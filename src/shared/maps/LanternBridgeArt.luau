@@ -519,11 +519,7 @@ local function addBridgePosts(list: { DecorSpec })
 					v(1, 1.3, 1),
 					PAPER,
 					"Neon",
-					v(x, 3.2, endZ + (if endZ > bridge.front - 1 then 0.6 else -0.6)),
-					nil,
-					{
-						anim = { kind = "Sway", period = 2.4 + (i % 3) * 0.3, amount = 8, axis = "X" },
-					}
+					v(x, 3.2, endZ + (if endZ > bridge.front - 1 then 0.6 else -0.6))
 				)
 			end
 		end
@@ -550,9 +546,9 @@ local function addLanternStrings(list: { DecorSpec })
 				"Neon",
 				v(x, y - 0.6, z),
 				nil,
-				{
-					anim = { kind = "Sway", period = 3 + ((k + s) % 4) * 0.4, amount = 6, axis = "X" },
-				}
+				if k % 2 == 0
+					then { anim = { kind = "Sway", period = 3 + ((k + s) % 4) * 0.4, amount = 6, axis = "X" } }
+					else nil
 			)
 			put(
 				list,
@@ -571,9 +567,9 @@ end
 -- 떠내려가는 등롱 (Bob) + 물에 비친 빛 줄
 local function addFloatingLanterns(list: { DecorSpec })
 	local rng = MapKitShapes.rng(57)
-	for k = 1, 22 do
+	for k = 1, 14 do
 		local x = rng:range(-44, 44)
-		local z = 30 - k * 9 + rng:range(-3, 3)
+		local z = 30 - k * 14 + rng:range(-4, 4)
 		local bob = { anim = { kind = "Bob", period = 3 + rng:range(0, 2.5), amount = 0.5 } } :: Extra
 		put(
 			list,
@@ -656,9 +652,7 @@ local function addStall(list: { DecorSpec }, x: number, z: number, side: number,
 		light = { kind = "Point", color = LANTERN_GLOW, brightness = 1.6, range = 24 },
 		anim = { kind = "Sway", period = 3.2, amount = 6, axis = "X" },
 	})
-	put(parts, "StallLanternB", "Ball", v(2.6, 3.2, 2.6), TORII, "Neon", v(4, STREET_Y + 11.6, -4.2), nil, {
-		anim = { kind = "Sway", period = 2.8, amount = 6, axis = "X" },
-	})
+	put(parts, "StallLanternB", "Ball", v(2.6, 3.2, 2.6), TORII, "Neon", v(4, STREET_Y + 11.6, -4.2))
 	-- 판매대 위 음식 (빙수·사과사탕·꼬치)
 	put(
 		parts,

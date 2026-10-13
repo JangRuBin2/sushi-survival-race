@@ -1,4 +1,4 @@
-status: in-qa
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -214,6 +214,8 @@ status: in-qa
 - 2026-10-13 · 기획 질문 3개 (메인 세션 기본값, 사용자 위임) · (1) 관리자 "🛠" 패널은 한국어 유지, `AutoLocalize = false`(이번 범위에서 제외). (2) 영어 용어는 7절 용어집 그대로("Wardrobe", "Rice Coins", 맵 이름 7절). (3) 원어민 검토는 지금 안 함(나중에 CSV로 가능). · 메인 세션 기본값
 
 - 2026-10-13 · 구현 중 정한 세부 (developer, 스펙 범위 안) · (1) `choose`: `en`도 번역기 결과가 한국어 원문과 같으면 "정상"으로 보지 않고 카탈로그 `en`을 써요(클라우드 표에 영어가 빠졌을 때 한국어가 보이지 않게, 표의 다른 줄은 그대로). (2) 숫자 인자는 한국어 화면에서도 천 단위 쉼표(`1,234`) — 코인 배지·정산 줄이 예전 `1234`와 달라요. (3) `.tab` 10자 제한 때문에 이벤트 탭 영어는 "🎃 Spooky"·"🎄 Holiday". (4) `RoomUiKit` label·button·textBox 기본 `AutoLocalize = false`라 관리자 패널(Kit 사용)도 자동으로 꺼져요. (5) m5-25가 main에 머지돼서 2단계 중 `CharacterFxController` 칭호·이름표는 1단계에 같이 했어요(메인 세션 허락). (6) `RoomService.forceStart`(관리자 명령 전용) 문구는 한국어 문자열 그대로 — AC11 허용 목록. · developer
+- 2026-10-13 · QA 결과 · **반려(in-dev)**: P1 B1 — 확인 안 된 로비 복귀 티켓(TeleportData)의 `nameIsDefault = true`를 믿고 `RoomService.restoreRoom`이 방 이름 필터를 건너뜀(필터 안 된 이름이 로비 목록에). P3 B2~B5(영어 문구, 다른 언어 서수, 늦은 번역기, 2단계 범위). 자세한 건 `docs/qa/m5-26-localization.md`. · qa
+
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

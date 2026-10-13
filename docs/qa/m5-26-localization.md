@@ -151,3 +151,48 @@
 - **남은 것**: developer가 B1(P1) 수정 → `tests/m5-26-qa.spec.luau` "QA B1"이 통과하는지 → QA 재확인(B1만 + 전체 5단계). P3(B2 영어 문구, B3 서수, B4 늦은 번역기)는 선택. 2단계(B5: 단상·"매워!!", AC25·AC26). 사용자 Studio 체크리스트 1~9.
 - **다음에 할 첫 단계**: 재QA 요청이 오면 `git merge origin/m5-26-i18n` 후 `lune run tests`에서 `m5-26-qa.spec.luau` 21/21인지, `RoomService.restoreRoom` 변경을 읽기.
 - **막힌 점**: 없음. Studio·실서버 항목은 사용자 확인 필요.
+
+## 재QA (2026-10-13, 진행 중 — 세션 사용량 때문에 중간 인계)
+- 검증 커밋: `374a136` (origin/m5-26-i18n-p2, origin/main 병합할 것 없음)
+- 잠정 결과: **P0/P1 없음**. 회귀 테스트를 아직 추가하지 않아서 스펙 상태는 `in-qa` 그대로 둠
+
+### 자동 검증 (로컬 Windows)
+| 명령 | 결과 |
+|---|---|
+| `rojo build` | 성공 |
+| `stylua --check src tests` | 통과 |
+| `selene src` | 0 errors, 0 warnings |
+| `lune run tests` | **1828 passed, 0 failed** (m5-26-qa 21/21 — B1 재현 테스트 통과, m5-26-phase2 20/20) |
+| `luau-lsp analyze` | 끝 코드 0 |
+
+### 확인한 것 (코드 읽기 + 위 테스트)
+- **B1 (P1) 고침 확인**: `RoomService.restoreRoom`(`src/server/RoomService.luau:697-714`)은 `filterWith`가 있으면 티켓의 `name`·`nameIsDefault`를 믿지 않아요.
+  - 기본 이름이고 방장이 있음 → 방장 DisplayName으로 다시 만들어요.
+  - 방장이 없음 → 티켓 이름을 필터해요. 하나라도 바뀌거나 필터가 실패하면 돌아온 사람 DisplayName을 써요.
+  - 쓴 이름 → 항상 필터해요. 정상 기본 이름 방은 플래그가 유지돼요.
+  - 매치 서버(`PlaceService.luau:603`, `filterWith = nil`, MemoryStore 매니페스트)는 그대로예요. 로비 복귀(`PlaceService.luau:423`)는 확인된 티켓이든 아니든 `filterWith = player`예요.
+  - 참고(버그 아님): 티켓의 `hostUserId`를 이 서버의 다른 사람으로 바꾸면 방 이름이 그 사람 DisplayName이 될 수 있어요. m5-26 전에도 필터를 통과한 글로 같은 이름을 쓸 수 있었고, 필터 규칙 위반도 아니에요.
+- **B2**: QA 표 10줄이 모두 CSV `en`에 반영됐어요.
+- **B3**: `ordinal`은 `en`만 서수예요. `Loc.tPlace`를 4곳(HUD 결과 2, 순위표, 탈락 등수)에서 써요. 그 밖 언어는 카탈로그 영어로 폴백할 때만 서수를 써요.
+- **B4**: 다시 쓰는 대상은 TextLabel·TextButton뿐이라 TextBox 입력은 건드리지 않아요. 기록과 글씨가 정확히 같을 때만 다시 쓰고, ko·en은 기록하지 않아요. 목록 한도는 2000이고 번역기가 오면 기록을 멈춰요.
+  - 새로 찾은 한계 [P3] B6: PlayerGui 밖 월드 BillboardGui(캐릭터 이름표 칭호 등)는 다시 쓰지 않아요. 그래서 다음 리스폰이나 속성 변경 전까지 폴백 영어로 남아요. 클라우드 업로드 뒤 ko·en 밖 언어에서 번역기가 3초 넘게 걸릴 때만 생겨요.
+- **2단계**: 단상은 `WinnerName`·`WinnerWins` 속성만 달고, 서버·클라이언트 라벨 모두 `AutoLocalize = false`예요. `PodiumLogic.view` → `Loc`, `Loc.onChanged`도 구독해요. 와사비는 `WorldText.mark` + `WorldTextController`예요. 서버·shared에서 TextLabel을 만드는 곳은 LobbyService(빈 글씨)와 SoySwampHazards(키)뿐이에요.
+- **Title 숫자**: 읽는 곳은 `CharacterFxController.updateTitle` 하나예요. 숫자(`titleWinsFor` → `Loc.titleName`)와 옛 한국어 문자열(`Loc.titleFromName`)을 둘 다 처리해요. 관리자 파일이나 다른 클라이언트 코드에는 Title을 읽는 곳이 없어요.
+- **숫자 + 단위 = 한 키**: src(관리자 제외)에 한국어 단위를 보간하거나 이어 붙이는 곳이 없어요. 영어 단위를 이어 붙이는 곳(`.. "s"` 등)도 없어요. CSV의 단위 행은 en도 같은 자리표시자를 가져요(phase2 "규칙" 테스트).
+- **한국어 리터럴 허용 목록**: Studio 전용 "Studio 매치" 1줄과 데이터 원문(Skins·Offers·Seasons·FxCatalog·Config.Titles·손님 대사·맵 displayName/rule)이에요. 관리자 파일 말고는 클라이언트가 이 원문을 직접 쓰는 곳이 없어요(grep).
+- **서버가 보내는 한국어 값**: `ProfileView.title`은 클라이언트에서 읽는 곳이 없어요. MatchPhase `mapName`·`rule`은 `mapId`가 없을 때만 쓰는 폴백인데, MatchService가 항상 `mapId`를 보내서 화면에 나오지 않아요.
+
+### 남은 것
+- 회귀 테스트 추가(`tests/m5-26-reqa.spec.luau` 예정):
+  - B1: `nameIsDefault`가 boolean이 아닐 때
+  - B1: 쓴 이름이 필터로 바뀔 때 플래그
+  - Title 기준 승수 ↔ `title.w*` 키 동기화
+  - B4 다시 쓰기가 TextBox를 건드리지 않는지(정적)
+  - 단상 라벨 AutoLocalize(정적)
+- 테스트를 추가한 뒤 5단계를 다시 돌리고, P0/P1이 없으면 스펙을 `qa-passed`로.
+- 사용자 Studio 확인: 위 체크리스트 1~9 + 스펙 개발 메모 "2단계"의 Studio 확인 1~5.
+
+### 인계 메모 (최신)
+- 브랜치: 로컬 `reqa` → `origin/m5-26-i18n-p2`에 push.
+- 다음 첫 단계: `git checkout -B reqa origin/m5-26-i18n-p2`. 위 "남은 것"의 테스트를 쓰고 5단계를 돌린 뒤 결과에 따라 스펙 상태를 바꿔요.
+- 막힌 점: 없음 (세션 사용량 때문에 멈춤).

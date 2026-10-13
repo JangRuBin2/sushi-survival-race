@@ -7,25 +7,37 @@
 -- 단상: MatchEvents.onWinnerShowcase가 올 때마다 가장 최근 우승자 1명으로 바꿔요. 서버는 이름표(BillboardGui)와
 -- Podium 폴더 속성(LobbyLayout.WINNER_ATTRS)만 두고, 초밥 인형은 클라이언트 LobbyFxController가 그 속성으로 세워요.
 -- 인형·이름은 플레이어가 나가도 남아요. 아무도 없으면 "다음 우승자는 누구?".
+-- 시즌 이벤트 장식 (m5-07): 로비를 지은 뒤와 10분마다 진행 중 이벤트(Seasons.current, Studio면 Config.DEBUG.eventNow)를
+-- 보고 카운터 주변 장식을 켜고 꺼요. 할로윈: 호박 등 6개·보라 조명 2 / 크리스마스: 작은 트리 2·눈 입자 1·선물 상자 4.
+-- 모두 MapKit 장식 규칙(충돌·쿼리·터치 없음), 이벤트마다 파츠 40개 이하 (SEASON_DECOR_BUDGET).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local DataService = require(script.Parent.DataService)
 local MatchEvents = require(script.Parent.MatchEvents)
 local PlaceService = require(script.Parent.PlaceService)
+local Config = require(ReplicatedStorage.Shared.Config)
 local LobbyLayout = require(ReplicatedStorage.Shared.LobbyLayout)
 local MapKit = require(ReplicatedStorage.Shared.maps.MapKit)
 local MapKitLogic = require(ReplicatedStorage.Shared.maps.MapKitLogic)
 local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
 
 local LobbyService = {}
 
 local LOBBY_NAME = "Lobby"
 local STUDIO_ART_ID = "lobby"
 
+local SEASON_FOLDER = "SeasonDecor"
+local SEASON_CHECK_INTERVAL = 600 -- 초 (10분)
+local SEASON_DECOR_BUDGET = 40 -- 이벤트 하나당 장식 파츠
+
 local podiumFolder: Folder? = nil
+local lobbyModel: Model? = nil
+local seasonDecorKind: string? = nil -- 지금 켠 장식 종류 ("halloween" / "christmas" / nil)
 local labels: { name: TextLabel, title: TextLabel, wins: TextLabel }? = nil
 local showcaseSerial = 0
 
@@ -208,6 +220,188 @@ local function onWinnerShowcase(info: MatchEvents.WinnerShowcaseInfo)
 	setLabels(`🏆 {info.name}`, titleText, winsText)
 end
 
+---------------------------------------------------------------- 시즌 이벤트 장식 (m5-07)
+
+type SeasonDecor = {
+	specs: { MapKitLogic.DecorSpec },
+	lights: { { part: string, color: MapKitLogic.RGB } }, -- 이 파츠에 PointLight
+	snow: string?, -- 이 파츠에 눈 ParticleEmitter
+}
+
+local function rgb(r: number, g: number, b: number): MapKitLogic.RGB
+	return { r = r, g = g, b = b }
+end
+
+local function vec(x: number, y: number, z: number): MapKitLogic.Vec3
+	return { x = x, y = y, z = z }
+end
+
+local function deco(
+	list: { MapKitLogic.DecorSpec },
+	name: string,
+	shape: MapKitLogic.Shape,
+	size: MapKitLogic.Vec3,
+	c: MapKitLogic.RGB,
+	material: string,
+	offset: MapKitLogic.Vec3,
+	extra: { rotation: MapKitLogic.Vec3?, transparency: number? }?
+)
+	table.insert(list, {
+		name = name,
+		shape = shape,
+		size = size,
+		color = c,
+		material = material,
+		offset = offset,
+		rotation = extra and extra.rotation,
+		transparency = extra and extra.transparency,
+	})
+end
+
+-- 카운터(가운데 0, -40, 타원 반지름 28×10) 바깥 둘레의 바닥 자리
+local AROUND_COUNTER = {
+	vec(-35, 0, -40),
+	vec(35, 0, -40),
+	vec(-20, 0, -55),
+	vec(20, 0, -55),
+	vec(-20, 0, -25),
+	vec(20, 0, -25),
+}
+
+local function halloweenDecor(): SeasonDecor
+	local specs: { MapKitLogic.DecorSpec } = {}
+	local orange, stem, face = rgb(245, 135, 35), rgb(90, 110, 40), rgb(40, 20, 50)
+	for i, at in AROUND_COUNTER do
+		deco(specs, `Pumpkin{i}`, "Ball", vec(3, 3, 3), orange, "SmoothPlastic", vec(at.x, 1.5, at.z))
+		deco(specs, `PumpkinStem{i}`, "Block", vec(0.5, 0.8, 0.5), stem, "Wood", vec(at.x, 3.3, at.z))
+		-- 카운터 쪽을 보는 잭오랜턴 얼굴 (빛나는 띠)
+		local toward = if at.z < -40 then 1 elseif at.z > -40 then -1 else 0
+		local side = if toward == 0 then (if at.x < 0 then 1 else -1) else 0
+		deco(
+			specs,
+			`PumpkinFace{i}`,
+			"Block",
+			if toward ~= 0 then vec(1.6, 0.4, 0.2) else vec(0.2, 0.4, 1.6),
+			face,
+			"Neon",
+			vec(at.x + side * 1.45, 1.4, at.z + toward * 1.45)
+		)
+	end
+	local purple = rgb(150, 70, 220)
+	deco(specs, "SpookyLampWest", "Ball", vec(1.2, 1.2, 1.2), purple, "Neon", vec(-12, 9, -40))
+	deco(specs, "SpookyLampEast", "Ball", vec(1.2, 1.2, 1.2), purple, "Neon", vec(12, 9, -40))
+	return {
+		specs = specs,
+		lights = { { part = "SpookyLampWest", color = purple }, { part = "SpookyLampEast", color = purple } },
+	}
+end
+
+local function christmasDecor(): SeasonDecor
+	local specs: { MapKitLogic.DecorSpec } = {}
+	local trunk, green, star = rgb(110, 72, 44), rgb(40, 130, 60), rgb(255, 215, 60)
+	for i, x in { -35, 35 } do
+		deco(specs, `TreeTrunk{i}`, "Block", vec(1, 1.5, 1), trunk, "Wood", vec(x, 0.75, -40))
+		deco(specs, `TreeLow{i}`, "Block", vec(5, 2, 5), green, "Grass", vec(x, 2.5, -40))
+		deco(specs, `TreeMid{i}`, "Block", vec(3.6, 2, 3.6), green, "Grass", vec(x, 4.5, -40))
+		deco(specs, `TreeTop{i}`, "Block", vec(2, 2, 2), green, "Grass", vec(x, 6.5, -40))
+		deco(specs, `TreeStar{i}`, "Block", vec(0.9, 0.9, 0.3), star, "Neon", vec(x, 8, -40), {
+			rotation = vec(0, 0, 45),
+		})
+	end
+	local gifts = { rgb(214, 58, 58), rgb(58, 108, 206), rgb(250, 250, 250), rgb(60, 160, 80) }
+	local ribbon = rgb(255, 215, 60)
+	for i = 3, 6 do
+		local at = AROUND_COUNTER[i]
+		local c = gifts[i - 2]
+		deco(specs, `Gift{i - 2}`, "Block", vec(2, 2, 2), c, "SmoothPlastic", vec(at.x, 1, at.z))
+		deco(specs, `GiftRibbonX{i - 2}`, "Block", vec(2.05, 2.05, 0.35), ribbon, "Fabric", vec(at.x, 1, at.z))
+		deco(specs, `GiftRibbonZ{i - 2}`, "Block", vec(0.35, 2.05, 2.05), ribbon, "Fabric", vec(at.x, 1, at.z))
+	end
+	-- 눈: 카운터 위 높은 곳의 보이지 않는 판에서 내려요
+	deco(specs, "SnowCloud", "Block", vec(60, 0.2, 26), rgb(255, 255, 255), "SmoothPlastic", vec(0, 16, -40), {
+		transparency = 1,
+	})
+	return { specs = specs, lights = {}, snow = "SnowCloud" }
+end
+
+-- 이벤트 id → 장식 종류 (해마다 id가 바뀌어도 앞부분으로 골라요)
+local function decorKind(eventId: string?): string?
+	if eventId == nil then
+		return nil
+	elseif string.find(eventId, "^halloween") then
+		return "halloween"
+	elseif string.find(eventId, "^christmas") then
+		return "christmas"
+	end
+	return nil
+end
+
+local function addSnow(host: BasePart)
+	local snow = Instance.new("ParticleEmitter")
+	snow.Name = "Snow"
+	snow.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	snow.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255))
+	snow.LightEmission = 0.3
+	snow.Size = NumberSequence.new(0.3)
+	snow.Transparency = NumberSequence.new(0.2, 1)
+	snow.Lifetime = NumberRange.new(5, 7)
+	snow.Rate = 25
+	snow.Speed = NumberRange.new(2, 3)
+	snow.SpreadAngle = Vector2.new(10, 10)
+	snow.EmissionDirection = Enum.NormalId.Bottom
+	snow.Parent = host
+end
+
+local function applySeasonDecor()
+	local lobby = lobbyModel
+	if lobby == nil or lobby.Parent == nil then
+		return
+	end
+	local now = Seasons.now(RunService:IsStudio(), Config.DEBUG.eventNow, os.time())
+	local event = Seasons.current(now)
+	local kind = decorKind(if event then event.id else nil)
+	if kind == seasonDecorKind then
+		return
+	end
+	seasonDecorKind = kind
+	local old = lobby:FindFirstChild(SEASON_FOLDER)
+	if old then
+		old:Destroy()
+	end
+	if kind == nil then
+		return
+	end
+	local decor = if kind == "halloween" then halloweenDecor() else christmasDecor()
+	local count = MapKitLogic.count(decor.specs)
+	if count > SEASON_DECOR_BUDGET then
+		warn(`[LobbyService] season decor {kind} has {count} parts (budget {SEASON_DECOR_BUDGET})`)
+	end
+	local seasonFolder = Instance.new("Folder")
+	seasonFolder.Name = SEASON_FOLDER
+	local parts = MapKit.buildDecor(decor.specs, CFrame.identity, seasonFolder)
+	local byName: { [string]: BasePart } = {}
+	for _, p in parts do
+		p.CastShadow = false
+		byName[p.Name] = p
+	end
+	for _, spec in decor.lights do
+		local host = byName[spec.part]
+		if host then
+			local light = Instance.new("PointLight")
+			light.Color = color(spec.color)
+			light.Range = 18
+			light.Brightness = 1.5
+			light.Shadows = false
+			light.Parent = host
+		end
+	end
+	local snowHost = if decor.snow then byName[decor.snow] else nil
+	if snowHost then
+		addSnow(snowHost)
+	end
+	seasonFolder.Parent = lobby
+end
+
 local function buildLobby()
 	local existing = workspace:FindFirstChild(LOBBY_NAME)
 	if existing then
@@ -234,6 +428,8 @@ local function buildLobby()
 
 	-- 다 지은 뒤 한 번에 Workspace로 (클라이언트에 한 묶음으로 복제돼요)
 	lobby.Parent = workspace
+	lobbyModel = lobby
+	seasonDecorKind = nil
 end
 
 function LobbyService.init()
@@ -246,6 +442,17 @@ function LobbyService.start()
 	end
 	buildLobby()
 	MatchEvents.onWinnerShowcase(onWinnerShowcase)
+	-- 시즌 장식: 지금 한 번, 그 뒤 10분마다 (m5-07)
+	applySeasonDecor()
+	task.spawn(function()
+		while true do
+			task.wait(SEASON_CHECK_INTERVAL)
+			local ok, err = pcall(applySeasonDecor)
+			if not ok then
+				warn(`[LobbyService] season decor failed: {err}`)
+			end
+		end
+	end)
 end
 
 return LobbyService

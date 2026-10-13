@@ -210,8 +210,19 @@ local function forcedPlan(roomId: string): { Rules.MapInfo }?
 	return plan
 end
 
+-- 관리자 명령 plan (m5-11): 방 id → 다음 매치 한 번만 쓸 맵 순서. Config.DEBUG.forceMapPlan보다 우선.
+-- 검사(AdminLogic.resolvePlan)와 권한(Studio·한 플레이스 모드)은 AdminCommands가 해요.
+local nextPlans: { [string]: { Rules.MapInfo } } = {}
+
+function MatchService.setNextPlan(roomId: string, plan: { Rules.MapInfo })
+	nextPlans[roomId] = table.clone(plan)
+end
+
 local function runMatch(room: RoomService.Room, players: { Player })
 	local roomId = room.id
+	-- 다음 판 맵 순서는 이 매치를 시작할 때 꺼내고 지워요 (한 번만)
+	local adminPlan = nextPlans[roomId]
+	nextPlans[roomId] = nil
 	local entries = {}
 	for _, player in players do
 		table.insert(entries, { userId = player.UserId, name = player.DisplayName })
@@ -238,7 +249,10 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	task.wait(Config.Match.StartCountdown)
 
 	-- 강제 플랜이면 목록을 끝까지 돌아요: 결승 건너뛰기 없음, 혼자(생존자 1명)여도 계속.
-	local forced = forcedPlan(roomId)
+	local forced = adminPlan or forcedPlan(roomId)
+	if adminPlan then
+		print(`[MatchService] room {roomId}: using the admin next-match plan`)
+	end
 	local isForced = forced ~= nil
 	local minAlive = if isForced then 1 else 2 -- 이 인원 이상 살아 있어야 다음 라운드를 해요
 

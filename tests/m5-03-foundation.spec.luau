@@ -577,7 +577,7 @@ return function(t: Test.Test)
 		local src = read("src/server/AdminService.luau")
 		local canRunAt =
 			string.find(src, "AdminLogic.canRun(tier, isStudio(), Config.DEBUG.persistDataInStudio)", 1, true)
-		local runAt = string.find(src, "local ok, result = runCommand(player, name, tier, args)", 1, true)
+		local runAt = string.find(src, "local ok, result = runCommand(player, parsed)", 1, true)
 		t.ok(canRunAt and runAt and canRunAt < runAt)
 		t.ok(string.find(src, 'Remotes.fn("AdminCommand").OnServerInvoke', 1, true) ~= nil)
 	end)

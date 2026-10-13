@@ -13,6 +13,12 @@
 --   AdminLogic.canRun(tier, isStudio, persistInStudio) -> (ok, reason?)
 --                                        사용자 결정(2026-10-08): 실서버에서는 Info 명령만. Test·StudioOnly 명령은
 --                                        Studio에서만 되고, 실서버에서 켜는 설정은 없어요 (설정으로도 못 켜요).
+--   AdminLogic.parse(command, args) -> (Parsed?, Reason?)   AdminCommand 인자 모양 검사 (m5-11)
+--   AdminLogic.applyCoins(current, n) / applyTokens(current, n)   0 아래로 내려가지 않는 더하기
+--   AdminLogic.resolvePlan(ids, pool) -> (plan?, text)   다음 판 맵 순서: 결과 문구(결승이 Final이 아니면 경고 포함)
+--   AdminLogic.equippedFx(equipped, owned, slot) -> string?   fx 미리보기를 끌 때 돌아갈 프로필 장착값
+--   AdminLogic.infoLine(info) -> string      info 명령 결과 한 줄
+--   AdminLogic.describe(parsed) -> string    서버 로그용 인자 요약
 -- 관리자 목록은 서버 전용 src/server/AdminConfig.luau에 있어요 (클라이언트에 복제되지 않음).
 
 export type CreatorType = "User" | "Group"
@@ -38,6 +44,11 @@ export type Reason =
 	| "StudioOnly"
 	| "PersistOn"
 	| "NotReady"
+	| "BadCommandArgs"
+	| "NotInRoom"
+	| "NoProfile"
+	| "NoEvent"
+	| "SingleOnly"
 
 -- AdminCommand 등급 (m5-03, m5-11 스펙 표). Info = 보기만·겉모습만, Test = 경제·판정에 영향, StudioOnly = 되돌리기 어려움
 export type CommandTier = "Info" | "Test" | "StudioOnly"
@@ -46,6 +57,9 @@ export type StoreEntry = {
 	skinId: string | boolean, -- 끄면 false
 	at: number,
 }
+
+local FxCatalog = require(script.Parent.FxCatalog)
+local Rules = require(script.Parent.Rules)
 
 local AdminLogic = {}
 
@@ -62,6 +76,11 @@ local MESSAGES: { [Reason]: string } = {
 	StudioOnly = "Studio에서만 쓸 수 있는 명령이에요",
 	PersistOn = "저장을 켠 Studio에서는 쓸 수 없어요",
 	NotReady = "준비 중이에요",
+	BadCommandArgs = "명령 값이 잘못됐어요",
+	NotInRoom = "방에 들어가 있지 않아요",
+	NoProfile = "프로필을 아직 불러오지 못했어요",
+	NoEvent = "진행 중인 이벤트가 없어요",
+	SingleOnly = "한 플레이스 모드에서만 돼요",
 }
 
 function AdminLogic.message(reason: Reason): string
@@ -176,6 +195,189 @@ function AdminLogic.decodeEntry(value: unknown, isKnownSkin: (string) -> boolean
 		return nil
 	end
 	return skinId
+end
+
+---------------------------------------------------------------- AdminCommand 인자·결과 (m5-11)
+
+-- 검사를 통과한 명령. command마다 쓰는 칸만 채워요
+export type Parsed = {
+	command: string,
+	amount: number?, -- coins·tokens
+	ids: { string }?, -- plan
+	slot: FxCatalog.Slot?, -- fx
+	fxId: string?, -- fx (nil = 끄기)
+}
+
+AdminLogic.COINS_LIMIT = 10000 -- coins n: -10,000 ~ 10,000
+AdminLogic.TOKENS_LIMIT = 500 -- tokens n: -500 ~ 500
+AdminLogic.MAP_ID_MAX_LENGTH = 64
+
+local function isIntegerIn(value: unknown, limit: number): boolean
+	if type(value) ~= "number" or value ~= value or value % 1 ~= 0 then
+		return false
+	end
+	return value >= -limit and value <= limit
+end
+
+local function parsePlan(args: unknown): { string }?
+	if type(args) ~= "table" then
+		return nil
+	end
+	local list = args :: { [any]: any }
+	local count = 0
+	for _ in list do
+		count += 1
+	end
+	if count ~= 3 and count ~= 4 then
+		return nil
+	end
+	local ids: { string } = {}
+	for i = 1, count do
+		local id = list[i]
+		if type(id) ~= "string" or id == "" or #id > AdminLogic.MAP_ID_MAX_LENGTH then
+			return nil -- 문자열이 아니거나, 1..n 순서 목록이 아니에요
+		end
+		table.insert(ids, id)
+	end
+	return ids
+end
+
+-- fx 인자: { slot, fxId? }. fxId가 nil·"off"면 끄기, 아니면 그 칸의 FxCatalog id
+local function parseFx(args: unknown): (FxCatalog.Slot?, string?, boolean)
+	if type(args) ~= "table" then
+		return nil, nil, false
+	end
+	local list = args :: { [any]: any }
+	local slot = list[1]
+	local fxId = list[2]
+	if not FxCatalog.isSlot(slot) then
+		return nil, nil, false
+	end
+	if fxId == nil or fxId == "off" then
+		return slot :: FxCatalog.Slot, nil, true
+	end
+	if type(fxId) ~= "string" then
+		return nil, nil, false
+	end
+	local fx = FxCatalog.get(fxId)
+	if fx == nil or fx.slot ~= slot then
+		return nil, nil, false
+	end
+	return slot :: FxCatalog.Slot, fxId, true
+end
+
+-- command는 commandTier로 이미 아는 명령이어야 해요. 모르는 명령이면 UnknownCommand
+function AdminLogic.parse(command: unknown, args: unknown): (Parsed?, Reason?)
+	if AdminLogic.commandTier(command) == nil then
+		return nil, "UnknownCommand"
+	end
+	local name = command :: string
+	if name == "coins" or name == "tokens" then
+		local limit = if name == "coins" then AdminLogic.COINS_LIMIT else AdminLogic.TOKENS_LIMIT
+		if not isIntegerIn(args, limit) then
+			return nil, "BadCommandArgs"
+		end
+		return { command = name, amount = args :: number }, nil
+	elseif name == "plan" then
+		local ids = parsePlan(args)
+		if ids == nil then
+			return nil, "BadCommandArgs"
+		end
+		return { command = name, ids = ids }, nil
+	elseif name == "fx" then
+		local slot, fxId, ok = parseFx(args)
+		if not ok then
+			return nil, "BadCommandArgs"
+		end
+		return { command = name, slot = slot, fxId = fxId }, nil
+	end
+	-- info·start·resetprofile: 인자 없음 (보내도 무시)
+	return { command = name }, nil
+end
+
+-- 코인 더하기: 0 아래로 내려가지 않아요 (100에서 -1000 → 0)
+function AdminLogic.applyCoins(current: number, n: number): number
+	return math.max(0, math.floor(current + n))
+end
+
+function AdminLogic.applyTokens(current: number?, n: number): number
+	return math.max(0, math.floor((current or 0) + n))
+end
+
+-- 다음 판 맵 순서. 성공이면 (plan, 결과 문구), 실패면 (nil, 이유 문구). pool은 Maps.allInfos()
+-- (inPool = false 맵도 돼요). 결승 자리가 Final이 아니면 Rules.forcedPlanWarning을 문구에 붙여요
+function AdminLogic.resolvePlan(ids: { string }, pool: { Rules.MapInfo }): ({ Rules.MapInfo }?, string)
+	local plan, problem = Rules.resolveForcedPlan(ids, pool)
+	if plan == nil then
+		return nil, `맵 순서를 쓸 수 없어요: {problem}`
+	end
+	local names = {}
+	for _, map in plan do
+		table.insert(names, map.id)
+	end
+	local text = `다음 판: {table.concat(names, " → ")}`
+	local caution = Rules.forcedPlanWarning(plan)
+	if caution then
+		text ..= ` (주의: {caution})`
+	end
+	return plan, text
+end
+
+-- fx 미리보기를 끌 때 돌아갈 값: 프로필 장착값이 그 칸의 카탈로그 연출이고 가진 것일 때만, 아니면 nil(기본)
+function AdminLogic.equippedFx(
+	equipped: { [string]: string? }?,
+	owned: { [string]: boolean }?,
+	slot: FxCatalog.Slot
+): string?
+	local id = if equipped then equipped[slot] else nil
+	if type(id) ~= "string" then
+		return nil
+	end
+	local fx = FxCatalog.get(id)
+	if fx == nil or fx.slot ~= slot or owned == nil or owned[id] ~= true then
+		return nil
+	end
+	return id
+end
+
+export type Info = {
+	role: string,
+	jobId: string,
+	rooms: number,
+	players: number,
+	roomId: string?,
+	roomState: string?,
+	coins: number?,
+	eventName: string?,
+	tokenIcon: string?,
+	tokens: number?,
+}
+
+function AdminLogic.infoLine(info: Info): string
+	local job = if info.jobId == "" then "-" else string.sub(info.jobId, 1, 8)
+	local parts = {
+		info.role,
+		`서버 {job}`,
+		`방 {info.rooms}`,
+		`플레이어 {info.players}`,
+		if info.roomId then `내 방 {info.roomId}({info.roomState or "?"})` else "내 방 없음",
+		if info.coins then `코인 {info.coins}` else "코인 ?",
+	}
+	if info.eventName then
+		table.insert(parts, `{info.eventName} {info.tokenIcon or ""}{info.tokens or 0}`)
+	end
+	return table.concat(parts, " · ")
+end
+
+function AdminLogic.describe(parsed: Parsed): string
+	if parsed.amount ~= nil then
+		return tostring(parsed.amount)
+	elseif parsed.ids ~= nil then
+		return table.concat(parsed.ids, ",")
+	elseif parsed.slot ~= nil then
+		return `{parsed.slot} {parsed.fxId or "off"}`
+	end
+	return "-"
 end
 
 return AdminLogic

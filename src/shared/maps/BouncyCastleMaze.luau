@@ -329,6 +329,7 @@ local BouncyCastleMaze: MapTypes.MapModule = {
 	kind = "Race",
 	displayName = "방방 미로",
 	rule = "말랑한 바닥 위를 튕기며 미로를 빠져나가요.",
+	lighting = Art.LIGHTING, -- m5-24 맑은 한낮 유원지
 	build = build,
 	start = start,
 }

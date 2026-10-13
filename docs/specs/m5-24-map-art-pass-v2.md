@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-24 — 기존 맵 12개 아트 패스 v2 (비주얼 키트 + 렌더 루프, 판정 불변)
@@ -168,6 +168,12 @@ status: in-dev
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### 그룹 A …). 바뀐 파일, 바꾼 아트 수량 단언 목록, 전/후 PNG 경로, 휴대폰 성능 메모, Studio 확인 방법, 남은 이슈 -->
 
+### 그룹 A (rotating-belt · hot-plate · skewer-showdown)
+- 브랜치 `m5-24-art-a`. 원본 기록(맵별 결과·반복 비평 18개·바꾼 단언·Studio 확인): **`docs/developer/m5-24-group-a.md`**.
+- 바뀐 파일: `RotatingBeltArt`·`HotPlateArt`·`SkewerShowdownArt`(BUDGET·LIGHTING·장식), `RotatingBelt`·`SkewerShowdown`(lighting 한 줄), `HotPlate`(후드 PointLight 코드 → DecorSpec Spot, lighting 한 줄), 새 테스트 `tests/m5-24-group-a.spec.luau`.
+- 바꾼 아트 수량 단언(D2/D4): `map-art-arena` AC1(철판·꼬치), `map-art-race` AC1, `m5-23-qa`(`artModule(id)` 도움 함수 — Art.LIGHTING 있으면 정확히 그 값, Extended면 장식 수 + 코드 수), `m5-23-visual-kit` AC7. 병합 때 B·C의 같은 줄 수정은 이 규칙으로 통일(`docs/developer/m5-24-merge.md`).
+- 렌더 stats: belt decor 1386·lights 13·particles 7 / hot-plate 808·8·11 / skewer 1294·13·6, void 전 뷰 0%. 휴대폰 tris 103.7k / 53.7k / 74.6k, 그림자 조명 맵당 1.
+
 ### 그룹 B (soy-swamp · chef-board · tug-of-war-platform)
 - 브랜치 `m5-24-art-b`. 반복별 체크리스트 비평·단언 전후·Studio 확인·특이사항은 **`docs/developer/m5-24-group-b.md`**.
 - 바꾼 파일: `SoySwamp.luau`·`ChefBoard.luau`(lighting 한 줄), `TugOfWarPlatform.luau`(lighting 한 줄 + 고정 장식 CastShadow 강제 끔 삭제), `SoySwampArt`·`ChefBoardArt`·`TugOfWarPlatformArt`(BUDGET·LIGHTING·CODE_EXTRAS·장식), 새 테스트 `tests/m5-24-group-b.spec.luau`(AC2~AC5).
@@ -181,3 +187,11 @@ status: in-dev
 - 바꾼 아트 수량 단언(D2): `map-ramen-rapids.spec.luau` 318·371, `m5-20-qa.spec.luau` 177, `map-giant-jenga.spec.luau` 322, `map-claw-machine-prize.spec.luau` 257, `m5-23-visual-kit.spec.luau` AC7, `m5-23-qa.spec.luau` "기존 6개는 프리셋을 씀"(Extended 맵은 자기 Art.LIGHTING).
 - 전/후 PNG: `docs/renders/<mapId>/before-*.png` → `after-*.png`. void% 후: 세 맵 eye·overview·intro 전부 0~1%.
 - 남은 이슈: 인형뽑기 Decor는 연장전 모델 기울기 때문에 Pulse만(미러볼 Spin 뺌). Studio AC12~15 사용자 확인 필요.
+
+### 그룹 D (bouncy-castle-maze · lantern-bridge · cat-cafe-shelves)
+- 자세한 기록(반복별 비평·체크리스트·Studio 확인 순서·특이사항): [`docs/developer/m5-24-group-d.md`](../developer/m5-24-group-d.md)
+- 바뀐 파일: `BouncyCastleMazeArt.luau`·`BouncyCastleMaze.luau`(`lighting` 줄), `LanternBridgeArt.luau`·`LanternBridge.luau`(`lighting` 줄), `CatCafeShelvesArt.luau`·`CatCafeShelves.luau`(`lighting` 줄). 판정 파츠·Layout·Logic 안 고침.
+- 새 테스트 `tests/m5-24-group-d.spec.luau`(7개). 바꾼 아트 수량 단언 3곳(D2): `map-bouncy-castle-maze` AC7, `map-lantern-bridge` AC10, `map-cat-cafe-shelves` AC10 — `count <= DECOR_PART_BUDGET` → `Art.BUDGET == "Extended"` + `checkBudget(..., "Extended") == nil`. 공용 `m5-23-qa`는 수정 없이 통과.
+- 전/후 PNG: `docs/renders/{bouncy-castle-maze,lantern-bridge,cat-cafe-shelves}/before-*.png` → `after-*.png`. 장식 291→1468 / 102→1412 / 39→842, void% 최대 87→4 / 97→0 / 78→2.
+- 휴대폰: 그림자 조명 맵당 1, 큰 반투명 판 추가 없음, 가장 무거운 뷰 tris 127k / 112k / 79k.
+- 남은 이슈: selene은 클라우드 환경(Roblox API 덤프 403)에서 못 돌림 — 로컬 확인 필요. Studio AC12~15 사용자 확인.

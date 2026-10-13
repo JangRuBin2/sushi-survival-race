@@ -265,6 +265,7 @@ local map: MapTypes.MapModule = {
 	displayName = "등불 다리 건너기",
 	rule = "흔들리는 다리와 종이 등불 사이를 건너요.",
 	inPool = true, -- m5-15: 랜덤 판 풀에 포함
+	lighting = Art.LIGHTING, -- m5-24 여름밤 축제
 	build = build,
 	start = start,
 }

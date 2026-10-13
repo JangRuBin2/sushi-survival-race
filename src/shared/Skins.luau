@@ -8,7 +8,8 @@
 --   Skins.forProduct(productId)  개발자 상품 id → 스킨 (m4-14 결제가 써요)
 --   Skins.validate(list)    카탈로그 검사: (ok, 문제 목록). 테스트와 서버 시작 때 한 번
 --   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥 + 실험 스킨). 보유 판단은 이걸로 해요
---   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon). experimental = true는 여기 있는 id만 쓸 수 있어요
+--   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura).
+--                           experimental = true는 여기 있는 id만 쓸 수 있어요
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
@@ -51,7 +52,14 @@ Skins.COMMON_COINS = 300 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
 Skins.RARE_COINS = 900 -- 레어 스킨 코인 해금 가격 (GDD 9.4)
 
 -- 실험 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.EXPERIMENTAL과 같아야 해요)
-Skins.EXPERIMENTAL_IDS = { ["concept-salmon"] = true } :: { [string]: boolean }
+-- m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 (모두 무료 테스트 스킨, 가격·등급은 나중에 사용자가 정해요)
+Skins.EXPERIMENTAL_IDS = {
+	["concept-salmon"] = true,
+	["concept-tuna"] = true,
+	["concept-shrimp"] = true,
+	["concept-tamago"] = true,
+	["concept-ikura"] = true,
+} :: { [string]: boolean }
 
 Skins.TIERS = { "Basic", "Common", "Rare", "Epic", "Legendary" } :: { Tier }
 
@@ -344,6 +352,39 @@ Skins.LIST = {
 		experimental = true,
 		speech = { "새 모습 어때?", "연어 돔이 말랑말랑~" },
 		order = 32,
+	},
+	-- m5-28 콘셉트 몸 실험 스킨 4종 (concept-salmon과 같은 밥·얼굴·팔다리, 토핑만 달라요)
+	{
+		id = "concept-tuna",
+		displayName = "콘셉트 참치초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "참치는 빨강이 생명!", "결 따라 데굴데굴~" },
+		order = 33,
+	},
+	{
+		id = "concept-shrimp",
+		displayName = "콘셉트 새우초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "꼬리가 먼저 떨어졌어…", "탱글탱글 새우 출동!" },
+		order = 34,
+	},
+	{
+		id = "concept-tamago",
+		displayName = "콘셉트 계란초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "폭신한 계란 착지 실패!", "김 띠 꽉 묶을걸…" },
+		order = 35,
+	},
+	{
+		id = "concept-ikura",
+		displayName = "콘셉트 연어알 군함 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "알이 다 쏟아졌어!", "톡톡 터지는 맛~" },
+		order = 36,
 	},
 } :: { Skin }
 

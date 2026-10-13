@@ -70,8 +70,10 @@ return function(t: Test.Test)
 		end
 	)
 
+	-- m5-28: 같은 콘셉트 몸의 실험 스킨 4종이 늘어 예외 목록이 정확히 5개가 됐어요 (여전히 명시적 목록과 같아야 해요)
+	local CONCEPT_IDS = { "concept-ikura", "concept-salmon", "concept-shrimp", "concept-tamago", "concept-tuna" }
 	t.test(
-		"예외는 이 id 하나뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
+		"예외는 콘셉트 몸 5종뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do
@@ -79,9 +81,10 @@ return function(t: Test.Test)
 					flagged[skin.id] = true
 				end
 			end
-			t.eq(sortedKeys(flagged), { ID })
-			t.eq(sortedKeys(Skins.EXPERIMENTAL_IDS), { ID })
-			t.eq(sortedKeys(SushiBody.EXPERIMENTAL), { ID })
+			t.eq(sortedKeys(flagged), CONCEPT_IDS)
+			t.eq(sortedKeys(Skins.EXPERIMENTAL_IDS), CONCEPT_IDS)
+			t.eq(sortedKeys(SushiBody.EXPERIMENTAL), CONCEPT_IDS)
+			t.ok(flagged[ID], "concept-salmon still experimental")
 			t.ok(SushiBody.EXPERIMENTAL[ID].partBudget <= 47, "budget 45~47")
 		end
 	)

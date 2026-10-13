@@ -236,7 +236,13 @@ return function(t: Test.Test)
 			t.eq(MapTypes.validate(map), nil, id)
 		end
 		for _, id in { "rotating-belt", "soy-swamp", "ramen-rapids", "hot-plate", "chef-board", "skewer-showdown" } do
-			t.ok(Maps.get(id).lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			-- m5-24 D4: 아트 패스를 마친 맵(Art.BUDGET == "Extended")은 프리셋을 자기 Art.LIGHTING으로 옮겨요
+			local lighting = Maps.get(id).lighting
+			if artBudgetTier(id) == "Extended" then
+				t.ok(lighting ~= nil and MapLighting.validate(lighting) == nil, `{id} uses its Art.LIGHTING`)
+			else
+				t.ok(lighting == MapLighting.PRESETS[id], `{id} uses PRESETS`)
+			end
 		end
 	end)
 

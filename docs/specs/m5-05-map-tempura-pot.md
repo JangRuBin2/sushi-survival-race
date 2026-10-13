@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-05 — 새 Survival 맵: 튀김 냄비 탈출 (`tempura-pot`)
@@ -120,3 +120,10 @@ status: in-dev
   - `docs/USER-TODO.md` A2에 `OilSplash` 소리.
 - Studio 확인: `Config.DEBUG.forceMapPlan = { "rotating-belt", "tempura-pot", "skewer-showdown" }`(확인 뒤 nil) → 1라운드 통과 → 냄비. AC10(6초 뒤 기름 상승, 바구니에 계속 서 있으면 약 13.5초에 탈락), AC11(혼자 꼭대기까지 — 7층 오른쪽 끝 세 발판 중 하나에서 바깥 새우튀김으로, 층마다 옆으로 건너 나선을 따라), AC12(10초부터 발밑 주황 원 → 1.2초 뒤 넉백, 원 밖이면 안 맞음), AC13, AC14(벽·젓가락에 못 올라감, 이동 감시 `[MoveGuard]` 로그가 넉백 때 안 생김).
 - 알려진 것: `src/shared/maps/init.luau`의 주석 "(inPool = false)"가 낡음 — 공용 파일이라 안 고침(다음 공용 파일 담당이 지우면 됨). 장식은 자리표시뿐(PHASE B).
+
+### PHASE B (아트) — 2026-10-13, 브랜치 `m5-05-tempura` → **in-qa**
+- 바뀐 파일: `src/shared/maps/TempuraPotArt.luau`(Extended 예산 장식 1479·`LIGHTING` 밤 21시 프리셋·`raftColor` 층별 밝기·`OIL_GLOWS`·IntroCamera 4점), `src/shared/maps/TempuraPot.luau`(아트 부착만: 기름 따라 올라가는 `OilFollowers` 폴더 — 짙은 기름 층·주황 PointLight 3·김 2, 기름 표면 거품 2, 벽 Reflectance, `lighting`), `tests/map-tempura-pot.spec.luau`(AC8·AC16), `tests/m5-23-qa.spec.luau`(조명·파티클 검사를 맵 예산 단계 기준으로), `tests/m5-03-qa.spec.luau`(껍데기 검사에서 tempura-pot 제외).
+- 세트피스: 무쇠 림·귀 손잡이·튀김 온도계, 가스레인지(파란 불꽃 고리 Pulse, 삼발이, 옆 화구 2 — 김 나는 냄비·불티), 긴 조리 젓가락(Sway), 레인지 후드 + 램프 3(가운데 그림자 Spot), 오른쪽 카운터 튀김 접시·튀김 망·반죽 그릇, 왼쪽 카운터 통·도마·기댄 뚜껑, 창문(밤하늘·달·구름 Bob·파란 SurfaceLight), 찬장 + 걸이 레일(국자·뜰채·집게·팬 Sway), 냉장고·선반, 노렌 출입구, 펜던트 등 2, 나무 바닥(−108). 발판: 튀김옷 돌기·새우 꼬리·고구마 껍질·깻잎(전부 윗면보다 낮음, 충돌 없음).
+- **최종 PNG**: `docs/renders/tempura-pot/after-overview.png`, `after-eye.png`, `after-intro-01.png`, `after-intro-02.png`, `after-intro-04.png`, `after-top.png`, `after-mobile.png` (+ `after-stats.txt`, 전: `before-*.png`). 반복 4회 비평: `docs/developer/m5-05-map-tempura-pot.md`.
+- 예산 (렌더러 통계): decor 1479/1500, lights 14/24 (shadowed 1/2), particles 6/16, anim 53/80, void 0% (모든 뷰).
+- Studio 확인 AC17: `forceMapPlan = { "rotating-belt", "tempura-pot", "skewer-showdown" }` → 소개가 시작되면 밤 주방 조명(어두운 청색 + 주황 기름빛)으로 바뀌는지, 기름이 오를 때 주황 빛과 김이 같이 올라오는지, 휴대폰 에뮬레이터에서 경고 원과 층 구분이 보이는지. 너무 어두우면 `Art.LIGHTING`의 Brightness·ExposureCompensation만 올린다.

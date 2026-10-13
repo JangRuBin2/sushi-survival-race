@@ -47,13 +47,13 @@ local STEEL_DARK = shade(PAL.Steel, 0.62)
 local STEEL_LIGHT = shade(PAL.Steel, 1.12)
 local GOLD = PAL.TempuraGold
 local BATTER = PAL.Batter
-local WALL = c(58, 66, 84) -- 어두운 청회색 벽
+local WALL = c(66, 68, 84) -- 어두운 청회색 벽
 local WALL_DARK = c(40, 46, 60)
 local TILE_A = c(92, 112, 134)
 local TILE_B = c(80, 98, 120)
 local TILE_C = c(104, 124, 146)
-local FLOOR_A = c(70, 64, 62)
-local FLOOR_B = c(58, 54, 54)
+local FLOOR_A = c(118, 84, 58) -- 따뜻한 나무 마루
+local FLOOR_B = c(98, 68, 46)
 local WOOD = shade(PAL.Wood, 0.85)
 local WOOD_LIGHT = PAL.WoodLight
 local WOOD_DARK = PAL.WoodDark
@@ -765,7 +765,7 @@ local function addHood(list: { DecorSpec })
 		"HoodSlope",
 		"Wedge",
 		v(210, 34, 46),
-		shade(STEEL, 0.92),
+		shade(STEEL, 0.7),
 		"Metal",
 		P(0, HOOD_Y + 33, zc + 23),
 		{ reflectance = 0.2 }
@@ -775,7 +775,7 @@ local function addHood(list: { DecorSpec })
 		"HoodBack",
 		"Block",
 		v(210, 34, 46),
-		shade(STEEL, 0.86),
+		shade(STEEL, 0.64),
 		"Metal",
 		P(0, HOOD_Y + 33, zc - 23),
 		{ reflectance = 0.15 }
@@ -837,7 +837,7 @@ local function addRoom(list: { DecorSpec })
 		"Block",
 		v(SIDE_X * 2 + 40, 4, 520),
 		FLOOR_A,
-		"CeramicTiles",
+		"WoodPlanks",
 		P(0, FLOOR_Y - 2, 150),
 		{ castShadow = false }
 	)
@@ -848,7 +848,7 @@ local function addRoom(list: { DecorSpec })
 			"Block",
 			v(SIDE_X * 2 + 40, 4.2, 32),
 			FLOOR_B,
-			"CeramicTiles",
+			"WoodPlanks",
 			P(0, FLOOR_Y - 2, BACK_Z + 20 + k * 64),
 			{
 				castShadow = false,
@@ -1131,12 +1131,12 @@ local function addPrepCounter(list: { DecorSpec })
 	local top = STOVE_TOP
 	for i, jar in
 		{
-			{ -280, -70, 16, 30, c(236, 232, 220) },
-			{ -258, -76, 13, 24, c(214, 190, 140) },
-			{ -240, -66, 10, 18, c(196, 214, 226) },
+			{ x = -280, z = -70, d = 16, h = 30, col = c(236, 232, 220) },
+			{ x = -258, z = -76, d = 13, h = 24, col = c(214, 190, 140) },
+			{ x = -240, z = -66, d = 10, h = 18, col = c(196, 214, 226) },
 		}
 	do
-		local x, z, d, h, col = jar[1], jar[2], jar[3], jar[4], jar[5]
+		local x, z, d, h, col = jar.x, jar.z, jar.d, jar.h, jar.col
 		add(
 			list,
 			"Canister",

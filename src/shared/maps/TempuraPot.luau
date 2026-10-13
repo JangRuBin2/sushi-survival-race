@@ -181,7 +181,8 @@ local function buildOilFollowers(model: Model, origin: CFrame, oilCFrame: CFrame
 		Transparency = 1,
 	})
 	ghost(steam)
-	for name, rate in { Steam = 5, SteamThick = 2 } do
+	for _, pair in { { "Steam", 5 }, { "SteamThick", 2 } } do
+		local name, rate = pair[1] :: string, pair[2] :: number
 		local emitter = MapKit.makeEmitter(name, rate)
 		emitter.EmissionDirection = Enum.NormalId.Right
 		emitter.Parent = steam

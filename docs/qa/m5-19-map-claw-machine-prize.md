@@ -119,13 +119,13 @@
 | `rojo build -o build.rbxl` | 통과 |
 | `stylua --check src tests` | 통과 |
 | `selene src` | 통과 (0 errors, 0 warnings, 0 parse errors) |
-| `lune run tests` | 통과 — **1456 passed, 0 failed** (병합 뒤 다시 돌린 수는 아래 인계 메모) |
+| `lune run tests` | 통과 — **1456 passed, 0 failed** — origin/main `591d84e` 병합 뒤 다시 돌려 **1584 passed, 0 failed**, 나머지 4단계도 통과 |
 | `luau-lsp analyze ... src` | 통과 (끝 코드 0) |
 
 ### 수정 확인
 | 버그 | 결과 | 근거 |
 |---|---|---|
-| B1 연장전 피벗·줄 순서 | 고침 | `ClawMachinePrize.luau:571` `PivotTo(gridCenter * Angles * gridCenter⁻¹ * origin)`, `:576` `Logic.tiltLineOrder`. 재QA 테스트 "m5-19 재QA B1"이 developer 테스트와 따로 3x3 행렬로 서버 합성 그대로(새 피벗·O⁻¹·파츠)를 계산함. origin yaw 0°·37°·−120°에 큰 이동까지 넣고 4방향 × 8줄 모두 **사라지는 줄 = 남은 줄 중 가장 낮은 줄**. 사라지기 직전 그 줄 모서리(칸 높이 −1, 격자 끝 ±24)에 선 사람의 루트(+3, 기운 법선 방향)도 낙하선 −25 위(최저 약 −12.3). → 가만히 선 사람이 기울기만으로 탈락하는 일 없음. |
+| B1 연장전 피벗·줄 순서 | 고침 | `ClawMachinePrize.luau:571` `PivotTo(gridCenter * Angles * gridCenter⁻¹ * origin)`, `:576` `Logic.tiltLineOrder`. 재QA 테스트 "m5-19 재QA B1"이 developer 테스트와 따로 3x3 행렬로 서버 합성 그대로(새 피벗·O⁻¹·파츠)를 계산함. origin yaw 0°·37°·−120°에 큰 이동까지 넣고 4방향 × 8줄 모두 **사라지는 줄 = 남은 줄 중 가장 낮은 줄**. 사라지기 직전 그 줄 모서리(칸 높이 −1, 격자 끝 ±24)에 선 사람의 루트(+3, 기운 법선 방향)도 낙하선 −25 위(손 계산 최저 약 −12.1: 모서리 −24·sin35° − 1·cos35° + 3·cos35°). → 가만히 선 사람이 기울기만으로 탈락하는 일 없음. |
 | B2 90초 전 바닥 고갈 | 고침 | `:450-457` `pickClawTarget` 뒤 `capGrab(chosen, #alive, #getRacers(), occupied)`. `#alive`는 경고·들어 올리는 중인 칸을 뺀 수라, 진행 중 집게가 끝나도 남는 칸 ≥ `reserveTiles` = max(6, 2 × 인원). 재QA 시뮬레이션(아래)에서 90초 전 바닥 0칸 **0번**, reserve 미만 **0번**. |
 | B3 칸 높이 차 | 고침 | `HEIGHT_RANGE` 1 → 이웃 칸 차 ≤ 2 (developer 테스트 전수, 원래 QA "칸 높이 범위" 테스트도 통과). 스폰 높이는 `tileHeight + 0.1`이라 같이 따라감. |
 | B4 연출 스레드 | 고침 | hover·descend `movePivot`도 `ctx.cleanup`(`:291`, `:323`), `shouldStop` = 연장전 시작 또는 라운드 끝. 들어 올리기 루프도 `:370`에서 멈춤 → 모델 `PivotTo`와 서로 덮어쓰지 않음. 칸 충돌은 들기 전에 이미 꺼져 판정 영향 없음. |

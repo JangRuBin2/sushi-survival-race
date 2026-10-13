@@ -32,7 +32,7 @@
   - **확정됨 (2026-10-08, 위임)**: 관리자 기능 실서버에서도 **켜 둠** (`src/server/AdminConfig.luau`의 `LiveEnabled = true`). 관리자 판단은 계정(UserId)으로만 — 비밀번호 방식은 보안상 거절됨
   - [ ] **공개 출시 전에 다시 확인**: 관리자 미리보기를 실서버에서 유지할지, 끌지(`LiveEnabled = false`). 켜 두면 관리자가 안 산 스킨을 입은 모습이 다른 사람에게 보여요(능력치 영향 없음)
 - [x] **관리자 UserId 알려 주기** — 완료 (2026-10-08): **11402290839** → `src/server/AdminConfig.luau`의 `UserIds`에 들어갔어요
-- [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
+- [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. **문서·테스트에 나온 예시(`SUSHI2026`, `SPOOKYSUSHI`)는 공개돼 있으니 실제 코드는 다른 문자열로** 정하세요. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
@@ -141,6 +141,34 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
     | diamond-uni | 다이아 성게 | 199 |
     | dragon-roll | 용 롤 | 199 |
   - 그다음 Studio 테스트 구매 확인: [`docs/specs/m4-14-robux-shop.md`](specs/m4-14-robux-shop.md) 개발 메모 AC7
+  - **M5에서 늘어난 스킨 상품 12개** (m5-22 스킨 10종 + m5-07 시즌 로벅스 스킨 2종) — 같은 방법으로 만들고 id를 `src/shared/Skins.luau`의 `productId`에
+
+    | 스킨 id | 상품 이름 | 가격(R$) |
+    |---|---|---|
+    | takoyaki | 타코야키 | 29 |
+    | egg-toast | 에그토스트 | 29 |
+    | slider-burger | 슬라이더 버거 | 29 |
+    | tonkatsu | 돈가스 | 59 |
+    | cat-sushi | 고양이 초밥 | 59 |
+    | robo-roll | 로보 롤 | 59 |
+    | galaxy-roll | 갤럭시 롤 | 99 |
+    | softserve-roll | 소프트아이스크림 롤 | 99 |
+    | crown-tuna | 크라운 참치 | 199 |
+    | unicorn-roll | 유니콘 롤 | 199 |
+    | pumpkin-sushi | 호박 초밥 (할로윈 한정) | 99 |
+    | santa-shrimp | 산타 새우 (크리스마스 한정) | 99 |
+- [ ] **C3-1. 특별 상품 5개 + 게임 패스 1개** (m5-08) — 스킨 상품 id와 겹치면 안 돼요
+  - Developer Products 5개 → id를 `src/shared/Offers.luau`의 각 상품 `productId`에
+
+    | offer id | 상품 이름 | 가격(R$) |
+    |---|---|---|
+    | starter-pack | 스타터 팩 | 79 |
+    | epic-set | 에픽 세트 | 249 |
+    | legendary-set | 전설 세트 | 499 |
+    | fx-cat-customer | 탈락 연출: 고양이 손님 | 59 |
+    | fx-fireworks | 우승 연출: 불꽃놀이 | 99 |
+  - Monetization → **Passes**에 "VIP 패스" R$ 149 → id를 `Offers.luau`의 `vip` 상품 `gamePassId`에
+  - Studio 확인 순서: [`docs/qa/m5-08-offers-shop.md`](qa/m5-08-offers-shop.md) 체크리스트 (`fakeRobuxInStudio`·`fakeVipInStudio` 켜고, `persistDataInStudio`는 false, 확인 뒤 모두 false로)
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 M5)

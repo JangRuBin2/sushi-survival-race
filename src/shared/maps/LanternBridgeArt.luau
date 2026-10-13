@@ -24,7 +24,7 @@ Art.LANTERN = "Lantern"
 local LANTERN_COLORS: { RGB } = {
 	{ r = 206, g = 48, b = 44 }, -- 빨강
 	{ r = 230, g = 140, b = 40 }, -- 주황
-	{ r = 248, g = 246, b = 238 }, -- 흰색
+	{ r = 255, g = 214, b = 150 }, -- 종이 미색 (m5-24: 흰색이 Bloom에 하얗게 날아가서 따뜻하게)
 }
 
 local function v(x: number, y: number, z: number): Vec3
@@ -227,7 +227,7 @@ local BACK_Z = 22 -- 출발 뒤 절벽면
 local FAR_Z = -186 -- 결승 너머 신사 언덕 앞면
 
 local ROCK = MapKitLogic.shades({ r = 66, g = 70, b = 92 })
-local WATER = { r = 18, g = 34, b = 62 }
+local WATER = { r = 26, g = 48, b = 86 }
 local LANTERN_GLOW = { r = 255, g = 168, b = 84 }
 local PAPER = { r = 255, g = 226, b = 170 }
 local TORII = { r = 206, g = 52, b = 40 }
@@ -318,6 +318,19 @@ local function addRiver(list: { DecorSpec })
 			v(rng:range(-30, 30), WATER_Y + 0.05, z)
 		)
 	end
+	-- 달빛 반영 띠 (달 쪽, 물결처럼 끊어진 밝은 조각)
+	for k = 0, 9 do
+		put(
+			list,
+			"MoonGlint",
+			"Block",
+			v(14 - (k % 3) * 3, 0.08, 1.2),
+			{ r = 170, g = 186, b = 230 },
+			"SmoothPlastic",
+			v(-30 - k * 2, WATER_Y + 0.06, -150 - k * 6),
+			v(0, 20, 0)
+		)
+	end
 end
 
 -- 절벽: 바위 덩어리를 비스듬히 겹쳐 쌓아요 (shade 3단)
@@ -339,6 +352,26 @@ local function rockRow(list: { DecorSpec }, seed: number, side: number, z0: numb
 			"Slate",
 			v(side * (CLIFF_X + w / 2 + rng:range(-3, 3)), WATER_Y - 2 + h / 2, z - depth / 2),
 			v(0, rng:range(-8, 8), side * rng:range(0, 5))
+		)
+		-- 지층 띠 + 꼭대기 이끼 턱 (맨 상자 대신 층이 보이는 바위)
+		local rx = side * (CLIFF_X + w / 2)
+		put(
+			list,
+			"CliffStrata",
+			"Block",
+			v(w + 1.2, 1.4, depth + 1.2),
+			ROCK.dark,
+			"Basalt",
+			v(rx, WATER_Y + h * rng:range(0.35, 0.55), z - depth / 2)
+		)
+		put(
+			list,
+			"CliffMoss",
+			"Block",
+			v(w + 0.8, 1.2, depth + 0.8),
+			PINE.dark,
+			"Grass",
+			v(rx, STREET_Y - 0.4, z - depth / 2)
 		)
 		-- 물가 바위 (아래쪽 튀어나온 덩어리)
 		local bw = rng:range(10, 18)
@@ -911,6 +944,199 @@ local function addToriiDetail(list: { DecorSpec })
 	)
 end
 
+-- 결승 표지: 결승 문 위 큰 초롱 2개 + 노렌 현수막 + 높은 깃대 (맵 어디서든 보이게)
+local function addFinishBeacon(list: { DecorSpec })
+	local z = Layout.FINISH.back + 2
+	for _, side in { -1, 1 } do
+		put(list, "FinishChochin", "Ball", v(3.4, 4.4, 3.4), LANTERN_GLOW, "Neon", v(side * 7, 12.4, z + 0.6), nil, {
+			anim = { kind = "Sway", period = 3.6, amount = 5, axis = "X" },
+		})
+		put(
+			list,
+			"FinishChochinCap",
+			"Cylinder",
+			v(0.4, 2, 2),
+			MapKitLogic.PALETTE.Nori,
+			"SmoothPlastic",
+			v(side * 7, 14.8, z + 0.6),
+			UP
+		)
+		column(list, "FinishFlagPole", side * 9.5, 0, z - 1, 26, 0.6, DARK_WOOD, "Wood")
+		put(
+			list,
+			"FinishFlag",
+			"Block",
+			v(0.2, 9, 3),
+			if side < 0 then TORII else PAPER,
+			"Fabric",
+			v(side * 9.5, 20, z + 0.6),
+			nil,
+			{ anim = { kind = "Sway", period = 4.2, amount = 4, axis = "Z" } }
+		)
+	end
+	for k = -2, 2 do
+		put(
+			list,
+			"FinishNoren",
+			"Block",
+			v(2.8, 3.6, 0.25),
+			if k % 2 == 0 then TORII else PAPER,
+			"Fabric",
+			v(k * 3, 7.6, z + 0.9)
+		)
+	end
+end
+
+-- 축제 거리 위 초롱 줄 (거리 따라, 빛 없음) + 거리 손님 실루엣 무리
+local function addStreetLife(list: { DecorSpec })
+	local rng = MapKitShapes.rng(83)
+	for _, side in { -1, 1 } do
+		local x = side * (CLIFF_X + 34)
+		put(list, "StreetWire", "Block", v(0.2, 0.2, 230), DARK_WOOD, "Fabric", v(x, STREET_Y + 19, -80))
+		for k = 0, 22 do
+			put(
+				list,
+				"StreetChochin",
+				"Ball",
+				v(1.8, 2.3, 1.8),
+				if k % 3 == 0 then TORII elseif k % 3 == 1 then LANTERN_GLOW else PAPER,
+				"Neon",
+				v(x, STREET_Y + 17.6, 30 - k * 10)
+			)
+		end
+		-- 손님 무리 (캡슐 몸 + 공 머리, 유카타 색)
+		for g = 0, 5 do
+			local gz = 20 - g * 36 + rng:range(-6, 6)
+			for m = 0, 2 do
+				local px = side * (CLIFF_X + 30 + rng:range(-4, 8))
+				local pz = gz + m * 2.6
+				local yukata = if (g + m) % 3 == 0
+					then { r = 60, g = 80, b = 150 }
+					elseif (g + m) % 3 == 1 then { r = 200, g = 90, b = 120 }
+					else { r = 230, g = 200, b = 120 }
+				local hgt = rng:range(9, 12)
+				column(list, "VisitorBody", px, STREET_Y, pz, hgt, 3.4, yukata, "Fabric")
+				put(
+					list,
+					"VisitorHead",
+					"Ball",
+					v(2.8, 2.8, 2.8),
+					{ r = 40, g = 32, b = 30 },
+					"SmoothPlastic",
+					v(px, STREET_Y + hgt + 1.2, pz)
+				)
+			end
+		end
+	end
+end
+
+-- 출발 뒤 참배길(산도): 돌길 + 양쪽 석등 줄 + 초롱 아치 — 3/4 뷰 앞쪽 빈 땅을 채워요 (절벽 위, 빛 없음)
+local function addSando(list: { DecorSpec })
+	local y = STREET_Y
+	put(list, "SandoPath", "Block", v(16, 0.4, 260), ROCK.light, "Slate", v(0, y + 0.2, BACK_Z + 150))
+	for _, side in { -1, 1 } do
+		put(list, "SandoCurb", "Block", v(1, 0.8, 260), ROCK.dark, "Slate", v(side * 8.5, y + 0.4, BACK_Z + 150))
+		for k = 0, 7 do
+			local z = BACK_Z + 34 + k * 30
+			local x = side * 13
+			column(list, "SandoLanternPost", x, y, z, 5, 1.6, ROCK.base, "Slate")
+			put(list, "SandoLanternBox", "Block", v(2.4, 2.4, 2.4), PAPER, "Neon", v(x, y + 6.2, z))
+			put(list, "SandoLanternRoof", "Wedge", v(3.4, 1.4, 1.7), ROCK.dark, "Slate", v(x, y + 8.1, z - 0.85))
+			put(
+				list,
+				"SandoLanternRoof",
+				"Wedge",
+				v(3.4, 1.4, 1.7),
+				ROCK.dark,
+				"Slate",
+				v(x, y + 8.1, z + 0.85),
+				v(0, 180, 0)
+			)
+			-- 바깥쪽 노점·나무 번갈아
+			if k % 2 == 0 then
+				local tx = side * (34 + (k % 3) * 6)
+				column(list, "PineTrunk", tx, y, z, 12, 2.4, DARK_WOOD, "Wood")
+				column(list, "PineLeaves", tx, y + 9, z, 10, 20, PINE.base, "Grass")
+				column(list, "PineLeaves", tx, y + 17, z, 9, 14, PINE.light, "Grass")
+				column(list, "PineLeaves", tx, y + 24, z, 7, 8, PINE.base, "Grass")
+			end
+		end
+	end
+	-- 초롱 아치 3개 (참배길 위)
+	for a = 0, 2 do
+		local z = BACK_Z + 60 + a * 70
+		for _, side in { -1, 1 } do
+			column(list, "SandoArchPost", side * 10, y, z, 14, 1.2, TORII, "Wood")
+		end
+		put(list, "SandoArchBeam", "Block", v(22, 1.2, 1.4), TORII, "Wood", v(0, y + 14.4, z))
+		for k = -3, 3 do
+			put(
+				list,
+				"SandoArchChochin",
+				"Ball",
+				v(1.8, 2.3, 1.8),
+				if (k + a) % 2 == 0 then LANTERN_GLOW else PAPER,
+				"Neon",
+				v(k * 2.8, y + 12.6, z)
+			)
+		end
+	end
+end
+
+-- 절벽 위 먼 마을 (BG): 기와지붕 집 무리 + 불 켜진 창 — 3/4 뷰의 넓은 땅이 비지 않게 (빛 없음, 큰 상자는 지붕·처마로 깨요)
+local function addTown(list: { DecorSpec })
+	local rng = MapKitShapes.rng(97)
+	local roofs = MapKitLogic.shades({ r = 44, g = 48, b = 70 })
+	local walls = MapKitLogic.shades({ r = 150, g = 128, b = 104 })
+	for _, side in { -1, 1 } do
+		for row = 0, 2 do
+			for k = 0, 6 do
+				local x = side * (CLIFF_X + 110 + row * 52 + rng:range(-8, 8))
+				local z = BACK_Z + 140 - k * 56 + rng:range(-10, 10)
+				local w, d, h = rng:range(26, 36), rng:range(20, 28), rng:range(12, 18)
+				local wall = if (row + k) % 3 == 0
+					then walls.base
+					elseif (row + k) % 3 == 1 then walls.light
+					else walls.dark
+				local roof = if k % 2 == 0 then roofs.base else roofs.dark
+				local yaw = rng:range(-6, 6)
+				local parts: { DecorSpec } = {}
+				put(parts, "TownHouse", "Block", v(w, h, d), wall, "Plaster", v(0, STREET_Y + h / 2, 0))
+				put(parts, "TownBeam", "Block", v(w + 0.6, 1, d + 0.6), DARK_WOOD, "Wood", v(0, STREET_Y + h * 0.55, 0))
+				put(
+					parts,
+					"TownRoof",
+					"Wedge",
+					v(w + 4, 7, d / 2 + 2),
+					roof,
+					"Slate",
+					v(0, STREET_Y + h + 3.5, -d / 4 - 0.5)
+				)
+				put(
+					parts,
+					"TownRoof",
+					"Wedge",
+					v(w + 4, 7, d / 2 + 2),
+					roof,
+					"Slate",
+					v(0, STREET_Y + h + 3.5, d / 4 + 0.5),
+					v(0, 180, 0)
+				)
+				put(
+					parts,
+					"TownWindow",
+					"Block",
+					v(w * 0.4, h * 0.25, 0.3),
+					PAPER,
+					"Neon",
+					v(0, STREET_Y + h * 0.3, -side * (d / 2 + 0.1))
+				)
+				append(list, MapKitShapes.transform(parts, v(x, 0, z), v(0, yaw + (if side < 0 then 90 else -90), 0)))
+			end
+		end
+	end
+end
+
 function Art.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addTorii(list)
@@ -933,6 +1159,10 @@ function Art.decor(): { DecorSpec }
 	addShrine(list)
 	addSky(list)
 	addRestGlow(list)
+	addFinishBeacon(list)
+	addStreetLife(list)
+	addSando(list)
+	addTown(list)
 	return list
 end
 
@@ -944,7 +1174,7 @@ function Art.introCamera(): { IntroPoint }
 	return {
 		{ pos = v(-10, 32, 36), lookAt = v(0, 0, -50) },
 		{ pos = v(12, 9, -46), lookAt = v(0, 0, -64) },
-		{ pos = v(-12, 14, -150), lookAt = v(0, -2, -112) },
+		{ pos = v(-4, 26, -176), lookAt = v(0, -2, -112) },
 		{ pos = v(0, 8, 12), lookAt = v(0, 3, -24) },
 	}
 end

@@ -35,6 +35,12 @@ function WorldTextController.start(_gui: Instance)
 	for _, instance in CollectionService:GetTagged(WorldText.TAG) do
 		watch(instance)
 	end
+	-- 번역기가 늦게 오면 지금 있는 글씨를 다시 채워요 (QA B4)
+	Loc.onChanged(function()
+		for _, instance in CollectionService:GetTagged(WorldText.TAG) do
+			render(instance)
+		end
+	end)
 end
 
 return WorldTextController

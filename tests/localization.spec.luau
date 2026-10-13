@@ -26,51 +26,56 @@ local RoomLogic = RobloxRequire.require(Shared.RoomLogic)
 
 ------------------------------------------------------------------------
 -- AC11 허용 목록: { 파일, 줄에 들어 있는 글자, 이유 }. 이유 필수.
+-- 관리자 파일(이름에 Admin)은 검사에서 빼요 (관리자 도구는 m5-26 제외). 그 밖에 남은 것은 Studio 전용 한 줄뿐.
 local KOREAN_ALLOWLIST = {
-	{
-		file = "src/server/RoomService.luau",
-		contains = "매치 서버에서는 할 수 없어요",
-		reason = "RoomService.forceStart — 관리자 명령(m5-11) 전용 문구, 관리자 도구는 m5-26 제외",
-	},
-	{
-		file = "src/server/RoomService.luau",
-		contains = "방이 없어요",
-		reason = "RoomService.forceStart — 관리자 명령 전용",
-	},
-	{
-		file = "src/server/RoomService.luau",
-		contains = "이미 게임 중이에요",
-		reason = "RoomService.forceStart — 관리자 명령 전용",
-	},
-	{
-		file = "src/server/RoomService.luau",
-		contains = "곧 자동으로 시작해요",
-		reason = "RoomService.forceStart — 관리자 명령 전용",
-	},
 	{
 		file = "src/server/PlaceService.luau",
 		contains = "Studio 매치",
-		reason = "Studio 흉내 모드 전용 방 이름 (스펙 제외: Studio 전용 이름)",
+		reason = "Studio 흉내 모드(simulateMatchServer) 전용 방 이름 (스펙 제외: Studio 전용 이름)",
 	},
 }
 
--- AC11 검사 대상 (src/client 전부 + 아래 파일). 관리자 파일·CharacterFxController(2단계)는 빼요.
-local SERVER_AND_LOGIC = {
-	"src/server/RoomService.luau",
-	"src/server/RoomDirectory.luau",
-	"src/server/PlaceService.luau",
-	"src/server/ShopService.luau",
-	"src/server/OfferService.luau",
-	"src/server/RobuxShopService.luau",
-	"src/server/CodeService.luau",
-	"src/shared/ShopLogic.luau",
-	"src/shared/OfferLogic.luau",
-	"src/shared/ReceiptLogic.luau",
-	"src/shared/CodeLogic.luau",
-	"src/shared/RoomLogic.luau",
-	"src/shared/RewardLogic.luau",
-	"src/shared/VictoryCutsceneLogic.luau",
+-- 데이터 원문 (화면에 직접 쓰지 않아요): 한국어가 CSV Source와 같아야 하는 데이터 표 (AC5가 동기화를 확인).
+-- 클라이언트는 id로 동적 키(Loc.skinName 등)를 써요. lines가 있으면 그 글자가 든 줄만 허용.
+local DATA_SOURCES: { { file: string, lines: { string }?, reason: string } } = {
+	{ file = "src/shared/Skins.luau", reason = "스킨 이름·대사 원문 = skin.* Source (AC5)" },
+	{ file = "src/shared/Offers.luau", reason = "상품 이름·설명·혜택 원문 = offer.* Source (AC5)" },
+	{ file = "src/shared/Seasons.luau", reason = "시즌 이름·재화 원문 = season.* Source (AC5)" },
+	{
+		file = "src/shared/FxCatalog.luau",
+		reason = "연출 이름 원문 = fx.* Source (AC5, 관리자 패널만 직접 씀)",
+	},
+	{
+		file = "src/shared/Config.luau",
+		lines = { "name = " },
+		reason = "칭호 원문 Config.Titles = title.w* Source (AC5). 서버는 기준 승수만 보내요",
+	},
+	{
+		file = "src/shared/EliminationCutsceneLogic.luau",
+		reason = "손님 대사 원문 = cutscene.line.* Source (AC5)",
+	},
+	{
+		file = "src/shared/maps/",
+		lines = { "displayName = ", "rule = " },
+		reason = "맵 이름·규칙 원문 = map.* Source (AC5). MatchPhase의 한국어 폴백, 화면은 mapId → Loc",
+	},
 }
+
+local function dataSourceAllows(path: string, lineText: string): boolean
+	for _, entry in DATA_SOURCES do
+		if string.sub(path, 1, #entry.file) == entry.file then
+			if entry.lines == nil then
+				return true
+			end
+			for _, needle in entry.lines do
+				if string.find(lineText, needle, 1, true) then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
 
 local function isAdminFile(path: string): boolean
 	return string.find(path, "Admin", 1, true) ~= nil
@@ -149,6 +154,8 @@ return function(t: Test.Test)
 			'Loc%.t%(%s*"([^"]+)"',
 			'LocalizeLogic%.text%(%s*"([^"]+)"',
 			'key%s*=%s*"([^"]+)"',
+			'Loc%.tPlace%(%s*"([^"]+)"', -- 등수 문구 (QA B3)
+			'WorldText%.mark%([^,]+,%s*"([^"]+)"', -- 서버 월드 글씨 (m5-26 2단계)
 		}
 		for _, path in allSource() do
 			if isAdminFile(path) then
@@ -419,53 +426,55 @@ return function(t: Test.Test)
 	end)
 
 	------------------------------------------------------------------ AC11
-	t.test("AC11: 화면 코드에 한국어 문자열 리터럴이 없어요 (허용 목록 제외)", function()
-		for _, entry in KOREAN_ALLOWLIST do
-			t.ok(entry.reason ~= "", `allowlist reason for {entry.file}`)
-		end
-		local files: { string } = {}
-		walk("src/client", files)
-		for _, path in SERVER_AND_LOGIC do
-			table.insert(files, path)
-		end
-		local found: { string } = {}
-		local allowHits: { [number]: boolean } = {}
-		for _, path in files do
-			if isAdminFile(path) then
-				continue
+	t.test(
+		"AC11: src 전체에 한국어 문자열 리터럴이 없어요 (관리자·데이터 원문·허용 목록 제외)",
+		function()
+			for _, entry in KOREAN_ALLOWLIST do
+				t.ok(entry.reason ~= "", `allowlist reason for {entry.file}`)
 			end
-			local source = fs.readFile(path)
-			local lines = LuauStrings.lines(source)
-			for _, literal in LuauStrings.literals(source) do
-				if not LuauStrings.hasHangul(literal.text) then
+			for _, entry in DATA_SOURCES do
+				t.ok(entry.reason ~= "", `data source reason for {entry.file}`)
+			end
+			local files: { string } = allSource()
+			local found: { string } = {}
+			local allowHits: { [number]: boolean } = {}
+			for _, path in files do
+				if isAdminFile(path) then
 					continue
 				end
-				local lineText = lines[literal.line] or ""
-				if
-					string.find(lineText, "warn(", 1, true)
-					or string.find(lineText, "print(", 1, true)
-					or string.find(lineText, "error(", 1, true)
-					or string.find(lineText, "assert(", 1, true)
-				then
-					continue
-				end
-				local allowed = false
-				for index, entry in KOREAN_ALLOWLIST do
-					if entry.file == path and string.find(lineText, entry.contains, 1, true) then
-						allowed = true
-						allowHits[index] = true
+				local source = fs.readFile(path)
+				local lines = LuauStrings.lines(source)
+				for _, literal in LuauStrings.literals(source) do
+					if not LuauStrings.hasHangul(literal.text) then
+						continue
+					end
+					local lineText = lines[literal.line] or ""
+					if
+						string.find(lineText, "warn(", 1, true)
+						or string.find(lineText, "print(", 1, true)
+						or string.find(lineText, "error(", 1, true)
+						or string.find(lineText, "assert(", 1, true)
+					then
+						continue
+					end
+					local allowed = dataSourceAllows(path, lineText)
+					for index, entry in KOREAN_ALLOWLIST do
+						if entry.file == path and string.find(lineText, entry.contains, 1, true) then
+							allowed = true
+							allowHits[index] = true
+						end
+					end
+					if not allowed then
+						table.insert(found, `{path}:{literal.line}: {literal.text}`)
 					end
 				end
-				if not allowed then
-					table.insert(found, `{path}:{literal.line}: {literal.text}`)
-				end
+			end
+			t.eq(found, {})
+			for index, entry in KOREAN_ALLOWLIST do
+				t.ok(allowHits[index], `unused allowlist entry {entry.file} {entry.contains}`)
 			end
 		end
-		t.eq(found, {})
-		for index, entry in KOREAN_ALLOWLIST do
-			t.ok(allowHits[index], `unused allowlist entry {entry.file} {entry.contains}`)
-		end
-	end)
+	)
 
 	t.test("AC11: 토크나이저가 주석·보간·긴 문자열을 구분해요", function()
 		local source =

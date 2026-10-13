@@ -18,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local CharacterAnimLogic = require(ReplicatedStorage.Shared.CharacterAnimLogic)
+local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
@@ -168,8 +169,14 @@ local function updateTitle(tag: BillboardGui, character: Model)
 		return
 	end
 	local value = character:GetAttribute(Attributes.Title)
-	-- 속성은 한국어 칭호 이름(서버 Config.Titles) → 그 사람 언어로 (m5-26)
-	local text = if type(value) == "string" and value ~= "" then Loc.titleFromName(value) else ""
+	-- 속성은 칭호 기준 승수(숫자) → 그 사람 언어로 (m5-26). 옛 서버의 한국어 칭호 이름 문자열도 읽어요
+	local text = ""
+	local threshold = if type(value) == "number" then ProfileSchema.titleWinsFor(value) else nil
+	if threshold then
+		text = Loc.titleName(threshold)
+	elseif type(value) == "string" and value ~= "" then
+		text = Loc.titleFromName(value)
+	end
 	if label.Text ~= text then
 		label.Text = text
 	end

@@ -571,20 +571,20 @@ end
 
 -- 관리자 명령 start (m5-11): 대기 중인 방을 최소 인원·방장 검사 없이 지금과 같은 시작 흐름(beginMatch)으로.
 -- 권한은 AdminService가 봐요 (Studio 전용 Test 명령). 매치 중·자동 시작 카운트다운 중이면 거절해요.
--- 관리자 도구라 문구는 한국어 문자열 그대로예요 (m5-26 제외 범위).
+-- 실패하면 이유 이름("MatchServer" | "NoRoom" | "InMatch" | "AutoStarting") — 관리자 문구는 AdminCommands가 (m5-26).
 function RoomService.forceStart(roomId: string): (boolean, string?)
 	if hooks.matchServer then
-		return false, "매치 서버에서는 할 수 없어요"
+		return false, "MatchServer"
 	end
 	local room = rooms[roomId]
 	if not room then
-		return false, "방이 없어요"
+		return false, "NoRoom"
 	end
 	if room.state ~= "Waiting" then
-		return false, "이미 게임 중이에요"
+		return false, "InMatch"
 	end
 	if room.autoStartAt ~= nil or autoStartThreads[room.id] ~= nil then
-		return false, "곧 자동으로 시작해요"
+		return false, "AutoStarting"
 	end
 	beginMatch(room)
 	return true, nil
@@ -682,7 +682,7 @@ end
 
 -- 같은 방을 다시 만들어요 (설정·키 그대로, 방장 = 원래 방장이 있으면 그 사람, 아니면 players의 첫 사람).
 -- filterWith가 있으면 그 사람 기준으로 이름을 다시 필터해요 (로비 복귀, 실패하면 기본 이름). yield할 수 있어요.
--- 기본 이름(nameIsDefault) 방이면 티켓의 이름은 버리고 방장 DisplayName으로 다시 만들어요 (m5-26 QA B1).
+-- 티켓의 nameIsDefault는 믿지 않아요: 기본 이름은 방장 DisplayName으로 다시 만들거나 필터해요 (m5-26 QA B1).
 -- players 중 이미 방이 있거나 나간 사람은 빼요. 아무도 없거나 코드를 못 만들면 nil.
 function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterWith: Player?): Room?
 	local function keyTaken(): boolean
@@ -694,24 +694,22 @@ function RoomService.restoreRoom(spec: RestoreSpec, players: { Player }, filterW
 	end
 	local name = spec.settings.name
 	local nameIsDefault = spec.settings.nameIsDefault == true
-	if filterWith and nameIsDefault then
-		-- 복귀 티켓(TeleportData)은 바꿀 수 있어요: 기본 이름 표시를 믿지 않고 이름을 서버가 아는
-		-- 방장(없으면 filterWith) DisplayName으로 다시 만들어요 (m5-26 QA B1). DisplayName은 Roblox가 이미 거른 이름.
-		local source: Player = filterWith
-		for _, player in players do
-			if player.UserId == spec.hostUserId and player.Parent ~= nil then
-				source = player
-				break
-			end
-		end
-		name = RoomLogic.defaultName(source.DisplayName)
-	elseif filterWith then
-		local filtered = filterRoomName(name, filterWith)
-		if filtered == nil then
-			name = RoomLogic.defaultName(filterWith.DisplayName)
-			nameIsDefault = true
+	if filterWith then
+		-- 복귀 티켓(TeleportData)은 클라이언트가 바꿀 수 있어요 (m5-26 QA B1): nameIsDefault·name을 그대로 믿지 않아요.
+		--   기본 이름: 방장이 이 서버에 있으면 그 DisplayName으로 다시 만들어요 (Roblox가 이미 거른 이름).
+		--             없으면 티켓 이름을 필터해서 하나도 안 바뀌었을 때만 기본 이름으로 둬요.
+		--   쓴 이름: 항상 필터. 필터가 실패하거나 기본 이름이 걸러지면 filterWith DisplayName 기본 이름.
+		local host = if nameIsDefault then Players:GetPlayerByUserId(spec.hostUserId) else nil
+		if host then
+			name = RoomLogic.defaultName(host.DisplayName)
 		else
-			name = filtered
+			local filtered = filterRoomName(name, filterWith)
+			if filtered == nil or (nameIsDefault and filtered ~= name) then
+				name = RoomLogic.defaultName(filterWith.DisplayName)
+				nameIsDefault = true
+			else
+				name = filtered
+			end
 		end
 	end
 	local roomId = reserveRoomId()

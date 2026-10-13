@@ -106,7 +106,10 @@ end
 
 -- 서버가 단 이름·승수로 이름표를 이 플레이어 언어로 채워요 (m5-26 2단계)
 local function renderLabels(podiumFolder: Instance, labels: PodiumLabels)
-	local view = PodiumLogic.view(podiumFolder:GetAttribute(Attributes.WinnerName), podiumFolder:GetAttribute(Attributes.WinnerWins))
+	local view = PodiumLogic.view(
+		podiumFolder:GetAttribute(Attributes.WinnerName),
+		podiumFolder:GetAttribute(Attributes.WinnerWins)
+	)
 	setLine(labels.name, view.name)
 	setLine(labels.title, view.title)
 	setLine(labels.wins, view.wins)
@@ -131,6 +134,9 @@ local function watchPodium(lobby: Instance)
 			renderLabels(podiumFolder, labels)
 		end)
 	end
+	Loc.onChanged(function() -- 번역기가 늦게 오면 다시 (QA B4)
+		renderLabels(podiumFolder, labels)
+	end)
 	renderLabels(podiumFolder, labels)
 end
 

@@ -6,8 +6,8 @@
 --   PodiumLogic.titleWins(wins)   wins 이하인 칭호 중 가장 높은 칭호의 기준 승수 (Config.Titles), 없으면 nil
 --   PodiumLogic.view(name, wins)  { name, title?, wins? } — 속성 값을 그대로 넣어도 돼요 (모양이 틀리면 빈 상태·이름만)
 
-local Config = require(script.Parent.Config)
 local LocalizeLogic = require(script.Parent.LocalizeLogic)
+local ProfileSchema = require(script.Parent.ProfileSchema)
 local Types = require(script.Parent.Types)
 
 local PodiumLogic = {}
@@ -21,13 +21,7 @@ export type View = {
 PodiumLogic.MAX_NAME_LENGTH = 60 -- DisplayName은 20자 이하. 이보다 길면 이상한 값이라 빈 상태로 봐요
 
 function PodiumLogic.titleWins(wins: number): number?
-	local found: number? = nil
-	for _, entry in Config.Titles do
-		if wins >= entry.wins then
-			found = entry.wins
-		end
-	end
-	return found
+	return ProfileSchema.titleWinsFor(wins)
 end
 
 local function isWins(value: any): boolean

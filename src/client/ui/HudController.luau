@@ -20,9 +20,9 @@ local function personalResultText(result: Types.PlayerResult): string
 	if result.result == "Won" then
 		return Loc.t("hud.result.won")
 	elseif result.result == "Passed" then
-		return Loc.t("hud.result.passed", { place = Loc.place(result.place) })
+		return Loc.tPlace("hud.result.passed", result.place)
 	end
-	return Loc.t("hud.result.out", { place = Loc.place(result.place) })
+	return Loc.tPlace("hud.result.out", result.place)
 end
 
 function HudController.start(gui: Instance)

@@ -12,7 +12,8 @@
 --   render(catalog, language, loc)  번역기 없이 카탈로그만으로 (서버 Kick, 중첩 인자, 폴백)
 --   prepareArgs(args, resolve)      FormatByKey에 넘길 문자열 인자 (숫자 1,234, 중첩 LocText 풀기)
 --   choose(input)                   번역기 결과와 카탈로그 중 보여 줄 글씨 (폴백 사슬, 스펙 3절 표)
---   formatNumber(n) / ordinal(n, language)
+--   formatNumber(n) / ordinal(n, language) / placeValue(n, language) (영어만 서수)
+--   needsLateRefresh(language) / newLateMap / recordLate / lateEntryFor   늦게 온 번역기로 다시 쓰기 (QA B4)
 --   isLocText(value) / text(key, args)
 --   동적 키: mapNameKey, mapRuleKey, skinNameKey, skinSpeechKey, tierKey, offerNameKey, offerBlurbKey,
 --            offerPerkKey, fxNameKey, seasonNameKey, seasonTokenKey, titleKey, rewardReasonKey, monthKey, cutsceneLineKey
@@ -45,6 +46,7 @@ export type ChooseInput = {
 	args: { [string]: string }?, -- prepareArgs 결과
 	translated: string?, -- 번역기 FormatByKey 결과
 	translatorError: boolean?, -- 번역기가 없거나 FormatByKey가 오류
+	englishArgs: { [string]: string }?, -- 카탈로그 en으로 폴백할 때 쓸 인자 (영어 서수 "5th" 등, 없으면 args)
 }
 
 local LocalizeLogic = {}
@@ -481,9 +483,42 @@ function LocalizeLogic.choose(input: ChooseInput): string
 		return input.translated :: string
 	end
 	if entry.en then
-		return (LocalizeLogic.format(entry.en, args))
+		return (LocalizeLogic.format(entry.en, (input.englishArgs or args) :: Args?))
 	end
 	return korean
+end
+
+-- 등수 인자 (QA B3): 영어만 서수("5th"), 한국어·그 밖 언어는 숫자만("5" — 문구가 "{place}등"·자동 번역).
+function LocalizeLogic.placeValue(n: number, language: string): string
+	return LocalizeLogic.ordinal(n, language)
+end
+
+-- 번역기가 늦게 왔을 때 이미 그린 글씨를 다시 써야 하는 언어인지 (QA B4).
+-- ko는 번역기를 안 쓰고, en은 카탈로그 en = 클라우드 en이라 바뀌지 않아요. 그 밖 언어만.
+function LocalizeLogic.needsLateRefresh(language: string): boolean
+	return language ~= LocalizeLogic.SOURCE_LANGUAGE and language ~= "en"
+end
+
+-- 늦은 번역기용 다시 쓰기 목록 (QA B4, 순수). 번역기가 오기 전에 폴백으로 만든 글씨 → 그 키·인자.
+-- 같은 글씨가 다른 키에서 나오면 처음 것을 둬요(다시 써도 같은 뜻). 최대 limit개.
+export type LateEntry = { key: string, args: Args?, englishArgs: { [string]: string }? }
+export type LateMap = { entries: { [string]: LateEntry }, count: number, limit: number }
+
+function LocalizeLogic.newLateMap(limit: number?): LateMap
+	return { entries = {}, count = 0, limit = limit or 2000 }
+end
+
+function LocalizeLogic.recordLate(map: LateMap, shown: string, entry: LateEntry)
+	if shown == "" or map.entries[shown] ~= nil or map.count >= map.limit then
+		return
+	end
+	map.entries[shown] = entry
+	map.count += 1
+end
+
+-- 지금 보이는 글씨가 폴백으로 만든 글씨면 그 키·인자, 아니면 nil (플레이어가 쓴 이름 등은 기록에 없어요)
+function LocalizeLogic.lateEntryFor(map: LateMap, shown: string): LateEntry?
+	return map.entries[shown]
 end
 
 -- 동적 키 (스펙 2절). 코드에서 동적 키는 이 함수들로만 만들어요.

@@ -7,7 +7,7 @@ code.err.Expired,기간이 끝난 코드예요,code reward error line,,That code
 code.err.Invalid,없는 코드예요,code reward error line,,That code doesn't exist
 code.err.Locked,잠시 뒤에 다시 해 주세요,code reward error line (too many wrong codes),,Too many tries. Please wait a bit
 code.err.NoProfile,프로필을 불러오는 중이에요,code reward error line,,Still loading your profile
-code.err.NotSaved,저장이 안 되는 상태라 지금은 쓸 수 없어요,code reward error line,,"Saving isn't working right now, so you can't use codes yet"
+code.err.NotSaved,저장이 안 되는 상태라 지금은 쓸 수 없어요,code reward error line,,Saving is down right now. Try codes again later
 code.err.NotStarted,아직 쓸 수 없는 코드예요,code reward error line,,That code isn't ready yet
 code.err.Ok,받았어요!,code reward result line,,Got it!
 code.err.Unknown,없는 코드예요,code reward error line,,That code doesn't exist
@@ -20,7 +20,7 @@ code.redeem.btn,받기,code window button,,Redeem
 code.title,🎟 코드 넣기,code window title,,🎟 Enter a Code
 coin.unsaved,(저장 안 됨),coin badge note when progress isn't saved,,(Not saved)
 common.cancel.btn,취소,dialog button,,Cancel
-common.err.connection,서버와 연결이 불안정해요,generic network error line,,The connection to the server is shaky
+common.err.connection,서버와 연결이 불안정해요,generic network error line,,Connection problem. Please try again
 common.err.retry,다시 해 주세요,generic error line,,Please try again
 cutscene.eaten,먹혔다!,big stamp when you are eliminated,,EATEN!
 cutscene.line.cat.1,냥~ 신선하다냥!,speech bubble line said by the customer who eats you (playful),,"Meow~ So fresh, meow!"
@@ -63,7 +63,7 @@ hud.banner.victorySub,{name}님이 우승했어요!,HUD banner subtitle,name=Min
 hud.progress.left,남은 인원 {count},HUD top-left counter (survival),count=7,Players left: {count}
 hud.progress.race,통과 {passed}/{target} · 남은 인원 {count},HUD top-left counter (race),passed=3; target=8; count=9,Qualified {passed}/{target} · Left: {count}
 hud.result.out,🥢 탈락했어요… ({place}등),HUD personal result (English place is 5th),place=5th,🥢 You're out! ({place} place)
-hud.result.passed,✅ {place}번째로 통과했어요!,HUD personal result (English place is 3rd),place=3rd,✅ You qualified in {place}!
+hud.result.passed,✅ {place}번째로 통과했어요!,HUD personal result (English place is 3rd),place=3rd,✅ Qualified! ({place} place)
 hud.result.won,🏆 우승했어요!,HUD personal result,,🏆 You win!
 hud.round,라운드 {index} / {count},HUD round number,index=2; count=4,Round {index} / {count}
 hud.roundShort,라운드 {index}/{count},HUD round number (phone layout),index=2; count=4,Round {index}/{count}
@@ -91,6 +91,9 @@ lobby.joinCode.btn,코드로 참가,lobby button,,Join with Code
 lobby.matchServer.connecting,매치 서버 연결 중…,match server status line,,Connecting to the match...
 lobby.matchServer.returning,로비로 돌아가는 중…,match server status line,,Heading back to the lobby...
 lobby.noRooms,열린 방이 없어요. 방을 만들거나 빠른 참가를 눌러 보세요!,empty room list,,No open rooms yet. Make a room or press Quick Join!
+lobby.podium.empty,다음 우승자는 누구?,lobby winner podium sign (no winner yet),,Who's the next winner?
+lobby.podium.winner,🏆 {name},lobby winner podium sign: the latest winner's display name,name=Mina,🏆 {name}
+lobby.podium.wins,{wins}승,lobby winner podium sign: total wins of the latest winner,wins=12,Wins: {wins}
 lobby.publicRooms,공개 방,lobby list title,,Public Rooms
 lobby.quickJoin.btn,빠른 참가,lobby button,,Quick Join
 lobby.room.count,{count}/{max}명,room list player count,count=3; max=8,{count}/{max}
@@ -124,6 +127,7 @@ map.skewer-showdown.name,회전 꼬치 쇼다운,map name or one-line rule shown
 map.skewer-showdown.rule,돌아오는 꼬치를 뛰어넘고 끝까지 버티세요! 마지막 1명만 탈출해요,map name or one-line rule shown at round intro,,Jump over the spinning skewers! Only the last one standing escapes.
 map.soy-swamp.name,간장 늪 & 와사비 산,map name or one-line rule shown at round intro,,Soy Swamp & Wasabi Hill
 map.soy-swamp.rule,"간장 웅덩이는 피하고, 와사비 패드로 튀어 올라 결승선까지!",map name or one-line rule shown at round intro,,"Avoid the soy puddles, launch off wasabi pads, and reach the finish!"
+map.soy-swamp.spicy,매워!!,floating text over a player who hits a wasabi pad (Soy Swamp map),,So spicy!!
 map.tempura-pot.name,튀김 냄비 탈출,map name or one-line rule shown at round intro,,Tempura Pot Escape
 map.tempura-pot.rule,차오르는 기름을 피해 위로! 튀는 기름도 조심!,map name or one-line rule shown at round intro,,Climb away from the rising oil! Watch out for splashes!
 map.tug-of-war-platform.name,줄다리기 발판,map name or one-line rule shown at round intro,,Tug-of-War Platform
@@ -142,7 +146,7 @@ offer.err.Locked,매치가 끝나면 바꿀 수 있어요,shop error line,,You c
 offer.err.NoProfile,프로필을 불러오는 중이에요,shop error line,,Still loading your profile
 offer.err.NotForSale,준비 중이에요,shop error line,,Coming soon
 offer.err.NotOwned,아직 없는 연출이에요,shop error line,,You don't have that effect yet
-offer.err.OwnsSome,이미 가진 스킨이 있어서 따로 사야 해요,shop error line,,"You already have one of these skins, so buy the others one by one"
+offer.err.OwnsSome,이미 가진 스킨이 있어서 따로 사야 해요,shop error line,,You already own a skin in this set. Buy the others one at a time
 offer.err.TooFast,잠시 뒤에 다시 해 주세요,shop error line,,Slow down! Try again in a moment
 offer.err.Unknown,없는 상품이에요,shop error line,,That item doesn't exist
 offer.err.UnknownFx,없는 연출이에요,shop error line,,That effect doesn't exist
@@ -151,7 +155,7 @@ offer.fx-cat-customer.blurb,내가 먹힐 때 손님이 고양이로 바뀌어�
 offer.fx-cat-customer.name,탈락 연출: 고양이 손님,"shop item name, description or perk",,Elimination Effect: Cat Customer
 offer.fx-fireworks.blurb,내가 우승할 때 불꽃놀이가 터져요,"shop item name, description or perk",,Fireworks burst when you win
 offer.fx-fireworks.name,우승 연출: 불꽃놀이,"shop item name, description or perk",,Victory Effect: Fireworks
-offer.fxOff.btn,입는 중 · 벗기,my effects button (currently used),,On · Remove
+offer.fxOff.btn,입는 중 · 벗기,my effects button (currently used),,In Use · Remove
 offer.fxRemoved,연출을 벗었어요,shop result line,,Effect removed
 offer.fxRow,{name} ({slot}),my effects row,name=Cat Customer; slot=Elimination Effect,{name} ({slot})
 offer.fxWear.btn,입기,my effects button,,Use
@@ -195,8 +199,8 @@ reward.reason.FinalQualify,결승 진출,coin reason,,Made the Final
 reward.reason.MatchPlayed,판 참가,coin reason (event treats),,Played a match
 reward.reason.RoundPass,라운드 통과,coin reason,,Round cleared
 reward.reason.Win,우승!,coin reason,,Win!
-reward.summary,이번 판 +{total} 🍚 (총 {coins}),match coin summary line,"total=210; coins=1,234",This match +{total} 🍚 (Total {coins})
-reward.summaryTokens,이번 판 +{total} 🍚 +{tokens} {icon} (총 {coins}),match coin summary line with event treats,"total=210; tokens=8; icon=🍬; coins=1,234",This match +{total} 🍚 +{tokens} {icon} (Total {coins})
+reward.summary,이번 판 +{total} 🍚 (총 {coins}),match coin summary line,"total=210; coins=1,234",This match: +{total} 🍚 (Total: {coins})
+reward.summaryTokens,이번 판 +{total} 🍚 +{tokens} {icon} (총 {coins}),match coin summary line with event treats,"total=210; tokens=8; icon=🍬; coins=1,234",This match: +{total} 🍚 +{tokens} {icon} (Total: {coins})
 reward.toast.both,+{amount} 🍚 +{tokens} {icon} {label},coin + event treat toast,amount=10; tokens=1; icon=🍬; label=Round cleared,+{amount} 🍚 +{tokens} {icon} {label}
 reward.toast.coins,+{amount} 🍚 {label},coin toast,amount=10; label=Round cleared,+{amount} 🍚 {label}
 reward.toast.tokens,+{tokens} {icon} {label},event treat toast,tokens=1; icon=🍬; label=Played a match,+{tokens} {icon} {label}
@@ -205,7 +209,7 @@ room.defaultName,{name}의 초밥집,default room name (name is the host's displ
 room.err.AlreadyInRoom,이미 방에 들어가 있어요,room error line,,You're already in a room
 room.err.AlreadyMember,이미 이 방에 있어요,room error line,,You're already in this room
 room.err.AlreadyStarted,이미 게임 중이에요,room error line,,The game already started
-room.err.BadCode,방 코드는 숫자 {count}자리예요,room error line,count=4,Room codes have {count} numbers
+room.err.BadCode,방 코드는 숫자 {count}자리예요,room error line,count=4,Room codes are {count} digits
 room.err.BadMaxPlayers,최대 인원을 다시 골라 주세요,room error line,,Please pick the max players again
 room.err.BadName,방 이름이 올바르지 않아요,room error line,,That room name doesn't work
 room.err.BadPrivacy,공개 여부를 다시 골라 주세요,room error line,,Please pick Public or Private again
@@ -233,7 +237,7 @@ room.member.hostMe,👑 {name} (나),waiting room member row (you are host),name
 room.member.me,🍣 {name} (나),waiting room member row (you),name=Mina,🍣 {name} (You)
 room.start.btn,시작!,waiting room button (host),,Start!
 room.status.autoStart,정원이 다 찼어요! {seconds}초 뒤 자동 시작,waiting room status,seconds=8,Room is full! Starting in {seconds}s
-room.status.needPlayers,{count}명 이상 모이면 시작할 수 있어요,waiting room status,count=4,You can start when {count} or more players are here
+room.status.needPlayers,{count}명 이상 모이면 시작할 수 있어요,waiting room status,count=4,Need {count}+ players to start
 room.status.ready,준비되면 시작을 눌러 주세요,waiting room status (host),,Press Start when you're ready
 room.status.waitHost,방장이 시작하기를 기다리는 중…,waiting room status,,Waiting for the host to start...
 season.christmas-2026.name,크리스마스 초밥 축제,seasonal event name or event treat name,,Christmas Sushi Festival
@@ -243,7 +247,7 @@ season.halloween-2026.token,사탕,seasonal event name or event treat name,,Cand
 sfx.mute.all.btn,🔇 모두 끔,mute button (all off),,🔇 All Off
 sfx.mute.music.btn,🎵 음악 끔,mute button (music off),,🎵 Music Off
 sfx.mute.on.btn,🔊 소리 켬,mute button (all sound on),,🔊 Sound On
-shop.btn.needCoins,🍚 {count}개 더 필요해요,wardrobe card button (not enough coins),count=180,Need {count} 🍚
+shop.btn.needCoins,🍚 {count}개 더 필요해요,wardrobe card button (not enough coins),count=180,Need {count} more 🍚
 shop.btn.offSale,판매 기간이 아니에요,wardrobe card button,,Not on Sale
 shop.btn.robux,R$ {price},wardrobe card button (Robux price),price=99,R$ {price}
 shop.btn.robuxBuy,R$ {price} · 사기,wardrobe card second button,price=29,R$ {price} · Buy

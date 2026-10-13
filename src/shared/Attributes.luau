@@ -9,7 +9,8 @@ local Attributes = {
 	-- boolean: 캐릭터 아래에 붙이는 보이는 파츠·Decal(또는 그 조상)에 true로 달면 외형 숨김에서 빠져요 (m3-09).
 	-- AppearanceService는 SushiBody 밖의 BasePart·Decal을 전부 숨겨요 — 보여야 하는 걸 붙일 때 이걸 달아요.
 	KeepVisible = "KeepVisible",
-	Title = "Title", -- string: 머리 위 이름표에 붙는 우승 칭호 (서버가 달아요, m4-08)
+	Title = "Title", -- number: 머리 위 이름표에 붙는 우승 칭호의 기준 승수 (1/10/100, Config.Titles. 서버가 달아요, m4-08).
+	-- m5-26: 서버는 칭호 문장 대신 숫자만 달고 클라이언트가 Loc.titleName으로 그 사람 언어로 써요 (옛 서버의 한국어 이름 문자열도 읽어요)
 	-- number (workspace:GetServerTimeNow() 기준): 서버가 캐릭터를 옮기거나 튕긴 뒤 이동 감시(m4-10)가
 	-- 검사하지 않는 시각. MoveExempt.mark로만 달아요 (m4-01).
 	MoveExemptUntil = "MoveExemptUntil",

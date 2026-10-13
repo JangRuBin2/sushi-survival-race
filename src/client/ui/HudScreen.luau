@@ -224,7 +224,7 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			}, { Kit.corner(6) })
 			Kit.label({
 				Parent = row,
-				Text = Loc.t("hud.standing.place", { place = Loc.place(standing.place) }),
+				Text = Loc.tPlace("hud.standing.place", standing.place),
 				TextSize = rowText,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				Size = UDim2.new(0, 56, 1, 0),

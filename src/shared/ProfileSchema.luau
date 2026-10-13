@@ -2,6 +2,7 @@
 -- 플레이어 프로필 모양과 기본값 (GDD 9.4, 9.5, 8). 순수 로직이라 Roblox API를 쓰지 않아요.
 --   ProfileSchema.new()                    새 프로필 (부를 때마다 새 표)
 --   ProfileSchema.titleFor(wins)           승수로 정해지는 칭호 (Config.Titles), 0승이면 nil
+--   ProfileSchema.titleWinsFor(wins)       그 칭호의 기준 승수 1/10/100 (서버가 Attributes.Title로 다는 값, m5-26)
 --   ProfileSchema.toView(profile, persistent, extra?)  클라이언트에 보낼 ProfileView (ProfileUpdated).
 --       extra = 저장하지 않는 화면용 값 { vip = boolean } (m5-03, DataService.setViewExtra). 없으면 vip = false
 -- 저장(m4-07)은 이 모양 그대로 DataStore에 넣어요. 필드를 바꾸면 VERSION을 올리고 m4-07의 마이그레이션에 추가해요.
@@ -58,7 +59,19 @@ function ProfileSchema.new(): Profile
 	}
 end
 
--- wins 이하인 칭호 중 가장 높은 것. Config.Titles는 wins 오름차순이에요.
+-- wins 이하인 칭호 중 가장 높은 칭호의 기준 승수 (1/10/100), 0승이면 nil. 화면 글씨는 클라이언트가
+-- 이 숫자로 Loc.titleName (m5-26 — 서버는 칭호 문장을 보내지 않아요).
+function ProfileSchema.titleWinsFor(wins: number): number?
+	local found: number? = nil
+	for _, entry in Config.Titles do
+		if wins >= entry.wins then
+			found = entry.wins
+		end
+	end
+	return found
+end
+
+-- wins 이하인 칭호 중 가장 높은 것 (한국어 이름, 데이터 원문). Config.Titles는 wins 오름차순이에요.
 function ProfileSchema.titleFor(wins: number): string?
 	local title: string? = nil
 	for _, entry in Config.Titles do

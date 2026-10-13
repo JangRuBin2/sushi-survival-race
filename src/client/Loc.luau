@@ -5,6 +5,8 @@
 --                         최대 3초 기다려요. 못 받으면 배경에서 1·2·4초 간격으로 3번 더 (그동안은 카탈로그 폴백).
 --   Loc.t(key, args?)     번역기 FormatByKey → LocalizeLogic.choose 폴백 사슬
 --   Loc.text(value)       서버에서 온 LocText (그냥 문자열이면 그대로)
+--   Loc.tPlace(key, n)    등수가 든 문구 (영어만 서수 "5th", QA B3)
+--   Loc.onChanged(fn)     번역기가 늦게 와서 글씨가 바뀔 때 (QA B4). 화면(PlayerGui) 글씨는 Loc이 직접 다시 써요
 --   도우미: number, place, mapName, mapRule, skinName, skinSpeech, tierName, offerName, offerBlurb, offerPerk,
 --          fxName, seasonName, tokenName, titleName, titleFromName, date, rewardReason, language
 -- 언어를 게임 중에 바꾸는 경우는 다루지 않아요 (Roblox가 다시 접속시켜요).
@@ -29,6 +31,10 @@ local translator: Translator? = nil
 local language = LocalizeLogic.SOURCE_LANGUAGE
 local warned: { [string]: boolean } = {}
 local initialized = false
+local initialWaitOver = false
+-- 번역기가 오기 전에 폴백으로 그린 글씨 (ko·en 밖 언어만, QA B4). 번역기가 늦게 오면 이걸로 다시 써요.
+local lateMap = LocalizeLogic.newLateMap()
+local changedHandlers: { () -> () } = {}
 
 local function warnOnce(id: string, message: string)
 	if warned[id] then
@@ -54,6 +60,8 @@ local function loadCatalog()
 	end
 end
 
+local refreshLate: () -> ()
+
 local function tryTranslator(): boolean
 	local player = Players.LocalPlayer
 	local ok, result = pcall(function()
@@ -62,6 +70,9 @@ local function tryTranslator(): boolean
 	if ok and result then
 		translator = result
 		language = LocalizeLogic.languageOf(result.LocaleId)
+		if initialWaitOver then
+			refreshLate()
+		end
 		return true
 	end
 	return false
@@ -94,6 +105,15 @@ function Loc.init()
 	while not done and os.clock() < deadline do
 		task.wait(0.05)
 	end
+	initialWaitOver = true
+	if translator ~= nil then
+		lateMap = LocalizeLogic.newLateMap() -- 이미 왔어요 (기다리는 동안 그린 글씨는 없어요)
+	end
+end
+
+-- 언어 결과가 바뀌었을 때 (번역기가 늦게 옴, QA B4). 월드 글씨(단상·와사비)처럼 화면 밖 글씨를 만든 쪽이 구독해요.
+function Loc.onChanged(handler: () -> ())
+	table.insert(changedHandlers, handler)
 end
 
 -- 지금 언어 ("ko", "en", "de" …)
@@ -101,7 +121,12 @@ function Loc.language(): string
 	return language
 end
 
-local function translate(key: string, args: LocalizeLogic.Args?, depth: number): string
+local function translate(
+	key: string,
+	args: LocalizeLogic.Args?,
+	depth: number,
+	englishArgs: { [string]: string }?
+): string
 	if depth > LocalizeLogic.MAX_DEPTH then
 		return ""
 	end
@@ -132,11 +157,71 @@ local function translate(key: string, args: LocalizeLogic.Args?, depth: number):
 		args = prepared,
 		translated = translated,
 		translatorError = failed,
+		englishArgs = englishArgs,
 	})
 end
 
+-- 맨 바깥 문구 하나: 번역기가 아직 없고 늦게 와서 바뀔 수 있는 언어면 다시 쓰기 목록에 적어요 (QA B4)
+local function top(key: string, args: LocalizeLogic.Args?, englishArgs: { [string]: string }?): string
+	local shown = translate(key, args, 0, englishArgs)
+	if translator == nil and LocalizeLogic.needsLateRefresh(language) then
+		LocalizeLogic.recordLate(lateMap, shown, { key = key, args = args, englishArgs = englishArgs })
+	end
+	return shown
+end
+
 function Loc.t(key: string, args: LocalizeLogic.Args?): string
-	return translate(key, args, 0)
+	return top(key, args, nil)
+end
+
+-- 등수가 든 문구 (QA B3): 영어는 "5th", 한국어·그 밖 언어는 숫자만. 그 밖 언어가 카탈로그 영어로 폴백하면 다시 "5th".
+--   Loc.tPlace("hud.result.out", 5)  → "🥢 탈락했어요… (5등)" / "🥢 You're out! (5th place)"
+function Loc.tPlace(key: string, place: number, args: LocalizeLogic.Args?): string
+	local all: LocalizeLogic.Args = {}
+	if args then
+		for name, value in args do
+			all[name] = value
+		end
+	end
+	all.place = LocalizeLogic.placeValue(place, language)
+	local englishArgs: { [string]: string }? = nil
+	if language ~= "en" and language ~= LocalizeLogic.SOURCE_LANGUAGE then
+		local english: LocalizeLogic.Args = table.clone(all)
+		english.place = LocalizeLogic.ordinal(place, "en")
+		englishArgs = LocalizeLogic.prepareArgs(english, function(inner: LocText): string
+			return translate(inner.key, inner.args, 1)
+		end)
+	end
+	return top(key, all, englishArgs)
+end
+
+-- 늦게 온 번역기 (QA B4): 폴백으로 그린 화면 글씨를 그대로 찾아 다시 쓰고, 구독한 쪽(월드 글씨)에 알려요.
+-- 이름처럼 사람이 쓴 글씨는 목록에 없어서 건드리지 않아요. 두 문구를 이어 붙인 글씨는 다음에 다시 그릴 때 바뀌어요.
+refreshLate = function()
+	local map = lateMap
+	lateMap = LocalizeLogic.newLateMap()
+	if not LocalizeLogic.needsLateRefresh(language) or map.count == 0 then
+		return
+	end
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	if playerGui then
+		for _, item in playerGui:GetDescendants() do
+			if item:IsA("TextLabel") or item:IsA("TextButton") then
+				local entry = LocalizeLogic.lateEntryFor(map, item.Text)
+				if entry then
+					item.Text = translate(entry.key, entry.args, 0, entry.englishArgs)
+				end
+			end
+		end
+	end
+	for _, handler in changedHandlers do
+		task.spawn(function()
+			local ok, err = pcall(handler)
+			if not ok then
+				warn(`[Loc] changed handler failed: {err}`)
+			end
+		end)
+	end
 end
 
 -- 서버에서 온 값. LocText면 풀고, 그냥 문자열이면 그대로 (플레이스 버전이 잠깐 어긋날 때), 그 밖은 빈 문자열
@@ -145,7 +230,7 @@ function Loc.text(value: any): string
 		return value
 	end
 	if LocalizeLogic.isLocText(value) then
-		return translate(value.key, value.args, 0)
+		return top(value.key, value.args, nil)
 	end
 	if type(value) == "table" and type(value.key) == "string" then
 		warnOnce(`bad:{value.key}`, `bad LocText {value.key}`)
@@ -157,9 +242,9 @@ function Loc.number(n: number): string
 	return LocalizeLogic.formatNumber(n)
 end
 
--- 등수: 영어 "5th", 그 밖 "5" (한국어는 문구가 "{place}등")
+-- 등수 값만: 영어 "5th", 그 밖 "5" (QA B3). 문구 안에 넣을 때는 Loc.tPlace (폴백 영어도 서수로).
 function Loc.place(n: number): string
-	return LocalizeLogic.ordinal(n, if language == LocalizeLogic.SOURCE_LANGUAGE then "ko" else "en")
+	return LocalizeLogic.placeValue(n, language)
 end
 
 function Loc.mapName(mapId: string): string

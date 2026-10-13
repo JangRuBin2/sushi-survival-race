@@ -99,7 +99,7 @@ function EliminationCutsceneScreen.showStamp(gui: Instance, place: number?, dura
 	if place then
 		local placeLabel = textLabel({
 			name = "Place",
-			text = Loc.t("cutscene.place", { place = Loc.place(place) }),
+			text = Loc.tPlace("cutscene.place", place),
 			color = Color3.fromRGB(255, 255, 255),
 			size = UDim2.fromScale(0.5, 0.26),
 			position = UDim2.fromScale(0.5, 0.86),

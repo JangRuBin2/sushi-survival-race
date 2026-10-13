@@ -726,14 +726,14 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 7. 속성에 모르는 값(`"아무거나"`, 탈락 칸에 `"fireworks"`) → 기본 연출, 에러 없음.
 8. 소리 `CatMeow`·`Fireworks`는 무음(USER-TODO A2).
 
-**G. 🎟 코드 보상 (m5-10)** [바로] — 4번만 [C1 먼저]. 준비: `src/server/CodeList.example.luau`를 같은 폴더 `CodeList.luau`로 복사하고 테스트 코드 두 개를 넣어요(커밋 안 됨). **실제 출시 코드는 문서 예시와 다른 문자열로.**
+**G. 🎟 코드 보상 (m5-10)** [바로] — 4번만 [C1 먼저]. 준비: `src/server/CodeList.example.luau`를 같은 폴더 `CodeList.luau`로 복사하고 테스트 코드 두 개를 넣어요(커밋 안 됨). **이 예시는 공개돼 있으니 퍼블리시 전에 지우고, 실제 출시 코드는 다른 문자열로.**
 ```lua
-{ code = "SUSHI2026", coins = 200, expiresAt = 1798761600 },
-{ code = "SPOOKYSUSHI", coins = 100, tokens = 10, eventId = "halloween-2026", startsAt = 1792108800, expiresAt = 1793923200 },
+{ code = "EXAMPLE2026", coins = 200, expiresAt = 1798761600 },
+{ code = "EXAMPLESPOOKY", coins = 100, tokens = 10, eventId = "halloween-2026", startsAt = 1792108800, expiresAt = 1793923200 },
 ```
-1. (AC8) 로비 "🎟 코드" → "코드 넣기" 창. `  sushi2026 ` → "받기" → 초록 "🍚 200 받았어요!", 토스트 "+200 🍚 코드 보상", 배지 +200. 서버 Output `[Code] 이름(UserId) redeemed SUSHI2026 +200`.
+1. (AC8) 로비 "🎟 코드" → "코드 넣기" 창. `  example2026 ` → "받기" → 초록 "🍚 200 받았어요!", 토스트 "+200 🍚 코드 보상", 배지 +200. 서버 Output `[Code] 이름(UserId) redeemed EXAMPLE2026 +200`.
 2. (AC9) 같은 코드 다시 → "이미 받은 코드예요". `NOPE123` → "없는 코드예요". 2초 안에 다시 → "잠시 뒤에 다시 해 주세요". 간격을 두고 틀린 코드 8번 → Output `[Code] … locked after 8 failures` 한 줄(틀린 문자열은 Output에 없음), 그 뒤 진짜 코드도 10분 동안 "잠시 뒤에 다시 해 주세요".
-3. (AC10) `eventNow = 1792108800` → 새 세션에서 `spookysushi` → "🍚 100 + 🍬 10 받았어요!". `eventNow = 1793923200` → "기간이 끝난 코드예요". 확인 뒤 `eventNow = nil`.
+3. (AC10) `eventNow = 1792108800` → 새 세션에서 `examplespooky` → "🍚 100 + 🍬 10 받았어요!". `eventNow = 1793923200` → "기간이 끝난 코드예요". 확인 뒤 `eventNow = nil`.
 4. (AC11) [C1 먼저] `persistDataInStudio = true`로 1번 → Stop → 다시 Play → 같은 코드 "이미 받은 코드예요". 확인 뒤 `false`.
 5. (AC12) 매치 중 "🎟 코드" 버튼이 사라지고 열린 창도 닫혀요. 휴대폰 에뮬레이터에서 창이 위쪽에 붙고 키보드와 안 겹쳐요. 21자 넘게 붙여 넣으면 20자로 잘리고, Enter로도 보내져요.
 6. (AC13) Explorer: `ServerScriptService.Server`에 `CodeConfig`·`CodeList`, `ReplicatedStorage.Shared`에는 `CodeLogic`만(목록 없음).

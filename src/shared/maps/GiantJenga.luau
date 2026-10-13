@@ -371,7 +371,7 @@ local GiantJenga: MapTypes.MapModule = {
 	id = ID,
 	kind = "Survival",
 	displayName = "와르르 나무 블록",
-	rule = "국소적으로 흔들리는 블록탑 위에서 안 떨어지게 버티세요!",
+	rule = "블록이 빠진 쪽으로 바닥이 기울어요. 떨어지지 말고 끝까지 버텨요!",
 	build = build,
 	start = start,
 }

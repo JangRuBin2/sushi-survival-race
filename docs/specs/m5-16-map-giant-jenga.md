@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-16 — 새 Survival 맵: 와르르 나무 블록 (`giant-jenga`)
@@ -74,9 +74,19 @@ status: in-dev
 - 2026-10-09 · D2 격자 크기·레벨 수 · 5×5(25칸)·3단(`LEVEL_MAX`)으로 셰프의 도마(9×9, 61칸)보다 작고 단순하게 잡음 — 이 맵의 재미는 칸 수가 아니라 "국소 기울기"에 있어서 격자를 키울 필요가 적고, 테두리 16칸 × 3단 = 48번의 제거 여유가 60초 일정(약 27~32회 소모)에 넉넉함. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-09 · D3 기울기를 격자 바깥 경계에도 적용할지 · 적용하지 않음 — 처음에 바깥 테두리 칸이 "모서리라서" 이웃이 적다는 이유만으로 기울면 라운드 시작부터 탑이 흔들려 보여 어색함. `tiltFor`는 **실제로 존재하는 이웃**끼리의 높이 차이만 보고, 격자 밖은 그냥 무시한다. **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-09 · D4 뽑힌 자리에 경고를 둘지 · 셰프의 도마는 빨간 줄로 미리 경고하지만, 이 맵은 "셰프가 보이지 않는 곳에서 뽑는다"는 컨셉이라 사전 경고 없이 일정표대로 진행하되, **뽑히는 순간 0.8초 삐걱임**으로 "방금 그 칸이 흔들렸다"는 사후 신호만 준다(완전 무경고는 억울함만 남고, 사전 경고는 긴장감을 없앰). **기본값, 플레이테스트 후 조정** · planner
+- 2026-10-13 · B2 rule 문구 "국소적으로 흔들리는 블록탑 위에서 안 떨어지게 버티세요!"(m5-13 확정 문구와 다름) · **바뀐 문구를 받아들임**(코드 그대로). GDD §5.3 문구 맞추기는 planner 몫. · 메인 세션 (사용자가 맵 판단 위임)
+- 2026-10-13 · B3 혼자 가라앉은 테두리 칸이 허공 쪽으로 기움 · 테두리 칸의 **격자 바깥쪽 기울기 성분을 한 단 차이 기울기(`DEG_PER_UNIT` 6도)의 50%(3도)까지로 제한**(`GiantJengaLogic.EDGE_OUTWARD_MAX_UNITS = 0.5`). 안쪽·테두리를 따라가는 성분은 그대로. "안쪽 최대치"를 `MAX_TILT_DEG`(18도)로 읽으면 상한이 9도라 QA 예시(6도)가 그대로 남아서, 한 단 기울기를 기준으로 잡았다. · 메인 세션 (사용자가 맵 판단 위임), developer 구현
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### QA 수정 (2026-10-13, developer, 브랜치 `m5-maps-fix-a`)
+- **B1 (P1)** 뽑을 때 `entry.blocks[Logic.poppedBlockIndex(newLevel)]`(= `LEVEL_MAX - newLevel`, 3→2에서 `Block1`, 2→1에서 `Block2`, 1→0에서 `Block3`)를 숨김 → 맨 위 블록부터 빠져 가라앉은 칸이 보임. 블록 높이 공식은 `Logic.blockCenterY(n)`(Block1이 맨 위)으로 옮겨 `build`와 테스트가 같은 순서를 씀. 테스트 `m5-16 B1`: 번호 ↔ 높이 순서, 레벨 2·1에서 남은 가장 높은 블록 윗면 = `heightOf`, 서버·build 소스가 이 함수를 씀.
+- **B3 (P3)** `tiltFor`가 테두리 칸(|i| 또는 |j| = 2)의 바깥쪽 성분을 `EDGE_OUTWARD_MAX_UNITS`(0.5)로 자름 → 혼자 가라앉은 테두리 칸은 바깥으로 최대 3도·밀기 1 studs/s. 테스트 `m5-16 B3`: 변 4곳·모서리 2곳 × 레벨 2·1에서 바깥쪽 각도 ≤ 3도, 테두리를 따라가는 기울기(6도)는 그대로.
+- **B4 (P3)** `flatCFrame` 중심을 `heightOf - TOP_THICKNESS / 2`로 → build와 같은 높이(첫 프레임 0.2 들림 없음). 테스트 `m5-16 B4`(소스).
+- B2는 결정 기록대로 문구 유지. 아트(`GiantJengaArt.luau`)는 건드리지 않음 — `build`는 블록 높이 한 줄만 `Logic.blockCenterY`로 바꿈.
+- Studio: `forceMapPlan = { "rotating-belt", "giant-jenga", "soy-swamp", "skewer-showdown" }` → 6초 뒤 처음 삐걱인 칸을 위에서 보면 맨 위 블록이 사라지고 칸 윗면이 4 내려가 보이는지, 혼자 가라앉은 테두리 칸이 바깥으로 거의 안 기우는지(약 3도), 시작할 때 칸들이 들썩이지 않는지. 확인 뒤 `nil`.
+- 검증: `rojo build`·`stylua --check`·`selene`(0/0)·`lune run tests`(1363 passed, 0 failed)·`luau-lsp analyze`(exit 0).
 - **바뀐 파일**
   - `src/shared/maps/GiantJengaLayout.luau` (새 파일): 격자 치수 — `columns()`(25칸), `isProtected`, `spawnOffsets()`(24곳), `neighborsOf`, `key`. `LEVEL_MAX`(3)·`LEVEL_DROP`(4)·`FALL_DEPTH`(30)·`CELL_SIZE`(10).
   - `src/shared/maps/GiantJengaLogic.luau` (새 파일): 보드 상태(`newBoard`), 제거 일정(`removalWave`/`removalTimes`, 스펙 표 그대로), 고르기·적용(`pickColumns`/`applyRemoval`), 국소 기울기(`tiltFor`, `DEG_PER_UNIT` 6도·`MAX_TILT_DEG` 18도), 높이(`heightOf`).

@@ -97,7 +97,7 @@ local function build(origin: CFrame): Model
 			pedestal.Parent = blocks
 		else
 			for level = 1, Layout.LEVEL_MAX do
-				local centerY = -(level - 1) * Layout.LEVEL_DROP - Layout.LEVEL_DROP / 2
+				local centerY = Logic.blockCenterY(level) -- Block1이 맨 위
 				local block = makePart({
 					Name = `Block{level}`,
 					Size = Vector3.new(size - BLOCK_GAP, Layout.LEVEL_DROP - 0.2, size - BLOCK_GAP),
@@ -205,8 +205,9 @@ local function start(ctx: MapTypes.RoundContext)
 		end
 	end
 
+	-- 타일 윗면이 heightOf에 오도록 중심은 두께 절반 아래 (build와 같은 높이, m5-16 B4)
 	local function flatCFrame(entry: ColumnEntry): CFrame
-		local y = Logic.heightOf(board, entry.i, entry.j)
+		local y = Logic.heightOf(board, entry.i, entry.j) - TOP_THICKNESS / 2
 		return origin * CFrame.new(entry.i * Layout.CELL_SIZE, y, entry.j * Layout.CELL_SIZE)
 	end
 
@@ -300,7 +301,7 @@ local function start(ctx: MapTypes.RoundContext)
 
 		Logic.applyRemoval(board, { column })
 		local newLevel = board.levels[column.key] or 0
-		local poppedBlock = entry.blocks[newLevel + 1]
+		local poppedBlock = entry.blocks[Logic.poppedBlockIndex(newLevel)] -- 위에서부터 빠져요 (B1)
 		if poppedBlock then
 			poppedBlock.Transparency = 1
 			poppedBlock.CanCollide = false

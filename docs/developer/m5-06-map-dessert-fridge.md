@@ -1,7 +1,7 @@
 # m5-06 — 새 Race 맵: 디저트 냉장고 + 얼음 이동 (developer 작업 기록)
 
 ## 2026-10-13 · PHASE B (아트) 끝 → in-qa
-- 브랜치: 로컬 `worktree-agent-a6669c18d837b5140` → push `origin/m5-06-dessert`. origin/main(kit 수정 e07e08d 이후, 591d84e) 병합 완료 — 충돌은 `tests/m5-03-qa.spec.luau` 머리 주석 한 곳(두 쪽 다 살림)
+- 브랜치: 로컬 `worktree-agent-a6669c18d837b5140` → push `origin/m5-06-dessert`. origin/main(kit 수정 e07e08d 이후, 마지막 9be7767) 병합 완료, 병합 뒤 검증 5단계 다시 통과(lune 1624 passed) — 충돌은 `tests/m5-03-qa.spec.luau` 머리 주석 한 곳(두 쪽 다 살림)
 - 결정 반영: Q1 C 폭 30 그대로, Q2 송풍구 `MoveExempt` 제거(테스트: `MoveExempt.mark(`는 젤리 한 곳뿐)
 - m5-03 QA B1(껍데기 스폰 바닥 밖)은 실제 맵으로 덮어써서 닫힘 — m5-03-qa의 dessert-fridge 껍데기 테스트 3개를 지우고 map-dessert-fridge AC1이 대신해요
 - kit 알림 반영: SurfaceLight range ≤ 16(천장 LED 띠·주방 창은 PointLight로 바꿈, 뒷벽 패널만 Surface 16), 소개 카메라 4점 전부 판정 경계 + 40 안(y ≤ 58), Spin amount 0, roundedBox radius > 0

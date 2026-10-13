@@ -2,6 +2,7 @@
 -- m4-14 로벅스 결제 판단 (Shared.ReceiptLogic): decide, process(가짜 저장소), 구매 요청 검사, 처리한 결제 id 목록
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -335,11 +336,14 @@ return function(t: Test.Test)
 	)
 
 	t.test("message: 거절 문구 (스펙 문구 그대로)", function()
-		t.eq(ReceiptLogic.message("AlreadyOwned"), "이미 있어요")
-		t.eq(ReceiptLogic.message("CannotSave"), "저장이 안 되는 상태라 지금은 살 수 없어요")
-		t.eq(ReceiptLogic.message("NotForSale"), "준비 중이에요")
+		t.eq(LocTest.ko(ReceiptLogic.message("AlreadyOwned")), "이미 있어요")
+		t.eq(
+			LocTest.ko(ReceiptLogic.message("CannotSave")),
+			"저장이 안 되는 상태라 지금은 살 수 없어요"
+		)
+		t.eq(LocTest.ko(ReceiptLogic.message("NotForSale")), "준비 중이에요")
 		for _, reason in { "UnknownSkin", "NoProfile", "TooFast" } do
-			local text = ReceiptLogic.message(reason :: any)
+			local text = LocTest.ko(ReceiptLogic.message(reason :: any))
 			t.ok(#text > 0 and text ~= "다시 해 주세요", reason)
 		end
 	end)
@@ -391,24 +395,24 @@ return function(t: Test.Test)
 			epic.productId = nil
 			local off = ShopLogic.cardState(epic, v)
 			t.eq(off.enabled, false)
-			t.eq(ShopLogic.cardButtonText(off), "R$ 99 — 곧 열려요")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(off)), "R$ 99 — 곧 열려요")
 			local on = ShopLogic.cardState(epic, v, { fake = true })
 			t.eq(on.kind, "Robux")
 			t.eq(on.enabled, true)
-			t.eq(ShopLogic.cardButtonText(on), "R$ 99")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(on)), "R$ 99")
 			-- 실제 상품 가격이 오면 그 값
 			epic.productId = 1
 			local priced = ShopLogic.cardState(epic, v, { prices = { ["aburi-salmon"] = 89 } })
 			t.eq(priced.enabled, true)
-			t.eq(ShopLogic.cardButtonText(priced), "R$ 89")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(priced)), "R$ 89")
 			-- 일반: 코인이 모자라도 로벅스 버튼
 			local salmon = table.clone(Skins.get("salmon") :: any)
 			salmon.productId = nil
 			local common = ShopLogic.cardState(salmon, v, { fake = true })
 			t.eq(common.kind, "NeedCoins")
-			t.eq(ShopLogic.robuxButtonText(common), "R$ 29로 사기")
+			t.eq(LocTest.ko(ShopLogic.robuxButtonText(common)), "R$ 29 · 사기")
 			t.eq(common.robuxEnabled, true)
-			t.eq(ShopLogic.robuxButtonText(ShopLogic.cardState(salmon, v)), "R$ 29 — 곧 열려요")
+			t.eq(LocTest.ko(ShopLogic.robuxButtonText(ShopLogic.cardState(salmon, v))), "R$ 29 — 곧 열려요")
 			-- 가진 스킨·기본 스킨은 로벅스 버튼 없음 (AC8)
 			local owned = { coins = 0, ownedSkins = { "tamago", "aburi-salmon" }, equippedSkin = "tamago" }
 			t.eq(ShopLogic.cardState(epic, owned, { fake = true }).kind, "Equip")

@@ -181,7 +181,10 @@ function RewardLogic.toastText(
 			{ amount = amount, tokens = tokens :: number, icon = icon or "🍬", label = label }
 		)
 	end
-	return LocalizeLogic.text("reward.toast.tokens", { tokens = tokens :: number, icon = icon or "🍬", label = label })
+	return LocalizeLogic.text(
+		"reward.toast.tokens",
+		{ tokens = tokens :: number, icon = icon or "🍬", label = label }
+	)
 end
 
 -- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1,234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1,234)" (m5-07)

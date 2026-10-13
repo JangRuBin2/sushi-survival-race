@@ -153,7 +153,11 @@ end
 
 -- linesFor와 같은 순서의 화면용 키 (m5-26): 공통 cutscene.line.common.<n> → 스킨 skin.<id>.speech.<n>
 -- → 결승 cutscene.line.final.<n>, 고양이면 cutscene.line.cat.<n>만
-function EliminationCutsceneLogic.lineTextsFor(appearanceId: string?, variant: Variant, fxSkin: FxSkin?): { Types.LocText }
+function EliminationCutsceneLogic.lineTextsFor(
+	appearanceId: string?,
+	variant: Variant,
+	fxSkin: FxSkin?
+): { Types.LocText }
 	local result: { Types.LocText } = {}
 	local function addGroup(group: string, lines: { string })
 		for index in lines do

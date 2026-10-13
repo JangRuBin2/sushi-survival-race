@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -77,7 +78,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local titleLabel = Kit.label({
 		Parent = panel,
 		LayoutOrder = 1,
-		Text = "🍣 초밥 서바이벌 레이스",
+		Text = Loc.t("lobby.title"),
 		TextSize = 26,
 		Size = UDim2.new(1, 0, 0, 36),
 	})
@@ -90,12 +91,12 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		Size = UDim2.new(1, 0, 0, 44),
 	}, { Kit.list(Enum.FillDirection.Horizontal, 8) })
 
-	local quickButton = Kit.button("빠른 참가", Color.Salmon, {
+	local quickButton = Kit.button(Loc.t("lobby.quickJoin.btn"), Color.Salmon, {
 		Parent = actionRow,
 		LayoutOrder = 1,
 		Size = UDim2.new(0.27, -6, 1, 0),
 	})
-	local createButton = Kit.button("방 만들기", Color.Egg, {
+	local createButton = Kit.button(Loc.t("lobby.create.btn"), Color.Egg, {
 		Parent = actionRow,
 		LayoutOrder = 2,
 		Size = UDim2.new(0.27, -6, 1, 0),
@@ -104,11 +105,11 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local codeBox = Kit.textBox({
 		Parent = actionRow,
 		LayoutOrder = 3,
-		PlaceholderText = `방 코드 {Config.Room.CodeLength}자리`,
+		PlaceholderText = Loc.t("lobby.codePlaceholder", { count = Config.Room.CodeLength }),
 		Size = UDim2.new(0.26, -6, 1, 0),
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	local codeButton = Kit.button("코드로 참가", Color.Nori, {
+	local codeButton = Kit.button(Loc.t("lobby.joinCode.btn"), Color.Nori, {
 		Parent = actionRow,
 		LayoutOrder = 4,
 		Size = UDim2.new(0.2, -6, 1, 0),
@@ -124,7 +125,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local listTitle = Kit.label({
 		Parent = panel,
 		LayoutOrder = 3,
-		Text = "공개 방",
+		Text = Loc.t("lobby.publicRooms"),
 		TextColor3 = Color.SubText,
 		TextSize = 16,
 	})
@@ -200,8 +201,8 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		}, { Kit.list(Enum.FillDirection.Horizontal, MAX_BUTTON_GAP) })
 	end
 
-	dialogLabel(1, "방 만들기", 22)
-	dialogLabel(2, "최대 인원")
+	dialogLabel(1, Loc.t("lobby.create.title"), 22)
+	dialogLabel(2, Loc.t("lobby.create.maxPlayers"))
 	-- 인원 버튼 5개: 한 줄에 안 들어가면 두 줄 (UIGridLayout 칸 크기는 applyLayout이 정해요)
 	local maxRow = Kit.new("Frame", {
 		Parent = dialogPanel,
@@ -219,7 +220,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local options = Config.Room.MaxPlayerOptions
 	local maxButtons: { [number]: TextButton } = {}
 	for i, count in options do
-		local button = Kit.button(`{count}명`, Color.Salmon, {
+		local button = Kit.button(Loc.t("lobby.create.count.btn", { count = count }), Color.Salmon, {
 			Parent = maxRow,
 			LayoutOrder = i,
 			ZIndex = 13,
@@ -233,15 +234,15 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		end)
 	end
 
-	local privacyLabel = dialogLabel(4, "공개 여부")
+	local privacyLabel = dialogLabel(4, Loc.t("lobby.create.privacy"))
 	local privacyRow = dialogRow(5)
-	local publicButton = Kit.button("공개", Color.Nori, {
+	local publicButton = Kit.button(Loc.t("lobby.create.public.btn"), Color.Nori, {
 		Parent = privacyRow,
 		LayoutOrder = 1,
 		Size = UDim2.new(0.5, -3, 1, 0),
 		ZIndex = 13,
 	})
-	local privateButton = Kit.button("비공개 (코드)", Color.Nori, {
+	local privateButton = Kit.button(Loc.t("lobby.create.private.btn"), Color.Nori, {
 		Parent = privacyRow,
 		LayoutOrder = 2,
 		Size = UDim2.new(0.5, -3, 1, 0),
@@ -260,7 +261,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		refreshPrivacy()
 	end)
 
-	local nameLabel = dialogLabel(6, "방 이름")
+	local nameLabel = dialogLabel(6, Loc.t("lobby.create.name"))
 	local nameBox = Kit.textBox({
 		Parent = dialogPanel,
 		LayoutOrder = 7,
@@ -272,14 +273,14 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	capText(nameBox, Config.Room.NameMaxLength)
 
 	local confirmRow = dialogRow(8)
-	local cancelButton = Kit.button("취소", Color.Neutral, {
+	local cancelButton = Kit.button(Loc.t("common.cancel.btn"), Color.Neutral, {
 		Parent = confirmRow,
 		LayoutOrder = 1,
 		Size = UDim2.new(0.5, -3, 1, 0),
 		TextColor3 = Color.Text,
 		ZIndex = 13,
 	})
-	local confirmButton = Kit.button("만들기", Color.Salmon, {
+	local confirmButton = Kit.button(Loc.t("lobby.create.confirm.btn"), Color.Salmon, {
 		Parent = confirmRow,
 		LayoutOrder = 2,
 		Size = UDim2.new(0.5, -3, 1, 0),
@@ -326,7 +327,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		if #rooms == 0 then
 			Kit.label({
 				Parent = list,
-				Text = "열린 방이 없어요. 방을 만들거나 빠른 참가를 눌러 보세요!",
+				Text = Loc.t("lobby.noRooms"),
 				TextColor3 = Color.SubText,
 				TextSize = UiLayout.textSize(16, m),
 				TextWrapped = true,
@@ -359,7 +360,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			Kit.label({
 				Parent = row,
 				LayoutOrder = 2,
-				Text = `{room.memberCount}/{room.maxPlayers}명`,
+				Text = Loc.t("lobby.room.count", { count = room.memberCount, max = room.maxPlayers }),
 				TextColor3 = Color.SubText,
 				TextSize = text,
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -367,7 +368,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			})
 			local canJoin = room.state == "Waiting" and not full
 			local joinButton = Kit.button(
-				if room.state == "InMatch" then "게임 중" elseif full then "꽉 참" else "참가",
+				if room.state == "InMatch"
+					then Loc.t("lobby.room.playing.btn")
+					elseif full then Loc.t("lobby.room.full.btn")
+					else Loc.t("lobby.room.join.btn"),
 				Color.Salmon,
 				{
 					Parent = row,
@@ -494,7 +498,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	Kit.onClick(createButton, openDialog)
 	Kit.onClick(codeButton, function()
 		if #codeBox.Text ~= Config.Room.CodeLength then
-			showMessage(`방 코드 {Config.Room.CodeLength}자리를 입력해 주세요`, true)
+			showMessage(Loc.t("lobby.codeNeeded", { count = Config.Room.CodeLength }), true)
 			return
 		end
 		actions.joinByCode(codeBox.Text)

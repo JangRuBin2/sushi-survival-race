@@ -126,7 +126,11 @@ end
 -- 한글 음절·자모가 들어 있는지 (UTF-8: 가~힣 EA B0 80 ~ ED 9E A3, 자모 E3 84 B1 ~ E3 85 A3)
 function LuauStrings.hasHangul(text: string): boolean
 	for _, code in utf8.codes(text) do
-		if (code >= 0xAC00 and code <= 0xD7A3) or (code >= 0x3131 and code <= 0x318E) or (code >= 0x1100 and code <= 0x11FF) then
+		if
+			(code >= 0xAC00 and code <= 0xD7A3)
+			or (code >= 0x3131 and code <= 0x318E)
+			or (code >= 0x1100 and code <= 0x11FF)
+		then
 			return true
 		end
 	end

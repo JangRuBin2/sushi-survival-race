@@ -13,6 +13,8 @@ local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attribute
 local Cleanup = require(game:GetService("ReplicatedStorage").Shared.Cleanup)
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
+local Loc = require(script.Parent.Parent.Loc)
+
 local DiveButton = {}
 DiveButton.__index = DiveButton
 
@@ -57,7 +59,8 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	button.BackgroundTransparency = 0.45
 	button.BorderSizePixel = 0
-	button.Text = "🤸 다이브"
+	button.AutoLocalize = false -- m5-26
+	button.Text = Loc.t("input.dive.btn")
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.GothamBold
 	button.TextScaled = true

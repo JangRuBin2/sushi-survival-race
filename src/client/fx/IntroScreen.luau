@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 local IntroLayout = require(ReplicatedStorage.Shared.IntroLayout)
 local HudScreen = require(script.Parent.Parent.ui.HudScreen)
+local Loc = require(script.Parent.Parent.Loc)
 local UiScaleController = require(script.Parent.Parent.ui.UiScaleController)
 
 export type IntroScreen = {
@@ -19,7 +20,6 @@ export type IntroScreen = {
 
 local IntroScreen = {}
 
-local GO_TEXT = "출발!"
 local POP_FRACTION = 0.25 -- 전체 시간 중 커지는 구간
 local START_SCALE = 0.4
 local PEAK_SCALE = 1.15
@@ -44,7 +44,8 @@ function IntroScreen.new(parent: Instance): IntroScreen
 	label.Size = UDim2.fromOffset(IntroLayout.TEXT_SIZE * IntroLayout.BOX_WIDTH_RATIO, 160)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
-	label.Text = GO_TEXT
+	label.AutoLocalize = false -- m5-26
+	label.Text = Loc.t("intro.go")
 	label.TextSize = IntroLayout.TEXT_SIZE
 	label.TextColor3 = Color3.fromRGB(255, 214, 64)
 	label.TextStrokeColor3 = Color3.fromRGB(70, 30, 10)

@@ -16,7 +16,6 @@ local RunService = game:GetService("RunService")
 
 local CodeLogic = require(ReplicatedStorage.Shared.CodeLogic)
 local Config = require(ReplicatedStorage.Shared.Config)
-local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Types = require(ReplicatedStorage.Shared.Types)

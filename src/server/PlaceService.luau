@@ -413,7 +413,10 @@ local function handleReturn(player: Player, raw: any)
 			if not joined then
 				notice(
 					player,
-					LocalizeLogic.text("place.err.rejoinRoom", { reason = why or LocalizeLogic.text("common.err.retry") })
+					LocalizeLogic.text(
+						"place.err.rejoinRoom",
+						{ reason = why or LocalizeLogic.text("common.err.retry") }
+					)
 				)
 			end
 		else
@@ -444,7 +447,10 @@ local function handleJoinTicket(player: Player, raw: any)
 		ok, err = RoomService.joinLocalById(player, ticket.roomId :: string)
 	end
 	if not ok then
-		notice(player, LocalizeLogic.text("place.err.joinRoom", { reason = err or LocalizeLogic.text("common.err.retry") }))
+		notice(
+			player,
+			LocalizeLogic.text("place.err.joinRoom", { reason = err or LocalizeLogic.text("common.err.retry") })
+		)
 	end
 end
 

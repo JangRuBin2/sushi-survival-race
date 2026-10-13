@@ -9,6 +9,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -67,7 +68,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 		Parent = playerGui,
 	}) :: ScreenGui
 
-	local openButton = Kit.button("🎁 상점", Color.Egg, {
+	local openButton = Kit.button(Loc.t("offer.shop.btn"), Color.Egg, {
 		Name = "OfferButton",
 		Parent = gui,
 		Position = UDim2.fromOffset(12, 60),
@@ -108,7 +109,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 	})
 	local titleLabel = Kit.label({
 		Parent = header,
-		Text = "🎁 상점",
+		Text = Loc.t("offer.shop.title"),
 		TextSize = 24,
 		Size = UDim2.new(1, -60, 1, 0),
 	})
@@ -192,7 +193,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 		Kit.label({
 			Parent = section,
 			LayoutOrder = 0,
-			Text = "✨ 내 연출",
+			Text = Loc.t("offer.myFx"),
 			TextSize = text(18),
 			Size = UDim2.new(1, 0, 0, text(18) + 6),
 		})
@@ -212,7 +213,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 				Size = UDim2.new(1, -(buttonWidth() + GAP), 1, 0),
 			})
 			local button = Kit.button(
-				if row.equipped then "입는 중 · 벗기" else "입기",
+				if row.equipped then Loc.t("offer.fxOff.btn") else Loc.t("offer.fxWear.btn"),
 				if row.equipped then Color.Nori else Color.Salmon,
 				{
 					Name = "Equip",

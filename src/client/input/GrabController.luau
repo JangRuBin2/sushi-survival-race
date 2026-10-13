@@ -18,6 +18,7 @@ local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local GrabInputLogic = require(ReplicatedStorage.Shared.GrabInputLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local GrabButton = require(script.Parent.GrabButton)
 
@@ -176,7 +177,8 @@ local function createVisual(grabberRoot: BasePart, targetRoot: BasePart, targetC
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
-	label.Text = "잡혔다!"
+	label.AutoLocalize = false -- m5-26
+	label.Text = Loc.t("input.grabbed")
 	label.Font = Enum.Font.GothamBold
 	label.TextScaled = true
 	label.TextColor3 = Color3.fromRGB(255, 230, 90)

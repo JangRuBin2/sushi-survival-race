@@ -20,6 +20,7 @@ local SpectateLogic = require(ReplicatedStorage.Shared.SpectateLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
 local SpectateScreen = require(script.Parent.SpectateScreen)
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
+local Loc = require(script.Parent.Parent.Loc)
 
 local OWNER_SPECTATE = "Spectate"
 local OWNER_VICTORY = "Victory"
@@ -130,7 +131,7 @@ function SpectateController.start(gui: Instance)
 		else
 			return false
 		end
-		screen:showWatching(`👀 관전 중: {nameOf(current.userId)}`, #candidates > 1, actionText)
+		screen:showWatching(Loc.t("spectate.watching", { name = nameOf(current.userId) }), #candidates > 1, actionText)
 		return true
 	end
 
@@ -158,9 +159,11 @@ function SpectateController.start(gui: Instance)
 			return
 		end
 
-		local actionText = if role == "Eliminated" then "로비로" else "내 캐릭터 보기"
+		local actionText = if role == "Eliminated"
+			then Loc.t("spectate.toLobby.btn")
+			else Loc.t("spectate.myCharacter.btn")
 		if not watching then
-			screen:showIdle("👀 관전하기")
+			screen:showIdle(Loc.t("spectate.start.btn"))
 			restoreCamera()
 			return
 		end
@@ -176,10 +179,10 @@ function SpectateController.start(gui: Instance)
 		local targetHumanoid = if target then humanoidOf(target) else nil
 		if target and targetHumanoid then
 			setCameraSubject(OWNER_SPECTATE, targetHumanoid)
-			screen:showWatching(`👀 관전 중: {nameOf(target)}`, #candidates > 1, actionText)
+			screen:showWatching(Loc.t("spectate.watching", { name = nameOf(target) }), #candidates > 1, actionText)
 		else
 			restoreCamera()
-			screen:showWatching("관전할 사람이 없어요", false, actionText)
+			screen:showWatching(Loc.t("spectate.nobody"), false, actionText)
 		end
 	end
 

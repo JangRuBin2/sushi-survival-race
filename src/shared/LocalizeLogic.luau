@@ -169,7 +169,7 @@ function LocalizeLogic.parseCsv(text: string): ({ Row }, { string })
 	end
 	local records: { { string } } = {}
 	local record: { string } = {}
-	local field = {}
+	local field: { string } = {}
 	local i = 1
 	local n = #text
 	local inQuotes = false
@@ -257,7 +257,7 @@ end
 function LocalizeLogic.entriesFromRows(rows: { Row }): { Entry }
 	local entries = {}
 	for _, row in rows do
-		local values = {}
+		local values: { [string]: string } = {}
 		for name, value in row do
 			if name ~= "Key" and name ~= "Source" and name ~= "Context" and name ~= "Example" and value ~= "" then
 				values[name] = value
@@ -278,8 +278,8 @@ function LocalizeLogic.buildCatalog(entries: { Entry }): Catalog
 	local catalog: Catalog = {}
 	for _, entry in entries do
 		if type(entry.Key) == "string" and entry.Key ~= "" and type(entry.Source) == "string" then
-			local values = entry.Values or {}
-			local en = values.en or values["en-us"]
+			local values: { [string]: string } = entry.Values or {}
+			local en: string? = values["en"] or values["en-us"]
 			catalog[entry.Key] = { ko = entry.Source, en = if en ~= nil and en ~= "" then en else nil }
 		end
 	end

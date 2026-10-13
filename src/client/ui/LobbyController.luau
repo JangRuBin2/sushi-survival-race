@@ -10,6 +10,7 @@ local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Loc = require(script.Parent.Parent.Loc)
 local LobbyScreen = require(script.Parent.LobbyScreen)
 local RoomScreen = require(script.Parent.RoomScreen)
 local UiScaleController = require(script.Parent.UiScaleController)
@@ -46,7 +47,8 @@ function LobbyController.start(): ScreenGui
 		label.TextColor3 = Color3.new(1, 1, 1)
 		label.Font = Enum.Font.GothamBold
 		label.TextSize = 24
-		label.Text = "매치 서버 연결 중…"
+		label.AutoLocalize = false -- m5-26
+		label.Text = Loc.t("lobby.matchServer.connecting")
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = label
@@ -64,7 +66,7 @@ function LobbyController.start(): ScreenGui
 			if statusLabel then
 				statusLabel.Visible = not inMatch
 				if matchSeen and not inMatch then
-					statusLabel.Text = "로비로 돌아가는 중…"
+					statusLabel.Text = Loc.t("lobby.matchServer.returning")
 				end
 			end
 			return
@@ -89,7 +91,10 @@ function LobbyController.start(): ScreenGui
 		if called and ok == true then
 			return true
 		end
-		local message = if called and type(err) == "string" then err else "서버와 연결이 불안정해요"
+		local message = if called and err ~= nil then Loc.text(err) else Loc.t("common.err.connection")
+		if message == "" then
+			message = Loc.t("common.err.retry")
+		end
 		if currentRoom then
 			roomScreen:showMessage(message, true)
 		else
@@ -98,7 +103,7 @@ function LobbyController.start(): ScreenGui
 		return false
 	end
 
-	lobby = LobbyScreen.new(gui, RoomLogic.defaultName(player.DisplayName), {
+	lobby = LobbyScreen.new(gui, Loc.roomName(RoomLogic.defaultName(player.DisplayName), true), {
 		quickJoin = function()
 			request("QuickJoin")
 		end,
@@ -125,35 +130,30 @@ function LobbyController.start(): ScreenGui
 	})
 
 	Remotes.event("RoomList").OnClientEvent:Connect(function(rooms: { Types.RoomListing })
-		-- 다른 로비 서버의 방은 이름 앞에 표시 (m4-11)
+		-- 다른 로비 서버의 방은 이름 앞에 표시 (m4-11). 기본 이름은 그 언어로 (m5-26)
 		local shown = table.create(#rooms) :: { Types.RoomListing }
 		for i, listing in rooms do
-			if listing.remote then
-				local copy = table.clone(listing)
-				copy.name = `🌐 {listing.name}`
-				shown[i] = copy
-			else
-				shown[i] = listing
-			end
+			local copy = table.clone(listing)
+			local name = Loc.roomName(listing.name, listing.nameIsDefault)
+			copy.name = if listing.remote then `🌐 {name}` else name
+			copy.nameIsDefault = nil
+			shown[i] = copy
 		end
 		lobby:setRooms(shown)
 	end)
 
 	-- 서버의 짧은 안내 (m4-11: 텔레포트 실패, 다른 서버로 이동 중 등)
-	-- 두 번째 인자 kind (m5-08 QA B2): "success"/"info"면 오류색이 아니고, "error"면 오류색. 없으면 예전 판단("…" 진행 안내)
-	Remotes.event("Notice").OnClientEvent:Connect(function(message: string, kind: unknown)
-		if type(message) ~= "string" then
+	-- 문구는 LocText (m5-26), 두 번째 인자 kind: "success"/"info"면 오류색이 아니고, 그 밖은 오류색
+	Remotes.event("Notice").OnClientEvent:Connect(function(raw: unknown, kind: unknown)
+		local message = Loc.text(raw)
+		if message == "" then
 			return
 		end
 		if statusLabel then
 			statusLabel.Text = message
 			statusLabel.Visible = true
 		else
-			local isError = if kind == "success" or kind == "info"
-				then false
-				elseif kind == "error" then true
-				else string.find(message, "…", 1, true)
-					== nil -- "이동하고 있어요…" 같은 진행 안내는 오류가 아니에요
+			local isError = not (kind == "success" or kind == "info")
 			if currentRoom then
 				roomScreen:showMessage(message, isError)
 			else

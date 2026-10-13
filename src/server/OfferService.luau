@@ -329,7 +329,10 @@ function OfferService.init()
 			"[Offer] fakeVipInStudio is ignored while persistDataInStudio is on (would save the VIP skin to the real store)"
 		)
 	end
-	Remotes.fn("RequestOfferPurchase").OnServerInvoke = function(player: Player, offerId: unknown): (boolean, Types.LocText?)
+	Remotes.fn("RequestOfferPurchase").OnServerInvoke = function(
+		player: Player,
+		offerId: unknown
+	): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onRequestOffer, player, offerId)
 		if not ok then
 			warn(`[Offer] RequestOfferPurchase failed for {player.Name}: {success}`)
@@ -337,7 +340,11 @@ function OfferService.init()
 		end
 		return success, err
 	end
-	Remotes.fn("EquipFx").OnServerInvoke = function(player: Player, slot: unknown, fxId: unknown): (boolean, Types.LocText?)
+	Remotes.fn("EquipFx").OnServerInvoke = function(
+		player: Player,
+		slot: unknown,
+		fxId: unknown
+	): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onEquipFx, player, slot, fxId)
 		if not ok then
 			warn(`[Offer] EquipFx failed for {player.Name}: {success}`)

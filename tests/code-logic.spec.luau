@@ -2,6 +2,7 @@
 -- m5-10 코드 보상 판단 (Shared.CodeLogic). 진짜 코드는 저장소에 없어서 (D4) 가짜 목록만 써요.
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -232,29 +233,32 @@ return function(t: Test.Test)
 	)
 
 	t.test("AC6: message — Reason마다 문구", function()
-		t.eq(CodeLogic.message("Cooldown"), "잠시 뒤에 다시 해 주세요")
-		t.eq(CodeLogic.message("Locked"), "잠시 뒤에 다시 해 주세요")
-		t.eq(CodeLogic.message("Invalid"), "없는 코드예요")
-		t.eq(CodeLogic.message("Unknown"), "없는 코드예요")
-		t.eq(CodeLogic.message("NotStarted"), "아직 쓸 수 없는 코드예요")
-		t.eq(CodeLogic.message("Expired"), "기간이 끝난 코드예요")
-		t.eq(CodeLogic.message("AlreadyRedeemed"), "이미 받은 코드예요")
-		t.eq(CodeLogic.message("NoProfile"), "프로필을 불러오는 중이에요")
-		t.eq(CodeLogic.message("NotSaved"), "저장이 안 되는 상태라 지금은 쓸 수 없어요")
-		t.eq(CodeLogic.message("Error"), "다시 해 주세요")
-		t.eq(CodeLogic.message("Weird" :: any), "다시 해 주세요")
+		t.eq(LocTest.ko(CodeLogic.message("Cooldown")), "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(CodeLogic.message("Locked")), "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(CodeLogic.message("Invalid")), "없는 코드예요")
+		t.eq(LocTest.ko(CodeLogic.message("Unknown")), "없는 코드예요")
+		t.eq(LocTest.ko(CodeLogic.message("NotStarted")), "아직 쓸 수 없는 코드예요")
+		t.eq(LocTest.ko(CodeLogic.message("Expired")), "기간이 끝난 코드예요")
+		t.eq(LocTest.ko(CodeLogic.message("AlreadyRedeemed")), "이미 받은 코드예요")
+		t.eq(LocTest.ko(CodeLogic.message("NoProfile")), "프로필을 불러오는 중이에요")
+		t.eq(LocTest.ko(CodeLogic.message("NotSaved")), "저장이 안 되는 상태라 지금은 쓸 수 없어요")
+		t.eq(LocTest.ko(CodeLogic.message("Error")), "다시 해 주세요")
+		t.eq(LocTest.ko(CodeLogic.message("Weird" :: any)), "다시 해 주세요")
 	end)
 
 	t.test("AC6: successMessage", function()
-		t.eq(CodeLogic.successMessage({ coins = 200 }), "🍚 200 받았어요!")
+		t.eq(LocTest.ko(CodeLogic.successMessage({ coins = 200 })), "🍚 200 받았어요!")
 		t.eq(
-			CodeLogic.successMessage({ coins = 100, tokens = 10, eventId = "halloween-2026" }),
+			LocTest.ko(CodeLogic.successMessage({ coins = 100, tokens = 10, eventId = "halloween-2026" })),
 			"🍚 100 + 🍬 10 받았어요!"
 		)
 		t.eq(
-			CodeLogic.successMessage({ coins = 50, tokens = 5, eventId = "christmas-2026" }),
+			LocTest.ko(CodeLogic.successMessage({ coins = 50, tokens = 5, eventId = "christmas-2026" })),
 			"🍚 50 + ⭐ 5 받았어요!"
 		)
-		t.eq(CodeLogic.successMessage({ coins = 0, tokens = 5, eventId = "halloween-2026" }), "🍬 5 받았어요!")
+		t.eq(
+			LocTest.ko(CodeLogic.successMessage({ coins = 0, tokens = 5, eventId = "halloween-2026" })),
+			"🍬 5 받았어요!"
+		)
 	end)
 end

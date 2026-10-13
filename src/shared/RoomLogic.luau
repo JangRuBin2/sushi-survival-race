@@ -67,7 +67,7 @@ end
 table.sort(RoomLogic.REASONS)
 
 -- 거절 문구 (LocText). args는 NeedPlayers·BadCode의 { count = n }
-function RoomLogic.message(reason: Reason, args: { [string]: string | number }?): LocText
+function RoomLogic.message(reason: Reason, args: LocalizeLogic.Args?): LocText
 	local base = MESSAGES[reason]
 	if base == nil then
 		return LocalizeLogic.text("common.err.retry")

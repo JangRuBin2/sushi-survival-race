@@ -146,9 +146,7 @@ function RoomDirectory.findRemote(id: string): (RoomDirectoryLogic.Entry?, Types
 	end
 	if not RoomDirectoryLogic.canJoin(entry, os.time(), ttl()) then
 		return nil,
-			if entry.memberCount >= entry.maxPlayers
-				then RoomLogic.message("Full")
-				else RoomLogic.message("InMatch")
+			if entry.memberCount >= entry.maxPlayers then RoomLogic.message("Full") else RoomLogic.message("InMatch")
 	end
 	return entry, nil
 end

@@ -6,6 +6,7 @@ local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -264,19 +265,19 @@ return function(t: Test.Test)
 			env.placed[p] = true
 			local ok, err = env.buy(p, "ghost-tamago")
 			t.eq(ok, false)
-			t.eq(err, "매치가 끝나면 바꿀 수 있어요")
+			t.eq(LocTest.ko(err), "매치가 끝나면 바꿀 수 있어요")
 			env.placed[p] = nil
 
 			local poor = env.join(2, 79)
 			ok, err = env.buy(poor, "ghost-tamago")
 			t.eq(ok, false)
-			t.eq(err, "🍬 1개 더 필요해요")
+			t.eq(LocTest.ko(err), "🍬 1개 더 필요해요")
 			t.eq(env.profiles[2].eventTokens["halloween-2026"], 79)
 
 			env.now = HALLOWEEN_END
 			ok, err = env.buy(p, "ghost-tamago")
 			t.eq(ok, false)
-			t.eq(err, "이벤트 기간이 아니에요")
+			t.eq(LocTest.ko(err), "이벤트 기간이 아니에요")
 			env.now = HALLOWEEN
 
 			env.canPersist = false
@@ -293,13 +294,13 @@ return function(t: Test.Test)
 			env.remotes.BuyWithTokens.OnServerInvoke(fast, "salmon")
 			ok, err = env.remotes.BuyWithTokens.OnServerInvoke(fast, "ghost-tamago")
 			t.eq(ok, false)
-			t.eq(err, "잠시 뒤에 다시 해 주세요")
+			t.eq(LocTest.ko(err), "잠시 뒤에 다시 해 주세요")
 			-- 잘못된 인자
 			ok = env.buy(fast, 42)
 			t.eq(ok, false)
 			ok, err = env.buy(fast, "pumpkin-sushi")
 			t.eq(ok, false)
-			t.eq(err, "이벤트 재화로는 받을 수 없어요")
+			t.eq(LocTest.ko(err), "이벤트 재화로는 받을 수 없어요")
 		end
 	)
 

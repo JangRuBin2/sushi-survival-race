@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local CodeScreen = require(script.Parent.CodeScreen)
 local UiScaleController = require(script.Parent.UiScaleController)
@@ -43,7 +44,7 @@ function CodeController.start(_gui: Instance)
 		end
 		local trimmed = string.match(text, "^%s*(.-)%s*$") or ""
 		if trimmed == "" then
-			screen:showResult("코드를 넣어 주세요", true)
+			screen:showResult(Loc.t("code.enterCode"), true)
 			return
 		end
 		busy = true
@@ -53,10 +54,13 @@ function CodeController.start(_gui: Instance)
 		busy = false
 		screen:setBusy(false)
 		if not called then
-			screen:showResult("서버와 연결이 불안정해요", true)
+			screen:showResult(Loc.t("common.err.connection"), true)
 			return
 		end
-		local reply = if type(message) == "string" then message else "다시 해 주세요"
+		local reply = Loc.text(message)
+		if reply == "" then
+			reply = Loc.t("common.err.retry")
+		end
 		if ok == true then
 			screen:clearInput()
 			screen:showResult(reply, false)

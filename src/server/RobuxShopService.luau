@@ -337,7 +337,10 @@ local function createDebugHook()
 end
 
 function RobuxShopService.init()
-	Remotes.fn("RequestRobuxPurchase").OnServerInvoke = function(player: Player, skinId: unknown): (boolean, Types.LocText?)
+	Remotes.fn("RequestRobuxPurchase").OnServerInvoke = function(
+		player: Player,
+		skinId: unknown
+	): (boolean, Types.LocText?)
 		local ok, success, err = pcall(onRequestRobux, player, skinId)
 		if not ok then
 			warn(`[Shop] RequestRobuxPurchase failed for {player.Name}: {success}`)

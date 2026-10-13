@@ -3,6 +3,12 @@
 - 브랜치: `worktree-agent-a981a6d89a97d4aed` (worktree 경로: `.claude/worktrees/agent-a981a6d89a97d4aed`)
 - 스펙: `docs/specs/m5-15-map-lantern-bridge.md` (status: `in-qa`)
 
+## 2026-10-13 — QA 수정(B1·B2), 상태 qa-passed 유지
+- **브랜치**: push `m5-maps-fix-a` (m5-14·m5-16과 같은 브랜치).
+- **끝난 것**: B1 `Logic.plankRoll`(판 회전 부호 반전 → 낮은 쪽으로 밈) + `@lune/roblox` CFrame 테스트, B2 `Logic.isRiding`(인원·밀기에서 떨어지는 사람·판 밖 제외). B3는 메인 세션 결정으로 유지. 결정 기록·개발 메모 "QA 수정".
+- **남은 것**: 판정 코드가 바뀌었으니 재QA 때 B1·B2 확인 권장, Studio에서 기울기와 미는 방향이 같은지.
+- **막힌 점**: 없음. 아트 파일 안 건드림.
+
 ## 끝난 것
 - `src/shared/maps/LanternBridgeLayout.luau`, `LanternBridgeLogic.luau`, `LanternBridgeArt.luau` 새로 작성.
 - `src/shared/maps/LanternBridge.luau` m5-13 껍데기 → 실제 맵(build/start), `inPool = true`로 전환.

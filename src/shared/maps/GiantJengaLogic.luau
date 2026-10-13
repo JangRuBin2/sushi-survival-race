@@ -9,6 +9,7 @@
 --   Logic.applyRemoval(board, columns)             고른 칸의 레벨을 1씩 줄여요 (보호 칸은 그대로)
 --   Logic.tiltFor(board, i, j)                     그 칸의 기울기 (이웃과의 "가라앉은 정도" 차이, 보호 칸은 항상 nil)
 --   Logic.heightOf(board, i, j)                    그 칸 윗면의 로컬 y (레벨 3/2/1/0 → 0/-4/-8/-12)
+--   Logic.blockCenterY(n) / Logic.poppedBlockIndex(newLevel)  블록 n의 높이 / 레벨이 줄 때 숨길 블록(위에서부터)
 -- rng는 NextInteger(min, max)·NextNumber()만 써요 (Random과 테스트용 가짜 rng 모두).
 
 local Layout = require(script.Parent.GiantJengaLayout)
@@ -40,6 +41,22 @@ GiantJengaLogic.TILT_PUSH_ACCEL = 18
 -- 기울기 각도
 GiantJengaLogic.DEG_PER_UNIT = 6 -- "가라앉은 정도" 차이 1단위당 기우는 각도
 GiantJengaLogic.MAX_TILT_DEG = 18
+
+-- 테두리 칸이 격자 바깥(허공) 쪽으로 기우는 정도의 상한 (m5-16 B3, 메인 세션 결정): 바깥쪽 성분은
+-- 한 단 차이로 안쪽으로 기우는 기울기(DEG_PER_UNIT)의 50%까지만 — 혼자 가라앉은 테두리 칸이 사람을
+-- 허공으로 세게 밀지 않게 해요. 단위는 "가라앉은 정도" 차이(1 = DEG_PER_UNIT도).
+GiantJengaLogic.EDGE_OUTWARD_MAX_UNITS = 0.5
+
+-- 블록 Block<n>의 중심 높이(로컬 y). Block1이 맨 위, Block<LEVEL_MAX>가 맨 아래예요.
+function GiantJengaLogic.blockCenterY(blockIndex: number): number
+	return -(blockIndex - 1) * Layout.LEVEL_DROP - Layout.LEVEL_DROP / 2
+end
+
+-- 레벨이 newLevel로 줄었을 때 숨길 블록 번호 — 위에서부터 빠져요 (3→2: Block1, 2→1: Block2, 1→0: Block3).
+-- (m5-16 B1: 예전엔 newLevel + 1이라 맨 아래 블록이 먼저 사라져 가라앉은 칸이 안 보였어요)
+function GiantJengaLogic.poppedBlockIndex(newLevel: number): number
+	return Layout.LEVEL_MAX - newLevel
+end
 
 function GiantJengaLogic.newBoard(): Board
 	local levels: { [string]: number } = {}
@@ -170,6 +187,7 @@ local function sunkOf(level: number): number
 end
 
 -- (i, j)의 기울기: 존재하는 이웃마다 "가라앉은 정도" 차이를 그 방향 벡터로 더해서, 합이 가리키는 쪽이 낮은 쪽.
+-- 테두리 칸의 격자 바깥쪽 성분은 EDGE_OUTWARD_MAX_UNITS로 줄여요(B3).
 -- 평평하거나(합이 0) 보호 칸이거나 그 칸 자체가 이미 뚫렸으면 nil.
 function GiantJengaLogic.tiltFor(board: Board, i: number, j: number): TiltParams?
 	if Layout.isProtected(i, j) then
@@ -186,6 +204,19 @@ function GiantJengaLogic.tiltFor(board: Board, i: number, j: number): TiltParams
 		local diff = sunkOf(neighborLevel) - selfSunk
 		dx += diff * (neighbor.i - i)
 		dz += diff * (neighbor.j - j)
+	end
+	-- 테두리 칸은 격자 바깥쪽 성분을 EDGE_OUTWARD_MAX_UNITS까지만 (안쪽·테두리를 따라가는 성분은 그대로)
+	local g = Layout.GRID_HALF
+	local cap = GiantJengaLogic.EDGE_OUTWARD_MAX_UNITS
+	if i == g then
+		dx = math.min(dx, cap)
+	elseif i == -g then
+		dx = math.max(dx, -cap)
+	end
+	if j == g then
+		dz = math.min(dz, cap)
+	elseif j == -g then
+		dz = math.max(dz, -cap)
 	end
 	local magnitude = math.sqrt(dx * dx + dz * dz)
 	if magnitude < 1e-6 then

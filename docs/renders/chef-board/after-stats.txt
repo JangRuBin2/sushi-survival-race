@@ -1,0 +1,3 @@
+[render] chef-board decor=778/1500 lights=5/24 (shadowed 1/2) particles=6/16 anim=11/80 tris=50428 void=intro-01:0%,intro-02:0%,intro-03:0%,overview:0%,eye:0%,mobile:0%,top:0% time=24.3s
+[render]   Survival · budget Extended · parts 1028 (judgment 250, decor 778, hidden 4) · beams 0 · lighting map preset
+[render]   bounds all 626x350x626 · play area 103x72x73 · out build/renders/chef-board/

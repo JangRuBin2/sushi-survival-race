@@ -93,7 +93,7 @@ local function buildStaticArt(model: Model, origin: CFrame)
 	local flatPivot = flatPivotOf(origin)
 	local decorFolder = MapKit.decorFolder(model)
 	for _, p in MapKit.buildDecor(Art.decor(), flatPivot, decorFolder) do
-		p.CastShadow = false
+		-- m5-24: 그림자는 장식 스펙(castShadow·크기 규칙)대로 — 마당 바닥에 받침대·가로대 그림자가 떨어져요
 		if p.Name == Art.LANTERN then
 			local light = Instance.new("PointLight")
 			light.Color = Color3.fromRGB(255, 170, 120)
@@ -265,6 +265,7 @@ local TugOfWarPlatform: MapTypes.MapModule = {
 	build = build,
 	start = start,
 	overtime = overtime,
+	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (가게 마당, 해 질 녘)
 }
 
 return TugOfWarPlatform

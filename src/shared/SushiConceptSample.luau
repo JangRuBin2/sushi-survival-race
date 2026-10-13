@@ -1,8 +1,14 @@
 --!strict
--- 사용자 콘셉트 시트(2026-10-13)를 따른 연어초밥 캐릭터 견본 (m5-27). **렌더 확인용 견본이라 게임에서는 안 써요** —
--- 게임 캐릭터(SushiBody·AppearanceService·스킨 31종)는 그대로예요. 모양이 정해지면 SushiBody로 옮길지 따로 정해요.
---   layout(expression?, pose?)  파츠 목록 (순수 함수, SushiBody.PartSpec과 같은 모양 — lune 테스트·LayoutCheck 가능)
---   build(expression?, pose?)   파츠를 만든 Model. PrimaryPart = Body(Anchored). 원점 = 밥 중심 → PivotTo로 옮겨요.
+-- 사용자 콘셉트 시트(2026-10-13)를 따른 연어초밥 캐릭터 견본 (m5-27).
+-- 렌더 견본(layout/build)과, 무료 실험 스킨 "concept-salmon"용 게임 레이아웃(gameLayout)을 같이 가져요.
+-- 게임에서는 SushiBody만 이 모듈을 불러요 (SushiBody.layout/build("concept-salmon") → gameLayout) — 다른 게임 코드는
+-- 계속 SushiBody만 써요. 순환을 피하려고 이 모듈은 SushiBody를 require하지 않아요 (PartSpec은 같은 모양으로 따로 정의).
+--   layout(expression?, pose?)  견본 파츠 목록 (순수 함수, SushiBody.PartSpec과 같은 모양 — lune 테스트·LayoutCheck 가능)
+--   build(expression?, pose?)   견본 파츠를 만든 Model. PrimaryPart = Body(Anchored). 원점 = 밥 중심 → PivotTo로 옮겨요.
+--   gameLayout(expression?)     게임 스킨용 (서기 자세): 발바닥을 SushiBody 기준(GAME_GROUND_OFFSET = 2.25)에 맞추려고 다리가
+--                               0.25 내려가고 위끝은 밥 속까지 길어요. 다리 이름은 FootLeft/FootRight, 눈은 깜빡임 관절(EyeLeft/Right + 감은 눈 LidLeft/Right),
+--                               팔(ArmLeft/Right)·발은 Motor6D(joint) — m5-25 CharacterFxController가 그대로 움직여요.
+--                               앞 지방 줄 조각 3개는 빼서 파츠를 줄였어요 (기본 44).
 --   EXPRESSIONS                 "Default"(기본) · "Happy"(신남 ^ ^) · "Flustered"(당황 o + 땀) · "Hurt"(아픔 x x + 반창고)
 --   POSES                       "Stand"(서 있기) · "Run"(달리기: 팔 앞뒤, 한 발 앞)
 --   GROUND_OFFSET               밥 중심에서 발바닥까지
@@ -14,13 +20,26 @@
 --   얼굴: 밥 앞면에 작은 타원 눈(원판 두 개를 겹친 캡슐) + 하이라이트, 작게 벌린 웃는 입(진한 입 + 분홍 혀), 분홍 볼
 --   팔: 옆에 작은 네모 흰 손(벙어리장갑), 다리: 짧은 네모 흰 발 두 개. 팔·다리는 Motor6D(나중에 흔들 수 있게)
 
-local SushiBody = require(script.Parent.SushiBody)
-
 local SushiConceptSample = {}
 
 export type Expression = "Default" | "Happy" | "Flustered" | "Hurt"
 export type Pose = "Stand" | "Run"
-type PartSpec = SushiBody.PartSpec
+type Shape = "Block" | "Ball" | "Cylinder" | "Wedge"
+-- SushiBody.PartSpec과 같은 모양 (구조 타입이라 SushiBody가 그대로 받아요)
+export type PartSpec = {
+	name: string,
+	size: { number },
+	color: { number },
+	material: string,
+	offset: { number },
+	shape: Shape?,
+	rotation: { number }?,
+	effect: ("Fire" | "Sparkles" | "Smoke" | "Glow")?,
+	effectColor: { number }?,
+	transparency: number?,
+	joint: boolean?,
+	attach: string?,
+}
 
 SushiConceptSample.EXPRESSIONS = { "Default", "Happy", "Flustered", "Hurt" } :: { Expression }
 SushiConceptSample.POSES = { "Stand", "Run" } :: { Pose }
@@ -30,7 +49,14 @@ local RICE_W, RICE_H, RICE_D, RICE_R = 3.6, 2.0, 2.7, 0.45 -- 밥 (y -1.0~1.0, �
 local FRONT = -RICE_D / 2 -- 밥 앞면 z (-1.35)
 local BASE_H = 0.3 -- 아래 받침 (y -1.3~-1.0)
 local LEG_W, LEG_H, LEG_D, LEG_X = 0.72, 1.0, 0.78, 0.8 -- 다리 (위끝은 받침 속)
-local SOLE = -2.0 -- 발바닥
+local SOLE = -2.0 -- 발바닥 (견본)
+local GAME_SOLE = -2.25 -- 발바닥 (게임 스킨: SushiBody.GROUND_OFFSET과 같게 다리를 늘려요)
+local GAME_LEG_TOP = -0.8 -- 게임 스킨 다리 위끝 (밥·받침 속, 지방 줄 원판 아래끝 -0.75보다 아래 — 겹면 방지)
+
+-- 만들기 선택 (견본 = 기본값, 게임 = gameLayout)
+type Variant = { game: boolean }
+local SAMPLE: Variant = { game = false }
+local GAME: Variant = { game = true }
 
 local TOP_W, TOP_D, TOP_T = 3.86, 2.9, 0.6 -- 연어 늘어진 가장자리 판: 폭·깊이·두께 (모서리 반지름 = 두께/2)
 local TOP_Y = 0.85 -- 판 중심 (y 0.55~1.15 → 밥 위끝 1.0보다 0.45 아래까지 늘어져요)
@@ -55,7 +81,7 @@ local BANDAGE = { 250, 214, 170 }
 local BANDAGE_PAD = { 236, 180, 140 }
 
 ---------------------------------------------------------------- 도우미
-type Extra = { shape: SushiBody.Shape?, rotation: { number }?, joint: boolean?, transparency: number? }
+type Extra = { shape: Shape?, rotation: { number }?, joint: boolean?, transparency: number?, attach: string? }
 
 local function piece(
 	name: string,
@@ -75,6 +101,7 @@ local function piece(
 		rotation = extra and extra.rotation,
 		joint = extra and extra.joint,
 		transparency = extra and extra.transparency,
+		attach = extra and extra.attach,
 	}
 end
 
@@ -206,7 +233,7 @@ end
 
 -- 지방 줄: 등성이와 앞 늘어짐을 가로지르는 얇은 원판 조각 (같은 축이라 표면을 따라 휘어 보여요)
 local STRIPE_X = { -0.95, 0.5, 1.12 }
-local function stripes(): { PartSpec }
+local function stripes(variant: Variant): { PartSpec }
 	local list: { PartSpec } = {}
 	for i, x in STRIPE_X do
 		-- 등성이 끝(공 부분)에서는 그 자리 단면 지름에 맞춰요
@@ -219,6 +246,9 @@ local function stripes(): { PartSpec }
 				shape = "Cylinder",
 			})
 		)
+		if variant.game then
+			continue -- 게임 스킨은 파츠를 줄여요 (앞 늘어짐의 줄 조각은 작고 뒤 카메라에서 안 보여요)
+		end
 		table.insert(
 			list,
 			piece(`StripeFront{i}`, { 0.12, TOP_T + 0.04, TOP_T + 0.04 }, SALMON_FAT, { x, TOP_Y, -EDGE_Z }, nil, {
@@ -259,15 +289,34 @@ local MOUTH_Y = -0.42
 local CHEEK_X, CHEEK_Y = 0.98, -0.42
 local FACE_Z = FRONT - 0.03 -- 얼굴 원판 중심 (두께 0.06, 밥 앞면에 반쯤 묻혀요)
 
-local function openEyes(): { PartSpec }
+-- 감은 눈 선을 밥 속에 숨겨 두는 깊이 (CharacterAnimLogic.LID_SHOW만큼 앞으로 나오면 얼굴 면)
+local LID_HIDE = 0.3
+
+local function openEyes(variant: Variant): { PartSpec }
 	local list: { PartSpec } = {}
 	for _, side in { -1, 1 } do
 		local name = if side < 0 then "Left" else "Right"
 		local x = side * EYE_X
-		table.insert(list, faceDisc(`Eye{name}`, EYE_D, INK, x, EYE_Y + EYE_STRETCH, FACE_Z))
-		table.insert(list, faceDisc(`EyeLow{name}`, EYE_D, INK, x, EYE_Y - EYE_STRETCH, FACE_Z))
+		local eye = faceDisc(`Eye{name}`, EYE_D, INK, x, EYE_Y + EYE_STRETCH, FACE_Z)
+		local low = faceDisc(`EyeLow{name}`, EYE_D, INK, x, EYE_Y - EYE_STRETCH, FACE_Z)
 		-- 하이라이트: 두 눈 모두 왼쪽 위
-		table.insert(list, ball(`Shine{name}`, 0.14, WHITE, { x - 0.07, EYE_Y + 0.15, FACE_Z - 0.03 }, "Neon"))
+		local shine = ball(`Shine{name}`, 0.14, WHITE, { x - 0.07, EYE_Y + 0.15, FACE_Z - 0.03 }, "Neon")
+		if variant.game then
+			-- 깜빡임 (m5-25): 위 원판이 관절, 아래 원판·하이라이트는 위 원판에 붙어 같이 밥 속으로 들어가요
+			eye.joint = true
+			low.attach = eye.name
+			shine.attach = eye.name
+		end
+		table.insert(list, eye)
+		table.insert(list, low)
+		table.insert(list, shine)
+		if variant.game then
+			-- 감은 눈 선: 평소엔 밥 속, 깜빡일 때 앞으로 나와요
+			table.insert(
+				list,
+				piece(`Lid{name}`, { 0.42, 0.09, 0.06 }, INK, { x, EYE_Y, FACE_Z + LID_HIDE }, nil, { joint = true })
+			)
+		end
 	end
 	return list
 end
@@ -329,11 +378,11 @@ local function cheeks(): { PartSpec }
 	}
 end
 
-local function face(expression: Expression): { PartSpec }
+local function face(expression: Expression, variant: Variant): { PartSpec }
 	if expression == "Happy" then
 		return join(happyEyes(), smile(0.5), cheeks())
 	elseif expression == "Flustered" then
-		return join(openEyes(), cheeks(), {
+		return join(openEyes(variant), cheeks(), {
 			faceDisc("Mouth", 0.24, MOUTH, 0, MOUTH_Y - 0.02, FACE_Z),
 			stroke("BrowLeft", 0.3, -EYE_X, EYE_Y + 0.45, 15),
 			stroke("BrowRight", 0.3, EYE_X, EYE_Y + 0.45, -15),
@@ -355,17 +404,23 @@ local function face(expression: Expression): { PartSpec }
 			}),
 		})
 	end
-	return join(openEyes(), smile(0.42), cheeks())
+	return join(openEyes(variant), smile(0.42), cheeks())
 end
 
 ---------------------------------------------------------------- 팔·다리
 local ARM_SIZE = { 0.66, 0.74, 0.74 }
 local ARM_X, ARM_Y, ARM_Z = RICE_W / 2 + 0.2, -0.45, -0.4
 
-local function limbs(pose: Pose): { PartSpec }
+local function limbs(pose: Pose, variant: Variant): { PartSpec }
 	local run = pose == "Run"
 	local swing = if run then 35 else 0
-	local legY = SOLE + LEG_H / 2
+	-- 게임 스킨은 발바닥을 0.25 내리고(SushiBody 기준), 위끝을 밥 속 y = -0.8까지 올려요 — 걸음·숨쉬기로 발이
+	-- 0.35(CharacterAnimLogic.FOOT_MIN)까지 내려가도 몸과 떨어져 보이지 않게 (밥이 넓어 위쪽은 안 보여요)
+	local sole = if variant.game then GAME_SOLE else SOLE
+	local legH = if variant.game then GAME_LEG_TOP - GAME_SOLE else LEG_H
+	local legY = sole + legH / 2
+	local legLeft = if variant.game then "FootLeft" else "LegLeft"
+	local legRight = if variant.game then "FootRight" else "LegRight"
 	return {
 		-- 팔: 몸 옆에 붙은 네모 손. 달리면 앞뒤로 엇갈려 흔들어요 (오른팔 앞 = 왼발 앞)
 		piece("ArmLeft", ARM_SIZE, RICE, { -ARM_X, ARM_Y, ARM_Z + (if run then 0.35 else 0) }, "Salt", {
@@ -378,16 +433,16 @@ local function limbs(pose: Pose): { PartSpec }
 		}),
 		-- 다리: 짧은 네모 발. 달리면 왼발이 앞으로 들려요
 		piece(
-			"LegLeft",
-			{ LEG_W, LEG_H, LEG_D },
+			legLeft,
+			{ LEG_W, legH, LEG_D },
 			RICE,
 			{ -LEG_X, if run then legY + 0.18 else legY, if run then -0.3 else 0 },
 			"Salt",
 			{ rotation = if run then { -20, 0, 0 } else nil, joint = true }
 		),
 		piece(
-			"LegRight",
-			{ LEG_W, LEG_H, LEG_D },
+			legRight,
+			{ LEG_W, legH, LEG_D },
 			RICE,
 			{ LEG_X, if run then legY + 0.09 else legY, if run then 0.25 else 0 },
 			"Salt",
@@ -398,9 +453,20 @@ end
 
 ---------------------------------------------------------------- 공개 함수
 SushiConceptSample.GROUND_OFFSET = -SOLE
+SushiConceptSample.GAME_GROUND_OFFSET = -GAME_SOLE
+
+local function isExpression(value: unknown): boolean
+	return type(value) == "string" and table.find(SushiConceptSample.EXPRESSIONS, value :: any) ~= nil
+end
 
 function SushiConceptSample.layout(expression: Expression?, pose: Pose?): { PartSpec }
-	return join(body(), stripes(), nori(), face(expression or "Default"), limbs(pose or "Stand"))
+	return join(body(), stripes(SAMPLE), nori(), face(expression or "Default", SAMPLE), limbs(pose or "Stand", SAMPLE))
+end
+
+-- 게임 스킨 "concept-salmon" (서기 자세). 모르는 표정 이름이면 기본 표정이에요 (오류 없음)
+function SushiConceptSample.gameLayout(expression: string?): { PartSpec }
+	local chosen: Expression = if isExpression(expression) then expression :: any else "Default"
+	return join(body(), stripes(GAME), nori(), face(chosen, GAME), limbs("Stand", GAME))
 end
 
 local function vec(v: { number }): Vector3

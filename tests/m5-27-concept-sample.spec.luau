@@ -1,6 +1,7 @@
 --!strict
--- m5-27 콘셉트 견본 (사용자 콘셉트 시트를 따른 연어초밥, 렌더 확인용 — 게임에서는 안 써요):
--- 표정 4종 × 자세 2종이 만들어지고, 파츠 수·겹침·떠 있는 파츠·발바닥이 맞는지, 게임 코드가 견본을 안 쓰는지.
+-- m5-27 콘셉트 견본 (사용자 콘셉트 시트를 따른 연어초밥, 렌더 확인용):
+-- 표정 4종 × 자세 2종이 만들어지고, 파츠 수·겹침·떠 있는 파츠·발바닥이 맞는지, 게임 코드는 SushiBody만 견본을 쓰는지.
+-- 게임 스킨(concept-salmon)은 tests/m5-27-concept-skin.spec.luau.
 
 local fs = require("@lune/fs")
 
@@ -146,22 +147,29 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("견본은 게임에서 안 써요 (렌더 도구만)", function()
-		local function scan(dir: string)
-			for _, name in fs.readDir(dir) do
-				local path = `{dir}/{name}`
-				if fs.isDir(path) then
-					scan(path)
-				elseif string.match(name, "%.luau$") and name ~= "SushiConceptSample.luau" then
-					local source = fs.readFile(path)
-					t.ok(string.find(source, "SushiConceptSample", 1, true) == nil, `{path} uses the sample`)
+	t.test(
+		"게임 코드에서는 SushiBody만 견본 모듈을 불러요 (실험 스킨 concept-salmon, m5-27) + 렌더 도구",
+		function()
+			local function scan(dir: string)
+				for _, name in fs.readDir(dir) do
+					local path = `{dir}/{name}`
+					if fs.isDir(path) then
+						scan(path)
+					elseif
+						string.match(name, "%.luau$")
+						and name ~= "SushiConceptSample.luau"
+						and name ~= "SushiBody.luau"
+					then
+						local source = fs.readFile(path)
+						t.ok(string.find(source, "SushiConceptSample", 1, true) == nil, `{path} uses the sample`)
+					end
 				end
 			end
+			scan("src")
+			t.ok(
+				string.find(fs.readFile("tools/render-character.luau"), "SushiConceptSample", 1, true) ~= nil,
+				"render tool uses it"
+			)
 		end
-		scan("src")
-		t.ok(
-			string.find(fs.readFile("tools/render-character.luau"), "SushiConceptSample", 1, true) ~= nil,
-			"render tool uses it"
-		)
-	end)
+	)
 end

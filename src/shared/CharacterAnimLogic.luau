@@ -6,6 +6,7 @@
 --   깜빡임: 2.2~5초마다 0.13초 눈을 밥 속으로 넣고 감은 눈 선을 꺼내요. 넘어진 동안은 계속 감아요.
 --   점프: 올라가는 동안 몸이 살짝 늘어나고(몸 위로, 발은 아래로), 착지하면 0.22초 찌그러져요(몸이 발 쪽으로 내려앉음)
 --   걷기: 발이 번갈아 들리고 앞뒤로 움직여요. 몸 통통 튀기(예전 그대로)만큼 발은 반대로 내려 땅에 붙어 보여요.
+--   팔 흔들기 (m5-27): 팔이 있는 스킨(ArmLeft/ArmRight 관절, 실험 스킨 concept-salmon)만 — 걸음과 엇갈려 앞뒤로.
 -- 크기 변형(스케일)은 쓰지 않아요 — Motor6D 이동만으로 늘어남·찌그러짐을 흉내 내요 (파츠 크기를 프레임마다 바꾸면
 -- 24명에서 비싸고 용접이 흔들려요).
 
@@ -28,6 +29,7 @@ CharacterAnimLogic.STRETCH_FEET = 0.25 -- 올라갈 때 발이 아래로 (매달
 CharacterAnimLogic.STRETCH_SPEED = 30 -- 이 상승 속도에서 늘어남 1배
 CharacterAnimLogic.FOOT_MIN = -0.35 -- 발 오프셋 한계 (몸에서 떨어져 보이지 않게)
 CharacterAnimLogic.FOOT_MAX = 0.45 -- (몸 속으로 너무 들어가지 않게)
+CharacterAnimLogic.ARM_SWING = math.rad(35) -- 걷기 1배일 때 팔 앞뒤 흔들기 최대 각 (m5-27)
 CharacterAnimLogic.DETAIL_DISTANCE = 60 -- 카메라에서 이보다 멀면 작은 움직임은 끄고 기본 자세
 
 export type Offset = { y: number, z: number }
@@ -38,6 +40,7 @@ export type Pose = {
 	lidForward: number, -- 감은 눈 선을 앞으로 꺼내는 거리 (0 = 숨음)
 	footLeft: Offset, -- Body 기준 발 이동
 	footRight: Offset,
+	armSwing: number, -- 오른팔이 앞으로 가는 각(rad, 왼팔은 반대). 왼발이 앞일 때 오른팔이 앞 (m5-27)
 }
 
 export type Input = {
@@ -119,7 +122,11 @@ function CharacterAnimLogic.pose(input: Input): Pose
 		return { y = clamp(y, A.FOOT_MIN, A.FOOT_MAX), z = z }
 	end
 
+	-- 팔: 왼발이 앞(z < 0, cos(phase) > 0)일 때 오른팔이 앞으로
+	local armSwing = if input.knocked then 0 else math.cos(input.phase) * A.ARM_SWING * walk
+
 	return {
+		armSwing = armSwing,
 		bodyY = bodyY,
 		eyesBack = if closed then A.EYE_HIDE else 0,
 		lidForward = if closed then A.LID_SHOW else 0,

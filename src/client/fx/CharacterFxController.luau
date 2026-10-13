@@ -10,6 +10,8 @@
 --   탈락 연출로 숨겨진 캐릭터(LocalTransparencyModifier = 1, m3-03)에는 아무것도 하지 않고 이름표도 숨겨요.
 --   작은 움직임(m5-25, CharacterAnimLogic): 숨쉬기·깜빡임·점프 늘어남·착지 찌그러짐·걸음. 눈·감은 눈·발은
 --   SushiBody가 Motor6D(PART_JOINT_NAME)로 붙여 둬서 그 Transform만 바꿔요. 카메라에서 DETAIL_DISTANCE보다 멀면 꺼요.
+--   팔(m5-27): ArmLeft/ArmRight 관절이 있는 스킨(실험 스킨 concept-salmon)만 걸을 때 어깨를 축으로 앞뒤로 흔들어요.
+--   관절이 없는 파츠 이름은 그냥 건너뛰어요 (어떤 스킨이든 오류 없음).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -57,6 +59,8 @@ type Joints = {
 	lids: { Motor6D },
 	footLeft: Motor6D?,
 	footRight: Motor6D?,
+	armLeft: Motor6D?, -- m5-27 (팔이 있는 스킨만)
+	armRight: Motor6D?,
 }
 
 type State = {
@@ -246,7 +250,23 @@ local function findJoints(model: Instance): Joints
 		lids = lids,
 		footLeft = partJoint(model, "FootLeft"),
 		footRight = partJoint(model, "FootRight"),
+		armLeft = partJoint(model, "ArmLeft"),
+		armRight = partJoint(model, "ArmRight"),
 	}
+end
+
+-- 팔을 어깨(파츠 위끝)를 축으로 앞뒤로 돌려요. angle > 0이면 손이 앞(-Z)으로 (m5-27)
+local function swingArm(joint: Motor6D?, angle: number)
+	if joint == nil then
+		return
+	end
+	if angle == 0 then
+		joint.Transform = CFrame.identity
+		return
+	end
+	local part = joint.Part1
+	local half = if part then part.Size.Y / 2 else 0
+	joint.Transform = CFrame.new(0, half, 0) * CFrame.Angles(angle, 0, 0) * CFrame.new(0, -half, 0)
 end
 
 -- Body 축 이동을 관절 Transform으로 (C0에 회전이 있는 눈 테두리도 Body 축으로 움직이게)
@@ -274,6 +294,8 @@ local function resetJoints(joints: Joints?)
 	end
 	moveJoint(joints.footLeft, 0, 0, 0)
 	moveJoint(joints.footRight, 0, 0, 0)
+	swingArm(joints.armLeft, 0)
+	swingArm(joints.armRight, 0)
 end
 
 local function approach(current: number, target: number, rate: number, dt: number): number
@@ -450,6 +472,8 @@ local function update(character: Model, state: State, dt: number, localCharacter
 		end
 		moveJoint(joints.footLeft, 0, pose.footLeft.y, pose.footLeft.z)
 		moveJoint(joints.footRight, 0, pose.footRight.y, pose.footRight.z)
+		swingArm(joints.armLeft, -pose.armSwing)
+		swingArm(joints.armRight, pose.armSwing)
 	else
 		resetJoints(joints)
 	end

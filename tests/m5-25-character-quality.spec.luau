@@ -133,6 +133,9 @@ return function(t: Test.Test)
 		"AC1: 밥 몸은 알약(Block 1 + 세운 Cylinder 2), 토핑은 밥보다 0.25 넘게 넓지 않아요 (모자 챙 없음)",
 		function()
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local parts = byName(SushiBody.layout(skin.id))
 				t.eq(parts.Body.shape, nil, `{skin.id} Body block`)
 				for _, name in { "BodyL", "BodyR" } do
@@ -195,6 +198,9 @@ return function(t: Test.Test)
 			local rice = byName(SushiBody.layout("tamago")).Body.color
 			local seen: { [string]: string } = {}
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local layout = SushiBody.layout(skin.id)
 				local parts = byName(layout)
 				local backPart = parts.ToppingBack or parts.Wall
@@ -214,6 +220,9 @@ return function(t: Test.Test)
 		"AC5: 움직이는 파츠 6개(눈 테두리 2·감은 눈 2·발 2)만 joint, 감은 눈은 평소 숨고 깜빡이면 보여요",
 		function()
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL) (관절은 m5-27 테스트가 따로 봐요)
+				end
 				local joints = {}
 				for _, spec in SushiBody.layout(skin.id) do
 					if spec.joint then
@@ -242,6 +251,9 @@ return function(t: Test.Test)
 		function()
 			local rows = {}
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local layout = SushiBody.layout(skin.id)
 				local parts = byName(layout)
 				table.insert(rows, {
@@ -281,7 +293,8 @@ return function(t: Test.Test)
 				local layout = SushiBody.layout(skin.id)
 				t.eq(LayoutCheck.zFight(layout), {}, `{skin.id} z-fighting`)
 				t.eq(LayoutCheck.floating(layout), {}, `{skin.id} floating`)
-				for _, spec in layout do
+				-- 실험 스킨(m5-27)은 z-fighting·떠 있는 파츠만 봐요 (입 덮개·혀 0.03은 콘셉트 견본 그대로)
+				for _, spec in (if skin.experimental then {} else layout) do
 					if not isBase(spec.name) then
 						local thin = math.min(spec.size[1], spec.size[2], spec.size[3])
 						t.ok(thin >= 0.06 - 1e-9, `{skin.id} {spec.name} thickness {thin}`)
@@ -305,17 +318,26 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC9 성능
-	t.test("AC9: 파츠 수 — 스킨 하나 ≤ 40, 31종 평균 ≤ 36", function()
-		t.eq(SushiBody.PART_BUDGET, 40)
-		local total = 0
-		for _, skin in Skins.LIST do
-			local count = #SushiBody.layout(skin.id)
-			t.ok(count <= SushiBody.PART_BUDGET, `{skin.id} parts {count}`)
-			total += count
+	t.test(
+		"AC9: 파츠 수 — 스킨 하나 ≤ 40, 31종 평균 ≤ 36 (실험 스킨은 SushiBody.EXPERIMENTAL 상한)",
+		function()
+			t.eq(SushiBody.PART_BUDGET, 40)
+			local total, counted = 0, 0
+			for _, skin in Skins.LIST do
+				local count = #SushiBody.layout(skin.id)
+				local exception = SushiBody.EXPERIMENTAL[skin.id]
+				if skin.experimental and exception then
+					t.ok(count <= exception.partBudget, `{skin.id} parts {count} (experimental)`)
+					continue
+				end
+				t.ok(count <= SushiBody.PART_BUDGET, `{skin.id} parts {count}`)
+				total += count
+				counted += 1
+			end
+			local average = total / counted
+			t.ok(average <= 36, `average {average}`)
 		end
-		local average = total / #Skins.LIST
-		t.ok(average <= 36, `average {average}`)
-	end)
+	)
 
 	---------------------------------------------------------------- AC4 움직임 로직
 	t.test("AC4: 깜빡임 간격 2.2~5.0초, 0.13초 동안만 감아요", function()

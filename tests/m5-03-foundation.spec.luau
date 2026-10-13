@@ -336,33 +336,36 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC5 스킨 카탈로그
-	t.test("AC5: 31종(m5-22 10종 포함), order 1~31 연속, 새 5종의 얻는 길·시즌", function()
-		t.eq(#Skins.LIST, 31)
-		for i, skin in Skins.LIST do
-			t.eq(skin.order, i)
+	t.test(
+		"AC5: 32종(m5-22 10종·m5-27 실험 1종 포함), order 1~32 연속, 새 5종의 얻는 길·시즌",
+		function()
+			t.eq(#Skins.LIST, 32)
+			for i, skin in Skins.LIST do
+				t.eq(skin.order, i)
+			end
+			local ok, problems = Skins.validate(Skins.LIST)
+			t.ok(ok, table.concat(problems, "; "))
+			local rows = {
+				{ "pumpkin-sushi", "Epic", 99, nil, "halloween-2026", nil, 17 },
+				{ "ghost-tamago", "Rare", nil, 80, "halloween-2026", nil, 18 },
+				{ "santa-shrimp", "Epic", 99, nil, "christmas-2026", nil, 19 },
+				{ "tree-maki", "Rare", nil, 80, "christmas-2026", nil, 20 },
+				{ "vip-gold-tamago", "Legendary", nil, nil, nil, true, 21 },
+			}
+			for _, row in rows do
+				local skin = Skins.get(row[1])
+				t.ok(skin ~= nil, row[1])
+				t.eq(skin.tier, row[2], `{row[1]} tier`)
+				t.eq(skin.robux, row[3], `{row[1]} robux`)
+				t.eq(skin.tokens, row[4], `{row[1]} tokens`)
+				t.eq(skin.season, row[5], `{row[1]} season`)
+				t.eq(skin.vipOnly, row[6], `{row[1]} vipOnly`)
+				t.eq(skin.order, row[7], `{row[1]} order`)
+				t.eq(skin.coins, nil, `{row[1]} coins`)
+				t.eq(#skin.speech, 2, `{row[1]} speech`)
+			end
 		end
-		local ok, problems = Skins.validate(Skins.LIST)
-		t.ok(ok, table.concat(problems, "; "))
-		local rows = {
-			{ "pumpkin-sushi", "Epic", 99, nil, "halloween-2026", nil, 17 },
-			{ "ghost-tamago", "Rare", nil, 80, "halloween-2026", nil, 18 },
-			{ "santa-shrimp", "Epic", 99, nil, "christmas-2026", nil, 19 },
-			{ "tree-maki", "Rare", nil, 80, "christmas-2026", nil, 20 },
-			{ "vip-gold-tamago", "Legendary", nil, nil, nil, true, 21 },
-		}
-		for _, row in rows do
-			local skin = Skins.get(row[1])
-			t.ok(skin ~= nil, row[1])
-			t.eq(skin.tier, row[2], `{row[1]} tier`)
-			t.eq(skin.robux, row[3], `{row[1]} robux`)
-			t.eq(skin.tokens, row[4], `{row[1]} tokens`)
-			t.eq(skin.season, row[5], `{row[1]} season`)
-			t.eq(skin.vipOnly, row[6], `{row[1]} vipOnly`)
-			t.eq(skin.order, row[7], `{row[1]} order`)
-			t.eq(skin.coins, nil, `{row[1]} coins`)
-			t.eq(#skin.speech, 2, `{row[1]} speech`)
-		end
-	end)
+	)
 
 	t.test("AC5: 규칙 위반 표본을 각각 잡아요", function()
 		local function base(): { [string]: any }

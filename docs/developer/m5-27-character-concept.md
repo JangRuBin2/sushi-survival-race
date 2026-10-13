@@ -1,8 +1,39 @@
 # m5-27 캐릭터 콘셉트 견본 (연어초밥 1종, 렌더 확인용)
 
-기준: 사용자 콘셉트 시트(2026-10-13). **범위 = 견본 하나**(사용자 범위 변경): 게임 캐릭터(`SushiBody`·스킨 31종·`Skins.luau`·`CharacterFxController`·`AppearanceService`)와 기존 테스트는 그대로예요. 스펙 파일 없음.
+기준: 사용자 콘셉트 시트(2026-10-13). **범위 = 견본 하나** + (2차) 그 견본을 무료 실험 스킨 `concept-salmon`으로 게임에 넣기 (사용자 요청). 다른 31종 스킨 모양은 그대로예요. 스펙 파일 없음.
 
 ## 인계 메모 (최신이 위)
+
+### 2026-10-13 — 무료 실험 스킨 `concept-salmon` (게임에서 써 보기)
+사용자 요청: 견본을 게임에서 무료로 써 볼 수 있게. 스펙 파일 없음 (사용자 직접 요청, 범위 = 스킨 1종 추가).
+- 브랜치: `m5-27-character-concept` (worktree `agent-a32c047dc60aee5a4`에서 `origin/main`을 병합한 뒤 작업, `HEAD:m5-27-character-concept`로 push)
+- 끝난 것
+  - **카탈로그** `Skins.luau`: `concept-salmon` "콘셉트 연어초밥 (테스트)", `tier = "Basic"`, `experimental = true`, 가격·얻는 길 없음, order 32 (탈의실 "전체" 탭 맨 끝). `Skins.EXPERIMENTAL_IDS`(이 id 하나)에 있는 id만 `experimental`을 달 수 있어요. `Skins.isFree(id)` = 계란초밥 또는 실험 스킨.
+  - **보유 (저장 없이)**: 프로필 `ownedSkins`에 안 넣고 `Skins.isFree`로 판단 — `ShopLogic.canEquip`·`owns`(카드 "입기")·`canBuyWithCoins`(AlreadyOwned), `ReceiptLogic.canRequest`, `OfferLogic`, `ShopController`, `ShopService.equippedOf`(복사본에만 더함), `ProfileLogic.migrate`(장착값 유지). 실험 스킨을 나중에 빼면 장착값만 계란초밥으로 돌아가고 데이터는 안 남아요.
+  - **validate 예외 (이 id만)**: 실험 스킨은 Basic + 무료여야 하고, 외곽 허용치(BOUNDS_TOLERANCE) 대신 `SushiBody.EXPERIMENTAL[id].partBudget`(47)만 봐요. 효과 예산(0)은 그대로.
+  - **몸** `SushiBody`: `LAYOUTS["concept-salmon"] = SushiConceptSample.gameLayout("Default")`, `layout(id, expression?)`·`build(id, expression?)` — 표정은 이 스킨만 보고 나머지 스킨은 무시. `SushiBody.EXPERIMENTAL` 표. SushiBody의 **유일한 require = SushiConceptSample**(순수, 아무것도 require하지 않음 — 순환 없음). 그래서 견본은 SushiBody 타입을 쓰지 않고 같은 모양의 `PartSpec`을 따로 정의해요.
+  - **게임 레이아웃** `SushiConceptSample.gameLayout(expression?)`: 발바닥 −2.25(= `SushiBody.GROUND_OFFSET`, `GAME_GROUND_OFFSET`로 assert) — 다리를 늘려 위끝을 밥 속 −0.8까지. 다리 이름 `FootLeft/Right`, 눈 깜빡임 관절(`EyeLeft/Right` joint + `EyeLow*`·`Shine*` attach + 감은 눈 `LidLeft/Right`), 팔 `ArmLeft/Right` joint, 앞 지방 줄 조각 3개 뺌. 파츠: 기본 44, 당황 46, 신남·아픔 40 (상한 47). 견본 렌더(`layout`/`build`)는 그대로.
+  - **움직임**: m5-25 숨쉬기·깜빡임·점프 늘어남·착지 찌그러짐·발 걸음이 같은 관절 이름으로 그대로 동작. 팔 흔들기 새로 — `CharacterAnimLogic.pose().armSwing`(왼발이 앞이면 오른팔이 앞, 최대 35°×걷기), `CharacterFxController`가 `ArmLeft/Right` 관절이 있을 때만 어깨(파츠 위끝)를 축으로 돌려요. 없는 이름은 건너뛰어요(다른 스킨 영향 없음).
+  - **표정 인형**: 탈락 연출 `build(id, "Hurt")`(x x + 반창고), 우승 연출·로비 단상 `build(id, "Happy")`(^ ^). 탈의실 미리보기는 기본 표정. 다른 스킨은 표정 인자를 무시해요.
+  - **테스트**: 새 `tests/m5-27-concept-skin.spec.luau` 15개 (카탈로그·예외 범위, validate가 다른 id의 experimental·가격·등급을 잡음, 보유·카드·저장, 레이아웃 발바닥·파츠·z-fighting·떠 있음·이름표 아래, 표정, 관절·깜빡임 숨김, 진짜 Instance build, 팔 흔들기, 렌더 도구 경로, 클라이언트 연결). 기존 테스트는 **`skin.experimental`인 스킨만** 기준 몸·외곽·관절 6개·두께·뒷면 색 검사에서 빼고(이유 주석), 개수 31 → 32·Basic 1 → 2, SushiBody require 고정 테스트는 "SushiConceptSample 하나만"으로, 가짜 환경 로더(m3-02-qa·m5-25-qa)에 SushiConceptSample을 넣었어요.
+  - **렌더**: `lune run tools/render-character concept-salmon --view turntable` (일반 스킨 경로), `all --view lineup`에 32번째로 나와요. `docs/renders/characters/concept-salmon-skin-turntable.png` (스튜디오 조명, 발이 땅에 닿음).
+- 검증 5단계 (2026-10-13, Windows 로컬): rojo build OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **1787 passed, 0 failed** · luau-lsp analyze 끝 코드 0.
+- 남은 것 / 알려진 한계
+  - 게임 중 통과·우승 순간 내 캐릭터 표정 바꾸기(신남)는 안 했어요 (인형만). 하려면 서버가 몸을 다시 만들거나 표정 파츠 보이기 전환이 필요.
+  - 이름표 높이는 공용 3.6 그대로 — 이 몸은 꼭대기 1.97이라 이름표가 조금 높게 떠요.
+  - 넘어짐 누운 높이(`LIE_HEIGHT` 1.8)는 기준 몸 기준 — 이 몸(폭 약 4.7, 팔 포함)은 누웠을 때 살짝 땅에 묻힐 수 있어요 (Studio 확인).
+  - 입 덮개·혀 두께 0.03은 견본 그대로 (일반 스킨 최소 두께 0.06 규칙의 예외, z-fighting 0 확인).
+  - **m5-26 현지화 브랜치가 main에 들어오면** 스킨 이름 CSV 테스트가 새 키를 요구할 거예요: `concept-salmon` 이름 "콘셉트 연어초밥 (테스트)"·대사 2줄 키를 CSV에 추가해야 해요 (여기서는 main에 없어서 안 넣음).
+- 다음 첫 단계: 사용자 Studio 확인(아래) → 좋으면 planner가 "기준 몸 교체" 스펙.
+- 막힌 점: 없음.
+
+#### Studio 확인 방법 (concept-salmon)
+1. Studio에서 Play → 로비의 탈의실 열기 → "전체" 탭 맨 끝 **콘셉트 연어초밥 (테스트)** 카드가 처음부터 "입기"인지 → 누르면 미리보기(돔 연어 + 김 띠 + 팔·다리)와 내 캐릭터가 바뀌는지.
+2. 혼자 방을 만들어 출발 (`Config.DEBUG.minPlayersToStart = 1`) → 달리면서 **발이 땅에 닿는지**(뜨거나 묻히지 않음), 가만히 서면 숨쉬기·2~5초마다 깜빡임, 걸으면 발이 번갈아 들리고 **팔이 앞뒤로** 흔들리는지, 점프 착지 때 찌그러지는지.
+3. 떨어져서 **탈락 연출 인형**이 x x 눈 + 반창고(아픔)인지, 우승하면 **우승 연출·로비 단상 인형**이 ^ ^ 눈(신남)인지.
+4. 젓가락·잡기에 넘어졌을 때 옆으로 누운 몸이 땅에 너무 묻히지 않는지.
+5. 휴대폰: Studio 기기 에뮬레이터(iPhone 등)로 같은 화면에서 뒤 카메라에 "연어초밥"이 읽히는지, 탈의실 카드·미리보기가 잘리지 않는지.
+6. 다른 스킨(계란초밥·연어 등)으로 돌아가 움직임·인형이 예전과 같은지 (팔 관절이 없는 스킨은 변화 없음).
 
 ### 2026-10-13 — 견본·렌더 끝
 - 브랜치: `m5-27-character-concept` (worktree `agent-aa45f31da65069b91`에서 `git push origin HEAD:m5-27-character-concept`)

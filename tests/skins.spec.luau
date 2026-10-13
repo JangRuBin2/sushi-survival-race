@@ -47,6 +47,7 @@ local EXPECTED = {
 	{ "softserve-roll", "소프트아이스크림 롤", "Epic", 99, nil },
 	{ "crown-tuna", "크라운 참치", "Legendary", 199, nil },
 	{ "unicorn-roll", "유니콘 롤", "Legendary", 199, nil },
+	{ "concept-salmon", "콘셉트 연어초밥 (테스트)", "Basic", nil, nil }, -- m5-27 실험 스킨 (모두 무료)
 }
 
 local TOLERANCE = 0.15
@@ -67,7 +68,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 카탈로그 31종이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
+		"AC1: 카탈로그 32종(실험 스킨 1 포함)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
 		function()
 			t.eq(#Skins.LIST, #EXPECTED)
 			for i, row in EXPECTED do
@@ -80,7 +81,7 @@ return function(t: Test.Test)
 				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
 				local pid = skin.productId
 				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-				if row[1] == "tamago" then
+				if row[1] == "tamago" or row[1] == "concept-salmon" then
 					t.eq(pid, nil, "default skin has no product")
 				end
 				t.eq(Skins.get(row[1]), skin)
@@ -131,14 +132,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"byTier: 등급별 개수 (기본 1, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
+		"byTier: 등급별 개수 (기본 2 = 계란초밥 + 실험 스킨, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
 		function()
-			t.eq(#Skins.byTier("Basic"), 1)
+			t.eq(#Skins.byTier("Basic"), 2)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
 			t.eq(#Skins.byTier("Legendary"), 6)
-			t.eq(#Skins.byTier(nil), 31)
+			t.eq(#Skins.byTier(nil), 32)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -223,6 +224,12 @@ return function(t: Test.Test)
 			local base = byName(SushiBody.layout("tamago"))
 			t.eq(#SushiBody.BASE_NAMES, 22)
 			for _, skin in Skins.LIST do
+				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				if skin.experimental then
+					local sb = SushiBody.bounds(SushiBody.layout(skin.id))
+					t.ok(math.abs(-sb.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {sb.min[2]}`)
+					continue
+				end
 				local layout = SushiBody.layout(skin.id)
 				t.eq(layout[1].name, "Body", `{skin.id}: Body first`)
 				local parts = byName(layout)
@@ -255,6 +262,9 @@ return function(t: Test.Test)
 		function()
 			local base = extents(SushiBody.layout("tamago"))
 			for _, skin in Skins.LIST do
+				if skin.experimental then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				end
 				local size = extents(SushiBody.layout(skin.id))
 				local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier] or TOLERANCE
 				for axis = 1, 3 do

@@ -94,6 +94,12 @@ local function loadFakeSushiBody(): any
 	local chunk = luau.load(SUSHI_SOURCE, {
 		debugName = "SushiBody(m5-25 qa fake)",
 		environment = {
+			-- SushiBody의 유일한 require = 순수 SushiConceptSample (m5-27 실험 스킨)
+			script = { Parent = { SushiConceptSample = "SushiConceptSample" } },
+			require = function(target: any): any
+				assert(target == "SushiConceptSample", `unexpected require {tostring(target)}`)
+				return RobloxRequire.require(Shared.SushiConceptSample)
+			end,
 			Instance = { new = newInstance },
 			Vector3 = value("Vector3"),
 			Vector2 = value("Vector2"),
@@ -166,7 +172,8 @@ return function(t: Test.Test)
 					-- 눈 속 파츠(attach)만 그림자를 안 드리워요
 					t.eq(part.CastShadow, specs[name].attach == nil, `{skin.id} {name} CastShadow`)
 				end
-				t.eq(motors, 6, `{skin.id} motors`)
+				-- 실험 스킨 concept-salmon(m5-27)은 팔 2개가 더 있어요 (눈 2·감은 눈 2·발 2·팔 2)
+				t.eq(motors, if skin.experimental then 8 else 6, `{skin.id} motors`)
 			end
 		end
 	)

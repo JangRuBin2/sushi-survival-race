@@ -1,6 +1,6 @@
 --!strict
 -- 초밥 캐릭터 몸. 서버 캐릭터(AppearanceService)와 클라이언트 연출 인형(m3-03 탈락, m3-05 우승, 단상, 탈의실)이 같이 써요.
---   layout(appearanceId)  파츠 목록 (순수 함수, lune 테스트 가능). 모르는 id면 기본(tamago).
+--   layout(appearanceId, expression?)  파츠 목록 (순수 함수, lune 테스트 가능). 모르는 id면 기본(tamago).
 --   hasLayout(id)         그 id 전용 레이아웃이 있는지 (스킨 카탈로그 Shared.Skins와 맞추는 테스트용)
 --   bounds(layout)        파츠 목록 전체 외곽 (순수 함수, Body 중심 기준 min/max, 회전 반영)
 --   effectCount(layout)   효과(불꽃·반짝이·연기·빛) 개수
@@ -8,11 +8,14 @@
 --   BOUNDS_TOLERANCE[tier]  등급별 외곽 상자 허용 비율 (m5-21). 비교도 호출부의 몫 — bounds() 자체는 그대로.
 --   BASE_NAMES            모든 스킨이 계란초밥과 똑같이 가지는 기준 파츠 이름 (밥 몸·눈·입·볼·발, m5-25)
 --   PART_BUDGET           스킨 하나의 파츠 수 상한 (m5-25, 24명·모바일 기준)
---   build(appearanceId)   파츠를 만든 Model. PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
+--   build(appearanceId, expression?)   파츠를 만든 Model. expression은 표정이 있는 실험 스킨(concept-salmon)만 봐요
+--                         ("Default"·"Happy"·"Flustered"·"Hurt", 인형 연출용 — 나머지 스킨은 무시). PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
+--   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27 concept-salmon): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
 -- 앞(-Z)에 큰 눈(테두리·흰자·눈동자·하이라이트)과 웃는 입·볼, 아래에 둥근 발 2개. 스킨은 같은 "가족 문법"을 따라요:
@@ -20,6 +23,8 @@
 --   ④ 머리 위 실루엣 한 가지(귀·꼬리·왕관·뿔 등), ⑤ 발 색. 크기·모양 규칙은 docs/specs/m5-25-character-quality.md.
 -- 판정은 휴머노이드라 스킨·모양과 무관해요. 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음).
 -- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 발바닥 y = -2.2, 기본 꼭대기 y = 2.3 (높이 4.5).
+
+local SushiConceptSample = require(script.Parent.SushiConceptSample)
 
 local SushiBody = {}
 
@@ -52,6 +57,7 @@ export type Bounds = {
 }
 
 local DEFAULT_ID = "tamago"
+local CONCEPT_ID = "concept-salmon" -- m5-27 실험 스킨 (Skins.EXPERIMENTAL_IDS와 같은 id)
 
 ---------------------------------------------------------------- 치수 (m5-25)
 local RICE_W, RICE_H, RICE_D = 3.6, 2.4, 2.4 -- 밥 몸 (위에서 보면 알약, y -1.2~1.2)
@@ -955,8 +961,18 @@ local LAYOUTS: { [string]: { PartSpec } } = {
 	}),
 }
 
+-- 실험 스킨 (m5-27): 사용자 콘셉트 시트를 따른 연어초밥. 다른 모양 문법(돔 연어·팔)이라 기준 몸을 공유하지 않아요.
+LAYOUTS[CONCEPT_ID] = SushiConceptSample.gameLayout("Default")
+
 -- Body 중심에서 발바닥까지 (발 공 아래 y = -2.25)
 SushiBody.GROUND_OFFSET = 2.25
+assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concept skin feet must match GROUND_OFFSET")
+
+-- 실험 스킨의 명시적 예외 (m5-27). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
+-- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 새 실험 스킨을 넣을 때만 늘려요.
+SushiBody.EXPERIMENTAL = {
+	[CONCEPT_ID] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS },
+} :: { [string]: { partBudget: number, expressions: { string } } }
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
 
@@ -1034,8 +1050,11 @@ local function copySpec(spec: PartSpec): PartSpec
 end
 
 -- 파츠 목록 (복사본이라 고쳐도 원본은 안 바뀌어요)
-function SushiBody.layout(appearanceId: string): { PartSpec }
+function SushiBody.layout(appearanceId: string, expression: string?): { PartSpec }
 	local source = LAYOUTS[appearanceId] or LAYOUTS[DEFAULT_ID]
+	if appearanceId == CONCEPT_ID and expression ~= nil then
+		source = SushiConceptSample.gameLayout(expression)
+	end
 	local list = {}
 	for _, spec in source do
 		table.insert(list, copySpec(spec))
@@ -1154,11 +1173,11 @@ local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 	end
 end
 
-function SushiBody.build(appearanceId: string): Model
+function SushiBody.build(appearanceId: string, expression: string?): Model
 	local model = Instance.new("Model")
 	model.Name = `SushiBody_{appearanceId}`
 
-	local layout = SushiBody.layout(appearanceId)
+	local layout = SushiBody.layout(appearanceId, expression)
 	local parts: { [string]: BasePart } = {}
 	for _, spec in layout do
 		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만

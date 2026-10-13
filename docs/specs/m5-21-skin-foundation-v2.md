@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-21 — 스킨 기반 v2 (Wedge · 효과 예산 · 박스 허용치 등급별 분기)

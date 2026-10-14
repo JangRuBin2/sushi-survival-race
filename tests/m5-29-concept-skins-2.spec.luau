@@ -28,28 +28,28 @@ local NEW = {
 		"콘셉트 장어초밥 (테스트)",
 		37,
 		{ "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
-		{ "Band", "Eel", "NoriTop", "NoriFront", "NoriBack" },
+		{ "Band", "Eel", "Glaze", "Grill1", "Sesame1", "NoriTop", "NoriFront", "NoriBack", "NoriBackLow" },
 	},
 	{
 		"concept-uni",
 		"콘셉트 성게 군함 (테스트)",
 		38,
 		{ "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
-		{ "Band", "Lobe1", "Lobe4Back", "Leaf1" },
+		{ "Band", "UniBed", "Lobe1", "Lobe10Back", "Leaf1", "LeafMid" },
 	},
 	{
 		"concept-tako",
 		"콘셉트 문어초밥 (테스트)",
 		39,
 		{ "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
-		{ "Ridge", "Sucker1", "NoriRidge" },
+		{ "Ridge", "SkinLeft", "Sucker1", "Sucker1In", "Cut1", "NoriRidge" },
 	},
 	{
 		"concept-inari",
 		"콘셉트 유부초밥 (테스트)",
 		40,
 		{ "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
-		{ "LipFront", "InariRice", "InariFold" },
+		{ "LipFront", "InariRice", "InariCrease1", "InariSeed1" },
 	},
 }
 local INARI = "concept-inari"
@@ -272,7 +272,7 @@ return function(t: Test.Test)
 			t.ok(string.sub(name, 1, 3) ~= "Roe" and name ~= "Cucumber", `uni {name}`)
 		end
 		local unagi = byName(SushiBody.layout("concept-unagi"))
-		t.eq(unagi.Eel.material, "Glass")
+		t.eq(unagi.Glaze.material, "Glass") -- m5-30: 구운 살 판 위 타레 소스 층
 	end)
 
 	t.test(

@@ -44,7 +44,8 @@ local STRIPE = { 32, 42, 70 } -- 짙은 남색 물결 줄무늬
 local BELLY = { 226, 229, 234 } -- 배 은백색
 local GILL = { 66, 82, 116 } -- 아가미 선 (등 쪽)
 local GILL_LOW = { 176, 184, 200 } -- 아가미 선 (배 쪽)
-local FIN = { 96, 116, 154 } -- 가슴·등지느러미 (반투명)
+local FIN = { 96, 116, 154 } -- 등지느러미
+local PECTORAL = { 150, 166, 194 } -- 가슴지느러미 (회청색 반투명 — 은빛 배 위에서 보여요)
 local TAIL_FIN = { 72, 90, 128 } -- 꼬리지느러미
 local EYE_CREAM = { 244, 234, 200 } -- 눈 크림색 테두리
 local EYE_BLACK = { 18, 18, 24 }
@@ -332,21 +333,21 @@ function ConceptMackerel.topping(): { PartSpec }
 	})
 	-- 가슴지느러미 (관절, FishRoot에 매달려 팔랑): 앞쪽 수직변이 아가미 뒤 배 옆구리에
 	for _, side in { -1, 1 } do
-		local z = side * (ROOT.rb + 0.04)
+		local z = side * (ROOT.rb + 0.07)
 		table.insert(
 			list,
 			fin(
 				if side < 0 then "FishFinL" else "FishFinR",
-				{ 0.05, 0.6, 0.95 },
-				FIN,
+				{ 0.05, 0.66, 1.05 },
+				PECTORAL,
 				{ 0.78, Y - 0.12, z },
 				true,
-				{ 0, side * 18, 0 },
+				{ 0, side * 24, 0 },
 				{
 					joint = true,
 					attach = "FishRoot",
-					pivot = { 1.2, Y - 0.12, z },
-					transparency = 0.1,
+					pivot = { 1.3, Y - 0.12, z },
+					transparency = 0.15,
 				}
 			)
 		)

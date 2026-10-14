@@ -111,7 +111,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA: 겹친 상태 자세에서도 꼭대기 ≤ 3.6, 외곽 ×1.25, 발바닥, 얼굴 안 가림, 밥 윗면 − 0.2 위 (표정 6종)",
+		"QA: 겹친 상태 자세에서도 꼭대기 ≤ 이름표(4차 결정 4.8), 외곽 ×1.25, 발바닥, 얼굴 안 가림, 밥 윗면 − 0.2 위 (표정 6종)",
 		function()
 			local poses = comboPoses()
 			for _, expression in Sample.EXPRESSIONS do

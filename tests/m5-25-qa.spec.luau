@@ -189,7 +189,8 @@ return function(t: Test.Test)
 		function()
 			for _, skin in Skins.LIST do
 				local b = SushiBody.bounds(SushiBody.layout(skin.id))
-				t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{skin.id} top {b.max[2]}`)
+				-- 이름표 높이는 스킨마다 (m5-32 4차 결정: 고등어만 4.8, 나머지 3.6)
+				t.ok(b.max[2] <= SushiBody.nameTagHeight(skin.id) - 0.4, `{skin.id} top {b.max[2]}`)
 			end
 		end
 	)

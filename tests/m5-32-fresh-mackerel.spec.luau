@@ -483,7 +483,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC4 모양 한도
 	t.test(
-		"AC4: 표정 6종 × 대표 자세·표본 — 파츠 ≤ 80, 발바닥, 꼭대기(쉰 3.2·움직임 3.6), 외곽 ×1.25, 밥 위",
+		"AC4: 표정 6종 × 대표 자세·표본 — 파츠 ≤ 80, 발바닥, 꼭대기(쉰 이름표 − 0.4·움직임 이름표 — 이 스킨은 4.8), 외곽 ×1.25, 밥 위",
 		function()
 			for _, expression in Sample.EXPRESSIONS do
 				local rest = SushiBody.layout(ID, expression)

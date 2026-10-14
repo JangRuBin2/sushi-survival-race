@@ -220,7 +220,7 @@ return function(t: Test.Test)
 					t.ok(#layout <= SushiBody.CONCEPT_BODY[id].partBudget, `{label} parts {#layout}`)
 					local b = SushiBody.bounds(layout)
 					t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-9, `{label} sole {b.min[2]}`)
-					t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{label} top {b.max[2]}`)
+					t.ok(b.max[2] <= SushiBody.nameTagHeight(id) - 0.4, `{label} top {b.max[2]}`) -- 고등어만 4.8 (m5-32 4차)
 					-- 특 9종(Basic)은 효과 0, 판매 콘셉트 몸(고등어 전설)은 등급 예산 안
 					local tier = (Skins.get(id) :: any).tier
 					t.ok(SushiBody.effectCount(layout) <= SushiBody.EFFECT_BUDGET[tier], `{label} effects`)

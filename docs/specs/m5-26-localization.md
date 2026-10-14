@@ -224,6 +224,12 @@ status: in-qa
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-14 · main 병합 (developer, 브랜치 `m5-26-i18n-p2`)
+- `origin/main`(6b12976: m5-24 맵 아트 v2, m5-27/m5-28 콘셉트 스킨) 병합. git 충돌 없음. m5-24 아트 파일에 새 화면·월드 글씨(`.Text`/Gui) 없음.
+- `Strings.csv`: 콘셉트 스킨 5종 키 15개 추가 — `skin.concept-{salmon,tuna,shrimp,tamago,ikura}.name` + `.speech.1`·`.speech.2` (ko 원문 = `Skins.luau`, en 번역).
+- `tests/m5-27-concept-skin.spec.luau`·`tests/m5-28-concept-skins.spec.luau`: 카드 버튼 글씨가 키(`shop.btn.wear`)가 되어 `LocTest.ko(...)`로 비교.
+- 검증 5단계 통과, 테스트 1903 passed, 0 failed.
+
 ### 2026-10-13 · QA 수정 (developer, 브랜치 `m5-26-i18n-p2`)
 
 **B1 (P1) 복귀 티켓 방 이름**: `RoomService.restoreRoom`이 `filterWith`가 있으면(로비 복귀) 티켓의 `nameIsDefault`·`name`을 믿지 않아요.

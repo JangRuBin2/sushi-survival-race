@@ -6,6 +6,7 @@
 local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local LayoutCheck = require("../tools/render/LayoutCheck")
@@ -150,7 +151,7 @@ return function(t: Test.Test)
 		local state = ShopLogic.cardState(Skins.get(ID), view)
 		t.eq(state.kind, "Equip")
 		t.eq(state.enabled, true)
-		t.eq(ShopLogic.cardButtonText(state), "입기")
+		t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "입기")
 		local shown = false
 		for _, tab in ShopLogic.tabs() do
 			if tab.id == "all" then

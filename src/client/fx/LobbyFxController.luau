@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local LobbyLayout = require(ReplicatedStorage.Shared.LobbyLayout)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
+local DollAnimator = require(script.Parent.DollAnimator)
 
 local LobbyFxController = {}
 
@@ -73,6 +74,8 @@ local function placeDoll(podiumFolder: Instance)
 		CFrame.new(podium.center.x, height, podium.center.z) * CFrame.Angles(0, math.rad(podium.facingYawDeg), 0)
 	)
 	model.Parent = podiumFolder
+	-- 우승자 단상: 고등어 관절이 있으면 신나게 팔딱 (m5-32, 카메라 60 안에서만 돌고 인형이 바뀌면 저절로 멈춰요)
+	DollAnimator.attach(model, "Victory", { sound = "World" })
 end
 
 local function watchPodium(lobby: Instance)

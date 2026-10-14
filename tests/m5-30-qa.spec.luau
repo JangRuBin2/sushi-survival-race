@@ -139,7 +139,8 @@ return function(t: Test.Test)
 			local ids = {}
 			for id, rule in SushiBody.CONCEPT_BODY do
 				table.insert(ids, id)
-				t.eq(rule.partBudget, 70, id)
+				-- m5-32 고등어 [신선]만 80 (사용자 결정 2026-10-14 3차)
+				t.eq(rule.partBudget, if id == "fresh-mackerel" then 80 else 70, id)
 			end
 			table.sort(ids)
 			local expected = table.clone(Sample.SKIN_IDS)

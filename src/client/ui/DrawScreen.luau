@@ -26,6 +26,7 @@ local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
+local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
 local Color = Kit.Color
 
@@ -33,6 +34,9 @@ export type Actions = {
 	close: () -> (),
 	draw: () -> (),
 	wear: (skinId: string) -> (),
+	-- m5-32: 뽑기 스킨인데 로벅스로도 파는 스킨(고등어 [신선])의 상세 "R$ 199로 사기"
+	buyRobux: (skinId: string) -> (),
+	robuxOpen: (skinId: string) -> boolean, -- 상품 id가 있어 살 수 있는지 (없으면 "곧 열려요")
 }
 
 export type RenderState = {
@@ -98,8 +102,9 @@ local function scaledButton(caption: string, color: Color3, props: { [string]: a
 	return button
 end
 
--- 인형 하나를 ViewportFrame에 (카메라 포함). 실패하면 nil
-local function doll(viewport: ViewportFrame, skinId: string, expression: string?): Model?
+-- 인형 하나를 ViewportFrame에 (카메라 포함). 실패하면 nil. animate가 있으면 고등어 관절이 있는 스킨만 팔딱여요
+-- (m5-32 DollAnimator — 화면이 보일 때만 돌고 인형이 지워지면 멈춰요, 소리는 UI 소리로 작게)
+local function doll(viewport: ViewportFrame, skinId: string, expression: string?, animate: DollAnimator.Mode?): Model?
 	local ok, model = pcall(SushiBody.build, skinId, expression)
 	if not ok then
 		warn(`[DrawScreen] doll failed for {skinId}: {model}`)
@@ -107,6 +112,16 @@ local function doll(viewport: ViewportFrame, skinId: string, expression: string?
 	end
 	model:PivotTo(CFrame.Angles(0, math.rad(200), 0))
 	model.Parent = viewport
+	-- 길게 나온 스킨(고등어)은 카메라를 조금 뒤로 (m5-32, 다른 스킨은 그대로)
+	local camera = viewport.CurrentCamera
+	if camera then
+		local extents = model:GetExtentsSize()
+		local distance = UiLayout.previewDistance(math.max(extents.X, extents.Z) / 2)
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, 1.1, -distance), Vector3.new(0, 0.2, 0))
+	end
+	if animate then
+		DollAnimator.attach(model, animate, { sound = "Ui" })
+	end
 	return model
 end
 
@@ -475,6 +490,8 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		Parent = content,
 		BackgroundColor3 = NAVY_CARD,
 		BackgroundTransparency = 0.2,
+		-- 휴대폰에서 목록 위에 겹치는 창: 빈 곳을 눌러도 아래 목록 카드가 눌리지 않게 (m5-31 재QA R1)
+		Active = true,
 	}, { Kit.corner(14), Kit.padding(10) }) :: Frame
 	local detailBadge = badge(detailPanel, {
 		Text = "",
@@ -484,14 +501,14 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		Parent = detailPanel,
 		Text = "",
 		Position = UDim2.fromScale(0, 0.13),
-		Size = UDim2.fromScale(0.62, 0.14),
+		Size = UDim2.fromScale(0.52, 0.14), -- 큰 미리보기(오른쪽 0.46)와 겹치지 않게 (m5-31 재QA R2)
 		TextColor3 = Color.White,
 	}, 24)
 	local detailLine = text({
 		Parent = detailPanel,
 		Text = "",
 		Position = UDim2.fromScale(0, 0.28),
-		Size = UDim2.fromScale(0.55, 0.2),
+		Size = UDim2.fromScale(0.52, 0.2),
 		TextColor3 = Color3.fromRGB(210, 220, 245),
 	}, 15)
 	local detailView = newViewport({
@@ -512,11 +529,13 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	local exprHolders: { TextButton } = {}
 	local detailExpression: string? = "Happy" -- 큰 미리보기 표정 (썸네일을 누르면 바뀌어요)
 	local detailFor: string? = nil
-	for i = 1, 4 do
+	-- 표정 썸네일: 콘셉트 몸 표정 6종 (m5-32 — 화남·슬픔 추가)
+	local EXPRESSION_SLOTS = 6
+	for i = 1, EXPRESSION_SLOTS do
 		local holder = Kit.new("TextButton", {
 			Parent = exprRow,
 			LayoutOrder = i,
-			Size = UDim2.new(0.25, -5, 1, 0),
+			Size = UDim2.new(1 / EXPRESSION_SLOTS, -5, 1, 0),
 			BackgroundColor3 = NAVY,
 			Text = "",
 			AutoButtonColor = true,
@@ -884,7 +903,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		end
 		featuredId = id
 		clearChildren(featuredView)
-		featuredModel = if id then doll(featuredView, id, "Happy") else nil
+		featuredModel = if id then doll(featuredView, id, "Happy", "Preview") else nil
 		local skin = if id then Skins.get(id) else nil
 		bubble.Text = if skin then `{skin.displayName}\n획득 가능!` else ""
 		bubble.Visible = skin ~= nil
@@ -917,19 +936,24 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			end
 		end
 		clearChildren(detailView)
-		doll(detailView, id, detailExpression)
+		doll(detailView, id, detailExpression, "Preview")
 		for i, holder in exprHolders do
 			holder.BackgroundColor3 = if expressions[i] == detailExpression then YELLOW else NAVY
 		end
 		local s = state
 		local wearing = s ~= nil and s.equippedSkin == id
 		local can = canWear(id)
+		-- m5-32: 뽑기 + 판매 스킨(고등어 [신선])은 안 가졌으면 "R$ 199로 사기" (상품 id 전엔 "곧 열려요")
+		local buyable = not can and skin.robux ~= nil
+		local open = buyable and actions.robuxOpen(id)
 		wearButton.Text = if wearing
 			then "입는 중"
 			elseif can and not owns(id) then "입기 (Studio)"
 			elseif can then "입기"
+			elseif buyable and open then `R$ {skin.robux}로 사기`
+			elseif buyable then `R$ {skin.robux} — 곧 열려요`
 			else "🎫 뽑기로 얻기"
-		Kit.setEnabled(wearButton, can and not wearing)
+		Kit.setEnabled(wearButton, (can and not wearing) or open)
 		detailNote.Text = if owns(id) then "보유 중" else "아직 없어요"
 	end
 
@@ -1084,8 +1108,16 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	end)
 	Kit.onClick(wearButton, function()
 		local id = selectedId or featuredId
-		if id then
+		if id == nil then
+			return
+		end
+		if canWear(id) then
 			actions.wear(id)
+		else
+			local skin = Skins.get(id)
+			if skin and skin.robux ~= nil then
+				actions.buyRobux(id)
+			end
 		end
 	end)
 	Kit.onClick(okButton, hideResult)
@@ -1202,7 +1234,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			ray.BackgroundColor3 = color
 		end
 		clearChildren(resultView)
-		resultModel = doll(resultView, result.skinId, "Happy")
+		resultModel = doll(resultView, result.skinId, "Happy", "Victory")
 		resultName.Visible = true
 		resultName.Text = `{if skin then skin.displayName else result.skinId}  [{gradeName(result.grade)}]`
 		resultStroke.Color = color
@@ -1295,7 +1327,10 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			detailPanel.ZIndex = 5
 			detailPanel.BackgroundTransparency = 0
 			detailClose.Visible = true
-			detailView.Position = UDim2.new(1, -(h.close + 8), 0, 0)
+			-- 큰 미리보기는 ✕ 아래 오른쪽 칸에만 (이름·대사 칸과 안 겹치게, m5-31 재QA R2)
+			detailView.Position = UDim2.new(1, 0, 0, h.close + 8)
+			detailView.Size = UDim2.new(0.44, 0, 1, -(bottom + h.close + 8))
+			detailPanel.Active = true
 			gridLayout.CellSize = UDim2.new(1 / 3, -6, 0, cardHeight)
 			resultCard.Size = UDim2.fromScale(0.94, 0.9)
 		else

@@ -20,6 +20,7 @@ local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
+local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
 local Color = Kit.Color
 
@@ -467,6 +468,12 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		previewModel = model
 		model:PivotTo(CFrame.Angles(0, angle, 0))
 		model.Parent = viewport
+		-- 길게 나온 스킨은 카메라를 조금 뒤로 (m5-32, 다른 스킨은 그대로 z -10)
+		local extents = model:GetExtentsSize()
+		local distance = UiLayout.previewDistance(math.max(extents.X, extents.Z) / 2)
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, 1.2, -distance), Vector3.new(0, 0.1, 0))
+		-- 고등어 관절이 있으면 살랑 + 자주 팔딱 (m5-32, 탈의실이 닫히면 화면이 안 보여 멈춰요)
+		DollAnimator.attach(model, "Preview", { sound = "Ui" })
 	end
 
 	local function startSpin()
@@ -582,7 +589,9 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		selectedId = skin.id
 		nameLabel.Text = skin.displayName
 		local info = skinInfo(skin)
-		tierLabel.Text = info.displayName
+		-- 뽑기에서도 나오는 판매 스킨이면 안내를 붙여요 (m5-32)
+		local hint = ShopLogic.drawHint(skin)
+		tierLabel.Text = if hint then `{info.displayName} · {hint}` else info.displayName
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
 		currentState = ShopLogic.cardState(skin, view, robux, now)

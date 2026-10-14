@@ -159,8 +159,12 @@ return function(t: Test.Test)
 							joints += 1
 							motors += 1
 							t.eq(c.Name, SushiBody.PART_JOINT_NAME, `{skin.id} {name} motor name`)
-							t.ok(c.Part0 == body and c.Part1 == part, `{skin.id} {name} motor parts`)
-							t.ok(c.C0 == part.CFrame, `{skin.id} {name} C0 = 자리`)
+							-- m5-32 관절 사슬: joint + attach면 Part0 = 그 파츠 (C0은 부모 기준 — m5-32 테스트가 실제 build로 봐요)
+							local chainParent = if specs[name].attach then parts[specs[name].attach] else body
+							t.ok(c.Part0 == chainParent and c.Part1 == part, `{skin.id} {name} motor parts`)
+							if chainParent == body then
+								t.ok(c.C0 == part.CFrame, `{skin.id} {name} C0 = 자리`)
+							end
 						elseif c.ClassName == "WeldConstraint" then
 							welds += 1
 							local anchor = if specs[name].attach then parts[specs[name].attach] else body
@@ -173,7 +177,9 @@ return function(t: Test.Test)
 					t.eq(part.CastShadow, specs[name].attach == nil, `{skin.id} {name} CastShadow`)
 				end
 				-- 실험 스킨 concept-salmon(m5-27)은 팔 2개가 더 있어요 (눈 2·감은 눈 2·발 2·팔 2)
-				t.eq(motors, if skin.conceptBody then 8 else 6, `{skin.id} motors`)
+				-- m5-32 고등어 [신선]: + 고등어 관절 9 (FishRoot·FishMid·FishTail·FishFinL/R·Splash1~4) = 17
+				local expectedMotors = if skin.id == "fresh-mackerel" then 17 elseif skin.conceptBody then 8 else 6
+				t.eq(motors, expectedMotors, `{skin.id} motors`)
 			end
 		end
 	)
@@ -195,13 +201,20 @@ return function(t: Test.Test)
 			local shop = fs.readFile("src/client/ui/ShopScreen.luau")
 			t.ok(string.find(shop, "camera.FieldOfView = 40", 1, true) ~= nil, "shop fov still 40")
 			t.ok(string.find(shop, "Vector3.new(0, 1.2, -10), Vector3.new(0, 0.1, 0)", 1, true) ~= nil, "shop camera")
-			local pitch = math.atan2(1.1, 10) -- 아래로 기울어진 각
+			-- m5-32: 가로로 긴 스킨(고등어)은 UiLayout.previewDistance만큼 카메라가 물러나요 (나머지는 10 그대로)
+			local UiLayout = RobloxRequire.require(Shared.UiLayout)
+			t.ok(string.find(shop, "UiLayout.previewDistance", 1, true) ~= nil, "shop uses previewDistance")
 			for _, skin in Skins.LIST do
 				local b = SushiBody.bounds(SushiBody.layout(skin.id))
 				local radius = math.max(math.abs(b.min[1]), math.abs(b.max[1]), math.abs(b.min[3]), math.abs(b.max[3]))
+				local distance = UiLayout.previewDistance(radius)
+				if not SushiBody.CONCEPT_BODY[skin.id] then
+					t.eq(distance, 10, `{skin.id} camera unchanged`)
+				end
+				local pitch = math.atan2(1.1, distance) -- 아래로 기울어진 각
 				for _, y in { b.min[2], b.max[2] } do
 					-- 가장 카메라 쪽으로 온 점(회전 중 z = −radius)이 가장 크게 보여요
-					local dz = 10 - radius
+					local dz = distance - radius
 					local angle = math.atan2(y - 1.2, dz) + pitch
 					t.ok(math.abs(math.deg(angle)) < 20, `{skin.id} y {y} angle {math.deg(angle)}`)
 				end

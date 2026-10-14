@@ -1,7 +1,7 @@
 --!strict
 -- 콘셉트 몸 토핑: 통고등어 한 마리 (m5-32 "고등어 초밥 [신선]", 사용자 시트 docs/고등어 초밥 캐릭터 시트.png).
--- SushiConceptSample이 이 토핑을 콘셉트 몸(밥·얼굴·팔다리) 위에 얹어요. 순수 데이터 (Roblox API 없음).
---   topping()  고등어 파츠 목록 (SushiConceptSample.PartSpec과 같은 모양)
+-- 콘셉트 몸 견본 모듈이 이 토핑을 콘셉트 몸(밥·얼굴·팔다리) 위에 얹어요. 순수 데이터 (Roblox API 없음).
+--   topping()  고등어 파츠 목록 (견본 PartSpec과 같은 모양)
 --   PIVOTS     관절 경첩 (Body 좌표) — 렌더·테스트 설명용. 실제 값은 파츠의 pivot 칸에 있어요
 -- 모양 (앞 = -Z, 위 = +Y): 고등어가 밥 위에 X축으로 가로 누워요. 머리 = +X(앞에서 보면 보는 사람 왼쪽), 꼬리 = -X.
 --   몸통 단면 = 위(등, 청회색) 원기둥 + 그보다 조금 굵고 낮은 아래(배, 은백색) 원기둥. 두 원이 몸 높이의 위쪽 40%
@@ -122,7 +122,14 @@ local function piece(
 	}
 end
 
-local function ball(name: string, d: number, color: { number }, at: { number }, material: string?, extra: Extra?): PartSpec
+local function ball(
+	name: string,
+	d: number,
+	color: { number },
+	at: { number },
+	material: string?,
+	extra: Extra?
+): PartSpec
 	local e: Extra = extra or {}
 	e.shape = "Ball"
 	return piece(name, { d, d, d }, color, at, material, e)
@@ -275,7 +282,14 @@ local function fishEye(side: number): { PartSpec }
 	return {
 		ball(`FishEye{tag}`, 0.8, EYE_CREAM, { EYE_X, EYE_Y, side * 0.56 }, nil, { attach = "FishRoot" }),
 		ball(`FishPupil{tag}`, 0.52, EYE_BLACK, { EYE_X, EYE_Y, side * 0.72 }, nil, { attach = "FishRoot" }),
-		ball(`FishGlint{tag}`, 0.16, WHITE, { EYE_X + 0.1, EYE_Y + 0.13, side * 0.92 }, "Neon", { attach = "FishRoot" }),
+		ball(
+			`FishGlint{tag}`,
+			0.16,
+			WHITE,
+			{ EYE_X + 0.1, EYE_Y + 0.13, side * 0.92 },
+			"Neon",
+			{ attach = "FishRoot" }
+		),
 	}
 end
 

@@ -25,7 +25,7 @@
 -- compare(golden-otoro·concept-salmon과)·poses(대표 자세 8칸)·flop-strip(착지 팔딱 8프레임)·sheet-compare(사용자 시트
 -- 정면·3/4·후면 ↔ 같은 각도 렌더)를 그려요.
 --   --pose <이름|all>  CharacterAnimLogic.fishTestPoses의 자세(Rest·TailLeft·TailRight·JumpArch·LandPeak·Knocked·Hurt·
---                      Splash)를 관절에 적용해 그려요 (SushiBody.posed — 테스트 AC4와 같은 계산). turntable에 붙어요
+--                      Splash)를 관절에 적용해 그려요 (SushiPose.posed — 테스트 AC4와 같은 계산). turntable에 붙어요
 --   --sheet <png>      sheet-compare에 붙일 시트 (기본 docs/고등어 초밥 캐릭터 시트.png)
 -- 한계: tools/render-map과 같아요 (Sparkles·Decal·SurfaceGui·이름표는 안 그려요, 파티클은 한 순간의 점 구름).
 -- gameplay 뷰의 이름표는 렌더 뒤에 5×7 픽셀 글자로 흉내만 내요 (진짜는 GothamBold 18px).
@@ -110,6 +110,7 @@ local shadowSize = if quality == "high" then 2048 else 1024
 
 local Shared = Shims.root("src/shared")
 local SushiBody = Shims.require(Shared.SushiBody)
+local SushiPose = Shims.require(Shared.SushiPose)
 local Skins = Shims.require(Shared.Skins)
 local MapLighting = Shims.require(Shared.maps.MapLighting)
 local ConceptSample = Shims.require(Shared.SushiConceptSample)
@@ -228,12 +229,12 @@ local function layoutOf(id: string): { any }
 	if gameSkin then
 		local layout = SushiBody.layout(gameSkin, gameExpression)
 		if gamePose then
-			layout = SushiBody.posed(layout, CharacterAnimLogic.fishMotion(fishPoseOf(gamePose)))
+			layout = SushiPose.posed(layout, CharacterAnimLogic.fishMotion(fishPoseOf(gamePose)))
 		end
 		return layout
 	end
 	if poseArg ~= nil and poseArg ~= "all" and SushiBody.CONCEPT_BODY[id] then
-		return SushiBody.posed(SushiBody.layout(id), CharacterAnimLogic.fishMotion(FISH_POSES[poseArg]))
+		return SushiPose.posed(SushiBody.layout(id), CharacterAnimLogic.fishMotion(FISH_POSES[poseArg]))
 	end
 	return SushiBody.layout(id)
 end
@@ -647,7 +648,10 @@ local function renderConceptSkin(root: string, lighting: any, skinId: string)
 	if wants("poses") then
 		local cells = {}
 		for _, name in FISH_POSE_ORDER do
-			table.insert(cells, { gameId(skinId, if name == "Hurt" then "Hurt" else nil, name), 30, 10, string.upper(name) })
+			table.insert(
+				cells,
+				{ gameId(skinId, if name == "Hurt" then "Hurt" else nil, name), 30, 10, string.upper(name) }
+			)
 		end
 		renderRow(`{dir}/poses.png`, lighting, cells, 240, 260)
 	end

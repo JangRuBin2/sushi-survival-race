@@ -42,7 +42,7 @@ export type Skin = {
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
-	-- 콘셉트 몸 스킨 (m5-27, m5-32에서 experimental → conceptBody): SushiBody.CONCEPT_BODY의 몸 모양 예외(자기 몸 모양,
+	-- 콘셉트 몸 스킨 (m5-27, m5-32에서 지금 이름으로 바꿈): SushiBody.CONCEPT_BODY의 몸 모양 예외(자기 몸 모양,
 	-- 파츠 상한)를 받아요. 몸 모양만 뜻하고 가격·얻는 길과는 무관해요 (특 9종 = 뽑기 전용, 고등어 = 전설 판매 + 뽑기)
 	conceptBody: boolean?,
 	-- 🎫 뽑기 등급 (m5-31). 있으면 뽑기 풀에 들어가요. 상점 등급(tier)과 별개

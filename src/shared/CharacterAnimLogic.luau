@@ -139,7 +139,7 @@ function CharacterAnimLogic.pose(input: Input): Pose
 end
 
 ---------------------------------------------------------------- 물고기 팔딱 (m5-32)
--- 각도는 라디안, 거리는 studs. 값은 스펙 기본값 (docs/specs/m5-32-fresh-mackerel.md "팔딱 움직임"), 바꾼 값은 결정 기록에.
+-- 각도는 라디안, 거리는 studs. 값은 스펙 기본값 (m5-32 스펙 "팔딱 움직임"), 바꾼 값은 결정 기록에.
 local rad = math.rad
 local TAU = 2 * math.pi
 
@@ -407,8 +407,7 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 
 	-- 가슴지느러미: 평소 살짝, 팔딱 때 크게
 	local finBeat = 0.5 + 0.5 * math.sin(TAU * F.FIN_HZ * t)
-	local finFlap = F.FIN_IDLE * finBeat * (1 - busy)
-		+ F.FIN_FLOP * busy * (0.5 + 0.5 * math.sin(TAU * F.FLOP_HZ * t))
+	local finFlap = F.FIN_IDLE * finBeat * (1 - busy) + F.FIN_FLOP * busy * (0.5 + 0.5 * math.sin(TAU * F.FLOP_HZ * t))
 
 	-- 한도
 	rootArch = clamp(rootArch, -F.MAX_ARCH, F.MAX_ARCH)
@@ -431,7 +430,7 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 	}
 end
 
--- 관절 움직임 (SushiBody.Motion 모양: angles 라디안, move, reach). 관절 이름이 계약이에요.
+-- 관절 움직임 (SushiPose.Motion 모양: angles 라디안, move, reach). 관절 이름이 계약이에요.
 --   FishRoot: 들썩(Y) + 비틀림(X) + 아치(Z, 머리 위로)
 --   FishMid: 좌우(Y) + 휨(Z) — FishRoot의 아치를 되돌리고 꼬리 쪽을 들어 올려요 (C자)
 --   FishTail: 좌우 파닥(Y) + 휨(Z), FishFinL(-Z 쪽)/FishFinR(+Z 쪽): 지느러미 끝이 바깥으로
@@ -569,7 +568,10 @@ function CharacterAnimLogic.fishLandStrip(frames: number): { { time: number, pos
 	local total = F.LAND_DELAY + F.LAND_TIME
 	for i = 0, frames - 1 do
 		local t = total * i / math.max(1, frames - 1)
-		table.insert(list, { time = t, pose = CharacterAnimLogic.fishPose(standing({ landTime = t, landStrength = 1 })) })
+		table.insert(
+			list,
+			{ time = t, pose = CharacterAnimLogic.fishPose(standing({ landTime = t, landStrength = 1 })) }
+		)
 	end
 	return list
 end

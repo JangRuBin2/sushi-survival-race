@@ -24,7 +24,6 @@
 -- 판정은 휴머노이드라 스킨·모양과 무관해요. 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음).
 -- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 발바닥 y = -2.2, 기본 꼭대기 y = 2.3 (높이 4.5).
 
-local PartMath = require(script.Parent.PartMath)
 local SushiConceptSample = require(script.Parent.SushiConceptSample)
 
 local SushiBody = {}
@@ -1205,7 +1204,9 @@ function SushiBody.buildLayout(layout: { PartSpec }, modelName: string): Model
 	model.Name = modelName
 
 	local parts: { [string]: BasePart } = {}
+	local specs: { [string]: PartSpec } = {}
 	for _, spec in layout do
+		specs[spec.name] = spec
 		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만
 		-- Enum.PartType .Shape 속성을 설정해요 (m5-21 — WedgePart에는 .Shape가 없어요)
 		local part: BasePart
@@ -1260,13 +1261,23 @@ function SushiBody.buildLayout(layout: { PartSpec }, modelName: string): Model
 			-- C0 = 부모 기준 파츠 자리(회전 포함), C1 = 원점 → Transform이 identity면 레이아웃 자리 그대로.
 			-- Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을 C0:VectorToObjectSpace로 바꿔 넣어요
 			-- (CharacterFxController). Body가 부모면 C0 = 파츠 자리(예전 그대로)
-			motor.C0 = if parent == body then part.CFrame else parent.CFrame:Inverse() * part.CFrame
+			-- 사슬 부모(고등어 FishRoot·FishMid)는 회전이 없어서 C0 = 위치 차이 · 자기 회전이에요 (회전한 부모면 일반식)
+			local parentSpec = if spec.attach then specs[spec.attach] else nil
+			motor.C0 = if parent == body
+				then part.CFrame
+				elseif parentSpec and parentSpec.rotation == nil then CFrame.new(vec({
+					spec.offset[1] - parentSpec.offset[1],
+					spec.offset[2] - parentSpec.offset[2],
+					spec.offset[3] - parentSpec.offset[3],
+				})) * angles(spec.rotation)
+				else parent.CFrame:Inverse() * part.CFrame
 			motor.C1 = CFrame.identity
+			-- 경첩·물방울 거리는 속성으로 (클라이언트 FishRig가 읽어요). 테스트용 가짜 Instance에는 SetAttribute가 없을 수 있어요
 			if spec.pivot then
-				motor:SetAttribute("Pivot", vec(spec.pivot))
+				pcall(motor.SetAttribute, motor, "Pivot", vec(spec.pivot))
 			end
 			if spec.reach then
-				motor:SetAttribute("Reach", vec(spec.reach))
+				pcall(motor.SetAttribute, motor, "Reach", vec(spec.reach))
 			end
 			motor.Parent = part
 		else
@@ -1284,71 +1295,6 @@ end
 
 function SushiBody.build(appearanceId: string, expression: string?): Model
 	return SushiBody.buildLayout(SushiBody.layout(appearanceId, expression), `SushiBody_{appearanceId}`)
-end
-
--- 관절 하나의 움직임 (m5-32, CharacterAnimLogic.fishMotion이 만들어요). Body 축 기준, pivot(경첩)을 중심으로 돌고 옮겨요.
---   angles  라디안 {x, y, z} (CFrame.Angles 순서), move = 이동 {x, y, z}, reach = 파츠 reach(물방울)에 곱하는 0~1
-export type Motion = { angles: { number }?, move: { number }?, reach: number? }
-
--- 관절 움직임을 레이아웃 좌표에 순수 계산으로 적용한 새 파츠 목록 (테스트 AC4·렌더 도구 --pose). 클라이언트의
--- Motor6D와 같은 규칙: 관절 파츠 = 부모의 움직임 · 자기 움직임 · 쉰 자리, 붙는 파츠 = 붙은 파츠를 그대로 따라가요.
--- 움직임이 없는 파츠는 원래 값 그대로(회전 nil 포함)예요.
-function SushiBody.posed(layout: { PartSpec }, motion: { [string]: Motion }): { PartSpec }
-	local byName: { [string]: PartSpec } = {}
-	for _, spec in layout do
-		byName[spec.name] = spec
-	end
-	local chain: { [string]: PartMath.Frame? } = {} -- 이름 → Body 축 누적 움직임 (nil이면 없음)
-	local done: { [string]: boolean } = {}
-	local function chainOf(name: string, depth: number): PartMath.Frame?
-		if done[name] then
-			return chain[name]
-		end
-		assert(depth < 32, "SushiBody.posed: attach loop")
-		local spec = byName[name]
-		local result: PartMath.Frame? = nil
-		if spec and spec.name ~= "Body" then
-			local parent = spec.attach
-			local inherited = if parent and byName[parent] then chainOf(parent, depth + 1) else nil
-			local own = if spec.joint then motion[name] else nil
-			if own then
-				local pivot = spec.pivot or spec.offset
-				local move = own.move or { 0, 0, 0 }
-				local reach = spec.reach
-				local k = own.reach or 0
-				local m = {
-					move[1] + (if reach then reach[1] * k else 0),
-					move[2] + (if reach then reach[2] * k else 0),
-					move[3] + (if reach then reach[3] * k else 0),
-				}
-				local a = own.angles or { 0, 0, 0 }
-				-- D = 이동(m) · 경첩으로 · 회전 · 경첩에서
-				local d = PartMath.mul(
-					{ p = { m[1] + pivot[1], m[2] + pivot[2], m[3] + pivot[3] }, r = PartMath.anglesRad(a[1], a[2], a[3]) },
-					{ p = { -pivot[1], -pivot[2], -pivot[3] }, r = PartMath.angles(nil) }
-				)
-				result = if inherited then PartMath.mul(inherited, d) else d
-			else
-				result = inherited
-			end
-		end
-		done[name] = true
-		chain[name] = result
-		return result
-	end
-	local out: { PartSpec } = {}
-	for _, spec in layout do
-		local copy = copySpec(spec)
-		local m = chainOf(spec.name, 0)
-		if m then
-			local f = PartMath.mul(m, PartMath.frame(spec.offset, spec.rotation))
-			copy.offset = f.p
-			-- 공은 돌려도 모양이 같아요 (회전을 남기면 외곽 계산이 정육면체 모서리로 커져요)
-			copy.rotation = if spec.shape == "Ball" then nil else PartMath.toDegrees(f.r)
-		end
-		table.insert(out, copy)
-	end
-	return out
 end
 
 -- 효과(불꽃·반짝이)를 켜고 꺼요. 탈락 연출이 진짜 캐릭터를 로컬로 숨길 때 효과도 같이 숨겨요 (m4-13).

@@ -122,11 +122,13 @@ return function(t: Test.Test)
 				end
 				if tab.id == "all" then
 					local tail = {}
-					for i = #list - 3, #list do
+					-- m5-32 고등어 [신선](order 41)이 맨 끝이라 그 바로 앞 4장
+					for i = #list - 4, #list - 1 do
 						table.insert(tail, list[i].id)
 					end
-					t.eq(tail, NEW, "last four in the all tab")
-					t.eq(list[#list - 4].id, "concept-ikura", "right after concept-ikura")
+					t.eq(tail, NEW, "last four (before fresh-mackerel) in the all tab")
+					t.eq(list[#list].id, "fresh-mackerel")
+					t.eq(list[#list - 5].id, "concept-ikura", "right after concept-ikura")
 				end
 			end
 		end

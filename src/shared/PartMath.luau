@@ -1,6 +1,6 @@
 --!strict
 -- 파츠 자리 계산 (m5-32, 순수 — Roblox API 없음). CFrame 대신 숫자 표로 회전·이동을 합쳐요.
--- SushiConceptSample(고등어 김 띠를 비스듬히 돌리기)·SushiBody.posed(관절 포즈를 레이아웃에 적용 — 테스트·렌더 도구)가 써요.
+-- ConceptMackerel(고등어 김 띠·지느러미를 비스듬히 돌리기)·SushiPose.posed(관절 포즈를 레이아웃에 적용 — 테스트·렌더 도구)가 써요.
 --   Frame = { p = {x, y, z}, r = 3×3 회전 행렬(행 우선) }  (CFrame과 같은 뜻: 점 = p + r · local)
 --   PartMath.angles(deg)          CFrame.Angles(rx, ry, rz)와 같은 회전 (도 단위 {x, y, z}, Rx·Ry·Rz)
 --   PartMath.anglesRad(x, y, z)   같은 회전, 라디안

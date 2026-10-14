@@ -16,6 +16,7 @@ export type Entry = {
 	pitch: number?, -- 기본 재생 속도 (없으면 1). 같은 기본 소리를 다른 cue에 쓸 때 느낌을 바꿔요
 	pitchJitter: number?, -- 반복해도 덜 지루하게 ±비율 (예: 0.05)
 	looped: boolean?, -- 배경음은 true
+	maxDistance: number?, -- 3D 소리가 들리는 최대 거리 (없으면 Config.Fx.SfxMaxDistance, m5-32)
 }
 
 local SOUNDS = {
@@ -34,6 +35,11 @@ local SOUNDS = {
 
 local function sfx(id: string?, volume: number, pitch: number?, pitchJitter: number?): Entry
 	return { id = id, group = "Sfx", volume = volume, pitch = pitch, pitchJitter = pitchJitter }
+end
+
+-- 고등어 팔딱·첨벙: 3D, 최대 약 60 studs (CharacterAnimLogic.DETAIL_DISTANCE와 같게)
+local function fish(id: string?, volume: number): Entry
+	return { id = id, group = "Sfx", volume = volume, pitchJitter = 0.08, maxDistance = 60 }
 end
 
 local function music(id: string?, volume: number): Entry
@@ -56,6 +62,9 @@ SfxLibrary.Entries = {
 	CodeRedeemed = sfx(nil, 0.8), -- 코드 보상 성공 (m5-10)
 	DrawReveal = sfx(nil, 0.8), -- 🎫 뽑기 결과 공개 (m5-31, 무음 — 사용자가 고름)
 	DrawWin = sfx(nil, 0.9), -- 🎫 뽑기 특 스킨 당첨 (m5-31, 무음)
+	-- 스킨 움직임 (m5-32 고등어): id는 사용자가 고를 때까지 무음 (USER-TODO A2). 움직임이 멈추는 거리(60)까지만 들려요
+	FishFlop = fish(nil, 0.6),
+	FishSplash = fish(nil, 0.5),
 	-- 연출 팩 (m5-09)
 	CatMeow = sfx(nil, 0.8),
 	Fireworks = sfx(nil, 0.8),

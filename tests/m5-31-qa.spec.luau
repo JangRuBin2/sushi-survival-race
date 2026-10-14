@@ -23,11 +23,20 @@ local ReceiptLogic = RobloxRequire.require(Shared.ReceiptLogic)
 local UiLayout = RobloxRequire.require(Shared.UiLayout)
 local DrawScreenLayout = RobloxRequire.require(Shared.DrawScreenLayout)
 
+-- m5-31 때 카탈로그 (전설 없음): 고등어 [신선](m5-32)을 뺀 목록 — 빈 등급 나누기를 그대로 검사해요.
+-- 고등어가 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)
+local M531 = {}
+for _, skin in Skins.LIST do
+	if skin.id ~= "fresh-mackerel" then
+		table.insert(M531, skin)
+	end
+end
+
 -- 실제 누적 경계: roll과 같은 순서로 grades()의 chance를 더한 값 (5/99 등과 부동소수가 조금 달라요)
 local function cumulative(): { [string]: number }
 	local out: { [string]: number } = {}
 	local acc = 0
-	for _, row in DrawLogic.grades() do
+	for _, row in DrawLogic.grades(M531) do
 		if row.chance > 0 then
 			acc += row.chance
 			out[row.grade] = acc
@@ -67,7 +76,7 @@ end
 
 -- 등급마다 스킨이 있게: 실제 카탈로그 + 가짜 전설 1종
 local function fullCatalog(): { any }
-	local list = table.clone(Skins.LIST) :: { any }
+	local list = table.clone(M531) :: { any }
 	table.insert(list, {
 		id = "qa-legend",
 		displayName = "QA 전설",
@@ -106,7 +115,7 @@ return function(t: Test.Test)
 		"QA 롤: 정확한 누적값은 다음 등급(`<`), 0은 영웅(빈 전설 건너뜀), 1.0·NaN은 마지막 등급",
 		function()
 			local function gradeAt(value: number): string
-				return (DrawLogic.roll({}, (fakeRng(value))) :: any).grade
+				return (DrawLogic.roll({}, (fakeRng(value)), M531) :: any).grade
 			end
 			t.ok(math.abs(EPIC_END - 5 / 99) < 1e-12, "epic end ~ 5/99")
 			t.ok(math.abs(RARE_END - 20 / 99) < 1e-12, "rare end ~ 20/99")
@@ -124,7 +133,7 @@ return function(t: Test.Test)
 	t.test("QA 롤: NextNumber·NextInteger 한 번씩, NextInteger(1, 등급 스킨 수)", function()
 		for _, case in { { 0.01, "Epic", 1 }, { 0.1, "Rare", 3 }, { 0.3, "Uncommon", 3 }, { 0.9, "Common", 2 } } do
 			local rng, calls = fakeRng(case[1] :: number, 1)
-			local outcome = DrawLogic.roll({}, rng) :: any
+			local outcome = DrawLogic.roll({}, rng, M531) :: any
 			t.eq(outcome.grade, case[2])
 			t.eq(calls.number, 1, `{case[2]} NextNumber once`)
 			t.eq(calls.integer, 1, `{case[2]} NextInteger once`)
@@ -135,11 +144,11 @@ return function(t: Test.Test)
 
 	t.test("QA 롤: NextInteger가 범위 밖(0, n+5, 1.7)이어도 그 등급 안 스킨으로 잘려요", function()
 		local commons = { "concept-shrimp", "concept-tamago" } -- order 순
-		local low = DrawLogic.roll({}, (fakeRng(0.9, 0))) :: any
+		local low = DrawLogic.roll({}, (fakeRng(0.9, 0)), M531) :: any
 		t.eq(low.skinId, commons[1])
-		local high = DrawLogic.roll({}, (fakeRng(0.9, 7))) :: any
+		local high = DrawLogic.roll({}, (fakeRng(0.9, 7)), M531) :: any
 		t.eq(high.skinId, commons[2])
-		local frac = DrawLogic.roll({}, (fakeRng(0.9, 1.7))) :: any
+		local frac = DrawLogic.roll({}, (fakeRng(0.9, 1.7)), M531) :: any
 		t.eq(frac.skinId, commons[1])
 	end)
 
@@ -161,7 +170,7 @@ return function(t: Test.Test)
 			t.eq(seen["vip-gold-tamago"], nil)
 			-- 0.0 ~ 1.0을 촘촘히: kind는 Skin/Duplicate만
 			for i = 0, 200 do
-				local outcome = DrawLogic.roll({ ["concept-uni"] = true }, (fakeRng(i / 200, 2))) :: any
+				local outcome = DrawLogic.roll({ ["concept-uni"] = true }, (fakeRng(i / 200, 2)), M531) :: any
 				t.ok(outcome.kind == "Skin" or outcome.kind == "Duplicate", `kind at {i}`)
 			end
 		end
@@ -375,8 +384,8 @@ return function(t: Test.Test)
 			local owned = { tamago = true }
 			t.eq(ShopLogic.canEquip("concept-salmon", owned, false, true), true)
 			t.eq(owned["concept-salmon"], nil, "canEquip does not add ownership")
-			t.eq((DrawLogic.roll(owned, (fakeRng(0.01))) :: any).kind, "Skin")
-			t.eq(DrawLogic.featured(owned), "concept-salmon")
+			t.eq((DrawLogic.roll(owned, (fakeRng(0.01)), M531) :: any).kind, "Skin")
+			t.eq(DrawLogic.featured(owned, M531), "concept-salmon")
 		end
 	)
 
@@ -451,7 +460,7 @@ return function(t: Test.Test)
 			local owned: { [string]: boolean } = { tamago = true }
 			local expected = { "concept-salmon", "concept-ikura", "concept-uni", "concept-tako", "concept-tuna" }
 			for _, id in expected do
-				t.eq(DrawLogic.featured(owned), id)
+				t.eq(DrawLogic.featured(owned, M531), id)
 				owned[id] = true
 			end
 		end
@@ -484,6 +493,9 @@ return function(t: Test.Test)
 			})
 			t.eq((Offers.validate(pass)), false, "pass with a draw-only skin")
 			for id in Skins.DRAW_IDS do
+				if not Skins.isDrawOnly(id) then
+					continue -- m5-32 고등어 [신선]은 뽑기 + 로벅스 판매 (tests/m5-32-fresh-mackerel.spec.luau)
+				end
 				t.eq(
 					select(2, ReceiptLogic.canRequest(id, { tamago = true }, { canSave = true, fake = true })),
 					"NotRobux",

@@ -6,6 +6,7 @@
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local fs = require("@lune/fs")
 local LayoutCheck = require("../tools/render/LayoutCheck")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -272,4 +273,110 @@ return function(t: Test.Test)
 		local skin = Skins.get(ID)
 		t.eq(skin and skin.coins, nil)
 	end)
+
+	---------------------------------------------------------------- 재QA (4차 결정: 이름표 4.8)
+	t.test(
+		"재QA: 무작위 입력 4000개(모드·팔딱·착지·공중·걸음·넘어짐·섞기)와 관절 한도 끝 조합에서 꼭대기 ≤ 이름표, 외곽·얼굴",
+		function()
+			local seed = 20261014
+			local function nxt(): number
+				seed = (seed * 1103515245 + 12345) % 2147483648
+				return seed / 2147483648
+			end
+			local modes = { "Character", "Idle", "Hurt", "Victory", "Preview" }
+			local bases = {}
+			for _, e in Sample.EXPRESSIONS do
+				bases[e] = SushiBody.layout(ID, e)
+				t.ok(SushiBody.bounds(bases[e]).max[2] <= TAG - 0.4 + 1e-9, `{e} rest top`)
+			end
+			local function check(label: string, pose: any, expression: string)
+				local layout = SushiPose.posed(bases[expression], Anim.fishMotion(pose))
+				local b = SushiBody.bounds(layout)
+				t.ok(b.max[2] <= TAG + 1e-9, `{label} top {b.max[2]}`)
+				t.ok(b.max[1] - b.min[1] <= MAX_X + 1e-9, `{label} x`)
+				t.ok(b.max[3] - b.min[3] <= MAX_Z + 1e-9, `{label} z`)
+				for _, spec in layout do
+					if isFishPart(spec.name) then
+						local lo = LayoutCheck.box(spec)
+						t.ok(lo[2] >= RICE_TOP - 0.2 - 1e-6, `{label} {spec.name} low`)
+						if lo[2] < RICE_TOP then
+							t.ok(lo[3] >= RICE_FRONT - 1e-6, `{label} {spec.name} face`)
+						end
+					end
+				end
+			end
+			for i = 1, 4000 do
+				local input: any = {
+					time = nxt() * 20,
+					walk = if nxt() < 0.5 then 0 else nxt() * 1.3,
+					phase = nxt() * 2 * math.pi,
+					riseSpeed = nxt() * 70,
+					airborne = nxt() < 0.5,
+					landTime = if nxt() < 0.6 then nxt() * 0.58 else nil,
+					landStrength = nxt(),
+					knocked = nxt() < 0.2,
+					flopTime = if nxt() < 0.6 then nxt() * 0.6 else nil,
+					mode = modes[1 + math.floor(nxt() * #modes)],
+				}
+				if nxt() < 0.5 then
+					input.blend = { knock = nxt(), air = nxt() }
+				end
+				local pose = Anim.fishPose(input)
+				t.ok(math.abs(pose.rootTwist) <= F.MAX_TWIST + 1e-9, `fuzz {i} twist`)
+				check(`fuzz {i}`, pose, Sample.EXPRESSIONS[1 + (i % #Sample.EXPRESSIONS)])
+			end
+			-- 관절 한도 끝: 들썩·비틀림·꼬리·뒷몸 끝값 × 아치(머리 아치는 0 이상 — 숙이는 항이 없음,
+			-- 휨은 Hurt 처짐 -10°에서 +20°까지)
+			for _, lift in { 0, F.MAX_LIFT } do
+				for _, arch in { 0, F.MAX_ARCH } do
+					for _, bend in { F.HURT_MID_ARCH + F.HURT_TAIL_ARCH, F.MAX_ARCH } do
+						for _, twist in { -F.MAX_TWIST, F.MAX_TWIST } do
+							for _, tail in { -F.MAX_TAIL, 0, F.MAX_TAIL } do
+								local pose = {
+									rootLift = lift,
+									rootArch = arch,
+									rootTwist = twist,
+									midYaw = if tail > 0 then F.MAX_MID elseif tail < 0 then -F.MAX_MID else 0,
+									midArch = bend / 2,
+									tailYaw = tail,
+									tailArch = bend / 2,
+									finFlap = F.FIN_FLOP,
+									splash = 1,
+								}
+								-- 한도 끝 조합은 같이 못 나오는 값도 섞여 있어(작은 아치 + 큰 비틀림 등) 꼭대기·외곽만 봐요.
+								-- 밥 윗면·얼굴 규칙은 실제 fishPose 출력(위 무작위 4000개)으로 봐요
+								local label = `extreme {lift} {arch} {bend} {twist} {tail}`
+								local b = SushiBody.bounds(SushiPose.posed(bases.Default, Anim.fishMotion(pose :: any)))
+								t.ok(b.max[2] <= TAG + 1e-9, `{label} top {b.max[2]}`)
+								t.ok(b.max[1] - b.min[1] <= MAX_X + 1e-9, `{label} x`)
+								t.ok(b.max[3] - b.min[3] <= MAX_Z + 1e-9, `{label} z`)
+							end
+						end
+					end
+				end
+			end
+		end
+	)
+
+	t.test(
+		"재QA: 이름표 높이 — 고등어만 4.8, 서버 코드는 NameTagHeight 속성·nameTagHeight를 읽지 않음",
+		function()
+			t.eq(TAG, 4.8)
+			t.eq(SushiBody.NAME_TAG_HEIGHT, 3.6)
+			for _, skin in Skins.LIST do
+				if skin.id ~= ID then
+					t.eq(SushiBody.nameTagHeight(skin.id), 3.6, skin.id)
+				end
+			end
+			for _, name in fs.readDir("src/server") do
+				local path = `src/server/{name}`
+				if fs.isFile(path) then
+					local source = fs.readFile(path)
+					t.ok(string.find(source, "NameTagHeight", 1, true) == nil, `{path} NameTagHeight`)
+					t.ok(string.find(source, "NAME_TAG_ATTRIBUTE", 1, true) == nil, `{path} NAME_TAG_ATTRIBUTE`)
+					t.ok(string.find(source, "nameTagHeight", 1, true) == nil, `{path} nameTagHeight`)
+				end
+			end
+		end
+	)
 end

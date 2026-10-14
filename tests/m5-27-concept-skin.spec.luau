@@ -95,7 +95,7 @@ return function(t: Test.Test)
 			t.eq(sortedKeys(Skins.EXPERIMENTAL_IDS), CONCEPT_IDS)
 			t.eq(sortedKeys(SushiBody.EXPERIMENTAL), CONCEPT_IDS)
 			t.ok(flagged[ID], "concept-salmon still experimental")
-			t.ok(SushiBody.EXPERIMENTAL[ID].partBudget <= 47, "budget 45~47")
+			t.ok(SushiBody.EXPERIMENTAL[ID].partBudget <= 70, "budget ≤ 70 (m5-30)")
 		end
 	)
 

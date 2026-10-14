@@ -980,7 +980,8 @@ assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concep
 type ExperimentalRule = { partBudget: number, expressions: { string } }
 local experimental: { [string]: ExperimentalRule } = {}
 for id in CONCEPT_IDS do
-	experimental[id] = { partBudget = 47, expressions = SushiConceptSample.EXPRESSIONS :: any }
+	-- 파츠 상한 70 (m5-30, 사용자 결정 2026-10-14: 토핑 디테일을 위해 47 → 70)
+	experimental[id] = { partBudget = 70, expressions = SushiConceptSample.EXPRESSIONS :: any }
 end
 SushiBody.EXPERIMENTAL = experimental
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)

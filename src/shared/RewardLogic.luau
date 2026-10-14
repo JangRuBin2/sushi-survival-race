@@ -210,13 +210,13 @@ function RewardLogic.matchTicketTotal(grants: { read [number]: { read tickets: n
 	return total
 end
 
--- 티켓 토스트 (m5-31): "+1 🎫 우승 뽑기 티켓", 가득이면 "🎫 티켓이 가득 찼어요 (99장)", 둘 다 아니면 nil
+-- 뽑기권 토스트 (m5-31): "+1 🎫 우승 뽑기권", 가득이면 "🎫 뽑기권이 가득 찼어요 (99장)", 둘 다 아니면 nil
 function RewardLogic.ticketToastText(tickets: number?, full: boolean?, max: number?): string?
 	if hasTokens(tickets) then
-		return `+{tickets} 🎫 우승 뽑기 티켓`
+		return `+{tickets} 🎫 우승 뽑기권`
 	end
 	if full == true then
-		return `🎫 티켓이 가득 찼어요 ({max or Config.Draw.MaxTickets}장)`
+		return `🎫 뽑기권이 가득 찼어요 ({max or Config.Draw.MaxTickets}장)`
 	end
 	return nil
 end

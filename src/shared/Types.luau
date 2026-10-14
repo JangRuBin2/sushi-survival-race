@@ -129,14 +129,17 @@ export type RewardGrant = {
 	ticketsFull: boolean?, -- 티켓이 가득 차서(Config.Draw.MaxTickets) 이번 우승 티켓을 못 받았으면 true
 }
 
--- 🎫 뽑기 결과 (m5-31, DrawTicket이 돌려줘요). Skin = 특 스킨 당첨, Consolation = 꽝(위로 코인),
--- Duplicate = 특 스킨을 다 가져서 당첨분 대신 코인
+-- 🎫 뽑기 등급 (m5-31, Shared.Skins.DrawGrade와 같아요). 상점 등급(tier)과 별개
+export type DrawGrade = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary"
+
+-- 🎫 뽑기 결과 (m5-31, DrawTicket이 돌려줘요). 꽝은 없어요: Skin = 새 스킨을 얻음,
+-- Duplicate = 이미 가진 스킨이 나와서 그 뽑기 등급만큼 밥알 코인으로 바뀜 (Config.Draw.DuplicateCoins)
 export type DrawResult = {
-	kind: "Skin" | "Consolation" | "Duplicate",
-	skinId: string?, -- Skin일 때 얻은 스킨 id
+	kind: "Skin" | "Duplicate",
+	skinId: string, -- 나온 스킨 id (Duplicate여도 무엇이 나왔는지 보여 줘요)
+	grade: DrawGrade, -- 뽑기 등급
 	coins: number, -- 이번에 받은 밥알 코인 (Skin이면 0)
-	ticketsLeft: number, -- 뽑은 뒤 남은 티켓
-	skinsLeft: number, -- 뽑은 뒤 아직 없는 특 스킨 수
+	ticketsLeft: number, -- 뽑은 뒤 남은 뽑기권
 }
 
 return {}

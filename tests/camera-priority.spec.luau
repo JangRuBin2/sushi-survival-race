@@ -140,6 +140,8 @@ return function(t: Test.Test)
 			"CatPawWarn", -- m5-17
 			"CatPawSwipe", -- m5-17
 			"ClawLift", -- m5-19
+			"DrawReveal", -- m5-31
+			"DrawWin", -- m5-31
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

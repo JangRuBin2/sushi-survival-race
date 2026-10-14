@@ -178,9 +178,23 @@ Config.Events = {
 Config.Draw = {
 	TicketsPerWin = 1, -- 우승 1번에 받는 티켓 (이벤트·VIP여도 같아요)
 	MaxTickets = 99, -- 가질 수 있는 최대 장수 (가득이면 우승해도 안 늘어요)
-	SkinChance = 0.10, -- 특 스킨 당첨 확률
-	ConsolationCoins = 20, -- 꽝 위로 밥알 코인
-	DuplicateCoins = 100, -- 특 스킨 9종을 다 가진 뒤 스킨 당첨분 대신 밥알 코인
+	-- 뽑기 등급별 확률 (합 1, 사용자 결정 2026-10-14). 꽝 없음: 등급을 먼저 뽑고 그 등급 스킨 중 하나(균등).
+	-- 스킨이 하나도 없는 등급의 확률은 나머지 등급에 비율대로 나눠요 (DrawLogic.grades — 화면 확률표도 같은 값)
+	GradeWeights = {
+		Legendary = 0.01,
+		Epic = 0.05,
+		Rare = 0.15,
+		Uncommon = 0.30,
+		Common = 0.49,
+	} :: { [string]: number },
+	-- 이미 가진 스킨이 나오면 그 등급만큼 밥알 코인으로 바꿔 줘요
+	DuplicateCoins = {
+		Common = 20,
+		Uncommon = 40,
+		Rare = 80,
+		Epic = 150,
+		Legendary = 300,
+	} :: { [string]: number },
 	RequestCooldown = 1, -- DrawTicket 요청 간격(초, Config.Shop.RequestCooldown과 따로 세요)
 }
 

@@ -107,7 +107,7 @@ export type ViewLike = {
 	equippedSkin: string,
 	ownedSkins: { string },
 	eventTokens: { [string]: number }, -- m5-07 (Types.ProfileView에는 항상 있어요)
-	studioUnlockAll: boolean?, -- m5-31: Studio 전부 입기 (Types.ProfileView에는 항상 있어요)
+	read studioUnlockAll: boolean?, -- m5-31: Studio 전부 입기 (Types.ProfileView에는 항상 있어요)
 }
 
 -- 탈의실 탭 (m5-07): id "event"·"all"·"draw"·등급 이름
@@ -369,9 +369,9 @@ function ShopLogic.visibleSkins(view: ViewLike, tab: Tab?, now: number?): { Skin
 		if tab ~= nil and tab.eventId ~= nil then
 			show = skin.season == tab.eventId
 		elseif tab ~= nil and tab.draw == true then
-			show = Skins.isDraw(skin.id) -- 🎫 특 탭: 특 스킨 9종 모두 (m5-31)
+			show = Skins.isDrawOnly(skin.id) -- 🎫 특 탭: 뽑기 전용 특 스킨 모두 (m5-31)
 		elseif tab ~= nil and tab.tier ~= nil then
-			show = skin.tier == tab.tier and (not limited or owned) and not Skins.isDraw(skin.id)
+			show = skin.tier == tab.tier and (not limited or owned) and not Skins.isDrawOnly(skin.id)
 		end
 		if show then
 			table.insert(list, skin)
@@ -453,7 +453,7 @@ function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptio
 	if view.studioUnlockAll == true then
 		return { kind = "Equip", enabled = true, limited = limited, studio = true } -- Studio 전부 입기 (m5-31)
 	end
-	if Skins.isDraw(skin.id) then
+	if Skins.isDrawOnly(skin.id) then
 		return { kind = "Draw", enabled = true } -- 누르면 🎫 뽑기 패널을 열어요 (m5-31)
 	end
 	if skin.vipOnly then

@@ -303,20 +303,23 @@ local function onDraw(player: Player): (boolean, string?, Types.DrawResult?)
 		end
 		local rng = drawRng or Random.new()
 		drawRng = rng
-		result = DrawLogic.apply(p, DrawLogic.roll(p.ownedSkins, rng))
+		local outcome = DrawLogic.roll(p.ownedSkins, rng)
+		if outcome == nil then
+			rejected = "NoPool" -- 뽑기 스킨이 없어요 (validate가 막지만 혹시)
+			return
+		end
+		result = DrawLogic.apply(p, outcome)
 	end)
 	local done = result
 	if not updated or done == nil then
 		return drawFail(player, rejected or "NoProfile")
 	end
 	if done.kind == "Skin" then
-		print(
-			`[Draw] {player.Name}({player.UserId}) -> skin {done.skinId} (left {done.skinsLeft}, tickets {done.ticketsLeft})`
-		)
-	elseif done.kind == "Duplicate" then
-		print(`[Draw] {player.Name}({player.UserId}) -> duplicate +{done.coins} (tickets {done.ticketsLeft})`)
+		print(`[Draw] {player.Name}({player.UserId}) -> skin {done.skinId} {done.grade} (tickets {done.ticketsLeft})`)
 	else
-		print(`[Draw] {player.Name}({player.UserId}) -> consolation +{done.coins} (tickets {done.ticketsLeft})`)
+		print(
+			`[Draw] {player.Name}({player.UserId}) -> duplicate {done.skinId} {done.grade} +{done.coins} (tickets {done.ticketsLeft})`
+		)
 	end
 	return true, nil, done
 end

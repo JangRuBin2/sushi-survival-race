@@ -9,7 +9,7 @@
 -- 시즌 이벤트 (m5-07): 탭은 ShopLogic.tabs(now) — 이벤트 중이면 "🎃 할로윈" 탭이 맨 앞. 이벤트 탭에서는 카드 위에
 --   머리줄 "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" + 작은 안내(ShopLogic.EVENT_NOTE). 날짜로만, 카운트다운 없음 (D4).
 --   보이는 카드는 ShopLogic.visibleSkins (기간 끝 + 미보유 한정 스킨은 숨김), 보유한 한정 스킨 카드 구석에 "한정".
--- 🎫 뽑기 (m5-31): 머리줄 "🎫 뽑기 N" 버튼 → 창 안을 덮는 DrawPanel. "🎫 특" 탭(전체 다음), 특 스킨 카드 테두리는
+-- 🎫 뽑기 (m5-31): 머리줄 "🎫 뽑기 N" 버튼 → 뽑기 화면(DrawScreen, ShopController가 열어요). "🎫 특" 탭(전체 다음), 특 스킨 카드 테두리는
 --   Skins.DRAW_INFO 색 + 구석 "🎫 특" 표시, 미리보기 등급 줄도 "🎫 특". 티켓이 있으면 "🍣 스킨" 버튼에 빨간 숫자 배지.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +19,6 @@ local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
-local DrawPanel = require(script.Parent.DrawPanel)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -31,8 +30,7 @@ export type Actions = {
 	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 재화로 받기 / 로벅스 레어 이상)
 	buyRobux: (skinId: string) -> (), -- 일반·레어 스킨의 두 번째 버튼 "R$ 29로 사기" (m4-14)
 	tab: (tabId: string) -> (), -- ShopLogic.Tab.id (m5-07)
-	openDraw: () -> (), -- 🎫 뽑기 패널 열기 (m5-31)
-	draw: DrawPanel.Actions, -- 🎫 뽑기 패널의 버튼들 (m5-31)
+	openDraw: () -> (), -- 🎫 뽑기 화면 열기 (m5-31)
 }
 
 -- 한 번 그리기에 필요한 것 (m5-07)
@@ -56,7 +54,6 @@ export type ShopScreen = {
 	showResult: (self: ShopScreen, text: string, isError: boolean) -> (),
 	setLayout: (self: ShopScreen, m: UiLayout.Metrics) -> (),
 	setTickets: (self: ShopScreen, tickets: number) -> (), -- m5-31: 배지·머리줄 버튼 숫자
-	drawPanel: DrawPanel.DrawPanel, -- m5-31
 }
 
 local ShopScreen = {}
@@ -79,7 +76,12 @@ end
 
 -- 카드·미리보기 등급 표시 (특 스킨은 등급 대신 "🎫 특", m5-31)
 local function skinInfo(skin: Skins.Skin): Skins.TierInfo
-	return if Skins.isDraw(skin.id) then Skins.DRAW_INFO else Skins.TIER_INFO[skin.tier]
+	local grade = Skins.drawGradeOf(skin.id)
+	if grade ~= nil and Skins.isDrawOnly(skin.id) then
+		local info = Skins.DRAW_GRADE_INFO[grade]
+		return { displayName = `{Skins.DRAW_INFO.displayName} · {info.displayName}`, color = info.color }
+	end
+	return Skins.TIER_INFO[skin.tier]
 end
 
 local SPECIAL_COLOR = rgb(Skins.DRAW_INFO.color)
@@ -405,18 +407,20 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Kit.corner(6).Parent = limited
 		-- 특 스킨 구석 표시 (m5-31)
 		local special: TextLabel? = nil
-		if Skins.isDraw(skin.id) then
+		local drawGrade = Skins.drawGradeOf(skin.id)
+		if drawGrade ~= nil then
+			local gradeInfo = Skins.DRAW_GRADE_INFO[drawGrade]
 			local tag = Kit.label({
 				Name = "Special",
 				Parent = button,
 				AnchorPoint = Vector2.new(1, 0),
 				Position = UDim2.new(1, 2, 0, -2),
 				Size = UDim2.fromOffset(42, 16),
-				Text = Skins.DRAW_INFO.displayName,
+				Text = `🎫 {gradeInfo.displayName}`, -- 뽑기 등급 배지
 				TextSize = 11,
 				TextColor3 = Color.White,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				BackgroundColor3 = SPECIAL_COLOR,
+				BackgroundColor3 = rgb(gradeInfo.color),
 				BackgroundTransparency = 0,
 				ZIndex = 2,
 			})
@@ -504,11 +508,8 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end
 	end
 
-	local drawPanel = DrawPanel.new(window, actions.draw)
-
 	local screen = {} :: ShopScreen
 	screen.gui = gui
-	screen.drawPanel = drawPanel
 
 	function screen.setTickets(_self: ShopScreen, tickets: number)
 		badge.Visible = tickets > 0
@@ -526,7 +527,6 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			startSpin()
 		else
 			stopSpin()
-			drawPanel:setOpen(false) -- 탈의실이 닫히면 뽑기 패널도 (라운드 중 숨김 포함, m5-31)
 		end
 	end
 
@@ -619,7 +619,6 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		drawOpenButton.TextSize = text(16)
 		badge.Size = UDim2.fromOffset(text(24), text(24))
 		badge.TextSize = text(14)
-		drawPanel:setLayout(m)
 		coinLabel.TextSize = text(20)
 		coinLabel.Position = UDim2.new(1, -(buttonHeight + 8), 0, 0)
 		local tabHeight = UiLayout.touchSize(36, m)

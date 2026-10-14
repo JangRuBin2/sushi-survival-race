@@ -62,7 +62,7 @@ return function(t: Test.Test)
 			t.eq(skin.displayName, "연어초밥 (특)")
 			t.eq(skin.tier, "Basic")
 			t.eq(skin.experimental, true)
-			t.eq(skin.draw, true)
+			t.eq(skin.drawGrade, "Epic") -- m5-31: 뽑기 등급 영웅
 			for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 				t.eq((skin :: any)[field], nil, field)
 			end
@@ -126,7 +126,12 @@ return function(t: Test.Test)
 			local ok2, problems2 = Skins.validate(priced)
 			t.eq(ok2, false)
 			t.ok(
-				string.find(table.concat(problems2, ";"), "draw skin must be Basic with no other way", 1, true) ~= nil,
+				string.find(
+					table.concat(problems2, ";"),
+					"only the default skin and draw-only skins are Basic",
+					1,
+					true
+				) ~= nil,
 				"draw only"
 			)
 

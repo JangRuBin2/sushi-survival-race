@@ -524,6 +524,7 @@ return function(t: Test.Test)
 		t.eq(Config.Codes, { RequestCooldown = 2, MaxFailures = 8, FailureWindow = 600, MaxLength = 20 })
 		t.eq(Config.DEBUG.eventNow, nil)
 		t.eq(Config.DEBUG.fakeVipInStudio, false)
+		t.eq(Config.DEBUG.unlockAllSkinsInStudio, true) -- m5-31: 커밋 값 true (Studio 전부 입기)
 		t.eq(Config.DEBUG.forceMapPlan, nil)
 		-- 사용자 결정 2026-10-08: 실서버에서 테스트 명령을 켜는 설정은 없어요
 		t.eq((Config.DEBUG :: any).liveTestCommands, nil)

@@ -53,6 +53,10 @@ local EXPECTED = {
 	{ "concept-shrimp", "콘셉트 새우초밥 (테스트)", "Basic", nil, nil },
 	{ "concept-tamago", "콘셉트 계란초밥 (테스트)", "Basic", nil, nil },
 	{ "concept-ikura", "콘셉트 연어알 군함 (테스트)", "Basic", nil, nil },
+	{ "concept-unagi", "콘셉트 장어초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-uni", "콘셉트 성게 군함 (테스트)", "Basic", nil, nil },
+	{ "concept-tako", "콘셉트 문어초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-inari", "콘셉트 유부초밥 (테스트)", "Basic", nil, nil },
 }
 
 local TOLERANCE = 0.15
@@ -73,7 +77,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 카탈로그 36종(실험 스킨 5 포함)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
+		"AC1: 카탈로그 40종(실험 스킨 9 포함, m5-29 +4)이 표와 같아요 (m5-03이 5종, m5-22가 10종 추가) (순서·이름·등급·로벅스·코인)",
 		function()
 			t.eq(#Skins.LIST, #EXPECTED)
 			for i, row in EXPECTED do
@@ -137,14 +141,14 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"byTier: 등급별 개수 (기본 6 = 계란초밥 + 실험 스킨 5, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22 포함), nil이면 전체",
+		"byTier: 등급별 개수 (기본 10 = 계란초밥 + 실험 스킨 9, 일반 8, 레어 9, 에픽 7, 전설 6 — m5-03·m5-22·m5-29 포함), nil이면 전체",
 		function()
-			t.eq(#Skins.byTier("Basic"), 6)
+			t.eq(#Skins.byTier("Basic"), 10)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
 			t.eq(#Skins.byTier("Legendary"), 6)
-			t.eq(#Skins.byTier(nil), 36)
+			t.eq(#Skins.byTier(nil), 40)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end

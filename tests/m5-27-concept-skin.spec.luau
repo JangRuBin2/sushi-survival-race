@@ -70,10 +70,20 @@ return function(t: Test.Test)
 		end
 	)
 
-	-- m5-28: 같은 콘셉트 몸의 실험 스킨 4종이 늘어 예외 목록이 정확히 5개가 됐어요 (여전히 명시적 목록과 같아야 해요)
-	local CONCEPT_IDS = { "concept-ikura", "concept-salmon", "concept-shrimp", "concept-tamago", "concept-tuna" }
+	-- m5-28·m5-29: 같은 콘셉트 몸의 실험 스킨이 늘어 예외 목록이 정확히 9개가 됐어요 (여전히 명시적 목록과 같아야 해요)
+	local CONCEPT_IDS = {
+		"concept-ikura",
+		"concept-inari",
+		"concept-salmon",
+		"concept-shrimp",
+		"concept-tako",
+		"concept-tamago",
+		"concept-tuna",
+		"concept-unagi",
+		"concept-uni",
+	}
 	t.test(
-		"예외는 콘셉트 몸 5종뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
+		"예외는 콘셉트 몸 9종뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do

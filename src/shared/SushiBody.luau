@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27·m5-28 concept-* 5종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -57,7 +57,7 @@ export type Bounds = {
 }
 
 local DEFAULT_ID = "tamago"
--- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함, Skins.EXPERIMENTAL_IDS와 같은 id)
+-- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부, Skins.EXPERIMENTAL_IDS와 같은 id)
 local CONCEPT_IDS: { [string]: boolean } = {}
 for _, id in SushiConceptSample.SKIN_IDS do
 	CONCEPT_IDS[id] = true

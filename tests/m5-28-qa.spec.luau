@@ -117,7 +117,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA: 탈의실 — 새 4종은 '전체' 탭 맨 끝에만, 등급 탭(일반~전설)에는 안 보여요",
+		"QA: 탈의실 — 새 4종은 '전체' 탭 끝(m5-29 4종 바로 앞)에만, 등급 탭(일반~전설)에는 안 보여요",
 		function()
 			local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 			local tabs = ShopLogic.tabs(nil)
@@ -135,11 +135,12 @@ return function(t: Test.Test)
 					end
 				end
 				if tab.id == "all" then
+					-- m5-29가 그 뒤에 4종을 더 붙여요 → 맨 끝 4종 바로 앞
 					local tail = {}
-					for i = #list - 3, #list do
+					for i = #list - 7, #list - 4 do
 						table.insert(tail, list[i].id)
 					end
-					t.eq(tail, NEW, "last four in the all tab")
+					t.eq(tail, NEW, "four right before the m5-29 batch in the all tab")
 				end
 			end
 		end

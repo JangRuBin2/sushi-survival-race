@@ -101,32 +101,36 @@ return function(t: Test.Test)
 			end
 			-- 탈의실 "전체" 탭 맨 끝, concept-salmon 바로 다음
 			local last = Skins.LIST[#Skins.LIST]
-			t.eq(last.id, "concept-ikura")
+			t.eq(last.id, "concept-inari") -- m5-29 4종이 뒤에 붙었어요
+			t.eq(Skins.get("concept-ikura").order, 36)
 			t.eq(Skins.get(SALMON).order, 32)
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))
 		end
 	)
 
-	t.test("예외 목록: Skins.EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL = 콘셉트 몸 SKIN_IDS (5종)", function()
-		local expected = table.clone(Sample.SKIN_IDS)
-		table.sort(expected)
-		local function keys(map: { [string]: any }): { string }
-			local list = {}
-			for key in map do
-				table.insert(list, key)
+	t.test(
+		"예외 목록: Skins.EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
+		function()
+			local expected = table.clone(Sample.SKIN_IDS)
+			table.sort(expected)
+			local function keys(map: { [string]: any }): { string }
+				local list = {}
+				for key in map do
+					table.insert(list, key)
+				end
+				table.sort(list)
+				return list
 			end
-			table.sort(list)
-			return list
+			t.eq(#expected, 9)
+			t.eq(keys(Skins.EXPERIMENTAL_IDS), expected)
+			t.eq(keys(SushiBody.EXPERIMENTAL), expected)
+			for _, id in Sample.SKIN_IDS do
+				t.eq(SushiBody.EXPERIMENTAL[id].partBudget, BUDGET, id)
+				t.eq(SushiBody.EXPERIMENTAL[id].expressions, Sample.EXPRESSIONS, id)
+			end
 		end
-		t.eq(#expected, 5)
-		t.eq(keys(Skins.EXPERIMENTAL_IDS), expected)
-		t.eq(keys(SushiBody.EXPERIMENTAL), expected)
-		for _, id in Sample.SKIN_IDS do
-			t.eq(SushiBody.EXPERIMENTAL[id].partBudget, BUDGET, id)
-			t.eq(SushiBody.EXPERIMENTAL[id].expressions, Sample.EXPRESSIONS, id)
-		end
-	end)
+	)
 
 	t.test(
 		"validate: 새 실험 스킨에 가격·다른 등급을 붙이거나 SushiBody 예외가 없으면 잡아요",
@@ -148,7 +152,7 @@ return function(t: Test.Test)
 			-- 예외 목록에 없는 새 id에 experimental을 달면 잡아요 (범위가 명시적 목록뿐)
 			local list = table.clone(Skins.LIST) :: { any }
 			table.insert(list, {
-				id = "concept-unagi",
+				id = "concept-nope", -- m5-29: concept-unagi가 목록에 들어가 다른 id로
 				displayName = "x",
 				tier = "Basic",
 				experimental = true,

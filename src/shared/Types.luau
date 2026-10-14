@@ -110,6 +110,9 @@ export type ProfileView = {
 	equippedFx: { Elimination: string?, Victory: string? }, -- 입은 연출 (m5-08)
 	boughtOffers: { string }, -- 한 번만 사는 상품 중 산 것 id, 이름순 (m5-08)
 	vip: boolean, -- VIP 게임 패스 확인 결과 (저장 안 함, DataService.setViewExtra로 m5-08이 채움)
+	drawTickets: number, -- 🎫 우승자 뽑기 티켓 (m5-31, 0~Config.Draw.MaxTickets)
+	-- Studio 전부 입기가 켜졌는가 (m5-31, Config.DEBUG.unlockAllSkinsInStudio — 저장 안 함). true면 탈의실 카드가 "입기 (Studio)"
+	studioUnlockAll: boolean,
 }
 
 -- 밥알 코인 지급 이유 (GDD 9.4, m4-08). Code = 코드 보상(m5-10), MatchPlayed = 판 참가(이벤트 재화, m5-07)
@@ -122,6 +125,21 @@ export type RewardGrant = {
 	tokens: number?, -- 이번에 받은 이벤트 재화 (m5-07/m5-10)
 	tokenTotal: number?, -- 지급 뒤 그 이벤트 재화 합계
 	eventId: string?, -- 재화의 이벤트 id (Shared.Seasons)
+	tickets: number?, -- 이번에 받은 🎫 뽑기 티켓 (m5-31, Win일 때만. 가득이면 0)
+	ticketsFull: boolean?, -- 티켓이 가득 차서(Config.Draw.MaxTickets) 이번 우승 티켓을 못 받았으면 true
+}
+
+-- 🎫 뽑기 등급 (m5-31, Shared.Skins.DrawGrade와 같아요). 상점 등급(tier)과 별개
+export type DrawGrade = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary"
+
+-- 🎫 뽑기 결과 (m5-31, DrawTicket이 돌려줘요). 꽝은 없어요: Skin = 새 스킨을 얻음,
+-- Duplicate = 이미 가진 스킨이 나와서 그 뽑기 등급만큼 밥알 코인으로 바뀜 (Config.Draw.DuplicateCoins)
+export type DrawResult = {
+	kind: "Skin" | "Duplicate",
+	skinId: string, -- 나온 스킨 id (Duplicate여도 무엇이 나왔는지 보여 줘요)
+	grade: DrawGrade, -- 뽑기 등급
+	coins: number, -- 이번에 받은 밥알 코인 (Skin이면 0)
+	ticketsLeft: number, -- 뽑은 뒤 남은 뽑기권
 }
 
 return {}

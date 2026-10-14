@@ -7,15 +7,25 @@
 --   Skins.byTier(tier?)     그 등급 스킨 목록 (nil이면 전체), order 순
 --   Skins.forProduct(productId)  개발자 상품 id → 스킨 (m4-14 결제가 써요)
 --   Skins.validate(list)    카탈로그 검사: (ok, 문제 목록). 테스트와 서버 시작 때 한 번
---   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥 + 실험 스킨). 보유 판단은 이걸로 해요
---   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari).
---                           experimental = true는 여기 있는 id만 쓸 수 있어요
+--   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥만, m5-31). 보유 판단은 이걸로 해요
+--   Skins.isDraw(id)        🎫 뽑기에서 나오는 스킨인가 (drawGrade가 있는가, m5-31)
+--   Skins.isDrawOnly(id)    뽑기로만 얻는 스킨인가 (drawGrade + 다른 얻는 길 없음 — 특 9종)
+--   Skins.DRAW_IDS          drawGrade를 달 수 있는 id (명시 목록, validate가 같은지 확인. m5-32가 fresh-mackerel을 더해요)
+--   Skins.drawGradeOf(id)   그 스킨의 뽑기 등급 (없으면 nil)
+--   Skins.DRAW_GRADES       뽑기 등급 순서 (전설 → 일반). 상점 등급(tier)과 별개예요
+--   Skins.DRAW_GRADE_INFO   뽑기 등급 이름·영어 이름·색 (확률표·배지)
+--   Skins.DRAW_INFO         탈의실 카드 구석 "🎫 특" 표시 이름·색 (뽑기 스킨)
+--   Skins.EXPERIMENTAL_IDS  콘셉트 몸 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari).
+--                           experimental = true(몸 모양 예외 — SushiBody.EXPERIMENTAL 파츠 상한)는 여기 있는 id만 쓸 수 있어요
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
 -- productId에 넣으면 그 스킨의 로벅스 버튼이 켜져요 (nil이면 "곧 열려요"). 계란초밥은 무료라 상품 없음.
 -- 코인 해금은 일반·레어 등급만 (GDD 9.4).
 -- 얻는 길 (m5-03): 기본 스킨이 아니면 robux·tokens·vipOnly 중 정확히 하나. 코인은 일반·레어에 추가로 가능(시즌 스킨은 안 됨).
+-- 🎫 뽑기 (m5-31): drawGrade가 있으면 뽑기 풀에 들어가요(데이터로 정해요 — 목록 하드코딩 없음). 뽑기로만 얻는 스킨은
+--   가격·시즌·VIP·상품 id 없이 내부 등급 Basic(화면에서는 "🎫 특" + 뽑기 등급 배지). 로벅스 스킨에 drawGrade를 달면
+--   뽑기와 판매 둘 다 돼요(m5-32 고등어 [신선] 전설). 시즌·재화·VIP 스킨은 뽑기에 넣지 않아요. 보유는 저장된 ownedSkins.
 
 export type Tier = "Basic" | "Common" | "Rare" | "Epic" | "Legendary"
 
@@ -31,9 +41,20 @@ export type Skin = {
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
-	-- 실험 스킨 (m5-27): 모두 무료로 가진 테스트용. Basic 등급·가격 없음. SushiBody.EXPERIMENTAL의 예외(자기 몸 모양,
-	-- 파츠 상한)를 받아요. 저장된 ownedSkins에는 안 들어가고 Skins.isFree로 보유를 판단해요 (빼도 데이터가 안 남아요)
+	-- 콘셉트 몸 스킨 (m5-27): SushiBody.EXPERIMENTAL의 몸 모양 예외(자기 몸 모양, 파츠 상한)를 받아요.
+	-- m5-31부터 무료가 아니라 뽑기 전용 특 스킨(draw)이에요 — 이 표시는 몸 모양 예외로만 남아요
 	experimental: boolean?,
+	-- 🎫 뽑기 등급 (m5-31). 있으면 뽑기 풀에 들어가요. 상점 등급(tier)과 별개
+	drawGrade: DrawGrade?,
+}
+
+-- 뽑기 등급 (m5-31): 전설 Legendary / 영웅 Epic / 희귀 Rare / 고급 Uncommon / 일반 Common
+export type DrawGrade = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary"
+
+export type DrawGradeInfo = {
+	displayName: string, -- "영웅"
+	english: string, -- "Epic"
+	color: { number }, -- {r, g, b} 확률표 줄·배지·왕관 색
 }
 
 export type TierInfo = {
@@ -51,8 +72,8 @@ Skins.DEFAULT_ID = Config.Appearance.Default -- "tamago"
 Skins.COMMON_COINS = 300 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
 Skins.RARE_COINS = 900 -- 레어 스킨 코인 해금 가격 (GDD 9.4)
 
--- 실험 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.EXPERIMENTAL과 같아야 해요)
--- m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 (모두 무료 테스트 스킨, 가격·등급은 나중에 사용자가 정해요)
+-- 콘셉트 몸 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.EXPERIMENTAL과 같아야 해요)
+-- m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부. m5-31부터 뽑기 전용 특 스킨
 Skins.EXPERIMENTAL_IDS = {
 	["concept-salmon"] = true,
 	["concept-tuna"] = true,
@@ -65,6 +86,36 @@ Skins.EXPERIMENTAL_IDS = {
 	["concept-tako"] = true,
 	["concept-inari"] = true,
 } :: { [string]: boolean }
+
+-- 🎫 drawGrade가 있는 id (m5-31, 명시 목록 — validate가 카탈로그와 같은지 봐요). 지금은 EXPERIMENTAL_IDS와 같아요
+Skins.DRAW_IDS = {
+	["concept-salmon"] = true,
+	["concept-tuna"] = true,
+	["concept-shrimp"] = true,
+	["concept-tamago"] = true,
+	["concept-ikura"] = true,
+	["concept-unagi"] = true,
+	["concept-uni"] = true,
+	["concept-tako"] = true,
+	["concept-inari"] = true,
+} :: { [string]: boolean }
+
+-- drawGrade + robux 스킨(m5-32 고등어)이 지켜야 하는 등급별 로벅스 가격 (가격 A안)
+Skins.TIER_ROBUX = { Common = 29, Rare = 59, Epic = 99, Legendary = 199 } :: { [string]: number }
+
+-- 🎫 뽑기 등급 순서 (높은 것부터, m5-31) — 확률은 Config.Draw.GradeWeights
+Skins.DRAW_GRADES = { "Legendary", "Epic", "Rare", "Uncommon", "Common" } :: { DrawGrade }
+
+Skins.DRAW_GRADE_INFO = {
+	Legendary = { displayName = "전설", english = "Legendary", color = { 245, 180, 40 } },
+	Epic = { displayName = "영웅", english = "Epic", color = { 160, 90, 225 } },
+	Rare = { displayName = "희귀", english = "Rare", color = { 60, 130, 235 } },
+	Uncommon = { displayName = "고급", english = "Uncommon", color = { 60, 170, 80 } },
+	Common = { displayName = "일반", english = "Common", color = { 140, 140, 150 } },
+} :: { [DrawGrade]: DrawGradeInfo }
+
+-- 특 스킨 카드 테두리·표시 (등급 대신, m5-31). 내부 tier는 Basic 그대로예요
+Skins.DRAW_INFO = { displayName = "🎫 특", color = { 255, 140, 30 } } :: TierInfo
 
 Skins.TIERS = { "Basic", "Common", "Rare", "Epic", "Legendary" } :: { Tier }
 
@@ -349,78 +400,87 @@ Skins.LIST = {
 		speech = { "마법 같은 맛이지?", "무지갯빛 꿈을 싣고 달려!" },
 		order = 31,
 	},
-	-- 실험 스킨 (m5-27, 모두 무료): 사용자 콘셉트 시트 연어초밥을 게임에서 써 보는 테스트용
+	-- 🎫 뽑기 전용 특 스킨 (m5-31): 콘셉트 몸 9종 (m5-27 연어 — 사용자 콘셉트 시트)
 	{
 		id = "concept-salmon",
-		displayName = "콘셉트 연어초밥 (테스트)",
+		displayName = "연어초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Epic", -- 뽑기 등급 (m5-31)
 		speech = { "새 모습 어때?", "연어 돔이 말랑말랑~" },
 		order = 32,
 	},
-	-- m5-28 콘셉트 몸 실험 스킨 4종 (concept-salmon과 같은 밥·얼굴·팔다리, 토핑만 달라요)
+	-- m5-28 콘셉트 몸 4종 (concept-salmon과 같은 밥·얼굴·팔다리, 토핑만 달라요)
 	{
 		id = "concept-tuna",
-		displayName = "콘셉트 참치초밥 (테스트)",
+		displayName = "참치초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "참치는 빨강이 생명!", "결 따라 데굴데굴~" },
 		order = 33,
 	},
 	{
 		id = "concept-shrimp",
-		displayName = "콘셉트 새우초밥 (테스트)",
+		displayName = "새우초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Common", -- 뽑기 등급 (m5-31)
 		speech = { "꼬리가 먼저 떨어졌어…", "탱글탱글 새우 출동!" },
 		order = 34,
 	},
 	{
 		id = "concept-tamago",
-		displayName = "콘셉트 계란초밥 (테스트)",
+		displayName = "계란초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Common", -- 뽑기 등급 (m5-31)
 		speech = { "폭신한 계란 착지 실패!", "김 띠 꽉 묶을걸…" },
 		order = 35,
 	},
 	{
 		id = "concept-ikura",
-		displayName = "콘셉트 연어알 군함 (테스트)",
+		displayName = "연어알 군함 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "알이 다 쏟아졌어!", "톡톡 터지는 맛~" },
 		order = 36,
 	},
-	-- m5-29 콘셉트 몸 실험 스킨 2차 4종 (같은 밥·얼굴·팔다리, 유부만 밥 색이 유부)
+	-- m5-29 콘셉트 몸 2차 4종 (같은 밥·얼굴·팔다리, 유부만 밥 색이 유부)
 	{
 		id = "concept-unagi",
-		displayName = "콘셉트 장어초밥 (테스트)",
+		displayName = "장어초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
 		order = 37,
 	},
 	{
 		id = "concept-uni",
-		displayName = "콘셉트 성게 군함 (테스트)",
+		displayName = "성게 군함 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
 		order = 38,
 	},
 	{
 		id = "concept-tako",
-		displayName = "콘셉트 문어초밥 (테스트)",
+		displayName = "문어초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
 		order = 39,
 	},
 	{
 		id = "concept-inari",
-		displayName = "콘셉트 유부초밥 (테스트)",
+		displayName = "유부초밥 (특)",
 		tier = "Basic",
 		experimental = true,
+		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
 		order = 40,
 	},
@@ -442,12 +502,36 @@ function Skins.get(id: unknown): Skin?
 	return byId[id]
 end
 
+-- 모두가 처음부터 가진 무료 스킨: 계란초밥만 (m5-31 — 콘셉트 몸 스킨은 이제 뽑기 전용)
 function Skins.isFree(id: unknown): boolean
-	if id == Skins.DEFAULT_ID then
-		return true
-	end
+	return id == Skins.DEFAULT_ID
+end
+
+-- 🎫 뽑기 등급 (m5-31). 모르는 스킨·뽑기 아닌 스킨은 nil
+function Skins.drawGradeOf(id: unknown): DrawGrade?
 	local skin = Skins.get(id)
-	return skin ~= nil and skin.experimental == true and Skins.EXPERIMENTAL_IDS[skin.id] == true
+	local grade = if skin then skin.drawGrade else nil
+	if grade ~= nil and Skins.DRAW_GRADE_INFO[grade] ~= nil then
+		return grade
+	end
+	return nil
+end
+
+-- 🎫 뽑기에서 나오는 스킨인가 (m5-31)
+function Skins.isDraw(id: unknown): boolean
+	return Skins.drawGradeOf(id) ~= nil
+end
+
+-- 뽑기로만 얻는 스킨인가 (drawGrade가 있고 robux·coins·tokens·season·vipOnly가 없음 — 특 9종)
+function Skins.isDrawOnly(id: unknown): boolean
+	local skin = Skins.get(id)
+	return skin ~= nil
+		and Skins.isDraw(skin.id)
+		and skin.robux == nil
+		and skin.coins == nil
+		and skin.tokens == nil
+		and skin.season == nil
+		and skin.vipOnly == nil
 end
 
 function Skins.byTier(tier: Tier?): { Skin }
@@ -517,13 +601,29 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 		if experimental and Skins.EXPERIMENTAL_IDS[skin.id] ~= true then
 			table.insert(problems, `{where}: experimental only for Skins.EXPERIMENTAL_IDS`)
 		end
+		local grade = (skin :: any).drawGrade
+		local draw = grade ~= nil
+		if draw and Skins.DRAW_GRADE_INFO[grade] == nil then
+			table.insert(problems, `{where}: unknown drawGrade {tostring(grade)}`)
+		end
+		if
+			draw and (skin.season ~= nil or skin.tokens ~= nil or skin.vipOnly ~= nil or skin.id == Skins.DEFAULT_ID)
+		then
+			table.insert(problems, `{where}: drawGrade not for default, season, tokens or vipOnly skins`)
+		end
+		if draw ~= (Skins.DRAW_IDS[skin.id] == true) then
+			table.insert(problems, `{where}: drawGrade and Skins.DRAW_IDS must match`)
+		end
+		if draw and skin.robux ~= nil and skin.robux ~= Skins.TIER_ROBUX[skin.tier] then
+			table.insert(problems, `{where}: drawGrade + robux skin must use the tier robux price`)
+		end
 		if skin.id == Skins.DEFAULT_ID then
 			hasDefault = true
 			if skin.tier ~= "Basic" or skin.robux ~= nil or skin.coins ~= nil then
 				table.insert(problems, `{where}: default skin must be Basic and free`)
 			end
-		elseif experimental then
-			-- 실험 스킨 (m5-27): 모두 무료로 가져요 — Basic 등급, 어떤 가격·얻는 길도 없음
+		elseif draw and skin.robux == nil then
+			-- 🎫 뽑기로만 얻는 특 스킨 (m5-31): Basic 등급, 어떤 가격·시즌·VIP·상품 id도 없음
 			if
 				skin.tier ~= "Basic"
 				or skin.robux ~= nil
@@ -533,11 +633,11 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 				or skin.season ~= nil
 				or skin.productId ~= nil
 			then
-				table.insert(problems, `{where}: experimental skin must be Basic and free`)
+				table.insert(problems, `{where}: draw skin must be Basic with no other way to get it`)
 			end
 		else
 			if skin.tier == "Basic" then
-				table.insert(problems, `{where}: only the default skin is Basic`)
+				table.insert(problems, `{where}: only the default skin and draw-only skins are Basic`)
 			end
 			-- 얻는 길은 robux·tokens·vipOnly 중 정확히 하나 (m5-03)
 			local ways = 0
@@ -567,7 +667,7 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 				end
 			end
 			if ways == 0 then
-				table.insert(problems, `{where}: needs a way to get it (robux, tokens or vipOnly)`)
+				table.insert(problems, `{where}: needs a way to get it (robux, tokens, vipOnly or drawGrade)`)
 			elseif ways > 1 then
 				table.insert(problems, `{where}: only one of robux, tokens or vipOnly`)
 			end

@@ -173,6 +173,31 @@ Config.Events = {
 	Tokens = { MatchPlayed = 1, RoundPass = 1, FinalQualify = 2, Win = 5, DailyFirstMatch = 3 },
 }
 
+-- 우승자 뽑기 티켓 (m5-31, GDD 9.6). 티켓은 우승(Won)으로만 받고 Robux·코인·재화·코드·상품으로 팔거나 주지 않아요.
+-- 판단은 Shared.DrawLogic, 뽑기는 ShopService의 DrawTicket. 수치는 기본값 (플레이테스트 후 조정)
+Config.Draw = {
+	TicketsPerWin = 1, -- 우승 1번에 받는 티켓 (이벤트·VIP여도 같아요)
+	MaxTickets = 99, -- 가질 수 있는 최대 장수 (가득이면 우승해도 안 늘어요)
+	-- 뽑기 등급별 확률 (합 1, 사용자 결정 2026-10-14). 꽝 없음: 등급을 먼저 뽑고 그 등급 스킨 중 하나(균등).
+	-- 스킨이 하나도 없는 등급의 확률은 나머지 등급에 비율대로 나눠요 (DrawLogic.grades — 화면 확률표도 같은 값)
+	GradeWeights = {
+		Legendary = 0.01,
+		Epic = 0.05,
+		Rare = 0.15,
+		Uncommon = 0.30,
+		Common = 0.49,
+	} :: { [string]: number },
+	-- 이미 가진 스킨이 나오면 그 등급만큼 밥알 코인으로 바꿔 줘요
+	DuplicateCoins = {
+		Common = 20,
+		Uncommon = 40,
+		Rare = 80,
+		Epic = 150,
+		Legendary = 300,
+	} :: { [string]: number },
+	RequestCooldown = 1, -- DrawTicket 요청 간격(초, Config.Shop.RequestCooldown과 따로 세요)
+}
+
 -- 코드 보상 (m5-10). 코드 목록은 서버 전용 CodeConfig가 읽는 로컬 파일 CodeList.luau
 -- (저장소가 공개라서 커밋하지 않아요 — src/server/CodeList.example.luau 참고)
 Config.Codes = {
@@ -222,6 +247,10 @@ Config.DEBUG = {
 	eventNow = nil :: number?,
 	-- true면 Studio에서 게임 패스 없이 VIP로 봐요 (m5-08). 실제 서버에서는 무시. 커밋할 때는 false로.
 	fakeVipInStudio = false,
+	-- true면 Studio에서 보유와 상관없이 카탈로그의 모든 스킨(판매·시즌·VIP·특)을 입을 수 있어요 (m5-31). 저장된
+	-- ownedSkins에는 아무것도 넣지 않고, 뽑기·구매 판단은 저장된 보유만 봐요. 실제 서버에서는 무시하고,
+	-- persistDataInStudio와 같이 켜면 꺼져요(경고 한 줄). 구매·뽑기 흐름을 확인할 때만 false로. **커밋 값 true**.
+	unlockAllSkinsInStudio = true,
 }
 
 return Config

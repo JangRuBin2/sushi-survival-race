@@ -7,7 +7,9 @@
 --   이벤트 재화 (m5-07): 시즌 이벤트가 진행 중이면 배지 옆 "🍬 32"(이번 이벤트 재화, 없으면 숨김),
 --     토스트 "+10 🍚 +1 🍬 라운드 통과"/"+1 🍬 판 참가" + 효과음 TokenGet, 정산에 "+M 🍬"(이번 판 합계).
 --     지금 시각 = Seasons.now(Studio, Config.DEBUG.eventNow, workspace:GetServerTimeNow()), 1분마다 다시 봐요.
--- 표시만 해요 — 코인·재화는 서버(RewardService)만 지급해요.
+--   🎫 우승자 뽑기 티켓 (m5-31): 우승 지급에 tickets가 있으면 토스트 "+1 🎫 우승 뽑기권"(가득이면
+--     "🎫 뽑기권이 가득 찼어요 (99장)"), 정산 줄에 "🎫 +1".
+-- 표시만 해요 — 코인·재화·티켓은 서버(RewardService)만 지급해요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -65,7 +67,10 @@ function CoinController.start(_gui: Instance)
 			for _, grant in matchGrants do
 				icon = iconOf(grant.eventId) or icon
 			end
-			screen:showSummary(RewardLogic.summaryText(RewardLogic.matchTotal(matchGrants), coins, tokens, icon))
+			local tickets = RewardLogic.matchTicketTotal(matchGrants)
+			screen:showSummary(
+				RewardLogic.summaryText(RewardLogic.matchTotal(matchGrants), coins, tokens, icon, tickets)
+			)
 		end
 	end
 
@@ -118,6 +123,13 @@ function CoinController.start(_gui: Instance)
 		screen:toast(RewardLogic.toastText(info.reason, info.amount, tokens, iconOf(eventId)))
 		if tokens then
 			Sfx.play("TokenGet")
+		end
+		local ticketText = RewardLogic.ticketToastText(
+			if type(info.tickets) == "number" then info.tickets else nil,
+			info.ticketsFull == true
+		)
+		if ticketText then
+			screen:toast(ticketText)
 		end
 		refreshSummary()
 	end)

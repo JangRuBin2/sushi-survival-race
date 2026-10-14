@@ -11,6 +11,9 @@
 --   시즌 이벤트 (m5-07): 지금 시각 = Seasons.now(Studio, Config.DEBUG.eventNow, workspace:GetServerTimeNow()).
 --   탈의실을 열면 ShopLogic.defaultTab(이벤트 중이면 이벤트 탭)이 먼저 선택돼요. 재화 스킨의 "🍬 80으로 받기"는
 --   BuyWithTokens (판정은 서버 ShopService).
+--   🎫 뽑기 (m5-31): 탈의실 머리줄 "🎫 뽑기" 또는 안 가진 특 스킨 카드 → DrawScreen. "뽑기 시작하기"는 DrawTicket
+--   (인자 없음, 결과는 서버). 두근두근 연출(DrawScreen.SUSPENSE_TIME) 뒤 결과 창. 탈의실 버튼이 숨으면(라운드 중) 같이 닫혀요.
+--   티켓이 있으면 "🍣 스킨" 버튼에 빨간 숫자 배지. Studio 전부 입기(view.studioUnlockAll)면 안 가진 스킨도 EquipSkin.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -26,7 +29,10 @@ local Skins = require(ReplicatedStorage.Shared.Skins)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PriceCache = require(script.Parent.Parent.PriceCache)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
+local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
+local DrawScreen = require(script.Parent.DrawScreen)
 local ShopScreen = require(script.Parent.ShopScreen)
+local Sfx = require(script.Parent.Parent.Sfx)
 local UiScaleController = require(script.Parent.UiScaleController)
 
 local ShopController = {}
@@ -45,6 +51,8 @@ function ShopController.start(_gui: Instance)
 	local busy = false
 	local view: Types.ProfileView? = ProfileStore.get()
 	local screen: ShopScreen.ShopScreen
+	local drawScreen: DrawScreen.DrawScreen
+	local drawing = false -- DrawTicket 요청~결과 연출 중
 	local robux: ShopLogic.RobuxOptions = {
 		fake = ShopLogic.fakeRobuxActive(
 			RunService:IsStudio(),
@@ -90,6 +98,17 @@ function ShopController.start(_gui: Instance)
 			now = now,
 			eventHeader = header,
 		})
+		local tickets = current.drawTickets or 0
+		screen:setTickets(tickets)
+		if drawScreen then
+			drawScreen:render({
+				tickets = tickets,
+				ownedSkins = current.ownedSkins,
+				equippedSkin = current.equippedSkin,
+				studioUnlockAll = current.studioUnlockAll == true,
+				disabledReason = if tickets <= 0 then DrawLogic.message("NoTickets") else nil,
+			})
+		end
 	end
 
 	local function canShow(): boolean
@@ -115,6 +134,9 @@ function ShopController.start(_gui: Instance)
 		screen:setButtonVisible(visible)
 		if not visible and screen:isOpen() then
 			screen:setOpen(false)
+		end
+		if not visible and drawScreen and drawScreen:isOpen() then
+			drawScreen:setOpen(false) -- 라운드 소개·달리는 중·연출 중에는 뽑기 화면도 닫아요 (서버도 Locked로 거절)
 		end
 	end
 
@@ -152,14 +174,58 @@ function ShopController.start(_gui: Instance)
 		end
 	end
 
+	local function openDraw()
+		if view == nil then
+			return
+		end
+		render()
+		drawScreen:setOpen(true)
+	end
+
+	-- 🎫 뽑기 (m5-31): 서버가 결과를 정해요. 두근두근을 최소 SUSPENSE_TIME 보여 준 뒤 결과
+	local function runDraw()
+		if drawing then
+			return
+		end
+		drawing = true
+		drawScreen:suspense()
+		Sfx.play("ButtonClick")
+		local started = os.clock()
+		local remote = Remotes.fn("DrawTicket")
+		local called, ok, err, result = pcall(remote.InvokeServer, remote)
+		local left = DrawScreen.SUSPENSE_TIME - (os.clock() - started)
+		if left > 0 then
+			task.wait(left)
+		end
+		drawing = false
+		if called and ok == true and type(result) == "table" then
+			local drawResult = result :: Types.DrawResult
+			Sfx.play(if drawResult.kind == "Skin" then "DrawWin" else "DrawReveal")
+			drawScreen:reveal(drawResult)
+		else
+			local message = if not called
+				then "서버와 연결이 불안정해요"
+				elseif type(err) == "string" then err
+				else "다시 해 주세요"
+			drawScreen:showMessage(message, true)
+		end
+		render()
+	end
+
 	local function act(skinId: string)
 		local current = view
 		local skin = Skins.get(skinId)
 		if busy or current == nil or skin == nil then
 			return
 		end
-		local owned = table.find(current.ownedSkins, skinId) ~= nil or Skins.isFree(skinId)
+		local owned = table.find(current.ownedSkins, skinId) ~= nil
+			or Skins.isFree(skinId)
+			or current.studioUnlockAll == true -- Studio 전부 입기 (m5-31, 저장 안 함)
 		if current.equippedSkin == skinId then
+			return
+		end
+		if not owned and Skins.isDrawOnly(skinId) then
+			openDraw() -- 특 스킨은 뽑기로만 (m5-31)
 			return
 		end
 		local name = if owned
@@ -210,10 +276,35 @@ function ShopController.start(_gui: Instance)
 			tabId = newTabId
 			render()
 		end,
+		openDraw = openDraw,
 	})
 	UiScaleController.attach(screen.gui)
+
+	-- 🎫 뽑기 화면 (m5-31)
+	drawScreen = DrawScreen.new(me:WaitForChild("PlayerGui"), {
+		close = function()
+			drawScreen:setOpen(false)
+		end,
+		draw = function()
+			task.spawn(runDraw)
+		end,
+		wear = function(skinId: string)
+			task.spawn(function()
+				local ok, err = request("EquipSkin", skinId)
+				if ok then
+					local skin = Skins.get(skinId)
+					drawScreen:showMessage(`{if skin then skin.displayName else skinId} 입었어요!`, false)
+				else
+					drawScreen:showMessage(err or "다시 해 주세요", true)
+				end
+			end)
+		end,
+	})
+	UiScaleController.attach(drawScreen.gui)
+
 	UiScaleController.onChanged(function(m)
 		screen:setLayout(m)
+		drawScreen:setLayout(m)
 	end)
 
 	-- 결제 창을 취소하면 기다리던 스킨을 지워요 (나중에 코인으로 해금해도 "획득!"이 안 나오게, m4-14 QA R3)

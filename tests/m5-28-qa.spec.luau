@@ -89,13 +89,16 @@ return function(t: Test.Test)
 		"QA: 나중에 콘셉트 id를 카탈로그에서 빼도 장착값은 안전하게 계란초밥, 저장에 흔적 없음",
 		function()
 			for _, id in NEW do
-				-- 지금: 무료 → 저장된 장착값 유지, ownedSkins에는 안 들어가요
+				-- 지금(m5-31): 뽑기로 보유하면 장착값 유지, 보유가 없으면 계란초밥 (무료가 아니에요)
 				local raw = ProfileSchema.new() :: any
 				raw.equippedSkin = id
+				raw.ownedSkins[id] = true
 				local profile = ProfileLogic.migrate(raw)
-				t.eq(profile.equippedSkin, id, `{id} kept`)
-				t.eq(profile.ownedSkins[id], nil, `{id} not saved`)
-				-- 빼면: isFree가 false가 되는 상황을 흉내 (EXPERIMENTAL_IDS에서 잠시 뺌)
+				t.eq(profile.equippedSkin, id, `{id} kept when owned`)
+				local unowned = ProfileSchema.new() :: any
+				unowned.equippedSkin = id
+				t.eq(ProfileLogic.migrate(unowned).equippedSkin, "tamago", `{id} unowned falls back`)
+				-- 예외 목록에서 빼도 migrate가 안전한지 (EXPERIMENTAL_IDS에서 잠시 뺌)
 				Skins.EXPERIMENTAL_IDS[id] = nil
 				local ok, result = pcall(function()
 					local again = ProfileSchema.new() :: any
@@ -128,8 +131,8 @@ return function(t: Test.Test)
 					ids[skin.id] = true
 				end
 				for _, id in NEW do
-					if tab.id == "all" then
-						t.ok(ids[id], `{id} in all tab`)
+					if tab.id == "all" or tab.id == "draw" then
+						t.ok(ids[id], `{id} in {tab.id} tab`) -- m5-31: 🎫 특 탭에도
 					else
 						t.ok(ids[id] == nil, `{id} not in {tab.id} tab`)
 					end

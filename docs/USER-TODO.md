@@ -37,6 +37,10 @@
 - [x] **관리자 UserId 알려 주기** — 완료 (2026-10-08): **11402290839** → `src/server/AdminConfig.luau`의 `UserIds`에 들어갔어요
 - [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. **문서·테스트에 나온 예시(`SUSHI2026`, `SPOOKYSUSHI`, `EXAMPLE2026`, `EXAMPLESPOOKY`)는 공개돼 있으니 실제 코드는 다른 문자열로** 정하세요. 코드 문자열은 이 파일이나 "답변 기록"에도 적지 마세요(공개 저장소) — 에이전트에게 알려 줄 필요 없이 로컬 파일에만. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
+- [ ] **🎫 우승자 뽑기 남은 결정 2개 (급하지 않음, 플레이테스트 뒤에 정해도 돼요)** — 읽을 곳: [`docs/specs/m5-31-winner-ticket-draw.md`](specs/m5-31-winner-ticket-draw.md) "열린 질문"
+  - 천장(보장): 지금은 매번 10%라 10장 연속 꽝이 약 35%로 나와요. 없음 유지(추천, 일단) / "20장 연속 꽝이면 다음은 당첨" 추가
+  - 4명 친구 방에서 우승 몰아주기로 티켓 모으기: 막지 않음 유지(추천, 일단) / "5명 이상 판에서만 티켓"
+  - 기본값(바꾸고 싶으면 알려 주세요): 티켓 상한 99장, 9종 다 가진 뒤 당첨 🍚 +100, 당첨 스킨 자동으로 안 입힘
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
 - [ ] **이동 감시(치트 방지) 결정 2개** — 읽을 곳: [`docs/qa/m4-10-movement-guard.md`](qa/m4-10-movement-guard.md) "남은 버그" R1·R2
   - 걸리면 킥 없이 제자리로 되돌리기만 — 유지/킥 추가
@@ -184,6 +188,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - Studio 확인 순서: [`docs/qa/m5-08-offers-shop.md`](qa/m5-08-offers-shop.md) 체크리스트 (`fakeRobuxInStudio`·`fakeVipInStudio` 켜고, `persistDataInStudio`는 false, 확인 뒤 모두 false로)
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
+    - 설문의 **"유료 랜덤 아이템(paid random items)"** 질문: 🎫 우승자 뽑기(m5-31)는 우승으로만 받는 무료 티켓이라 Roblox 문서상 유료 랜덤 아이템이 아니에요 → "없음"으로 답하면 돼요. 나중에 티켓을 파는 상품을 만들면 답이 바뀌니(그래서 만들지 않아요) 설문 화면의 문구가 다르면 알려 주세요. 근거: [`docs/REFERENCE-winner-ticket-draw.md`](REFERENCE-winner-ticket-draw.md) §1
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 m5-12, 아직 시작 전)
   - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
   - 개인정보 삭제 요청(Right to Erasure)이 오면 두 곳을 지워요. MemoryStore는 곧 만료되니 따로 지울 것 없음.
@@ -222,3 +227,4 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 - 2026-10-14 (세션 중 사용자 결정) — 반영됨
   - 콘셉트 스킨 5종(concept-salmon·tuna·shrimp·tamago·ikura)은 **무료 테스트 그대로 유지** — 가격·등급·판매 없음 (m5-28 열린 질문 1 → 결정됨)
   - 콘셉트 스타일 스킨을 **더 만든다** — 2차 4종 장어·성게 군함·문어·유부 (m5-28 열린 질문 3 → 결정됨, 스펙 [`docs/specs/m5-29-concept-skins-2.md`](specs/m5-29-concept-skins-2.md))
+  - **우승자 뽑기 티켓**: 우승 1번 = 🎫 1장, 뽑기 = 스킨 10% / 꽝 90%(🍚 +20). 뽑기 풀 = 콘셉트 스킨 9종(이제 무료 아님·판매 아님, 뽑기로만). 이름 "○○ (특)". Studio에서는 모든 스킨 장착 가능(저장 안 함, `unlockAllSkinsInStudio`). 위의 "콘셉트 스킨 무료 테스트 유지" 결정은 이것으로 바뀜 — GDD v0.7 §9.1·9.6, 스펙 [`docs/specs/m5-31-winner-ticket-draw.md`](specs/m5-31-winner-ticket-draw.md)

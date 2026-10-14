@@ -6,6 +6,8 @@
 --       v2 칸(m5-03): redeemedCodes·eventTokens·boughtOffers는 문자열 키 → 0 이상 정수(내림), ownedFx는 true만,
 --       equippedFx는 가진 연출이면서 FxCatalog에서 그 칸의 연출만. redeemedCodes는 시각이 큰 MAX_REDEEMED_CODES개만.
 --       v1 → v2는 칸 추가뿐이에요 (기존 값 그대로, version = 2).
+--       v3 (m5-31): drawTickets(0 ~ Config.Draw.MaxTickets, 잘못되면 0, 넘치면 상한 — DrawLogic.sanitizeTickets).
+--       특 스킨(뽑기 전용)은 더 이상 무료가 아니라서, 보유 없이 장착한 특 스킨은 tamago로 돌아가요.
 --   ProfileLogic.lockDecision(lock?, myJobId, now, expiry, mySession?) -> "take" | "wait" | "steal"
 --   ProfileLogic.canWrite(lock?, myJobId, mySession?) -> boolean  내 잠금(같은 JobId + 같은 세션)일 때만 true
 --   ProfileLogic.dayNumber(unixTime) -> number            UTC 날짜 번호 (1970-01-01 = 0)
@@ -15,6 +17,7 @@
 -- 저장 값 모양: { profile = Profile, lock = { jobId, at, session? }? } (키 u_<UserId>)
 
 local Config = require(script.Parent.Config)
+local DrawLogic = require(script.Parent.DrawLogic)
 local FxCatalog = require(script.Parent.FxCatalog)
 local ProfileSchema = require(script.Parent.ProfileSchema)
 local ReceiptLogic = require(script.Parent.ReceiptLogic)
@@ -46,6 +49,7 @@ local KNOWN_FIELDS = {
 	ownedFx = true,
 	equippedFx = true,
 	boughtOffers = true,
+	drawTickets = true, -- v3 (m5-31)
 }
 
 local COUNTERS = { "coins", "wins", "matchesPlayed" }
@@ -229,6 +233,13 @@ function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
 		table.insert(notes, "equippedFx was invalid, reset")
 	end
 	profile.equippedFx = equippedFx
+
+	-- v3 칸 (m5-31). v2 프로필에는 없어서 0이 돼요
+	local tickets, ticketNote = DrawLogic.sanitizeTickets(source.drawTickets)
+	profile.drawTickets = tickets
+	if ticketNote then
+		table.insert(notes, ticketNote)
+	end
 
 	return profile, { persistable = persistable, notes = notes }
 end

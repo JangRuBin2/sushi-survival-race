@@ -15,6 +15,7 @@
 --                                        Studio에서만 되고, 실서버에서 켜는 설정은 없어요 (설정으로도 못 켜요).
 --   AdminLogic.parse(command, args) -> (Parsed?, Reason?)   AdminCommand 인자 모양 검사 (m5-11)
 --   AdminLogic.applyCoins(current, n) / applyTokens(current, n)   0 아래로 내려가지 않는 더하기
+--   tickets n (m5-31): 🎫 뽑기 티켓 ±n (정수 −99~99, StudioOnly). 결과는 0~Config.Draw.MaxTickets (DrawLogic.addTickets)
 --   AdminLogic.resolvePlan(ids, pool) -> (plan?, text)   다음 판 맵 순서: 결과 문구(결승이 Final이 아니면 경고 포함)
 --   AdminLogic.equippedFx(equipped, owned, slot) -> string?   fx 미리보기를 끌 때 돌아갈 프로필 장착값
 --   AdminLogic.infoLine(info) -> string      info 명령 결과 한 줄
@@ -95,6 +96,7 @@ AdminLogic.COMMAND_TIERS = {
 	-- 경제 명령은 저장을 켠 Studio에서도 막아요 (진짜 프로필에 기록되지 않게, m4-14 R4·m5-08 B3와 같은 원칙, 2026-10-13 사용자 결정)
 	coins = "StudioOnly",
 	tokens = "StudioOnly",
+	tickets = "StudioOnly", -- m5-31: 🎫 뽑기 티켓 (경제 명령과 같은 등급)
 	resetprofile = "StudioOnly",
 } :: { [string]: CommandTier }
 
@@ -203,7 +205,7 @@ end
 -- 검사를 통과한 명령. command마다 쓰는 칸만 채워요
 export type Parsed = {
 	command: string,
-	amount: number?, -- coins·tokens
+	amount: number?, -- coins·tokens·tickets
 	ids: { string }?, -- plan
 	slot: FxCatalog.Slot?, -- fx
 	fxId: string?, -- fx (nil = 끄기)
@@ -211,6 +213,7 @@ export type Parsed = {
 
 AdminLogic.COINS_LIMIT = 10000 -- coins n: -10,000 ~ 10,000
 AdminLogic.TOKENS_LIMIT = 500 -- tokens n: -500 ~ 500
+AdminLogic.TICKETS_LIMIT = 99 -- tickets n: -99 ~ 99 (m5-31)
 AdminLogic.MAP_ID_MAX_LENGTH = 64
 
 local function isIntegerIn(value: unknown, limit: number): boolean
@@ -273,8 +276,11 @@ function AdminLogic.parse(command: unknown, args: unknown): (Parsed?, Reason?)
 		return nil, "UnknownCommand"
 	end
 	local name = command :: string
-	if name == "coins" or name == "tokens" then
-		local limit = if name == "coins" then AdminLogic.COINS_LIMIT else AdminLogic.TOKENS_LIMIT
+	if name == "coins" or name == "tokens" or name == "tickets" then
+		local limit = if name == "coins"
+			then AdminLogic.COINS_LIMIT
+			elseif name == "tickets" then AdminLogic.TICKETS_LIMIT
+			else AdminLogic.TOKENS_LIMIT
 		if not isIntegerIn(args, limit) then
 			return nil, "BadCommandArgs"
 		end
@@ -352,6 +358,7 @@ export type Info = {
 	eventName: string?,
 	tokenIcon: string?,
 	tokens: number?,
+	tickets: number?, -- 🎫 뽑기 티켓 (m5-31)
 }
 
 function AdminLogic.infoLine(info: Info): string
@@ -364,6 +371,9 @@ function AdminLogic.infoLine(info: Info): string
 		if info.roomId then `내 방 {info.roomId}({info.roomState or "?"})` else "내 방 없음",
 		if info.coins then `코인 {info.coins}` else "코인 ?",
 	}
+	if info.tickets ~= nil then
+		table.insert(parts, `🎫 {info.tickets}`)
+	end
 	if info.eventName then
 		table.insert(parts, `{info.eventName} {info.tokenIcon or ""}{info.tokens or 0}`)
 	end

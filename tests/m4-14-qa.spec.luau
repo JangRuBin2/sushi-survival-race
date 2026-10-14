@@ -317,6 +317,7 @@ local function loadServer(opts: Options?): any
 		AdminLogic = RobloxRequire.require(Shared.AdminLogic), -- m5-02: ShopService 미리보기 슬롯
 		Attributes = RobloxRequire.require(Shared.Attributes),
 		Config = cfg,
+		DrawLogic = RobloxRequire.require(Shared.DrawLogic), -- m5-31: ShopService의 DrawTicket
 		ProfileLogic = ProfileLogic,
 		ProfileSchema = ProfileSchema,
 		ReceiptLogic = ReceiptLogic,

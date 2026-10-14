@@ -54,6 +54,8 @@ SfxLibrary.Entries = {
 	-- m5-03: id는 사용자가 고를 때까지 무음 (USER-TODO A2)
 	TokenGet = sfx(nil, 0.8), -- 이벤트 재화 받음 (m5-07)
 	CodeRedeemed = sfx(nil, 0.8), -- 코드 보상 성공 (m5-10)
+	DrawReveal = sfx(nil, 0.8), -- 🎫 뽑기 결과 공개 (m5-31, 무음 — 사용자가 고름)
+	DrawWin = sfx(nil, 0.9), -- 🎫 뽑기 특 스킨 당첨 (m5-31, 무음)
 	-- 연출 팩 (m5-09)
 	CatMeow = sfx(nil, 0.8),
 	Fireworks = sfx(nil, 0.8),

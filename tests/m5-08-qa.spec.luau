@@ -352,6 +352,7 @@ local function loadServer(opts: Options?): any
 		AdminLogic = RobloxRequire.require(Shared.AdminLogic),
 		Attributes = RobloxRequire.require(Shared.Attributes),
 		Config = cfg,
+		DrawLogic = RobloxRequire.require(Shared.DrawLogic), -- m5-31: ShopService의 DrawTicket
 		OfferLogic = cat.OfferLogic,
 		Offers = cat.Offers,
 		ProfileLogic = ProfileLogic,

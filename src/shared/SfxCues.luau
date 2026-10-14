@@ -16,6 +16,8 @@ SfxCues.Effects = {
 	"Overtime", -- 결승 연장전 경적 (m5-01)
 	"TokenGet", -- 이벤트 재화 받음 (m5-07)
 	"CodeRedeemed", -- 코드 보상 성공 (m5-10)
+	"DrawReveal", -- 🎫 뽑기 결과 공개 (접시 뚜껑 열림, m5-31)
+	"DrawWin", -- 🎫 뽑기 특 스킨 당첨 (m5-31)
 	-- 연출 팩 (m5-09)
 	"CatMeow", -- 고양이 손님 탈락 연출
 	"Fireworks", -- 불꽃놀이 우승 연출

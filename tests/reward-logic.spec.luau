@@ -105,7 +105,7 @@ return function(t: Test.Test)
 		t.eq(#RewardLogic.onResult(tracker, 1, "Passed"), 0, "final pass")
 		t.eq(#RewardLogic.onResult(tracker, 1, "Eliminated"), 0, "final elimination")
 		local win = RewardLogic.onResult(tracker, 1, "Won")
-		t.eq(win, { { userId = 1, reason = "Win", amount = 100 } })
+		t.eq(win, { { userId = 1, reason = "Win", amount = 100, tickets = 1 } }) -- m5-31: 🎫 티켓 1장
 	end)
 
 	t.test("AC3: forPass / forRoundStart / forWin", function()

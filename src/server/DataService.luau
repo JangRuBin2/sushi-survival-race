@@ -12,6 +12,8 @@
 --                                                         실제로 쓰지 못하면 false (임시 프로필, 잠금 해제 뒤, 에러)
 --   DataService.setViewExtra(player, { vip = boolean })    저장하지 않는 화면용 값 (m5-03, VIP는 m5-08이 채워요).
 --                                                         바뀌면 ProfileUpdated를 다시 보내요. 프로필 로드 전에 불러도 기억해요
+--   DataService.setStudioUnlockAll(on)                    화면용 값 unlockAll (m5-31, Studio 전부 입기 — ShopService.init이
+--                                                         ShopLogic.unlockAllActive로 정해 알려 줘요). 모두의 화면에 붙고 저장하지 않아요
 -- 리모트: SaveSettings({ muteLevel }) — 표·정수 1~3·요청 간격(Config.Data.SettingsMinInterval)을 검증하고
 -- 잘못된 값은 조용히 무시해요.
 --
@@ -81,6 +83,9 @@ local loadedListeners: { (player: Player, profile: Profile) -> () } = {}
 
 local profileUpdatedEvent: RemoteEvent
 
+-- Studio 전부 입기 (m5-31): 화면에 "입기 (Studio)"를 보여 줄지 (setStudioUnlockAll). 저장하지 않아요
+local studioUnlockAll = false
+
 local function keyFor(player: Player): string
 	return `u_{player.UserId}`
 end
@@ -90,9 +95,14 @@ local function sendView(player: Player)
 	if session == nil or player.Parent == nil then
 		return
 	end
+	local extra = viewExtra[player]
 	profileUpdatedEvent:FireClient(
 		player,
-		ProfileSchema.toView(session.profile, DataService.canPersist(player), viewExtra[player])
+		ProfileSchema.toView(
+			session.profile,
+			DataService.canPersist(player),
+			{ vip = extra ~= nil and extra.vip == true, unlockAll = studioUnlockAll }
+		)
 	)
 end
 
@@ -419,6 +429,17 @@ function DataService.setViewExtra(player: Player, extra: ProfileSchema.ViewExtra
 	local new: ProfileSchema.ViewExtra = { vip = extra.vip == true }
 	viewExtra[player] = new
 	if (old == nil or old.vip ~= new.vip) and sessions[player] ~= nil then
+		scheduleView(player)
+	end
+end
+
+-- Studio 전부 입기 (m5-31). ShopService.init이 서버 설정으로 한 번 불러요. 바뀌면 로드된 모두에게 화면을 다시 보내요
+function DataService.setStudioUnlockAll(on: boolean)
+	if studioUnlockAll == on then
+		return
+	end
+	studioUnlockAll = on
+	for player in sessions do
 		scheduleView(player)
 	end
 end

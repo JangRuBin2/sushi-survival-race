@@ -7,6 +7,8 @@
 --   RewardGranted에 tokens·tokenTotal·eventId를 채워요. 매치 끝은 한 번에: 하루 첫 판이면 DailyFirstMatch(코인 50 +
 --   재화 4), 아니면 이벤트 중 MatchPlayed(코인 0 + 재화 1). 코인도 재화도 0이면 보내지 않아요.
 --   "지금 시각" = Seasons.now(Studio, Config.DEBUG.eventNow, os.time()).
+--   🎫 우승자 뽑기 티켓 (m5-31): Won 지급과 같은 DataService.update 안에서 DrawLogic.addTickets(+TicketsPerWin, 상한
+--   MaxTickets). RewardGranted에 tickets(받은 장수, 가득이면 0)·ticketsFull을 채워요. 이벤트·VIP여도 1장.
 --   프로필이 아직 없으면 waitForProfile로 최대 45초 기다리고, 그래도 없으면 버려요(경고).
 --   칭호: 캐릭터가 생길 때·프로필이 로드될 때·승수가 바뀔 때 캐릭터 Model에 Attributes.Title을 달아요 (0승이면 지움).
 -- 코인은 서버만 지급해요 — 클라이언트 요청으로 지급하는 리모트는 없어요.
@@ -17,6 +19,7 @@ local RunService = game:GetService("RunService")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
 local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RewardLogic = require(ReplicatedStorage.Shared.RewardLogic)
@@ -28,7 +31,8 @@ local RoomService = require(script.Parent.RoomService)
 
 type Profile = ProfileSchema.Profile
 -- 이번 지급 (nil이면 지급 없음). reason이 있으면 처음 넘긴 이유 대신 그걸 써요 (매치 끝 DailyFirstMatch/MatchPlayed)
-type Payout = { amount: number, tokens: number?, eventId: string?, reason: Types.RewardReason? }
+-- tickets: 🎫 뽑기 티켓 (m5-31, Win만)
+type Payout = { amount: number, tokens: number?, eventId: string?, reason: Types.RewardReason?, tickets: number? }
 type Mutate = (profile: Profile) -> Payout?
 
 local RewardService = {}
@@ -72,6 +76,7 @@ local function grantWith(player: Player, reason: Types.RewardReason, mutate: Mut
 	local payout: Payout? = nil
 	local total = 0
 	local tokenTotal: number? = nil
+	local ticketsAdded: number? = nil -- 티켓을 줄 지급이면 실제로 늘어난 장수 (가득이면 0)
 	local ok = DataService.update(player, function(p)
 		payout = mutate(p)
 		local current = payout
@@ -81,6 +86,12 @@ local function grantWith(player: Player, reason: Types.RewardReason, mutate: Mut
 			if tokens and tokens > 0 and eventId then
 				p.eventTokens[eventId] = (p.eventTokens[eventId] or 0) + tokens
 				tokenTotal = p.eventTokens[eventId]
+			end
+			local tickets = current.tickets
+			if tickets and tickets > 0 then
+				local after, added = DrawLogic.addTickets(p.drawTickets, tickets)
+				p.drawTickets = after
+				ticketsAdded = added
 			end
 		end
 		total = p.coins
@@ -94,8 +105,8 @@ local function grantWith(player: Player, reason: Types.RewardReason, mutate: Mut
 		return
 	end
 	local tokens = if tokenTotal ~= nil then current.tokens else nil
-	if current.amount <= 0 and tokens == nil then
-		return -- 코인도 재화도 없어요
+	if current.amount <= 0 and tokens == nil and ticketsAdded == nil then
+		return -- 코인도 재화도 티켓도 없어요
 	end
 	local grant: Types.RewardGrant = {
 		reason = current.reason or reason,
@@ -104,6 +115,8 @@ local function grantWith(player: Player, reason: Types.RewardReason, mutate: Mut
 		tokens = tokens,
 		tokenTotal = tokenTotal,
 		eventId = if tokens then current.eventId else nil,
+		tickets = ticketsAdded,
+		ticketsFull = if ticketsAdded ~= nil and ticketsAdded <= 0 then true else nil,
 	}
 	rewardGrantedEvent:FireClient(player, grant)
 end
@@ -118,7 +131,12 @@ local function grant(grantInfo: RewardLogic.Grant)
 			if grantInfo.reason == "Win" then
 				profile.wins += 1
 			end
-			return { amount = grantInfo.amount, tokens = grantInfo.tokens, eventId = grantInfo.eventId }
+			return {
+				amount = grantInfo.amount,
+				tokens = grantInfo.tokens,
+				eventId = grantInfo.eventId,
+				tickets = grantInfo.tickets,
+			}
 		end)
 		if grantInfo.reason == "Win" then
 			refreshTitle(player)

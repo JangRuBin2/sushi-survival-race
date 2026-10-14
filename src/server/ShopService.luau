@@ -9,6 +9,14 @@
 --   BuyWithTokens(skinId) 이벤트 재화로 시즌 무료 스킨 받기 (m5-07): 이벤트 진행 중(Seasons.now — Studio면
 --                         Config.DEBUG.eventNow 우선)·미보유·잠금 아님·저장 가능·재화 ≥ 가격 → 차감 + 보유 + 자동 장착.
 --   세 요청은 Config.Shop.RequestCooldown 간격 제한을 같이 써요. 판단은 Shared.ShopLogic (순수).
+--   DrawTicket()          🎫 우승자 티켓 1장으로 뽑기 (m5-31). 인자는 받지 않아요(보내도 무시). 순서: 요청 간격
+--                         (Config.Draw.RequestCooldown, 위 세 요청과 따로) → 프로필 → isLocked → 저장 가능(실서버 임시
+--                         프로필이면 CannotSave, Studio 메모리는 허용) → 한 번의 DataService.update 안에서 DrawLogic.canDraw
+--                         다시 + roll(서버 Random 하나) + apply → 반환 (true, nil, DrawResult) / (false, 이유 글씨).
+--                         뽑기 뒤 saveNow는 안 불러요 (무료 보상 — 자동 저장·나갈 때 저장. 저장 전에 서버가 죽으면 티켓과
+--                         보상이 같이 되돌아가 손해·이득이 없어요). 서버 Output에 [Draw] 한 줄.
+--   Studio 전부 입기 (m5-31): ShopLogic.unlockAllActive(Studio, Config.DEBUG.unlockAllSkinsInStudio, persistDataInStudio)면
+--                         EquipSkin과 장착 resolver가 보유를 보지 않아요. ownedSkins에는 아무것도 넣지 않아요.
 -- 외형은 AppearanceService.applyAppearance 한 곳에서만 입혀요: 여기서는 장착 스킨을 고르는 함수(setResolver)를
 -- 등록하고, 바뀌면 AppearanceService.refresh를 불러요. 프로필이 캐릭터보다 늦게 로드되면 로드된 뒤 다시 입혀요.
 --
@@ -36,6 +44,7 @@ local RunService = game:GetService("RunService")
 local AdminLogic = require(ReplicatedStorage.Shared.AdminLogic)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
@@ -57,6 +66,17 @@ local coinBlocker: ((player: Player, skinId: string) -> boolean)? = nil
 local previewOf: { [number]: string } = {}
 local previewListener: ((player: Player, skinId: string?) -> ())? = nil
 
+-- 🎫 뽑기 (m5-31): 요청 간격은 위 lastRequestAt과 따로, 난수는 서버 Random 하나
+local lastDrawAt: { [Player]: number } = {}
+local drawRng: Random? = nil -- 첫 뽑기 때 만들어요
+
+-- Studio 전부 입기 (m5-31). 서버 시작 때 한 번 정해요 (실서버는 언제나 false)
+local unlockAll = ShopLogic.unlockAllActive(
+	RunService:IsStudio(),
+	Config.DEBUG.unlockAllSkinsInStudio,
+	Config.DEBUG.persistDataInStudio
+)
+
 -- 우승 연출(VictoryDuration) 뒤 로비 단상이 외형을 읽을 때까지 조금 더 잠가요
 local VICTORY_MARGIN = 1
 
@@ -77,8 +97,12 @@ local function equippedOf(player: Player): string?
 	local profile = DataService.get(player)
 	local equipped = if profile then profile.equippedSkin else nil
 	local owned = if profile then profile.ownedSkins else {}
-	if type(equipped) == "string" and Skins.isFree(equipped) and owned[equipped] ~= true then
-		-- 무료 스킨(실험 스킨 m5-27)은 저장된 목록에 없어도 가져요 — 복사본에만 더해요 (프로필은 안 바꿔요)
+	if
+		type(equipped) == "string"
+		and (Skins.isFree(equipped) or (unlockAll and Skins.get(equipped) ~= nil))
+		and owned[equipped] ~= true
+	then
+		-- 무료 스킨(계란초밥)이나 Studio 전부 입기(m5-31)면 저장된 목록에 없어도 입어요 — 복사본에만 더해요 (프로필은 안 바꿔요)
 		owned = table.clone(owned)
 		owned[equipped] = true
 	end
@@ -154,7 +178,7 @@ local function onEquip(player: Player, skinId: unknown): (boolean, string?)
 	if profile == nil then
 		return fail("NoProfile")
 	end
-	local ok, reason = ShopLogic.canEquip(skinId, profile.ownedSkins, ShopService.isLocked(player))
+	local ok, reason = ShopLogic.canEquip(skinId, profile.ownedSkins, ShopService.isLocked(player), unlockAll)
 	if not ok then
 		return fail(reason :: ShopLogic.Reason)
 	end
@@ -245,6 +269,63 @@ local function onBuyWithTokens(player: Player, skinId: unknown): (boolean, strin
 	return true, nil
 end
 
+-- 🎫 뽑기 (m5-31). 확률·결과는 서버만 정해요. 판단은 DrawLogic (순수)
+local function drawFail(player: Player, reason: DrawLogic.Reason): (boolean, string?, Types.DrawResult?)
+	print(`[Draw] {player.Name}({player.UserId}) -> rejected {reason}`)
+	return false, DrawLogic.message(reason), nil
+end
+
+local function onDraw(player: Player): (boolean, string?, Types.DrawResult?)
+	local now = os.clock()
+	local last = lastDrawAt[player]
+	if last and now - last < Config.Draw.RequestCooldown then
+		return drawFail(player, "TooFast")
+	end
+	lastDrawAt[player] = now
+	local profile = DataService.get(player)
+	if profile == nil then
+		return drawFail(player, "NoProfile")
+	end
+	local locked = ShopService.isLocked(player)
+	local canSave = DataService.canPersist(player) or RunService:IsStudio()
+	local ok, reason = DrawLogic.canDraw(profile, locked, canSave)
+	if not ok then
+		return drawFail(player, reason :: DrawLogic.Reason)
+	end
+	-- 판단·티켓 차감·보상을 한 번의 update 안에서 (그 사이 다른 요청이 끼지 않아요)
+	local result: Types.DrawResult? = nil
+	local rejected: DrawLogic.Reason? = nil
+	local updated = DataService.update(player, function(p)
+		local again, why = DrawLogic.canDraw(p, locked, canSave)
+		if not again then
+			rejected = why
+			return
+		end
+		local rng = drawRng or Random.new()
+		drawRng = rng
+		result = DrawLogic.apply(p, DrawLogic.roll(p.ownedSkins, rng))
+	end)
+	local done = result
+	if not updated or done == nil then
+		return drawFail(player, rejected or "NoProfile")
+	end
+	if done.kind == "Skin" then
+		print(
+			`[Draw] {player.Name}({player.UserId}) -> skin {done.skinId} (left {done.skinsLeft}, tickets {done.ticketsLeft})`
+		)
+	elseif done.kind == "Duplicate" then
+		print(`[Draw] {player.Name}({player.UserId}) -> duplicate +{done.coins} (tickets {done.ticketsLeft})`)
+	else
+		print(`[Draw] {player.Name}({player.UserId}) -> consolation +{done.coins} (tickets {done.ticketsLeft})`)
+	end
+	return true, nil, done
+end
+
+-- Studio 전부 입기가 켜졌는가 (m5-31, 서버 시작 때 정한 값)
+function ShopService.unlockAllActive(): boolean
+	return unlockAll
+end
+
 -- 로벅스 결제 대기 중인 스킨을 알려 주는 함수 (RobuxShopService.init). 코인 해금이 그 스킨이면 거절해요.
 function ShopService.setCoinBlocker(fn: ((player: Player, skinId: string) -> boolean)?)
 	coinBlocker = fn
@@ -290,10 +371,28 @@ function ShopService.init()
 	if not valid then
 		warn(`[ShopService] skin catalog problems: {table.concat(problems, "; ")}`)
 	end
+	if RunService:IsStudio() and Config.DEBUG.unlockAllSkinsInStudio and Config.DEBUG.persistDataInStudio then
+		warn("[ShopService] unlockAllSkinsInStudio is off because persistDataInStudio is on (m5-31)")
+	elseif unlockAll then
+		print("[ShopService] Studio: all skins can be worn without owning them (not saved, m5-31)")
+	end
+	if DataService.setStudioUnlockAll then
+		-- 탈의실 카드 "입기 (Studio)" (화면용, 저장 안 함). 테스트의 가짜 DataService에는 없을 수 있어요
+		DataService.setStudioUnlockAll(unlockAll)
+	end
 	AppearanceService.setResolver(equippedOf)
 	bind("EquipSkin", onEquip)
 	bind("BuyWithCoins", onBuyWithCoins)
 	bind("BuyWithTokens", onBuyWithTokens)
+	-- DrawTicket은 인자를 받지 않고 결과 표를 하나 더 돌려줘요 (m5-31)
+	Remotes.fn("DrawTicket").OnServerInvoke = function(player: Player): (boolean, string?, Types.DrawResult?)
+		local ok, success, err, result = pcall(onDraw, player)
+		if not ok then
+			warn(`[ShopService] DrawTicket failed for {player.Name}: {success}`)
+			return false, "다시 해 주세요", nil
+		end
+		return success, err, result
+	end
 end
 
 function ShopService.start()
@@ -304,6 +403,7 @@ function ShopService.start()
 	MatchEvents.onResult(onResult)
 	Players.PlayerRemoving:Connect(function(player: Player)
 		lastRequestAt[player] = nil
+		lastDrawAt[player] = nil
 		lockedUntil[player.UserId] = nil
 		previewOf[player.UserId] = nil -- 서버 간 유지는 AdminService의 MemoryStore가 해요 (끄기로 쓰지 않아요)
 	end)

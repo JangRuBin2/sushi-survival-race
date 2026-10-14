@@ -114,8 +114,8 @@ return function(t: Test.Test)
 					ids[skin.id] = true
 				end
 				for _, id in NEW do
-					if tab.id == "all" then
-						t.ok(ids[id], `{id} in all tab`)
+					if tab.id == "all" or tab.id == "draw" then
+						t.ok(ids[id], `{id} in {tab.id} tab`) -- m5-31: 🎫 특 탭에도
 					else
 						t.ok(ids[id] == nil, `{id} not in {tab.id} tab`)
 					end

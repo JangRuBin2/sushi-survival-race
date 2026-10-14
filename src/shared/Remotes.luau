@@ -21,6 +21,9 @@
 --   EquipFx(slot: string, fxId: string?)   연출 입기 — slot "Elimination"|"Victory", nil·""면 벗기 (m5-08, OfferService)
 --   RedeemCode(code: string)               코드 보상 받기 (m5-10, CodeService. 목록은 서버 전용)
 --   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증)
+--   DrawTicket()                           🎫 우승자 티켓 1장으로 뽑기 (m5-31, ShopService: 요청 간격
+--                                 Config.Draw.RequestCooldown·잠금·저장 가능 검증, 인자는 받지 않아요). 반환
+--                                 (ok, err?, result: DrawResult?) — 확률·결과는 서버만 정해요
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
@@ -57,6 +60,7 @@ local FUNCTIONS = {
 	"EquipFx",
 	"RedeemCode",
 	"AdminCommand",
+	"DrawTicket",
 }
 local EVENTS = {
 	"RoomList",

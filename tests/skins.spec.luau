@@ -47,16 +47,16 @@ local EXPECTED = {
 	{ "softserve-roll", "소프트아이스크림 롤", "Epic", 99, nil },
 	{ "crown-tuna", "크라운 참치", "Legendary", 199, nil },
 	{ "unicorn-roll", "유니콘 롤", "Legendary", 199, nil },
-	{ "concept-salmon", "콘셉트 연어초밥 (테스트)", "Basic", nil, nil }, -- m5-27 실험 스킨 (모두 무료)
-	-- m5-28 콘셉트 몸 실험 스킨 4종 (모두 무료)
-	{ "concept-tuna", "콘셉트 참치초밥 (테스트)", "Basic", nil, nil },
-	{ "concept-shrimp", "콘셉트 새우초밥 (테스트)", "Basic", nil, nil },
-	{ "concept-tamago", "콘셉트 계란초밥 (테스트)", "Basic", nil, nil },
-	{ "concept-ikura", "콘셉트 연어알 군함 (테스트)", "Basic", nil, nil },
-	{ "concept-unagi", "콘셉트 장어초밥 (테스트)", "Basic", nil, nil },
-	{ "concept-uni", "콘셉트 성게 군함 (테스트)", "Basic", nil, nil },
-	{ "concept-tako", "콘셉트 문어초밥 (테스트)", "Basic", nil, nil },
-	{ "concept-inari", "콘셉트 유부초밥 (테스트)", "Basic", nil, nil },
+	{ "concept-salmon", "연어초밥 (특)", "Basic", nil, nil }, -- m5-27 콘셉트 몸 → m5-31 🎫 뽑기 전용 특 스킨
+	-- m5-28·m5-29 콘셉트 몸 8종 (m5-31부터 뽑기 전용 특 스킨, 무료 아님)
+	{ "concept-tuna", "참치초밥 (특)", "Basic", nil, nil },
+	{ "concept-shrimp", "새우초밥 (특)", "Basic", nil, nil },
+	{ "concept-tamago", "계란초밥 (특)", "Basic", nil, nil },
+	{ "concept-ikura", "연어알 군함 (특)", "Basic", nil, nil },
+	{ "concept-unagi", "장어초밥 (특)", "Basic", nil, nil },
+	{ "concept-uni", "성게 군함 (특)", "Basic", nil, nil },
+	{ "concept-tako", "문어초밥 (특)", "Basic", nil, nil },
+	{ "concept-inari", "유부초밥 (특)", "Basic", nil, nil },
 }
 
 local TOLERANCE = 0.15

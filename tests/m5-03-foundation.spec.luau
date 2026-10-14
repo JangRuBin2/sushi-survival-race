@@ -185,8 +185,9 @@ return function(t: Test.Test)
 	t.test("AC3: v1 프로필 → v2, 새 칸 5개 빈 표, 기존 값 그대로, 모르는 칸 보존", function()
 		local profile, info = ProfileLogic.migrate(v1Profile())
 		t.eq(info.persistable, true)
-		t.eq(profile.version, 2)
-		t.eq(ProfileSchema.VERSION, 2)
+		-- m5-31이 v3으로 올렸어요 (drawTickets). v1은 바로 지금 버전이 돼요
+		t.eq(profile.version, 3)
+		t.eq(ProfileSchema.VERSION, 3)
 		t.eq(profile.coins, 1234)
 		t.eq(profile.wins, 12)
 		t.eq(profile.matchesPlayed, 40)
@@ -276,18 +277,20 @@ return function(t: Test.Test)
 		t.ok(#info.notes >= 1)
 	end)
 
-	t.test("AC3: 미래 버전(3)은 저장하지 않아요, v1·v2는 저장", function()
+	t.test("AC3: 미래 버전(4 — m5-31 뒤)은 저장하지 않아요, v1·v2·v3는 저장", function()
 		local raw = v1Profile()
-		raw.version = 3
+		raw.version = 4
 		local _, info = ProfileLogic.migrate(raw)
 		t.eq(info.persistable, false)
+		raw.version = 3
+		t.eq(select(2, ProfileLogic.migrate(raw)).persistable, true)
 		raw.version = 2
 		t.eq(select(2, ProfileLogic.migrate(raw)).persistable, true)
 	end)
 
 	t.test("AC3: new()에 v2 칸이 있고 부를 때마다 다른 표", function()
 		local a, b = ProfileSchema.new(), ProfileSchema.new()
-		t.eq(a.version, 2)
+		t.eq(a.version, 3) -- m5-31
 		t.eq(a.redeemedCodes, {})
 		t.ok(a.redeemedCodes ~= b.redeemedCodes)
 		t.ok(a.eventTokens ~= b.eventTokens)
@@ -324,14 +327,12 @@ return function(t: Test.Test)
 				true
 			)
 		)
-		t.ok(
-			string.find(
-				src,
-				"ProfileSchema.toView(session.profile, DataService.canPersist(player), viewExtra[player])",
-				1,
-				true
-			)
-		)
+		t.ok(string.find(
+			src,
+			"{ vip = extra ~= nil and extra.vip == true, unlockAll = studioUnlockAll }", -- m5-31: viewExtra + Studio 전부 입기
+			1,
+			true
+		))
 		t.ok(string.find(src, "viewExtra[player] = nil", 1, true), "cleared on leave")
 	end)
 

@@ -531,7 +531,7 @@ return function(t: Test.Test)
 		t.eq(twice, once)
 		t.eq(#info1.notes, 0, table.concat(info1.notes, "; "))
 		t.eq(#info2.notes, 0, table.concat(info2.notes, "; "))
-		t.eq(twice.version, 2)
+		t.eq(twice.version, 3) -- m5-31
 	end)
 
 	t.test("QA 프로필: 모양이 틀린 v2 칸은 빈 값 + notes, 다른 칸은 그대로", function()
@@ -593,10 +593,10 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA 프로필: 미래 버전(3)은 새 칸 값이 이상해도 저장하지 않음이 유지돼요",
+		"QA 프로필: 미래 버전(4 — m5-31 뒤)은 새 칸 값이 이상해도 저장하지 않음이 유지돼요",
 		function()
 			local raw = v1Profile()
-			raw.version = 3
+			raw.version = 4
 			raw.ownedFx = { ["v3-only-fx"] = { tier = 2 } }
 			local _, info = ProfileLogic.migrate(raw)
 			t.eq(info.persistable, false)

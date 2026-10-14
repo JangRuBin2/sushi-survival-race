@@ -25,28 +25,28 @@ local Cutscene = RobloxRequire.require(Shared.EliminationCutsceneLogic)
 local NEW = {
 	{
 		"concept-unagi",
-		"콘셉트 장어초밥 (테스트)",
+		"장어초밥 (특)",
 		37,
 		{ "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
 		{ "Band", "Eel", "Glaze", "Grill1", "Sesame1", "NoriTop", "NoriFront", "NoriBack", "NoriBackLow" },
 	},
 	{
 		"concept-uni",
-		"콘셉트 성게 군함 (테스트)",
+		"성게 군함 (특)",
 		38,
 		{ "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
 		{ "Band", "UniBed", "Lobe1", "Lobe10Back", "Leaf1", "LeafMid" },
 	},
 	{
 		"concept-tako",
-		"콘셉트 문어초밥 (테스트)",
+		"문어초밥 (특)",
 		39,
 		{ "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
 		{ "Ridge", "SkinLeft", "Sucker1", "Sucker1In", "Cut1", "NoriRidge" },
 	},
 	{
 		"concept-inari",
-		"콘셉트 유부초밥 (테스트)",
+		"유부초밥 (특)",
 		40,
 		{ "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
 		{ "LipFront", "InariRice", "InariCrease1", "InariSeed1" },
@@ -110,7 +110,7 @@ end
 
 return function(t: Test.Test)
 	t.test(
-		"카탈로그: 새 4종 무료 Basic 실험 스킨, 이름 '(테스트)', 순서 37~40(맨 끝), 대사 2줄 (AC1)",
+		"카탈로그: 새 4종 Basic 뽑기 전용 특 스킨, 이름 '(특)', 순서 37~40(맨 끝), 대사 2줄 (AC1, m5-31 이름·draw)",
 		function()
 			for _, row in NEW do
 				local id = row[1]
@@ -122,6 +122,7 @@ return function(t: Test.Test)
 				t.eq(Cutscene.SKIN_LINES[id], row[4], `{id} elimination lines`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
 				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.draw, true, `{id} draw`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)
 				end
@@ -158,27 +159,33 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"보유: 새 프로필에서도 장착·'입기', 코인·로벅스로는 이미 가진 것, 저장에는 안 남아요 (AC3)",
+		"보유: 새 프로필은 미보유('🎫 뽑기로 얻기'·NotOwned), 살 수 없음, 뽑기로 보유하면 장착·'입기' (AC3, m5-31)",
 		function()
 			for _, row in NEW do
 				local id = row[1]
-				t.eq(Skins.isFree(id), true, id)
-				t.eq(ShopLogic.canEquip(id, { tamago = true }), true, id)
-				local coin = ShopLogic.canBuyWithCoins(id, { coins = 9999, ownedSkins = { tamago = true } })
-				t.eq(coin.reason, "AlreadyOwned", id)
+				t.eq(Skins.isFree(id), false, id)
+				t.eq(Skins.isDraw(id), true, id)
+				t.eq(select(2, ShopLogic.canEquip(id, { tamago = true })), "NotOwned", id)
+				t.eq(ShopLogic.canEquip(id, { tamago = true, [id] = true }), true, id)
+				local coin = ShopLogic.canBuyWithCoins(id, { coins = 9999, ownedSkins = { tamago = true } } :: any)
+				t.eq(coin.reason, "NotForCoins", id)
 				t.eq(
 					select(2, ReceiptLogic.canRequest(id, { tamago = true }, { canSave = true, fake = true })),
-					"AlreadyOwned",
+					"NotRobux",
 					id
 				)
 				local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
-				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), view)), "입기", id)
-				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not saved as owned`)
+				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), view)), "🎫 뽑기로 얻기", id)
+				local ownedView =
+					{ coins = 0, equippedSkin = "tamago", ownedSkins = { id, "tamago" }, eventTokens = {} }
+				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView)), "입기", id)
+				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not owned in a new profile`)
 				local raw = ProfileSchema.new() :: any
 				raw.equippedSkin = id
 				local profile = ProfileLogic.migrate(raw)
-				t.eq(profile.equippedSkin, id, `{id} equip kept`)
-				t.eq(profile.ownedSkins[id], nil, `{id} still not owned in save`)
+				t.eq(profile.equippedSkin, "tamago", `{id} unowned equip falls back`)
+				raw.ownedSkins[id] = true
+				t.eq(ProfileLogic.migrate(raw).equippedSkin, id, `{id} owned equip kept`)
 			end
 		end
 	)

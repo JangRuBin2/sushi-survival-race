@@ -1,6 +1,6 @@
 --!strict
 -- m5-28 콘셉트 몸 실험 스킨 4종 (concept-tuna·shrimp·tamago·ikura): concept-salmon과 같은 밥·얼굴·팔다리·깜빡임 관절을
--- 쓰고 토핑만 달라요. 카탈로그·예외 범위, 저장 없이 모두가 가짐, 표정마다 파츠 ≤ 47·발바닥·겹침·떠 있음,
+-- 쓰고 토핑만 달라요. 카탈로그·예외 범위, 저장 없이 모두가 가짐, 표정마다 파츠 ≤ 70·발바닥·겹침·떠 있음,
 -- 진짜 Instance build, 공유 몸이 정말 같은지, 클라이언트 연결(표정 인형·팔 흔들기)이 이름으로 그대로 동작하는지.
 
 local fs = require("@lune/fs")
@@ -30,7 +30,7 @@ local NEW = {
 	{ "concept-ikura", "콘셉트 연어알 군함 (테스트)", 36, { "Wall", "RoeBed", "Roe1", "RoeTop1" } },
 }
 local SALMON = "concept-salmon"
-local BUDGET = 47
+local BUDGET = 70 -- m5-30: 사용자 결정 2026-10-14 (47 → 70)
 local RICE_FRONT = -1.35 -- 콘셉트 밥 앞면 z
 
 -- 표정·토핑과 무관하게 모든 콘셉트 스킨이 똑같아야 하는 파츠 (밥·받침·팔·다리)
@@ -196,7 +196,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 몸
 	t.test(
-		"레이아웃: 표정마다 파츠 ≤ 47, 발바닥 = GROUND_OFFSET, 이름표 아래, 효과 0, 겹침·떠 있음 0",
+		"레이아웃: 표정마다 파츠 ≤ 70, 발바닥 = GROUND_OFFSET, 이름표 아래, 효과 0, 겹침·떠 있음 0",
 		function()
 			t.eq(Sample.GAME_GROUND_OFFSET, SushiBody.GROUND_OFFSET)
 			for _, id in Sample.SKIN_IDS do

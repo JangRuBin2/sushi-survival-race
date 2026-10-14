@@ -2,7 +2,7 @@
 -- m5-29 콘셉트 몸 실험 스킨 2차 4종 (concept-unagi·uni·tako·inari): m5-28과 같은 밥·얼굴·팔다리·깜빡임 관절에
 -- 토핑만 달라요. 유부만 예외 — 공유 밥·받침 파츠의 색·재질이 유부(크기·위치는 같음), 입 덮개도 그 색을 따라가요.
 -- 카탈로그·대사, 저장 없이 모두가 가짐, 공유 몸, 유부 예외, 외곽 폭, 관절·깜빡임, 진짜 Instance build, 견본 경로.
--- 표정마다 파츠 ≤ 47·발바닥·이름표·겹침·떠 있음과 "토핑이 얼굴을 안 가려요"는 m5-28 테스트가 SKIN_IDS 전체로 봐요.
+-- 표정마다 파츠 ≤ 70·발바닥·이름표·겹침·떠 있음과 "토핑이 얼굴을 안 가려요"는 m5-28 테스트가 SKIN_IDS 전체로 봐요.
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
@@ -28,28 +28,28 @@ local NEW = {
 		"콘셉트 장어초밥 (테스트)",
 		37,
 		{ "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
-		{ "Band", "Eel", "NoriTop", "NoriFront", "NoriBack" },
+		{ "Band", "Eel", "Glaze", "Grill1", "Sesame1", "NoriTop", "NoriFront", "NoriBack", "NoriBackLow" },
 	},
 	{
 		"concept-uni",
 		"콘셉트 성게 군함 (테스트)",
 		38,
 		{ "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
-		{ "Band", "Lobe1", "Lobe4Back", "Leaf1" },
+		{ "Band", "UniBed", "Lobe1", "Lobe10Back", "Leaf1", "LeafMid" },
 	},
 	{
 		"concept-tako",
 		"콘셉트 문어초밥 (테스트)",
 		39,
 		{ "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
-		{ "Ridge", "Sucker1", "NoriRidge" },
+		{ "Ridge", "SkinLeft", "Sucker1", "Sucker1In", "Cut1", "NoriRidge" },
 	},
 	{
 		"concept-inari",
 		"콘셉트 유부초밥 (테스트)",
 		40,
 		{ "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
-		{ "LipFront", "InariRice", "InariFold" },
+		{ "LipFront", "InariRice", "InariCrease1", "InariSeed1" },
 	},
 }
 local INARI = "concept-inari"
@@ -272,7 +272,7 @@ return function(t: Test.Test)
 			t.ok(string.sub(name, 1, 3) ~= "Roe" and name ~= "Cucumber", `uni {name}`)
 		end
 		local unagi = byName(SushiBody.layout("concept-unagi"))
-		t.eq(unagi.Eel.material, "Glass")
+		t.eq(unagi.Glaze.material, "Glass") -- m5-30: 구운 살 판 위 타레 소스 층
 	end)
 
 	t.test(

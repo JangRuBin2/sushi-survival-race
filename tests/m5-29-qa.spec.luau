@@ -133,10 +133,10 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA: 게임에서 쓰는 모습(기본·우승 Happy·탈락 Hurt)에서 콘셉트 9종 모두 토핑이 얼굴 파츠를 앞에서 안 가려요",
+		"QA: 게임에서 쓰는 모습(기본·우승 Happy·탈락 Hurt + 견본 당황 Flustered, m5-30 B1)에서 콘셉트 9종 모두 토핑이 얼굴 파츠를 앞에서 안 가려요",
 		function()
 			for _, id in Sample.SKIN_IDS do
-				for _, expression in { nil :: string?, "Default", "Happy", "Hurt" } do
+				for _, expression in { nil :: string?, "Default", "Happy", "Hurt", "Flustered" } do
 					local layout = SushiBody.layout(id, expression)
 					for _, spec in layout do
 						-- 감은 눈(Lid)은 쉴 때 밥 속에 있어요 (깜빡임은 m5-29 관절 테스트가 봐요)

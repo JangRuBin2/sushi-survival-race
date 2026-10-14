@@ -1,5 +1,16 @@
 # m5-31 우승자 뽑기 티켓 — 기획 작업 기록
 
+## 2026-10-14 (2차) — 등급별 확률·샘플 화면으로 스펙 개정
+- 브랜치: main 체크아웃(문서만). developer는 다른 worktree(`m5-31-winner-ticket-draw`)에서 구현 중 — 같은 내용을 메인 세션이 먼저 전달함, 스펙을 그에 맞춤.
+- 끝난 것
+  - 사용자 샘플 `docs/귀여운 초밥 스킨 뽑기 UI.png` 직접 확인.
+  - 스펙 개정: 꽝 없는 등급별(1/5/15/30/49), `drawGrade` 표, 중복 코인 20/40/80/150/300, 빈 등급 비율 나누기(m5-31 실제 5.05/15.15/30.30/49.49, 표시 5.0/15.2/30.3/49.5 최대 나머지), `DrawLogic` API(grades·roll·displayPercents·perSkinPercent·featured), `Types.DrawResult` kind Skin|Duplicate, validate "drawGrade + robux" 허용, UI 절(샘플 11항목), AC1~AC16 lune / AC17~AC24 Studio. 1차 결정은 취소선으로 남김.
+  - REFERENCE §4(정책 재확인 [원문]: 퍼센트·합 100%·반올림 안내·"각 X%" 허용, 판매+랜덤 같이 있는 경우 문서 언급 없음), GDD 변경 이력·9.1·9.2·9.4·9.6·10, USER-TODO 열린 질문·C3·C4·답변 기록.
+- 남은 것: developer 구현 → QA. 개발 메모에 실제 필드 이름(`drawGrade`, `isDrawOnly` 등)이 스펙과 다르면 결정 기록에 남기게.
+- 다음 첫 단계: developer 브랜치의 구현이 스펙 AC4~AC6 숫자(5/99 등, 경계 0.0505/0.0506…)와 맞는지 QA가 확인.
+- 막힌 점: 없음.
+- 사용자 답을 기다리는 질문: 천장(영웅·전설 보장), 적은 인원 방 파밍, 성숙도 설문 답 확인.
+
 ## 2026-10-14 — 스펙 작성, `ready`, GDD v0.7
 - 브랜치: main 체크아웃 (문서만, 커밋은 메인 세션이 — planner에는 Bash 없음)
 - 끝난 것

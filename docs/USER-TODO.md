@@ -38,9 +38,9 @@
 - [ ] **보상 코드 정하기 (m5-10)** — 저장소가 공개라 진짜 코드는 커밋하지 않아요. `src/server/CodeList.example.luau`를 같은 폴더에 `CodeList.luau`로 복사하고 쓸 코드(대문자·숫자 3~20자)·보상·기간을 적으세요. 이 파일은 `.gitignore`라 **퍼블리시하는 PC에만** 있어야 실서버에 들어가요. **문서·테스트에 나온 예시(`SUSHI2026`, `SPOOKYSUSHI`, `EXAMPLE2026`, `EXAMPLESPOOKY`)는 공개돼 있으니 실제 코드는 다른 문자열로** 정하세요. 코드 문자열은 이 파일이나 "답변 기록"에도 적지 마세요(공개 저장소) — 에이전트에게 알려 줄 필요 없이 로컬 파일에만. 읽을 곳: [`docs/specs/m5-10-redeem-codes.md`](specs/m5-10-redeem-codes.md) "개발 메모"
 - [ ] **Survival 탈락 0명 허용 여부** — Survival 라운드에서 시간이 끝날 때까지 아무도 안 떨어지면 탈락 0명(전원 통과)이 될 수 있어요. **지금 구현은 허용**. 유지/막기 — 읽을 곳: [`docs/GDD.md`](GDD.md) §4.1, [`docs/specs/m2-05-match-flow.md`](specs/m2-05-match-flow.md) Q7
 - [ ] **🎫 우승자 뽑기 남은 결정 2개 (급하지 않음, 플레이테스트 뒤에 정해도 돼요)** — 읽을 곳: [`docs/specs/m5-31-winner-ticket-draw.md`](specs/m5-31-winner-ticket-draw.md) "열린 질문"
-  - 천장(보장): 지금은 매번 10%라 10장 연속 꽝이 약 35%로 나와요. 없음 유지(추천, 일단) / "20장 연속 꽝이면 다음은 당첨" 추가
+  - 천장(보장): 이제 꽝은 없지만 전설 고등어는 1%라 평균 100장, 50장 뽑아도 못 얻을 확률 약 60%(R$ 199로 살 수도 있음). 없음 유지(추천, 일단) / "N장마다 영웅 이상 보장" 추가
   - 4명 친구 방에서 우승 몰아주기로 티켓 모으기: 막지 않음 유지(추천, 일단) / "5명 이상 판에서만 티켓"
-  - 기본값(바꾸고 싶으면 알려 주세요): 티켓 상한 99장, 9종 다 가진 뒤 당첨 🍚 +100, 당첨 스킨 자동으로 안 입힘
+  - 기본값(바꾸고 싶으면 알려 주세요): 티켓 상한 99장, 새 스킨 자동으로 안 입힘(결과 화면 "입기"), 단상 대표 스킨 = 아직 없는 가장 높은 등급
 - [ ] **🐟 고등어 초밥 [신선] 남은 결정 (급하지 않음)** — 읽을 곳: [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md) "열린 질문"
   - 파츠 상한: 콘셉트 상한 70으로 먼저 만들고, 렌더로 부족하다는 근거가 나오면 이 스킨만 80까지 올릴지
   - 시트의 화남·슬픔 표정: 이번엔 뺌(게임에서 쓰는 곳 없음) — 나중에 이모트가 생기면
@@ -179,7 +179,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
     | unicorn-roll | 유니콘 롤 | 199 |
     | pumpkin-sushi | 호박 초밥 (할로윈 한정) | 99 |
     | santa-shrimp | 산타 새우 (크리스마스 한정) | 99 |
-  - **m5-32 전설 스킨 1개 더** (개발 전 — 스킨이 main에 들어간 뒤 만들어도 돼요): `fresh-mackerel` · 고등어 초밥 [신선] · **199**. id는 `src/shared/Skins.luau`의 `fresh-mackerel` `productId`에. 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
+  - **m5-32 전설 스킨 1개 더** (개발 전 — 스킨이 main에 들어간 뒤 만들어도 돼요): `fresh-mackerel` · 고등어 초밥 [신선] · **199** (🎫 뽑기 전설로도 나오지만 판매도 해요). id는 `src/shared/Skins.luau`의 `fresh-mackerel` `productId`에. 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
 - [ ] **C3-1. 특별 상품 5개 + 게임 패스 1개** (m5-08) — 스킨 상품 id와 겹치면 안 돼요
   - Developer Products 5개 → id를 `src/shared/Offers.luau`의 각 상품 `productId`에
 
@@ -194,7 +194,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - Studio 확인 순서: [`docs/qa/m5-08-offers-shop.md`](qa/m5-08-offers-shop.md) 체크리스트 (`fakeRobuxInStudio`·`fakeVipInStudio` 켜고, `persistDataInStudio`는 false, 확인 뒤 모두 false로)
 - [ ] **C4. 출시 설정** (m4-12) — 전체 체크리스트와 대응표: [`docs/specs/m4-12-release-hardening.md`](specs/m4-12-release-hardening.md) 개발 메모
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
-    - 설문의 **"유료 랜덤 아이템(paid random items)"** 질문: 🎫 우승자 뽑기(m5-31)는 우승으로만 받는 무료 티켓이라 Roblox 문서상 유료 랜덤 아이템이 아니에요 → "없음"으로 답하면 돼요. 나중에 티켓을 파는 상품을 만들면 답이 바뀌니(그래서 만들지 않아요) 설문 화면의 문구가 다르면 알려 주세요. 근거: [`docs/REFERENCE-winner-ticket-draw.md`](REFERENCE-winner-ticket-draw.md) §1
+    - 설문의 **"유료 랜덤 아이템(paid random items)"** 질문: 🎫 우승자 뽑기(m5-31)는 우승으로만 받는 무료 티켓이라 Roblox 문서상 유료 랜덤 아이템이 아니에요 → "없음"으로 답하면 돼요(고등어 [신선]을 로벅스로 팔아도 뽑기 자체는 돈으로 못 하니 그대로 "없음"). 나중에 티켓을 파는 상품이나 확률을 올리는 상품을 만들면 답이 바뀌니(그래서 만들지 않아요) 설문 화면의 문구가 다르면 알려 주세요. 근거: [`docs/REFERENCE-winner-ticket-draw.md`](REFERENCE-winner-ticket-draw.md) §1
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI는 m5-12, 아직 시작 전)
   - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
   - 개인정보 삭제 요청(Right to Erasure)이 오면 두 곳을 지워요. MemoryStore는 곧 만료되니 따로 지울 것 없음.
@@ -235,3 +235,10 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - 콘셉트 스타일 스킨을 **더 만든다** — 2차 4종 장어·성게 군함·문어·유부 (m5-28 열린 질문 3 → 결정됨, 스펙 [`docs/specs/m5-29-concept-skins-2.md`](specs/m5-29-concept-skins-2.md))
   - **우승자 뽑기 티켓**: 우승 1번 = 🎫 1장, 뽑기 = 스킨 10% / 꽝 90%(🍚 +20). 뽑기 풀 = 콘셉트 스킨 9종(이제 무료 아님·판매 아님, 뽑기로만). 이름 "○○ (특)". Studio에서는 모든 스킨 장착 가능(저장 안 함, `unlockAllSkinsInStudio`). 위의 "콘셉트 스킨 무료 테스트 유지" 결정은 이것으로 바뀜 — GDD v0.7 §9.1·9.6, 스펙 [`docs/specs/m5-31-winner-ticket-draw.md`](specs/m5-31-winner-ticket-draw.md)
   - **고등어 초밥 [신선]**: 시트 `docs/고등어 초밥 캐릭터 시트.png`, 전설 등급(R$ 199), 퀄리티 매우 높게, 고등어가 팔딱거리는 움직임이 핵심, 아주 신선한 비주얼, 이름 끝 [신선] — 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
+- 2026-10-14 2차 (세션 중 사용자 결정 — 뽑기 화면 샘플) — 반영됨
+  - 뽑기 화면은 샘플 `docs/귀여운 초밥 스킨 뽑기 UI.png`를 참고해 만든다(이미지 에셋 대신 Roblox 기본 UI 요소로)
+  - **확률: 꽝 없이 등급별** — 전설 1% / 영웅 5% / 희귀 15% / 고급 30% / 일반 49%(샘플 48% → 합 100 맞춤). 등급 안에서 균등. 이미 가진 스킨이면 코인 일반 20 / 고급 40 / 희귀 80 / 영웅 150 / 전설 300. 위의 "스킨 10% / 꽝 90% +20", "9종 다 가지면 +100"은 이것으로 바뀜
+  - 뽑기 등급: 연어 영웅, 성게·문어·연어알 희귀, 유부·장어·참치 고급, 새우·계란 일반. **전설 = 고등어 초밥 [신선]**
+  - **고등어 [신선]은 뽑기 전설로도 나오고 R$ 199 판매도** — 뽑기로 얻든 사든 같은 보유, 이미 가졌으면 구매 막음. 뽑기 자체는 돈으로 못 함
+  - 전설 스킨이 없는 동안(m5-32 전)은 전설 확률을 다른 등급에 비율대로 나누고 화면도 그 값을 보여 줌
+  - 스펙 [`docs/specs/m5-31-winner-ticket-draw.md`](specs/m5-31-winner-ticket-draw.md), [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md), GDD v0.7 §9.6

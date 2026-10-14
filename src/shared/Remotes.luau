@@ -39,7 +39,7 @@
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
---   SaveSettings(settings: Settings)         설정 저장 { muteLevel = 1~3 정수 } (m4-01, Config.Data.SettingsMinInterval)
+--   SaveSettings(patch: SettingsPatch)       설정 부분 저장 { muteLevel?: 1~3 정수, touchLayout?: { bucket, layout | reset } } (m4-01, m5-41: 틀리면 전체 무시, 칸마다 Config.Data.SettingsMinInterval)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")

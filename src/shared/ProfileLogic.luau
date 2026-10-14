@@ -179,9 +179,12 @@ function ProfileLogic.migrate(raw: unknown): (Profile, MigrateInfo)
 	end
 
 	if source.settings ~= nil then
-		local settings = ProfileSchema.sanitizeSettings(source.settings)
+		local settings, dropped = ProfileSchema.sanitizeStoredSettings(source.settings)
 		if settings then
 			profile.settings = settings
+			if dropped then
+				table.insert(notes, "settings.touchLayout was invalid, dropped") -- m5-41: 나머지는 그대로
+			end
 		else
 			table.insert(notes, "settings were invalid, reset")
 		end

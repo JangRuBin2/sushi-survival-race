@@ -14,7 +14,8 @@
 --                                                         바뀌면 ProfileUpdated를 다시 보내요. 프로필 로드 전에 불러도 기억해요
 --   DataService.setStudioUnlockAll(on)                    화면용 값 unlockAll (m5-31, Studio 전부 입기 — ShopService.init이
 --                                                         ShopLogic.unlockAllActive로 정해 알려 줘요). 모두의 화면에 붙고 저장하지 않아요
--- 리모트: SaveSettings({ muteLevel }) — 표·정수 1~3·요청 간격(Config.Data.SettingsMinInterval)을 검증하고
+-- 리모트: SaveSettings({ muteLevel?, touchLayout? }) — ProfileSchema.sanitizeSettings(부분 저장, m5-41)·칸별 요청 간격
+--   (Config.Data.SettingsMinInterval)을 검증하고
 -- 잘못된 값은 조용히 무시해요.
 --
 -- 저장: 저장소 Config.Data.StoreName, 키 u_<UserId>, 값 { profile, lock = { jobId, at }? } (ProfileLogic).
@@ -77,7 +78,7 @@ local loading: { [Player]: boolean } = {}
 local userBusy: { [number]: number } = {} -- UserId별로 아직 안 끝난 세션 수 (로드 중·저장/해제 중 포함)
 local saving: { [Session]: boolean } = {} -- 나간 사람 포함, 저장 중인 세션 (BindToClose가 기다려요)
 local dirtyView: { [Player]: boolean } = {} -- 이번 프레임 끝에 ProfileUpdated를 보낼 사람
-local lastSettingsAt: { [Player]: number } = {}
+local lastSettingsAt: { [Player]: { [string]: number } } = {} -- 칸 이름 → 마지막으로 받은 시각 (m5-41)
 local viewExtra: { [Player]: ProfileSchema.ViewExtra } = {} -- 저장하지 않는 화면용 값 (m5-03 setViewExtra)
 local loadedListeners: { (player: Player, profile: Profile) -> () } = {}
 
@@ -453,18 +454,22 @@ function DataService.saveNow(player: Player): boolean
 end
 
 local function onSaveSettings(player: Player, value: unknown)
-	local now = os.clock()
-	local last = lastSettingsAt[player]
-	if last and now - last < Config.Data.SettingsMinInterval then
+	-- 부분 저장 (m5-41): 틀린 칸이 하나라도 있으면 전체 무시, 요청 간격은 칸마다
+	local patch = ProfileSchema.sanitizeSettings(value)
+	if patch == nil then
 		return
 	end
-	lastSettingsAt[player] = now
-	local settings = ProfileSchema.sanitizeSettings(value)
-	if settings == nil then
+	local last = lastSettingsAt[player]
+	if last == nil then
+		last = {}
+		lastSettingsAt[player] = last
+	end
+	local accepted = ProfileSchema.acceptByInterval(patch, last, os.clock(), Config.Data.SettingsMinInterval)
+	if accepted == nil then
 		return
 	end
 	DataService.update(player, function(profile)
-		profile.settings.muteLevel = settings.muteLevel
+		ProfileSchema.applySettings(profile.settings, accepted)
 	end)
 end
 

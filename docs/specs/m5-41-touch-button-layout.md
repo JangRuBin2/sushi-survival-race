@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-41 — 모바일 터치 버튼 위치·크기 편집 (점프·다이브·잡기)
@@ -99,5 +99,40 @@ status: ready
 - 2026-10-14 · D5 라운드 중 편집 · 막는다. 편집 화면이 화면을 덮고 입력을 끄기 때문에 라운드 중에 열면 본인만 손해이고 실수로 열 수도 있다. 로비·대기실·관전·대기석에서만 · planner
 - 2026-10-14 · D6 금지 구역 수치 · 왼쪽 40%(조이스틱), 위 20% 또는 위쪽 바 + 8(채팅·메뉴·HUD), 안전 영역 여백 8, 크기 44px~짧은 변 35% — 정확한 썸스틱 크기는 확인 못 해 넉넉하게. **기본값, 사용 뒤 조정** · planner
 
+- 2026-10-14 · D7 (developer) 리모트 수 · main은 m5-31 뒤 RemoteFunction 16 + RemoteEvent 11 = **27개**. 스펙의 "26"은 그 전 기준이라 실제 코드 기준(27 그대로, 새 리모트 없음)으로 맞춤 · 메인 세션 지시
+- 2026-10-14 · D8 (developer) 맨 위 모르는 칸 · `SaveSettings`의 **맨 위** 모르는 칸(`coins` 등)은 예전처럼 읽지 않고 버림(m4-01·m4-07 QA 테스트가 고정). AC6의 "알 수 없는 키 거절"은 `touchLayout` 안(변경·배치·버튼 표)에 적용 — 키 수 상한(2·5·3)도 거기 · developer
+- 2026-10-14 · D9 (developer) 반올림 위치 · `fromScreen`은 반올림하지 않고(AC2 1px 왕복), 저장 직전 `quantize`(클라이언트)와 서버 `sanitizeLayout`이 소수 셋째 자리로 반올림. 폭 2400px에서는 셋째 자리만으로 ±1px을 못 지켜서(0.0005 × 2400 = 1.2px) 왕복 1px은 반올림 전 값으로 검사, 반올림 뒤는 휴대폰에서 2px 안으로 검사 · developer
+- 2026-10-14 · D10 (developer) 편집 잠금 단계 · `Starting`·`RoundIntro`·`RoundActive`이고 살아 있고 통과 전일 때 잠금(`TouchLayoutLogic.editLocked`). `Starting`도 넣음 — 곧 소개가 와서 열자마자 닫히는 일을 막으려고. 결과(`RoundResults`)·우승 화면·통과(대기석)·탈락(관전)은 열림 · developer
+- 2026-10-14 · D11 (developer) 잘못된 요청과 간격 · 예전에는 틀린 요청도 간격을 썼는데, 이제는 검증을 통과한 칸만 간격을 씀(칸별). 검증은 키 수 상한 때문에 늘 작게 끝남 · developer
+- 2026-10-14 · D12 (developer) 점프 버튼(D3) · 1차 구현은 "기본 JumpButton 옮기고 다시 적용". 자체 점프 버튼은 **만들지 않음** — Studio AC12에서 되돌아가거나 깜빡이면 그때 바꿈(사용자 확인 필요) · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-14 developer — 브랜치 `m5-41-touch-button-layout` (main d37a1c4 기준). 검증 5단계 통과(rojo build, stylua --check src tests tools, selene 0/0/0, lune 1942 passed 0 failed, luau-lsp 0).
+
+**바뀐 파일**
+- 새 `src/shared/TouchLayoutLogic.luau`(순수): 묶음, 비율↔픽셀, `clamp`/`clampOne`(크기 44px~짧은 변 35%·기본 0.7~1.6배, 안전 영역 여백 8, 왼쪽 40%, 위쪽 띠 max(위쪽 바+8, 높이 20%), 겹침 8px — 문제만 알리고 밀지 않음), `fit`(크기 줄이기 → 안 되면 default), `resolve`, 프리셋 3개, `move`/`resize`, 서버 검증 `sanitizeLayout`/`sanitizeChange`/`sanitizeStored`, `editLocked`, 편집 도구 칸 크기 `editorPanel`/`panelHeight`.
+- `src/shared/UiLayout.luau`: `spectateArrows(w, h, buttons?)`(없으면 예전 공식 그대로), `TOUCH_TOP_FORBIDDEN`.
+- `src/shared/ProfileSchema.luau`: `sanitizeSettings` 부분 저장(→ `SettingsPatch`), `acceptByInterval`(칸별 간격), `applySettings`(병합), `sanitizeStoredSettings`(불러오기), `toView`가 `touchLayout` 복사(없으면 예전 모양 `{ muteLevel }`).
+- `src/shared/ProfileLogic.luau`: 불러오기에서 `touchLayout`만 버리고 메모(버전 3 그대로).
+- `src/server/DataService.luau`: `onSaveSettings` = 검증 → 칸별 간격 → `update` 안에서 병합.
+- 공용: `Types.luau`(TouchLayout 타입들, `Settings.touchLayout?`, `SettingsPatch`), `Remotes.luau`(SaveSettings 주석 한 줄, 27개 그대로), `init.client.luau`(`TouchLayoutController` — Sfx 다음·DiveController 전, `SettingsButton` — 끝).
+- 새 `src/client/input/TouchLayoutController.luau`: 화면 재기(ScreenInsets None 기준 gui + DeviceSafeInsets gui + `GetGuiInset`), 저장값 → 버튼 셋, 점프 버튼 옮기기·되돌리면 다시 적용(`task.defer` 한 번), 편집 중 숨김, 잠금 추적, 저장(바로 적용, 1초 간격, 보낸 값은 프로필로 돌아올 때까지 6초 우선).
+- 새 `src/client/ui/TouchLayoutEditor.luau`, 새 `src/client/ui/SettingsButton.luau`.
+- `src/client/input/DiveButton.luau`·`GrabButton.luau`: 편집한 배치면 그 자리, 아니면 예전 계산(점프 실제 위치 기준), 편집 중 숨김·입력 무시. `src/client/ui/SpectateScreen.luau`: 화살표가 배치를 따름.
+- 테스트 새 `tests/touch-layout.spec.luau`(30개). 기존 테스트 수정 없음.
+- 안 겹침 확인: m5-32(스킨·캐릭터 fx·SfxCues)·m5-33~40(맵·maps/init·SfxCues) 파일은 안 건드림. `Config.luau`·`Attributes.luau`·`default.project.json` 안 바꿈.
+
+**Studio 확인 방법** (Test → Device 에뮬레이터, 가로)
+1. iPhone(작은 화면)으로 Play: 버튼 셋이 예전과 같은 자리(AC11 앞부분). 위쪽 바 음소거 왼쪽에 ⚙가 보임. PC 화면으로 돌아가면 ⚙ 없음(AC17).
+2. ⚙ → "✋ 버튼 위치 편집": 어두운 덮개, 왼쪽 빨간 띠(조이스틱 자리)에 도구 칸. 다이브를 끌어 옮기고 눌러서 "크게 +" → "저장" → 바로 그 자리·크기, 다이브가 됨(AC11).
+3. 점프를 옮겨 저장 → 리셋(캐릭터 리셋)·방 만들어 라운드 시작·기기 바꾸기 뒤에도 그 자리인지, 깜빡이지 않는지(AC12). **되돌아가면 알려 주세요**(D3 대안으로 바꿈).
+4. 끌어서 왼쪽 조이스틱 자리·위쪽 바·화면 밖으로 못 가는지, 두 버튼을 붙이면 빨간 테두리 + "저장" 회색, "작게 −"를 계속 눌러도 44px 아래로 안 가는지(AC13).
+5. 편집 중 복사본을 눌러도 다이브·잡기·점프가 안 나가는지, "취소"는 버리고, "기본값으로 → 저장"은 처음 배치, "크게"·"엄지 가까이"가 바로 보이는지(AC14).
+6. 혼자 Studio에서 방 시작(`minPlayersToStart = 1`): 소개·라운드 중 ⚙ 메뉴가 회색 "라운드 중에는 편집할 수 없어요", 편집을 열어 둔 채 시작하면 닫히고 버튼이 정상(AC15). 탈락 뒤 관전 중에는 열림.
+7. 리셋·로비 복귀 뒤 배치 유지, iPad로 바꾸면 태블릿 배치(따로), 다른 휴대폰 크기로 바꾸면 비율대로(AC16). 관전 중 ◀ ▶가 옮긴 버튼과 안 겹침(AC17).
+
+**남은 이슈**
+- AC11~AC17은 사용자 Studio 확인 필요. 특히 AC12(PlayerModule이 점프 버튼을 되돌리는지)는 실측 전.
+- 편집 화면 "기본" 프리셋과 "기본값으로"는 같은 동작(둘 다 저장하면 그 묶음 저장값을 지움) — 스펙 그대로.
+- 기본 배치에서 다이브·잡기 위치는 예전처럼 점프 실제 위치 기준이고, 편집 화면 시작값도 그 실제 위치(기기 점프 자리가 금지 구역에 걸치면 처음 손댈 때 규칙에 맞춰 옮겨짐).

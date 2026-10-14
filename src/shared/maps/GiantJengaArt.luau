@@ -1233,12 +1233,14 @@ end
 export type IntroPoint = { pos: Vec3, lookAt: Vec3 }
 
 -- ① 손이 블록을 뽑는 넓은 샷(탑 + 손 + 작업대 + 벽) → ② 작업대 높이에서 올려다보는 반전 샷 →
--- ③ 바깥 테두리 한 칸 클로즈업(옆) → ④ 가운데 안전지대(낮게, 가운데를 봐요). 전부 판정 경계 + 40 안.
+-- ②' 탑 +X/+Z 모서리 바깥을 돌아 (탑 앞줄을 뚫지 않게, QA m5-24 B1) → ③ 바깥 테두리 한 칸 클로즈업(옆) →
+-- ④ 가운데 안전지대(낮게, 가운데를 봐요). 전부 판정 경계 + 40 안, 점 사이 직선도 탑 밖.
 function Art.introCamera(): { IntroPoint }
 	local edge = (Layout.GRID_HALF + 0.5) * Layout.CELL_SIZE
 	return {
 		{ pos = v(-58, 38, 58), lookAt = v(-14, -10, -6) },
 		{ pos = v(-62, -30, 30), lookAt = v(0, -2, -4) },
+		{ pos = v(edge + 14, 4, edge + 14), lookAt = v(edge * 0.3, -3, edge * 0.3) },
 		{ pos = v(edge + 14, 6, edge * 0.6), lookAt = v(edge * 0.75, -2, edge * 0.45) },
 		{ pos = v(10, 10, 14), lookAt = v(0, 0, 0) },
 	}

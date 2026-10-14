@@ -1,4 +1,4 @@
-status: in-qa
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-31 — 우승자 뽑기 티켓 (🎫 무료 등급별 뽑기 · 특 스킨 9종 · Studio 전부 입기)
@@ -241,3 +241,8 @@ rojo build OK · stylua --check OK · selene 0 errors/0 warnings · `lune run te
 
 ### 남은 이슈
 - 뽑기 화면 모양은 Studio 확인 필요(렌더러 없음). 소리 id 미정(무음).
+
+### QA 반려 (2026-10-14, `docs/qa/m5-31-winner-ticket-draw.md`)
+- **in-dev 이유: [P2] B1** 휴대폰(짧은 변 ≤ 500)에서 뽑기 화면 버튼(상세 "입기" 약 17px, 표정 썸네일 29px, ⓘ·ⓘ 창 ✕ 26px, 결과 "확인"·"입기" 37px, "뽑기 시작하기" 38px — 844×390 계산)이 44px보다 작아 AC24를 못 지킴. `DrawScreen.setLayout`이 이 버튼들을 `UiLayout.touchSize`로 맞추지 않음. 이번 QA는 "P0~P2면 반려" 기준.
+- P3: B2 두근두근 중 배경 보유 목록이 먼저 바뀜, B3 휴대폰 배치(탭 3개·상세 아래 반쪽)가 스펙 UI 11과 다르고 결정 기록에 없음.
+- AC1~AC16 lune 통과(1906 passed, 0 failed), 서버 판정·보안 문제 없음.

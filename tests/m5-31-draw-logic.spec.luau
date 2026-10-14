@@ -134,7 +134,7 @@ local UNCOMMON_END = 50 / 99
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 특 9종 이름 '(특)'·drawGrade 표대로·가격 없음·id·order·대사·experimental 그대로, validate 통과",
+		"AC1: 특 9종 이름 '(특)'·drawGrade 표대로·가격 없음·id·order·대사·conceptBody 그대로, validate 통과",
 		function()
 			local orders = {
 				["concept-salmon"] = 32,
@@ -156,7 +156,7 @@ return function(t: Test.Test)
 				t.eq(skin.drawGrade, row[3], `{row[1]} grade`)
 				t.eq(Skins.drawGradeOf(row[1]), row[3])
 				t.eq(skin.tier, "Basic", `{row[1]} tier`)
-				t.eq(skin.experimental, true, `{row[1]} experimental`)
+				t.eq(skin.conceptBody, true, `{row[1]} conceptBody`)
 				t.eq(skin.order, orders[row[1]], `{row[1]} order`)
 				t.eq(#skin.speech, 2, `{row[1]} speech`)
 				t.eq(Skins.isDrawOnly(row[1]), true, row[1])
@@ -169,7 +169,7 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("AC1: DRAW_IDS(9) = drawGrade가 있는 id = EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL", function()
+	t.test("AC1: DRAW_IDS(9) = drawGrade가 있는 id = CONCEPT_BODY_IDS = SushiBody.CONCEPT_BODY", function()
 		local drawIds = {}
 		for _, skin in Skins.LIST do
 			if skin.drawGrade ~= nil then
@@ -177,8 +177,8 @@ return function(t: Test.Test)
 			end
 		end
 		t.eq(keys(drawIds), keys(Skins.DRAW_IDS))
-		t.eq(keys(Skins.DRAW_IDS), keys(Skins.EXPERIMENTAL_IDS))
-		t.eq(keys(Skins.DRAW_IDS), keys(SushiBody.EXPERIMENTAL))
+		t.eq(keys(Skins.DRAW_IDS), keys(Skins.CONCEPT_BODY_IDS))
+		t.eq(keys(Skins.DRAW_IDS), keys(SushiBody.CONCEPT_BODY))
 		t.eq(#keys(Skins.DRAW_IDS), 9)
 		t.eq(DrawLogic.totalSkins(), 9)
 		for _, id in { "tamago", "salmon", "no-such" } do

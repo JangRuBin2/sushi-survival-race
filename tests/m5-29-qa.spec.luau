@@ -90,13 +90,13 @@ return function(t: Test.Test)
 		"QA: 나중에 새 4종 id를 예외 목록에서 빼도 장착값은 계란초밥으로 안전하게 돌아가요",
 		function()
 			for _, id in NEW do
-				Skins.EXPERIMENTAL_IDS[id] = nil
+				Skins.CONCEPT_BODY_IDS[id] = nil
 				local ok, result = pcall(function()
 					local raw = ProfileSchema.new() :: any
 					raw.equippedSkin = id
 					return ProfileLogic.migrate(raw)
 				end)
-				Skins.EXPERIMENTAL_IDS[id] = true
+				Skins.CONCEPT_BODY_IDS[id] = true
 				t.ok(ok, `{id} migrate after removal`)
 				t.eq((result :: any).equippedSkin, "tamago", `{id} falls back to tamago`)
 			end

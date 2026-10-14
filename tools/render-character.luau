@@ -20,6 +20,13 @@
 -- gameplay-back/front·mobile-back/front·compare(지금 게임 연어 ↔ 견본, 3/4·뒤). 배우 id "concept:<표정>:<자세>[:<스킨 id>]".
 -- m5-28: --sample concept-tuna 처럼 콘셉트 몸 스킨 id를 주면 같은 그림 묶음을 그 토핑으로 <out>/<light>/<스킨 id>/에 그려요
 -- (compare는 같은 음식의 지금 게임 스킨 ↔ 콘셉트, 예: tuna ↔ concept-tuna). --sample concept = concept-salmon 견본(예전 그대로).
+-- m5-32 콘셉트 몸 게임 스킨 (SushiBody.CONCEPT_BODY에 있는 판매 스킨, 예 fresh-mackerel): 스킨 id를 주면 게임 레이아웃
+-- (관절 포함)으로 <out>/<light>/<skinId>/에 turntable·expressions(표정 6종)·gameplay-back/front·mobile-back/front·
+-- compare(golden-otoro·concept-salmon과)·poses(대표 자세 8칸)·flop-strip(착지 팔딱 8프레임)·sheet-compare(사용자 시트
+-- 정면·3/4·후면 ↔ 같은 각도 렌더)를 그려요.
+--   --pose <이름|all>  CharacterAnimLogic.fishTestPoses의 자세(Rest·TailLeft·TailRight·JumpArch·LandPeak·Knocked·Hurt·
+--                      Splash)를 관절에 적용해 그려요 (SushiBody.posed — 테스트 AC4와 같은 계산). turntable에 붙어요
+--   --sheet <png>      sheet-compare에 붙일 시트 (기본 docs/고등어 초밥 캐릭터 시트.png)
 -- 한계: tools/render-map과 같아요 (Sparkles·Decal·SurfaceGui·이름표는 안 그려요, 파티클은 한 순간의 점 구름).
 -- gameplay 뷰의 이름표는 렌더 뒤에 5×7 픽셀 글자로 흉내만 내요 (진짜는 GothamBold 18px).
 
@@ -48,11 +55,19 @@ local quality = "high"
 local viewArg = "all"
 local lightArg = "both"
 local sampleArg: string? = nil
+local poseArg: string? = nil
+local sheetArg = "docs/고등어 초밥 캐릭터 시트.png"
 
 local i = 1
 while i <= #args do
 	local a = args[i]
-	if a == "--out" then
+	if a == "--pose" then
+		poseArg = args[i + 1]
+		i += 1
+	elseif a == "--sheet" then
+		sheetArg = args[i + 1]
+		i += 1
+	elseif a == "--out" then
 		outDir = args[i + 1]
 		i += 1
 	elseif a == "--quality" then
@@ -98,6 +113,18 @@ local SushiBody = Shims.require(Shared.SushiBody)
 local Skins = Shims.require(Shared.Skins)
 local MapLighting = Shims.require(Shared.maps.MapLighting)
 local ConceptSample = Shims.require(Shared.SushiConceptSample)
+local CharacterAnimLogic = Shims.require(Shared.CharacterAnimLogic)
+
+-- 대표 자세 (m5-32): 이름 → FishPose
+local FISH_POSES: { [string]: any } = {}
+local FISH_POSE_ORDER: { string } = {}
+for _, item in CharacterAnimLogic.fishTestPoses() do
+	FISH_POSES[item.name] = item.pose
+	table.insert(FISH_POSE_ORDER, item.name)
+end
+if poseArg ~= nil and poseArg ~= "all" then
+	assert(FISH_POSES[poseArg] ~= nil, `unknown --pose {poseArg} (poses: {table.concat(FISH_POSE_ORDER, ", ")})`)
+end
 
 local skinIds: { string } = {}
 for _, skin in Skins.LIST do
@@ -174,10 +201,39 @@ local function conceptArgs(id: string): (string?, string?, string?)
 	return expression, pose, skinId
 end
 
+-- 게임 스킨 배우 (m5-32): "<스킨 id>#<표정>#<자세>" — 표정·자세는 비워도 돼요 (예 "fresh-mackerel##LandPeak").
+-- 자세 "land<i>/<n>" = 착지 팔딱 n칸 중 i번째 (flop-strip)
+local function gameArgs(id: string): (string?, string?, string?)
+	local skinId, expression, pose = string.match(id, "^([^#]+)#([^#]*)#([^#]*)$")
+	if skinId == nil then
+		return nil, nil, nil
+	end
+	return skinId, if expression == "" then nil else expression, if pose == "" then nil else pose
+end
+
+local function fishPoseOf(name: string): any
+	local index, count = string.match(name, "^land(%d+)/(%d+)$")
+	if index then
+		return CharacterAnimLogic.fishLandStrip(tonumber(count) :: number)[tonumber(index) :: number].pose
+	end
+	return assert(FISH_POSES[name], `unknown pose {name}`)
+end
+
 local function layoutOf(id: string): { any }
 	local expression, pose, skinId = conceptArgs(id)
 	if expression then
 		return ConceptSample.layout(expression, pose, skinId)
+	end
+	local gameSkin, gameExpression, gamePose = gameArgs(id)
+	if gameSkin then
+		local layout = SushiBody.layout(gameSkin, gameExpression)
+		if gamePose then
+			layout = SushiBody.posed(layout, CharacterAnimLogic.fishMotion(fishPoseOf(gamePose)))
+		end
+		return layout
+	end
+	if poseArg ~= nil and poseArg ~= "all" and SushiBody.CONCEPT_BODY[id] then
+		return SushiBody.posed(SushiBody.layout(id), CharacterAnimLogic.fishMotion(FISH_POSES[poseArg]))
 	end
 	return SushiBody.layout(id)
 end
@@ -188,7 +244,9 @@ end
 
 local function placeCharacter(scene: Scene.Scene, id: string, x: number, z: number, yaw: number): any
 	local expression, pose, skinId = conceptArgs(id)
-	local model = if expression then ConceptSample.build(expression, pose, skinId) else SushiBody.build(id)
+	local model = if expression
+		then ConceptSample.build(expression, pose, skinId)
+		else SushiBody.buildLayout(layoutOf(id), `SushiBody_{id}`)
 	model:PivotTo(roblox.CFrame.new(x, groundOffsetOf(id), z) * roblox.CFrame.Angles(0, yaw, 0))
 	Scene.addModel(scene, model)
 	return model
@@ -512,6 +570,132 @@ local function renderConcept(root: string, lighting: any, skinId: string?)
 	end
 end
 
+-- ── 콘셉트 몸 게임 스킨 (m5-32) ───────────────────────────────────────
+local function gameId(skinId: string, expression: string?, pose: string?): string
+	return `{skinId}#{expression or ""}#{pose or ""}`
+end
+
+-- 칸 여러 개를 한 줄로 (cells = { { id, azimuth, elevation, label } })
+local function renderRow(path: string, lighting: any, cells: { any }, w: number, h: number)
+	local pad = 6
+	local sheet = Sheet.new(pad + #cells * (w + pad), pad * 2 + h + LABEL_H, { 200, 200, 204 })
+	for index, cell in cells do
+		local image = labelled(portrait(cell[1], lighting, cell[2], cell[3], w, h), cell[4])
+		local x, y = Sheet.cellOrigin(index, #cells, w, h + LABEL_H, pad)
+		Sheet.blit(sheet, image, x, y)
+	end
+	save(path, sheet)
+end
+
+-- 사용자 시트의 정면·3/4·후면 (1536×1024 시트 기준 칸, 크기가 다르면 비율로)
+local SHEET_CROPS = {
+	{ label = "SHEET FRONT", x = 20, y = 170, w = 500, h = 420, azimuth = 0, elevation = 6 },
+	{ label = "SHEET 3/4", x = 520, y = 170, w = 500, h = 420, azimuth = 40, elevation = 10 },
+	{ label = "SHEET BACK", x = 1030, y = 170, w = 500, h = 420, azimuth = 180, elevation = 10 },
+}
+
+local function renderSheetCompare(path: string, lighting: any, skinId: string)
+	local w, h, pad = 360, 300, 6
+	local cols = #SHEET_CROPS
+	local sheet = Sheet.new(pad + cols * (w + pad), pad * 3 + 2 * (h + LABEL_H), { 200, 200, 204 })
+	local okSheet, bytes = pcall(fs.readFile, sheetArg)
+	local sw, sh, rgb = 0, 0, buffer.create(0)
+	if okSheet then
+		sw, sh, rgb = Png.decode(bytes)
+	end
+	for index, crop in SHEET_CROPS do
+		local x, y = Sheet.cellOrigin(index, cols, w, h + LABEL_H, pad)
+		if okSheet then
+			local fx, fy = sw / 1536, sh / 1024
+			local image = Sheet.cropResize(
+				{ width = sw, height = sh, rgb = rgb },
+				crop.x * fx,
+				crop.y * fy,
+				crop.w * fx,
+				crop.h * fy,
+				w,
+				h
+			)
+			Sheet.blit(sheet, labelled(image, crop.label), x, y)
+		end
+		local render = portrait(gameId(skinId, nil, nil), lighting, crop.azimuth, crop.elevation, w, h)
+		Sheet.blit(sheet, labelled(render, `RENDER {string.sub(crop.label, 7)}`), x, y + h + LABEL_H + pad)
+	end
+	save(path, sheet)
+end
+
+local function renderConceptSkin(root: string, lighting: any, skinId: string)
+	local dir = `{root}/{skinId}`
+	fs.writeDir(dir)
+	if wants("turntable") then
+		local poseName = if poseArg and poseArg ~= "all" then poseArg else nil
+		renderTurntable(
+			dir,
+			lighting,
+			gameId(skinId, nil, poseName),
+			if poseName then `turntable-{poseName}` else "turntable",
+			if poseName then `{skinId} {poseName}` else skinId
+		)
+	end
+	if wants("face") or wants("expressions") then
+		local cells = {}
+		for _, expression in ConceptSample.EXPRESSIONS do
+			table.insert(cells, { gameId(skinId, expression, nil), 18, 8, string.upper(expression) })
+		end
+		renderRow(`{dir}/expressions.png`, lighting, cells, 260, 260)
+	end
+	if wants("poses") then
+		local cells = {}
+		for _, name in FISH_POSE_ORDER do
+			table.insert(cells, { gameId(skinId, if name == "Hurt" then "Hurt" else nil, name), 30, 10, string.upper(name) })
+		end
+		renderRow(`{dir}/poses.png`, lighting, cells, 240, 260)
+	end
+	if wants("flop") then
+		local frames = 8
+		local strip = CharacterAnimLogic.fishLandStrip(frames)
+		local cells = {}
+		for index, frame in strip do
+			table.insert(cells, {
+				gameId(skinId, nil, `land{index}/{frames}`),
+				0,
+				6,
+				string.format("T %.2fS", frame.time),
+			})
+		end
+		renderRow(`{dir}/flop-strip.png`, lighting, cells, 220, 240)
+	end
+	if wants("compare") then
+		local cells = {}
+		for _, other in { skinId, "golden-otoro", "concept-salmon" } do
+			local id = if other == skinId then gameId(skinId, nil, nil) else other
+			table.insert(cells, { id, 30, 10, `{string.upper(other)} 3/4` })
+			table.insert(cells, { id, 180, 10, `{string.upper(other)} BACK` })
+		end
+		renderRow(`{dir}/compare.png`, lighting, cells, 240, 280)
+	end
+	if wants("sheet") then
+		renderSheetCompare(`{dir}/sheet-compare.png`, lighting, skinId)
+	end
+	if wants("gameplay") then
+		-- 뒤 카메라: 나 = 이 스킨(달리며 꼬리를 흔드는 순간), 앞에 장어(특)·판매 장어 / 앞 카메라: 연어(특)·이 스킨·판매 장어
+		local back: { Actor } = {
+			{ id = gameId(skinId, nil, "TailLeft"), x = 0, z = 0, turn = 0 },
+			{ id = "concept-unagi", x = -4, z = 8, turn = 160, tag = "Player2" },
+			{ id = "eel", x = 5, z = 16, turn = 100, tag = "Player3" },
+		}
+		local front: { Actor } = {
+			{ id = "concept-salmon", x = -3.4, z = 1, turn = 180, tag = "Player1" },
+			{ id = gameId(skinId, nil, "Splash"), x = 0, z = 3, turn = 175, tag = "Player2" },
+			{ id = "eel", x = 3.4, z = 1, turn = 185, tag = "Player3" },
+		}
+		renderGameplay(dir, lighting, "gameplay-back", back, 960, 540)
+		renderGameplay(dir, lighting, "gameplay-front", front, 960, 540)
+		renderGameplay(dir, lighting, "mobile-back", back, 480, 270)
+		renderGameplay(dir, lighting, "mobile-front", front, 480, 270)
+	end
+end
+
 -- ── 통계 ────────────────────────────────────────────────────────────
 local function skinStats(id: string): string
 	local layout = SushiBody.layout(id)
@@ -602,6 +786,33 @@ if sampleArg ~= nil then
 	for _, expression in ConceptSample.EXPRESSIONS do
 		print(`  {expression}: {#ConceptSample.layout(expression, nil, skinId)} parts`)
 	end
+	process.exit(0)
+end
+
+if skinArg ~= "all" and SushiBody.CONCEPT_BODY[skinArg] ~= nil then
+	for _, light in LIGHTS do
+		local t0 = os.clock()
+		renderConceptSkin(`{outDir}/{light.name}`, light.lighting, skinArg)
+		print(
+			string.format(
+				"[render-character] %s %s: %s/%s/%s (%.1fs)",
+				skinArg,
+				light.name,
+				outDir,
+				light.name,
+				skinArg,
+				os.clock() - t0
+			)
+		)
+	end
+	fs.writeDir(outDir)
+	local lines = {}
+	for _, expression in ConceptSample.EXPRESSIONS do
+		table.insert(lines, `{expression}: {#SushiBody.layout(skinArg, expression)} parts`)
+	end
+	table.insert(lines, skinStats(skinArg))
+	fs.writeFile(`{outDir}/stats.txt`, table.concat(lines, "\n") .. "\n")
+	print(table.concat(lines, "\n"))
 	process.exit(0)
 end
 

@@ -91,7 +91,7 @@ return function(t: Test.Test)
 				t.eq(skin.displayName, row[2], `{id} name`)
 				t.eq(skin.order, row[3], `{id} order`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
-				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.conceptBody, true, `{id} conceptBody`)
 				t.ok(Skins.drawGradeOf(id) ~= nil, `{id} drawGrade`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)
@@ -113,7 +113,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"예외 목록: Skins.EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
+		"예외 목록: Skins.CONCEPT_BODY_IDS = SushiBody.CONCEPT_BODY = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
 		function()
 			local expected = table.clone(Sample.SKIN_IDS)
 			table.sort(expected)
@@ -126,11 +126,11 @@ return function(t: Test.Test)
 				return list
 			end
 			t.eq(#expected, 9)
-			t.eq(keys(Skins.EXPERIMENTAL_IDS), expected)
-			t.eq(keys(SushiBody.EXPERIMENTAL), expected)
+			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
+			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
 			for _, id in Sample.SKIN_IDS do
-				t.eq(SushiBody.EXPERIMENTAL[id].partBudget, BUDGET, id)
-				t.eq(SushiBody.EXPERIMENTAL[id].expressions, Sample.EXPRESSIONS, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, BUDGET, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].expressions, Sample.EXPRESSIONS, id)
 			end
 		end
 	)
@@ -152,19 +152,19 @@ return function(t: Test.Test)
 					t.eq((Skins.validate(list)), false, `{id} {change[1]}`)
 				end
 			end
-			-- 예외 목록에 없는 새 id에 experimental을 달면 잡아요 (범위가 명시적 목록뿐)
+			-- 예외 목록에 없는 새 id에 conceptBody를 달면 잡아요 (범위가 명시적 목록뿐)
 			local list = table.clone(Skins.LIST) :: { any }
 			table.insert(list, {
 				id = "concept-nope", -- m5-29: concept-unagi가 목록에 들어가 다른 id로
 				displayName = "x",
 				tier = "Basic",
-				experimental = true,
+				conceptBody = true,
 				speech = { "a" },
 				order = 99,
 			})
 			local ok, problems = Skins.validate(list)
 			t.eq(ok, false)
-			t.ok(string.find(table.concat(problems, ";"), "experimental only for", 1, true) ~= nil, "id scope")
+			t.ok(string.find(table.concat(problems, ";"), "conceptBody only for", 1, true) ~= nil, "id scope")
 		end
 	)
 

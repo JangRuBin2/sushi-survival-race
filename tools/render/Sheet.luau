@@ -165,4 +165,30 @@ function Sheet.downscale(src: Image, factor: number): Image
 	return out
 end
 
+-- 잘라 내서 w×h로 맞추기 (가장 가까운 점 + 2×2 평균, m5-32 사용자 시트 붙이기)
+--   Sheet.cropResize(src, x, y, cw, ch, w, h) -> Image
+function Sheet.cropResize(src: Image, x: number, y: number, cw: number, ch: number, w: number, h: number): Image
+	local out = Sheet.new(w, h)
+	for py = 0, h - 1 do
+		for px = 0, w - 1 do
+			local sx = x + (px + 0.5) * cw / w
+			local sy = y + (py + 0.5) * ch / h
+			local r, g, b = 0, 0, 0
+			for _, d in { { -0.25, -0.25 }, { 0.25, -0.25 }, { -0.25, 0.25 }, { 0.25, 0.25 } } do
+				local ix = math.clamp(math.floor(sx + d[1] * cw / w), 0, src.width - 1)
+				local iy = math.clamp(math.floor(sy + d[2] * ch / h), 0, src.height - 1)
+				local o = (iy * src.width + ix) * 3
+				r += buffer.readu8(src.rgb, o)
+				g += buffer.readu8(src.rgb, o + 1)
+				b += buffer.readu8(src.rgb, o + 2)
+			end
+			local o = (py * w + px) * 3
+			buffer.writeu8(out.rgb, o, math.floor(r / 4 + 0.5))
+			buffer.writeu8(out.rgb, o + 1, math.floor(g / 4 + 0.5))
+			buffer.writeu8(out.rgb, o + 2, math.floor(b / 4 + 0.5))
+		end
+	end
+	return out
+end
+
 return Sheet

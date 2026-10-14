@@ -901,7 +901,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		detailBadge.BackgroundColor3 = gradeColor(grade)
 		detailName.Text = skin.displayName
 		detailLine.Text = `💬 "{skin.speech[1]}"`
-		local rule = SushiBody.EXPERIMENTAL[id]
+		local rule = SushiBody.CONCEPT_BODY[id]
 		local expressions: { string } = if rule then rule.expressions :: any else {}
 		if detailFor ~= id then
 			-- 다른 스킨: 썸네일을 새로 만들어요 (같은 스킨이면 다시 안 만들어요)
@@ -1095,7 +1095,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	for i, holder in exprHolders do
 		Kit.onClick(holder, function()
 			local id = detailFor
-			local rule = if id then SushiBody.EXPERIMENTAL[id] else nil
+			local rule = if id then SushiBody.CONCEPT_BODY[id] else nil
 			local expressions: { string } = if rule then rule.expressions :: any else {}
 			if expressions[i] then
 				detailExpression = expressions[i]

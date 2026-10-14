@@ -90,7 +90,7 @@ return function(t: Test.Test)
 				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
 				local pid = skin.productId
 				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-				if row[1] == "tamago" or Skins.EXPERIMENTAL_IDS[row[1]] then
+				if row[1] == "tamago" or Skins.CONCEPT_BODY_IDS[row[1]] then
 					t.eq(pid, nil, "default skin has no product")
 				end
 				t.eq(Skins.get(row[1]), skin)
@@ -233,8 +233,8 @@ return function(t: Test.Test)
 			local base = byName(SushiBody.layout("tamago"))
 			t.eq(#SushiBody.BASE_NAMES, 22)
 			for _, skin in Skins.LIST do
-				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
-				if skin.experimental then
+				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.CONCEPT_BODY)
+				if skin.conceptBody then
 					local sb = SushiBody.bounds(SushiBody.layout(skin.id))
 					t.ok(math.abs(-sb.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {sb.min[2]}`)
 					continue
@@ -271,8 +271,8 @@ return function(t: Test.Test)
 		function()
 			local base = extents(SushiBody.layout("tamago"))
 			for _, skin in Skins.LIST do
-				if skin.experimental then
-					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				if skin.conceptBody then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.CONCEPT_BODY)
 				end
 				local size = extents(SushiBody.layout(skin.id))
 				local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier] or TOLERANCE

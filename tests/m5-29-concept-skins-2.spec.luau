@@ -121,7 +121,7 @@ return function(t: Test.Test)
 				t.eq(skin.speech, row[4], `{id} speech`)
 				t.eq(Cutscene.SKIN_LINES[id], row[4], `{id} elimination lines`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
-				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.conceptBody, true, `{id} conceptBody`)
 				t.ok(Skins.drawGradeOf(id) ~= nil, `{id} drawGrade`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)

@@ -173,7 +173,7 @@ return function(t: Test.Test)
 					t.eq(part.CastShadow, specs[name].attach == nil, `{skin.id} {name} CastShadow`)
 				end
 				-- 실험 스킨 concept-salmon(m5-27)은 팔 2개가 더 있어요 (눈 2·감은 눈 2·발 2·팔 2)
-				t.eq(motors, if skin.experimental then 8 else 6, `{skin.id} motors`)
+				t.eq(motors, if skin.conceptBody then 8 else 6, `{skin.id} motors`)
 			end
 		end
 	)

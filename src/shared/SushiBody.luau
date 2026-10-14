@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -24,6 +24,7 @@
 -- 판정은 휴머노이드라 스킨·모양과 무관해요. 초밥 파츠는 보이기만 해요 (Massless, 충돌·쿼리·터치 없음).
 -- 좌표: Body 중심 기준, 앞 = -Z (눈이 있는 쪽), 위 = +Y. 발바닥 y = -2.2, 기본 꼭대기 y = 2.3 (높이 4.5).
 
+local PartMath = require(script.Parent.PartMath)
 local SushiConceptSample = require(script.Parent.SushiConceptSample)
 
 local SushiBody = {}
@@ -49,6 +50,9 @@ export type PartSpec = {
 	transparency: number?, -- 0~1, 없으면 0 (m5-07 유령 천)
 	joint: boolean?, -- true면 WeldConstraint 대신 Motor6D(PART_JOINT_NAME)로 Body에 붙어요 — 클라이언트 움직임용 (m5-25)
 	attach: string?, -- 이 이름의 파츠에 용접 (없으면 Body). 눈동자·하이라이트가 눈 테두리를 따라 움직이게 (m5-25)
+	-- joint + attach면 Motor6D의 Part0이 그 파츠예요 — 관절 사슬 (m5-32 고등어 FishRoot → FishMid → FishTail)
+	pivot: { number }?, -- 관절 경첩 (Body 좌표, m5-32). Motor6D 속성 "Pivot"으로 복사돼요 (없으면 파츠 중심)
+	reach: { number }?, -- 물방울 관절이 splash 1일 때 옮겨 가는 거리 (Body 축, m5-32). Motor6D 속성 "Reach"
 }
 
 export type Bounds = {
@@ -57,7 +61,7 @@ export type Bounds = {
 }
 
 local DEFAULT_ID = "tamago"
--- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부, Skins.EXPERIMENTAL_IDS와 같은 id)
+-- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부, Skins.CONCEPT_BODY_IDS와 같은 id)
 local CONCEPT_IDS: { [string]: boolean } = {}
 for _, id in SushiConceptSample.SKIN_IDS do
 	CONCEPT_IDS[id] = true
@@ -975,15 +979,24 @@ end
 SushiBody.GROUND_OFFSET = 2.25
 assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concept skin feet must match GROUND_OFFSET")
 
--- 실험 스킨의 명시적 예외 (m5-27·m5-28). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
--- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
-type ExperimentalRule = { partBudget: number, expressions: { string } }
-local experimental: { [string]: ExperimentalRule } = {}
+-- 콘셉트 몸 스킨의 명시적 예외 (m5-27·m5-28, m5-32에서 이름을 바꿈). 여기 있는 id만 BASE_NAMES 검사를 건너뛰고,
+-- 파츠 상한은 partBudget. 외곽은 boundsTolerance가 있으면 concept-salmon 외곽과 비교해요(m5-32 고등어 — 전설 ±25%),
+-- 없으면 비교하지 않아요(특 9종). 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요.
+-- 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
+export type ConceptBodyRule = { partBudget: number, expressions: { string }, boundsTolerance: number? }
+local conceptBody: { [string]: ConceptBodyRule } = {}
 for id in CONCEPT_IDS do
 	-- 파츠 상한 70 (m5-30, 사용자 결정 2026-10-14: 토핑 디테일을 위해 47 → 70)
-	experimental[id] = { partBudget = 70, expressions = SushiConceptSample.EXPRESSIONS :: any }
+	conceptBody[id] = { partBudget = 70, expressions = SushiConceptSample.EXPRESSIONS :: any }
 end
-SushiBody.EXPERIMENTAL = experimental
+-- m5-32 고등어 [신선]: 파츠 상한 80 (사용자 결정 2026-10-14 3차 — 이 스킨만), 전설 외곽 ±25% (concept-salmon 기준)
+conceptBody["fresh-mackerel"] = {
+	partBudget = 80,
+	expressions = SushiConceptSample.EXPRESSIONS :: any,
+	boundsTolerance = 0.25,
+}
+SushiBody.CONCEPT_BOUNDS_BASE = "concept-salmon" -- boundsTolerance 비교 기준 스킨
+SushiBody.CONCEPT_BODY = conceptBody
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
 
@@ -1057,6 +1070,8 @@ local function copySpec(spec: PartSpec): PartSpec
 		transparency = spec.transparency,
 		joint = spec.joint,
 		attach = spec.attach,
+		pivot = copyList(spec.pivot),
+		reach = copyList(spec.reach),
 	}
 end
 
@@ -1184,11 +1199,11 @@ local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 	end
 end
 
-function SushiBody.build(appearanceId: string, expression: string?): Model
+-- 레이아웃(파츠 목록)으로 Model을 만들어요. build가 쓰고, 렌더 도구가 포즈를 적용한 레이아웃(posed)을 그릴 때도 써요
+function SushiBody.buildLayout(layout: { PartSpec }, modelName: string): Model
 	local model = Instance.new("Model")
-	model.Name = `SushiBody_{appearanceId}`
+	model.Name = modelName
 
-	local layout = SushiBody.layout(appearanceId, expression)
 	local parts: { [string]: BasePart } = {}
 	for _, spec in layout do
 		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만
@@ -1236,14 +1251,23 @@ function SushiBody.build(appearanceId: string, expression: string?): Model
 			continue
 		end
 		if spec.joint then
+			-- 관절 사슬 (m5-32): attach가 있으면 그 파츠가 Part0 (없으면 Body)
+			local parent = (spec.attach and parts[spec.attach]) or body
 			local motor = Instance.new("Motor6D")
 			motor.Name = SushiBody.PART_JOINT_NAME
-			motor.Part0 = body
+			motor.Part0 = parent
 			motor.Part1 = part
-			-- C0 = 파츠 자리(회전 포함), C1 = 원점. Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을
-			-- C0:VectorToObjectSpace로 바꿔 넣어요 (CharacterFxController)
-			motor.C0 = part.CFrame
+			-- C0 = 부모 기준 파츠 자리(회전 포함), C1 = 원점 → Transform이 identity면 레이아웃 자리 그대로.
+			-- Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을 C0:VectorToObjectSpace로 바꿔 넣어요
+			-- (CharacterFxController). Body가 부모면 C0 = 파츠 자리(예전 그대로)
+			motor.C0 = if parent == body then part.CFrame else parent.CFrame:Inverse() * part.CFrame
 			motor.C1 = CFrame.identity
+			if spec.pivot then
+				motor:SetAttribute("Pivot", vec(spec.pivot))
+			end
+			if spec.reach then
+				motor:SetAttribute("Reach", vec(spec.reach))
+			end
 			motor.Parent = part
 		else
 			local anchor = (spec.attach and parts[spec.attach]) or body
@@ -1256,6 +1280,75 @@ function SushiBody.build(appearanceId: string, expression: string?): Model
 
 	model.PrimaryPart = body
 	return model
+end
+
+function SushiBody.build(appearanceId: string, expression: string?): Model
+	return SushiBody.buildLayout(SushiBody.layout(appearanceId, expression), `SushiBody_{appearanceId}`)
+end
+
+-- 관절 하나의 움직임 (m5-32, CharacterAnimLogic.fishMotion이 만들어요). Body 축 기준, pivot(경첩)을 중심으로 돌고 옮겨요.
+--   angles  라디안 {x, y, z} (CFrame.Angles 순서), move = 이동 {x, y, z}, reach = 파츠 reach(물방울)에 곱하는 0~1
+export type Motion = { angles: { number }?, move: { number }?, reach: number? }
+
+-- 관절 움직임을 레이아웃 좌표에 순수 계산으로 적용한 새 파츠 목록 (테스트 AC4·렌더 도구 --pose). 클라이언트의
+-- Motor6D와 같은 규칙: 관절 파츠 = 부모의 움직임 · 자기 움직임 · 쉰 자리, 붙는 파츠 = 붙은 파츠를 그대로 따라가요.
+-- 움직임이 없는 파츠는 원래 값 그대로(회전 nil 포함)예요.
+function SushiBody.posed(layout: { PartSpec }, motion: { [string]: Motion }): { PartSpec }
+	local byName: { [string]: PartSpec } = {}
+	for _, spec in layout do
+		byName[spec.name] = spec
+	end
+	local chain: { [string]: PartMath.Frame? } = {} -- 이름 → Body 축 누적 움직임 (nil이면 없음)
+	local done: { [string]: boolean } = {}
+	local function chainOf(name: string, depth: number): PartMath.Frame?
+		if done[name] then
+			return chain[name]
+		end
+		assert(depth < 32, "SushiBody.posed: attach loop")
+		local spec = byName[name]
+		local result: PartMath.Frame? = nil
+		if spec and spec.name ~= "Body" then
+			local parent = spec.attach
+			local inherited = if parent and byName[parent] then chainOf(parent, depth + 1) else nil
+			local own = if spec.joint then motion[name] else nil
+			if own then
+				local pivot = spec.pivot or spec.offset
+				local move = own.move or { 0, 0, 0 }
+				local reach = spec.reach
+				local k = own.reach or 0
+				local m = {
+					move[1] + (if reach then reach[1] * k else 0),
+					move[2] + (if reach then reach[2] * k else 0),
+					move[3] + (if reach then reach[3] * k else 0),
+				}
+				local a = own.angles or { 0, 0, 0 }
+				-- D = 이동(m) · 경첩으로 · 회전 · 경첩에서
+				local d = PartMath.mul(
+					{ p = { m[1] + pivot[1], m[2] + pivot[2], m[3] + pivot[3] }, r = PartMath.anglesRad(a[1], a[2], a[3]) },
+					{ p = { -pivot[1], -pivot[2], -pivot[3] }, r = PartMath.angles(nil) }
+				)
+				result = if inherited then PartMath.mul(inherited, d) else d
+			else
+				result = inherited
+			end
+		end
+		done[name] = true
+		chain[name] = result
+		return result
+	end
+	local out: { PartSpec } = {}
+	for _, spec in layout do
+		local copy = copySpec(spec)
+		local m = chainOf(spec.name, 0)
+		if m then
+			local f = PartMath.mul(m, PartMath.frame(spec.offset, spec.rotation))
+			copy.offset = f.p
+			-- 공은 돌려도 모양이 같아요 (회전을 남기면 외곽 계산이 정육면체 모서리로 커져요)
+			copy.rotation = if spec.shape == "Ball" then nil else PartMath.toDegrees(f.r)
+		end
+		table.insert(out, copy)
+	end
+	return out
 end
 
 -- 효과(불꽃·반짝이)를 켜고 꺼요. 탈락 연출이 진짜 캐릭터를 로컬로 숨길 때 효과도 같이 숨겨요 (m4-13).

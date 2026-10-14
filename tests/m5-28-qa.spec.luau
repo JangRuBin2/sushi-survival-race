@@ -63,7 +63,7 @@ return function(t: Test.Test)
 			-- 상품 id 어떤 값으로도 콘셉트 스킨이 나오지 않아요
 			for _, skin in Skins.LIST do
 				if skin.productId ~= nil then
-					t.ok(Skins.EXPERIMENTAL_IDS[(Skins.forProduct(skin.productId) :: any).id] ~= true, skin.id)
+					t.ok(Skins.CONCEPT_BODY_IDS[(Skins.forProduct(skin.productId) :: any).id] ~= true, skin.id)
 				end
 			end
 		end
@@ -80,7 +80,7 @@ return function(t: Test.Test)
 		-- 지금 목록에는 없어요
 		for _, offer in Offers.LIST do
 			for _, skinId in (offer :: any).skins or {} do
-				t.ok(Skins.EXPERIMENTAL_IDS[skinId] ~= true, `{offer.id} {skinId}`)
+				t.ok(Skins.CONCEPT_BODY_IDS[skinId] ~= true, `{offer.id} {skinId}`)
 			end
 		end
 	end)
@@ -98,14 +98,14 @@ return function(t: Test.Test)
 				local unowned = ProfileSchema.new() :: any
 				unowned.equippedSkin = id
 				t.eq(ProfileLogic.migrate(unowned).equippedSkin, "tamago", `{id} unowned falls back`)
-				-- 예외 목록에서 빼도 migrate가 안전한지 (EXPERIMENTAL_IDS에서 잠시 뺌)
-				Skins.EXPERIMENTAL_IDS[id] = nil
+				-- 예외 목록에서 빼도 migrate가 안전한지 (CONCEPT_BODY_IDS에서 잠시 뺌)
+				Skins.CONCEPT_BODY_IDS[id] = nil
 				local ok, result = pcall(function()
 					local again = ProfileSchema.new() :: any
 					again.equippedSkin = id
 					return ProfileLogic.migrate(again)
 				end)
-				Skins.EXPERIMENTAL_IDS[id] = true
+				Skins.CONCEPT_BODY_IDS[id] = true
 				t.ok(ok, `{id} migrate after removal`)
 				t.eq((result :: any).equippedSkin, "tamago", `{id} falls back to tamago`)
 				-- 카탈로그에 없는 id(완전히 삭제)도 외형 resolver는 nil → 기본 계란초밥

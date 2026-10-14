@@ -70,11 +70,9 @@ local KNOWN_INTRO_THROUGH: { [string]: boolean } = {
 	["ramen-rapids/StartWall"] = true,
 }
 
--- QA B1 (docs/qa/m5-24-map-art-pass-v2.md, P2): 젠가 새 소개 경유점 ②(-62,-30,30) → ③(39,6,15) 직선이 탑 앞줄(j = 2)
--- 블록 속을 지나가요(main에는 없던 문제). 지금은 "아직 뚫는다"를 고정해 두고, 고치면 이 항목을 지우세요.
-local KNOWN_INTRO_BUG: { [string]: boolean } = {
-	["giant-jenga"] = true,
-}
+-- QA B1 (docs/qa/m5-24-map-art-pass-v2.md, P2)은 고쳤어요(젠가 ②와 ③ 사이에 탑 모서리 바깥 경유점 추가).
+-- 새로 알려진 버그가 생기면 여기에 맵 id를 넣어 "아직 뚫는다"를 고정해요.
+local KNOWN_INTRO_BUG: { [string]: boolean } = {}
 
 local origin = roblox.CFrame.new(Config.Arena.SlotSpacing, Config.Arena.BaseHeight, 0)
 

@@ -236,17 +236,12 @@ return function(t: Test.Test)
 		}
 		for _ = 1, 300 do
 			local size = SIZES[rng:NextInteger(1, #SIZES)]
-			local s = screen(
-				size[1],
-				size[2],
-				{
-					left = rng:NextInteger(0, 50),
-					top = 0,
-					right = rng:NextInteger(0, 50),
-					bottom = rng:NextInteger(0, 25),
-				},
-				rng:NextInteger(0, 60)
-			)
+			local s = screen(size[1], size[2], {
+				left = rng:NextInteger(0, 50),
+				top = 0,
+				right = rng:NextInteger(0, 50),
+				bottom = rng:NextInteger(0, 25),
+			}, rng:NextInteger(0, 60))
 			local b: any = {}
 			for _, name in NAMES do
 				b[name] = rect(
@@ -720,7 +715,10 @@ return function(t: Test.Test)
 			)
 			local controller = fs.readFile("src/client/input/TouchLayoutController.luau")
 			t.ok(string.find(controller, '"JumpButton"', 1, true) ~= nil)
-			t.ok(string.find(controller, 'GetPropertyChangedSignal("Position")', 1, true) ~= nil, "reapply")
+			t.ok(string.find(controller, 'watch("Position"', 1, true) ~= nil, "reapply on Position")
+			t.ok(string.find(controller, 'watch("Size"', 1, true) ~= nil, "reapply on Size")
+			t.ok(string.find(controller, "GetPropertyChangedSignal(prop)", 1, true) ~= nil, "property signal")
+			t.ok(string.find(controller, "queueJump()", 1, true) ~= nil, "deferred once per frame")
 			t.ok(string.find(controller, "TouchLayoutLogic.editLocked", 1, true) ~= nil, "lock")
 			local settings = fs.readFile("src/client/ui/SettingsButton.luau")
 			t.ok(string.find(settings, "UserInputService.TouchEnabled", 1, true) ~= nil, "touch only")

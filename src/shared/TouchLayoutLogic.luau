@@ -497,9 +497,9 @@ function TouchLayoutLogic.editorPanel(screen: Screen, m: UiLayout.Metrics): Pane
 	}
 end
 
--- 도구 칸 전체 높이 (실제 픽셀): 안내 줄 + 4줄 + 간격 5 + 위아래 여백
+-- 도구 칸 전체 높이 (실제 픽셀): 안내 두 줄 + 버튼 4줄 + 간격 6 (위아래 여백 2, 안내-버튼 1, 버튼 사이 3)
 function TouchLayoutLogic.panelHeight(panel: Panel): number
-	local info = panel.textSize + 6
+	local info = panel.textSize * 2 + 6
 	return (info + panel.rowHeight * TouchLayoutLogic.PANEL_ROWS + panel.gap * (TouchLayoutLogic.PANEL_ROWS + 2))
 		* panel.scale
 end

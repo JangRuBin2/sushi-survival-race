@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-31 — 우승자 뽑기 티켓 (🎫 무료 등급별 뽑기 · 특 스킨 9종 · Studio 전부 입기)
@@ -207,3 +207,37 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 사용자 변경 2026-10-14 (메인 세션 전달, 구현에 반영)
+- 꽝 없음, 등급별 확률 전설 1 / 영웅 5 / 희귀 15 / 고급 30 / 일반 49(`Config.Draw.GradeWeights`), 중복은 등급별 🍚 20/40/80/150/300(`Config.Draw.DuplicateCoins`). 1차의 10%/꽝 +20/9종 다 가지면 +100은 코드에서 지웠다(`SkinChance`·`ConsolationCoins` 없음 — 테스트로 고정).
+- `drawGrade`(상점 tier와 별개): 연어 영웅 / 성게·문어·연어알 희귀 / 유부·장어·참치 고급 / 새우·계란 일반. 전설은 m5-32 고등어 몫이라 지금은 빈 등급 → 나머지에 비율대로(5/99·15/99·30/99·49/99), 화면도 같은 값(최대 나머지 방식 5.0/15.2/30.3/49.5, 전설 "준비 중").
+- 뽑기 화면은 샘플 `docs/귀여운 초밥 스킨 뽑기 UI.png` 구성을 기본 UI 요소로 옮김(아래 "Studio 확인").
+
+### 바뀐 파일
+- 공용: `src/shared/Config.luau`(`Config.Draw`, `DEBUG.unlockAllSkinsInStudio = true`), `src/shared/Remotes.luau`(`DrawTicket`, RemoteFunction 16 + RemoteEvent 11), `src/shared/Types.luau`(`DrawGrade`, `DrawResult`, `ProfileView.drawTickets`·`studioUnlockAll`, `RewardGrant.tickets`·`ticketsFull`).
+- shared: `Skins`(이름 "(특)", `drawGrade`, `DRAW_IDS`, `DRAW_GRADES`·`DRAW_GRADE_INFO`, `DRAW_INFO`, `TIER_ROBUX`, `isFree` = 계란초밥만, `isDraw`·`isDrawOnly`·`drawGradeOf`, validate), 새 `DrawLogic`, `ShopLogic`(`unlockAllActive`, `canEquip(…, unlockAll)`, "🎫 특" 탭, 카드 `Draw`·"입기 (Studio)"), `ProfileSchema`(v3 `drawTickets`, `ViewExtra.unlockAll`), `ProfileLogic`(migrate), `RewardLogic`(Won `tickets`, `simulate` 세 번째 값, 토스트·정산 글씨), `AdminLogic`(`tickets` StudioOnly, info에 🎫), `SfxCues`·`SfxLibrary`(`DrawReveal`·`DrawWin`, 무음).
+- server: `ShopService`(`DrawTicket`, Studio 전부 입기, `[Draw]` 로그), `RewardService`(같은 update 안에서 뽑기권), `DataService`(`setStudioUnlockAll` — 화면용), `AdminCommands`(`tickets`).
+- client: 새 `ui/DrawScreen.luau`(뽑기 화면), `ShopScreen`(🎫 뽑기 버튼·배지·특 스킨 등급 배지), `ShopController`(DrawTicket 흐름, 숨김 연동), `CoinController`(뽑기권 토스트·정산), `AdminPanel`(🎫 +1/+10/+98/0으로).
+- tests: 새 `tests/m5-31-draw-logic.spec.luau`(25). 바꾼 기존 테스트(AC15): `m5-27-concept-skin`(이름·drawGrade, validate 문구, 보유 = NotOwned/NotForCoins/NotRobux, 카드 "🎫 뽑기로 얻기", 보유 없는 장착 → 계란초밥), `m5-28-concept-skins`·`m5-29-concept-skins-2`(이름 "(특)", 같은 보유 규칙), `m5-28-qa`·`m5-29-qa`(🎫 특 탭에도 보임, 보유해야 장착값 유지), `skins.spec`(이름 표), `m4-foundation`·`m5-03-foundation`·`m5-03-qa`·`m4-07-data-qa`(VERSION 3, 리모트 27, 미래 버전 4, DataService view extra 문자열, DEBUG 기본값), `m5-07-qa`·`shop-logic`(탭 수 +1), `reward-logic`(Won 묶음에 tickets), `admin-logic`(info 줄 🎫, tickets 등급), `camera-priority`(SfxCues 2개), `m4-14-qa`·`m5-08-qa`(가짜 모듈 표에 DrawLogic). 모양·관절·파츠 상한(70)·렌더 검사는 그대로.
+
+### 결정 기록 (개발)
+- 스펙 2차 이름 그대로: `Config.Draw.GradeWeights`, `DrawLogic.grades/roll/displayPercents/perSkinPercent/featured`, `Skins.isDrawOnly`·`DRAW_IDS`. `DrawResult`에 `skinsLeft`는 두지 않음(스펙 타입대로). `Skins.DRAW_GRADES`는 순서 목록, 이름·색은 `Skins.DRAW_GRADE_INFO`로 나눔. `drawGrade` + `robux`는 `Skins.TIER_ROBUX`(29/59/99/199)와 같아야 통과.
+- 관리자 인자 거절 이유는 기존 `BadCommandArgs`(스펙의 `BadArgs`)를 그대로 씀.
+- 탈의실에 원래 "기본" 탭이 없음(전체·일반·레어·에픽·전설) — 특 스킨은 등급 탭에 안 나오고 전체·🎫 특에만.
+- `DataService`는 `ShopLogic`을 require하지 않고 `ShopService.init`이 `DataService.setStudioUnlockAll`로 알려 줌(가짜 DataService 테스트를 안 깨려고).
+- 단상은 ViewportFrame 안 3D 원기둥 대신 2D 둥근 Frame(그라데이션) + 인형 ViewportFrame — Studio에서 보고 바꿀 것. 결과 연출 시간은 `DrawScreen.SUSPENSE_TIME` 1.2초 + 열림 0.35~0.5초.
+- `saveNow` 안 부름(무료 보상). 현지화(AC17): main에 m5-26 `Localization/Strings.csv` 없음 → **해당 없음**, 문구는 코드 상수.
+
+### Studio 확인 방법 (AC18~AC24)
+1. 커밋 값 그대로 Play → 탈의실 모든 카드 "입기 (Studio)", 입으면 바뀜, 서버 Output `[ShopService] Studio: all skins can be worn…`. 🎫 뽑기 화면 보유 목록 0/9(저장 안 됨).
+2. `Config.DEBUG.unlockAllSkinsInStudio = false` → 🛠 패널 "명령" 탭 "🎫 티켓 +10"(+98) → 🍣 스킨 버튼 빨간 배지 → 탈의실 머리줄 "🎫 뽑기 N" → 샘플과 나란히 비교(간판·뽑기권 ×N·단상 연어초밥 (특)·"연어초밥 (특) 획득 가능!"·노란 "🎫 뽑기 시작하기 >"·확률표 전설 준비 중/5.0/15.2/30.3/49.5·ⓘ 스킨별 각 x.xx%).
+3. "뽑기 시작하기" → 🛎️ 들썩 → 등급색 빛 + "👑 스킨 획득!" / 중복이면 "이미 가진 스킨이에요 → 🍚 +N". 서버 Output `[Draw] …` 한 줄. 연타해도 한 장씩.
+4. 혼자 한 판(`minPlayersToStart = 1`) 우승 → "+1 🎫 우승 뽑기권", 정산 "🎫 +1". +98 뒤 우승 2번 → "🎫 뽑기권이 가득 찼어요 (99장)".
+5. 라운드 중에는 뽑기 화면이 탈의실과 같이 닫힘. Device 에뮬레이터(짧은 변 ≤ 500)에서 탭 "🎫 뽑기 / 📊 확률 / 📦 목록"으로 나뉘어 겹치지 않는지.
+6. `persistDataInStudio = true`면 전부 입기 꺼짐 + 경고 한 줄.
+
+### 검증 (2026-10-14, Windows 로컬)
+rojo build OK · stylua --check OK · selene 0 errors/0 warnings · `lune run tests` **1888 passed, 0 failed** · luau-lsp 끝 코드 0.
+
+### 남은 이슈
+- 뽑기 화면 모양은 Studio 확인 필요(렌더러 없음). 소리 id 미정(무음).

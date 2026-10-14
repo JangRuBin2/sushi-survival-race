@@ -91,9 +91,34 @@ export type PlayerResult = {
 	position: Vector3?,
 }
 
+-- 터치 버튼 배치 (m5-41, Shared.TouchLayoutLogic). 버튼 하나 = 가운데 위치(안전 영역 폭·높이에 대한 비율 0~1)
+-- + 크기(짧은 변에 대한 비율). 저장은 소수 셋째 자리까지
+export type TouchButtonSpot = { x: number, y: number, s: number }
+export type TouchLayoutPreset = "default" | "large" | "compact" | "custom"
+export type TouchLayout = {
+	v: number, -- 모양 버전 (지금 1)
+	preset: TouchLayoutPreset,
+	jump: TouchButtonSpot,
+	dive: TouchButtonSpot,
+	grab: TouchButtonSpot,
+}
+export type TouchLayoutBucket = "phone" | "tablet" -- 짧은 변 ≤ 500이면 phone
+-- 기기 묶음별 배치. 없는 묶음은 기본 배치
+export type TouchLayoutSettings = { phone: TouchLayout?, tablet: TouchLayout? }
+
 -- 플레이어 설정 (m4-01). muteLevel: 1 소리 켬, 2 음악 끔, 3 모두 끔 (m3-08 음소거 단계와 같음)
+-- touchLayout (m5-41): 편집한 터치 버튼 배치. 없으면 기본 배치 (프로필 버전 3 그대로, 선택 칸)
 export type Settings = {
 	muteLevel: number,
+	touchLayout: TouchLayoutSettings?,
+}
+
+-- SaveSettings 요청 (m5-41부터 부분 저장): 있는 칸만 바꿔요. 하나라도 틀리면 요청 전체를 무시해요.
+-- touchLayout = { bucket, layout } 이면 그 묶음 저장, { bucket, reset = true } 이면 그 묶음을 지워요 (기본으로)
+export type TouchLayoutChange = { bucket: TouchLayoutBucket, layout: TouchLayout?, reset: boolean? }
+export type SettingsPatch = {
+	muteLevel: number?,
+	touchLayout: TouchLayoutChange?,
 }
 
 -- 클라이언트에 보내는 내 프로필 (ProfileUpdated, ProfileSchema.toView)

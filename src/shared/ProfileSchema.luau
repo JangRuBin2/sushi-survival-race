@@ -8,6 +8,7 @@
 -- 저장(m4-07)은 이 모양 그대로 DataStore에 넣어요. 필드를 바꾸면 VERSION을 올리고 m4-07의 마이그레이션에 추가해요.
 
 local Config = require(script.Parent.Config)
+local TouchLayoutLogic = require(script.Parent.TouchLayoutLogic)
 local Types = require(script.Parent.Types)
 
 export type Profile = {
@@ -77,19 +78,116 @@ end
 
 ProfileSchema.MUTE_LEVELS = 3 -- 1 소리 켬, 2 음악 끔, 3 모두 끔
 
--- 클라이언트가 보낸 SaveSettings 인자 검사. 올바르면 새 Settings 표, 아니면 nil.
-function ProfileSchema.sanitizeSettings(value: unknown): Types.Settings?
+local function validMuteLevel(level: unknown): boolean
+	return type(level) == "number"
+		and level == level
+		and level % 1 == 0
+		and level >= 1
+		and level <= ProfileSchema.MUTE_LEVELS
+end
+
+-- 클라이언트가 보낸 SaveSettings 인자 검사 (m5-41부터 부분 저장). muteLevel·touchLayout 중 하나 이상,
+-- 있는 칸은 각각 검증하고 하나라도 틀리면 nil(요청 전체 무시). 그 밖의 칸은 읽지 않고 버려요.
+-- 통과한 배치 숫자는 소수 셋째 자리로 반올림돼요.
+function ProfileSchema.sanitizeSettings(value: unknown): Types.SettingsPatch?
 	if type(value) ~= "table" then
 		return nil
 	end
-	local level = (value :: any).muteLevel
-	if type(level) ~= "number" or level ~= level or level % 1 ~= 0 then
+	local raw = value :: any
+	local patch: Types.SettingsPatch = {}
+	local any = false
+	if raw.muteLevel ~= nil then
+		if not validMuteLevel(raw.muteLevel) then
+			return nil
+		end
+		patch.muteLevel = raw.muteLevel
+		any = true
+	end
+	if raw.touchLayout ~= nil then
+		local change = TouchLayoutLogic.sanitizeChange(raw.touchLayout)
+		if change == nil then
+			return nil
+		end
+		patch.touchLayout = change
+		any = true
+	end
+	return if any then patch else nil
+end
+
+-- 요청 간격은 칸마다 (m5-41): 음소거를 누른 직후의 배치 저장이 버려지지 않게. 너무 빠른 칸은 빼고,
+-- 받은 칸의 시각을 last에 적어요. 남는 칸이 없으면 nil
+function ProfileSchema.acceptByInterval(
+	patch: Types.SettingsPatch,
+	last: { [string]: number },
+	now: number,
+	interval: number
+): Types.SettingsPatch?
+	local out: Types.SettingsPatch = {}
+	local any = false
+	local function allow(field: string): boolean
+		local at = last[field]
+		if at ~= nil and now - at < interval then
+			return false
+		end
+		last[field] = now
+		any = true
+		return true
+	end
+	if patch.muteLevel ~= nil and allow("muteLevel") then
+		out.muteLevel = patch.muteLevel
+	end
+	if patch.touchLayout ~= nil and allow("touchLayout") then
+		out.touchLayout = patch.touchLayout
+	end
+	return if any then out else nil
+end
+
+-- 검증한 patch를 설정에 합쳐요 (DataService.update 안에서). 없는 칸은 그대로
+function ProfileSchema.applySettings(settings: Types.Settings, patch: Types.SettingsPatch)
+	if patch.muteLevel ~= nil then
+		settings.muteLevel = patch.muteLevel
+	end
+	local change = patch.touchLayout
+	if change ~= nil then
+		local layouts: { [string]: Types.TouchLayout } = (settings.touchLayout or {}) :: any
+		if change.reset == true then
+			layouts[change.bucket] = nil
+		else
+			layouts[change.bucket] = change.layout
+		end
+		settings.touchLayout = if next(layouts) ~= nil then layouts :: any else nil
+	end
+end
+
+-- 저장된 설정 (프로필 불러오기, ProfileLogic). muteLevel이 틀리면 nil(설정 전체 기본),
+-- touchLayout만 틀리면 그 칸(묶음)만 버리고 두 번째 값 true (메모)
+function ProfileSchema.sanitizeStoredSettings(value: unknown): (Types.Settings?, boolean)
+	if type(value) ~= "table" then
+		return nil, false
+	end
+	local raw = value :: any
+	if not validMuteLevel(raw.muteLevel) then
+		return nil, false
+	end
+	local layouts, dropped = TouchLayoutLogic.sanitizeStored(raw.touchLayout)
+	return { muteLevel = raw.muteLevel, touchLayout = layouts }, dropped
+end
+
+local function copyTouchLayout(value: Types.TouchLayoutSettings?): Types.TouchLayoutSettings?
+	if value == nil or next(value :: any) == nil then
 		return nil
 	end
-	if level < 1 or level > ProfileSchema.MUTE_LEVELS then
-		return nil
+	local out: { [string]: any } = {}
+	for bucket, layout in value :: any do
+		out[bucket] = {
+			v = layout.v,
+			preset = layout.preset,
+			jump = table.clone(layout.jump),
+			dive = table.clone(layout.dive),
+			grab = table.clone(layout.grab),
+		}
 	end
-	return { muteLevel = level }
+	return out :: any
 end
 
 local function sortedKeys(map: { [string]: any }, keep: (value: any) -> boolean): { string }
@@ -121,7 +219,10 @@ function ProfileSchema.toView(profile: Profile, persistent: boolean, extra: View
 		title = ProfileSchema.titleFor(profile.wins),
 		equippedSkin = profile.equippedSkin,
 		ownedSkins = owned,
-		settings = { muteLevel = profile.settings.muteLevel },
+		settings = {
+			muteLevel = profile.settings.muteLevel,
+			touchLayout = copyTouchLayout(profile.settings.touchLayout),
+		},
 		persistent = persistent,
 		eventTokens = tokens,
 		ownedFx = sortedKeys(profile.ownedFx or {}, isTrue),

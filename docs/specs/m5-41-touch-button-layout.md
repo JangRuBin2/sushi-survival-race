@@ -1,4 +1,4 @@
-status: ready
+status: in-dev
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-41 — 모바일 터치 버튼 위치·크기 편집 (점프·다이브·잡기)

@@ -418,7 +418,9 @@ local function renderGameplay(dir: string, lighting: any, name: string, actors: 
 	for _, actor in actors do
 		local wx, wz = rx * actor.x + fx * actor.z, rz * actor.x + fz * actor.z
 		placeCharacter(scene, actor.id, wx, wz, yaw + math.rad(actor.turn))
-		local top = groundOffsetOf(actor.id) + SushiBody.NAME_TAG_HEIGHT
+		-- 이름표 높이는 스킨마다 (m5-32 고등어만 높아요 — SushiBody.nameTagHeight)
+		local tagSkin = gameArgs(actor.id) or (if conceptArgs(actor.id) then nil else actor.id)
+		local top = groundOffsetOf(actor.id) + SushiBody.nameTagHeight(tagSkin)
 		table.insert(world, { tag = actor.tag, x = wx, z = wz, top = top })
 	end
 	local pitch = math.rad(CAMERA_PITCH)
@@ -429,7 +431,7 @@ local function renderGameplay(dir: string, lighting: any, name: string, actors: 
 	)
 	local cam = Raster.perspective(eye, v3(0, FOCUS_Y, 0), 70, w / h)
 	local image = render(scene, cam, lighting, w, h)
-	-- 이름표 흉내 (다른 사람만, 게임처럼 Body 중심 위 SushiBody.NAME_TAG_HEIGHT)
+	-- 이름표 흉내 (다른 사람만, 게임처럼 Body 중심 위 SushiBody.nameTagHeight)
 	local scale = if w >= 900 then 2 else 1
 	for _, item in world do
 		local tag = item.tag

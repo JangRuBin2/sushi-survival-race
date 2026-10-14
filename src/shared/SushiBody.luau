@@ -982,7 +982,13 @@ assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concep
 -- 파츠 상한은 partBudget. 외곽은 boundsTolerance가 있으면 concept-salmon 외곽과 비교해요(m5-32 고등어 — 전설 ±25%),
 -- 없으면 비교하지 않아요(특 9종). 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요.
 -- 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
-export type ConceptBodyRule = { partBudget: number, expressions: { string }, boundsTolerance: number? }
+-- nameTagHeight가 있으면 그 스킨만 이름표를 그 높이에 띄워요 (m5-32 고등어 — 사용자 결정 2026-10-14 4차). 없으면 NAME_TAG_HEIGHT
+export type ConceptBodyRule = {
+	partBudget: number,
+	expressions: { string },
+	boundsTolerance: number?,
+	nameTagHeight: number?,
+}
 local conceptBody: { [string]: ConceptBodyRule } = {}
 for id in CONCEPT_IDS do
 	-- 파츠 상한 70 (m5-30, 사용자 결정 2026-10-14: 토핑 디테일을 위해 47 → 70)
@@ -993,11 +999,21 @@ conceptBody["fresh-mackerel"] = {
 	partBudget = 80,
 	expressions = SushiConceptSample.EXPRESSIONS :: any,
 	boundsTolerance = 0.25,
+	-- 이 스킨만 이름표를 위로 (사용자 결정 2026-10-14 4차): 고등어를 시트처럼 크게 + 위아래 팔딱을 크게.
+	-- 쉰 꼭대기 ≤ 이름표 − 0.4, 가장 크게 팔딱한 자세(관절 한도 끝까지) ≤ 이름표 (테스트로 고정)
+	nameTagHeight = 4.8,
 }
 SushiBody.CONCEPT_BOUNDS_BASE = "concept-salmon" -- boundsTolerance 비교 기준 스킨
 SushiBody.CONCEPT_BODY = conceptBody
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
+SushiBody.NAME_TAG_ATTRIBUTE = "NameTagHeight" -- build가 기본과 다른 스킨의 Body에 다는 속성 (클라이언트 이름표가 읽어요)
+
+-- 스킨별 이름표 높이 (Body 중심에서). 대부분 NAME_TAG_HEIGHT, 콘셉트 몸 예외 표에 nameTagHeight가 있으면 그 값
+function SushiBody.nameTagHeight(appearanceId: string?): number
+	local rule = if appearanceId then conceptBody[appearanceId] else nil
+	return (rule and rule.nameTagHeight) or SushiBody.NAME_TAG_HEIGHT
+end
 
 -- 모든 스킨이 계란초밥과 크기·위치·회전까지 같은 기준 파츠 (m5-25). 발·볼은 색만 바꿀 수 있어요.
 SushiBody.BASE_NAMES = {
@@ -1294,7 +1310,14 @@ function SushiBody.buildLayout(layout: { PartSpec }, modelName: string): Model
 end
 
 function SushiBody.build(appearanceId: string, expression: string?): Model
-	return SushiBody.buildLayout(SushiBody.layout(appearanceId, expression), `SushiBody_{appearanceId}`)
+	local model = SushiBody.buildLayout(SushiBody.layout(appearanceId, expression), `SushiBody_{appearanceId}`)
+	-- 이름표가 기본과 다른 스킨만 Body에 높이를 달아요 (다른 스킨의 build 결과는 그대로)
+	local tag = SushiBody.nameTagHeight(appearanceId)
+	local body = model.PrimaryPart
+	if body and tag ~= SushiBody.NAME_TAG_HEIGHT then
+		pcall(body.SetAttribute, body, SushiBody.NAME_TAG_ATTRIBUTE, tag)
+	end
+	return model
 end
 
 -- 효과(불꽃·반짝이)를 켜고 꺼요. 탈락 연출이 진짜 캐릭터를 로컬로 숨길 때 효과도 같이 숨겨요 (m4-13).

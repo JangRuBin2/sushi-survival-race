@@ -54,6 +54,14 @@ local function placeDoll(podiumFolder: Instance)
 	end
 	local attrs = LobbyLayout.WINNER_ATTRS
 	local appearanceId = podiumFolder:GetAttribute(attrs.appearanceId)
+	-- 이름표가 높은 스킨(m5-32 고등어)이면 단상 이름표도 그만큼(인형 크기 배율) 로컬로 올려요. 서버 이름표 자리는 그대로
+	local showcase = podiumFolder:FindFirstChild("ShowcaseLabel")
+	local billboard = showcase and showcase:FindFirstChild("Showcase")
+	if billboard and billboard:IsA("BillboardGui") then
+		local tag = SushiBody.nameTagHeight(if type(appearanceId) == "string" then appearanceId else nil)
+		local lift = (tag - SushiBody.NAME_TAG_HEIGHT) * LobbyLayout.PODIUM.scale
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, lift, 0)
+	end
 	if type(appearanceId) ~= "string" then
 		return -- 아직 우승자 없음 (이름표만 "다음 우승자는 누구?")
 	end

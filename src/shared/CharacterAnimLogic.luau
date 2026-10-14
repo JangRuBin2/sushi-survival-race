@@ -159,30 +159,31 @@ CharacterAnimLogic.FISH = {
 	FLOP_HZ = 6,
 	FLOP_TAIL = rad(35),
 	FLOP_MID = rad(14),
-	FLOP_LIFT = 0.3,
-	FLOP_ROOT_ARCH = rad(10),
-	FLOP_MID_ARCH = rad(6),
-	FLOP_TAIL_ARCH = rad(6),
-	FLOP_TWIST = rad(5),
+	FLOP_LIFT = 0.4,
+	FLOP_ROOT_ARCH = rad(16),
+	FLOP_MID_ARCH = rad(8),
+	FLOP_TAIL_ARCH = rad(9),
+	FLOP_TWIST = rad(10),
 	-- 달리기: 걸음 위상의 2배
 	RUN_MIN_WALK = 0.2, -- 이보다 빨리 걸으면 새 팔딱을 시작하지 않아요
 	RUN_TAIL = rad(22),
 	RUN_MID = rad(9),
 	RUN_LAG = 0.8,
 	-- 점프 올라갈 때 C자 아치 (stretch에 비례)
-	JUMP_ROOT_ARCH = rad(8),
-	JUMP_MID_ARCH = rad(8),
-	JUMP_TAIL_ARCH = rad(12),
+	JUMP_ROOT_ARCH = rad(12),
+	JUMP_MID_ARCH = rad(9),
+	JUMP_TAIL_ARCH = rad(11),
 	-- 착지 큰 팔딱 (착지 LAND_DELAY 뒤 LAND_TIME 동안, 꼬리 두 번 탁탁)
 	LAND_DELAY = 0.08,
 	LAND_TIME = 0.5,
 	LAND_HZ = 4,
 	LAND_TAIL = rad(40),
 	LAND_MID = rad(14),
-	LAND_LIFT = 0.41,
-	LAND_ROOT_ARCH = rad(8),
-	LAND_MID_ARCH = rad(5),
-	LAND_TAIL_ARCH = rad(5),
+	LAND_LIFT = 0.45,
+	LAND_ROOT_ARCH = rad(15),
+	LAND_MID_ARCH = rad(8),
+	LAND_TAIL_ARCH = rad(9),
+	LAND_TWIST = rad(8),
 	-- 넘어짐: 물 밖 물고기처럼
 	KNOCK_HZ = 7,
 	KNOCK_TAIL = rad(30),
@@ -201,6 +202,7 @@ CharacterAnimLogic.FISH = {
 	MAX_MID = rad(16),
 	MAX_ARCH = rad(20),
 	MAX_LIFT = 0.45,
+	MAX_TWIST = rad(12),
 	MAX_HZ = 7,
 	BLEND_TIME = 0.15, -- 넘어짐·공중 상태가 바뀔 때 섞는 시간
 	-- 팔딱 간격 (초, r 0~1 → lo~hi)
@@ -337,7 +339,8 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 	if flopTime ~= nil then
 		local duration = CharacterAnimLogic.flopDuration(input.mode)
 		local u = flopTime / duration
-		flopEnv = CharacterAnimLogic.flopCurve(u) * (1 - k)
+		-- 겹친 상태(QA B1): 팔딱 중 점프·달리기면 공중 정도·달리기만큼 섞어 줄여요 (끊지 않아요 — 연속)
+		flopEnv = CharacterAnimLogic.flopCurve(u) * (1 - k) * (1 - air) * still
 		if flopEnv > 0 then
 			local hz = if hurt then F.TWITCH_HZ else F.FLOP_HZ
 			local beat = math.sin(TAU * hz * flopTime)
@@ -347,12 +350,12 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 			else
 				tail += F.FLOP_TAIL * flopEnv * beat
 				mid += F.FLOP_MID * flopEnv * math.sin(TAU * hz * flopTime - F.RUN_LAG)
-				lift += F.FLOP_LIFT * hop(u) * (1 - k)
+				lift += F.FLOP_LIFT * hop(u) * (1 - k) * (1 - air) * still
 				rootArch += F.FLOP_ROOT_ARCH * flopEnv
 				midArch += F.FLOP_MID_ARCH * flopEnv
 				tailArch += F.FLOP_TAIL_ARCH * flopEnv
 				twist += F.FLOP_TWIST * flopEnv * math.sin(TAU * 3 * flopTime)
-				splash = math.max(splash, CharacterAnimLogic.splashCurve(u) * (1 - k))
+				splash = math.max(splash, CharacterAnimLogic.splashCurve(u) * (1 - k) * (1 - air) * still)
 			end
 		end
 	end
@@ -364,15 +367,17 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 		local tl = landTime - F.LAND_DELAY
 		local u = tl / F.LAND_TIME
 		local strength = clamp(input.landStrength, 0, 1)
-		landEnv = CharacterAnimLogic.flopCurve(u) * (1 - k)
+		-- 착지 팔딱 중 다시 점프하면 공중 정도만큼 줄여요 (QA B1)
+		landEnv = CharacterAnimLogic.flopCurve(u) * (1 - k) * (1 - air)
 		if landEnv > 0 then
 			tail += F.LAND_TAIL * landEnv * math.sin(TAU * F.LAND_HZ * tl)
 			mid += F.LAND_MID * landEnv * math.sin(TAU * F.LAND_HZ * tl - F.RUN_LAG)
-			lift += F.LAND_LIFT * strength * hop(u) * (1 - k)
+			lift += F.LAND_LIFT * strength * hop(u) * (1 - k) * (1 - air)
 			rootArch += F.LAND_ROOT_ARCH * landEnv
 			midArch += F.LAND_MID_ARCH * landEnv
 			tailArch += F.LAND_TAIL_ARCH * landEnv
-			splash = math.max(splash, CharacterAnimLogic.splashCurve(u) * (1 - k))
+			twist += F.LAND_TWIST * landEnv * math.sin(TAU * 3 * tl)
+			splash = math.max(splash, CharacterAnimLogic.splashCurve(u) * (1 - k) * (1 - air))
 		end
 	end
 
@@ -420,7 +425,7 @@ function CharacterAnimLogic.fishPose(input: FishInput): FishPose
 	return {
 		rootLift = clamp(lift, 0, F.MAX_LIFT),
 		rootArch = rootArch,
-		rootTwist = twist,
+		rootTwist = clamp(twist, -F.MAX_TWIST, F.MAX_TWIST),
 		midYaw = clamp(mid, -F.MAX_MID, F.MAX_MID),
 		midArch = midArch,
 		tailYaw = clamp(tail, -F.MAX_TAIL, F.MAX_TAIL),

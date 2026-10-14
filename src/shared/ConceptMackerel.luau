@@ -56,26 +56,29 @@ local NORI = { 38, 46, 40 }
 local SPLASH = { 130, 205, 255 } -- 물방울 (팔딱 순간 잘 보이게 조금 진하게)
 
 ---------------------------------------------------------------- 치수 (Body 기준: 밥 y -1~1, 앞면 z -1.35, 폭 x ±1.8)
-local Y = 1.85 -- 몸통 중심선 (배 아래끝 0.84 — 밥 윗면 1.0에 묻혀 얹혀요, 등 꼭대기 2.87)
+-- 사용자 결정 2026-10-14 4차: 이 스킨만 이름표를 4.8로 올리고 고등어를 시트처럼 크게 (밥보다 높고, 밥 폭보다 길게).
+-- 한도: 쉰 꼭대기 ≤ 4.4, 관절 한도 끝까지 팔딱해도 ≤ 4.8, 외곽 X ≤ 5.95·Z ≤ 3.7 (concept-salmon × 1.25), 밥 윗면 − 0.2 위
+local Y = 2.25 -- 몸통 중심선 (배 아래끝 0.88 — 밥 윗면 1.0에 묻혀 얹혀요, 등 꼭대기 3.55)
 
 -- 마디 단면: 등 원기둥 (반지름 rd, 축 Y + up) + 배 원기둥 (반지름 rb, 축 Y - down). 위끝 = Y + up + rd, 아래끝 = Y - down - rb
 type Section = { rd: number, up: number, rb: number, down: number }
-local ROOT: Section = { rd = 0.8, up = 0.22, rb = 0.88, down = 0.13 } -- 앞몸·머리 (높이 2.03, 폭 1.76)
-local MID: Section = { rd = 0.62, up = 0.16, rb = 0.7, down = 0.14 } -- 뒷몸 앞마디 (꼬리 쪽으로 가늘어져요)
-local REAR: Section = { rd = 0.46, up = 0.12, rb = 0.52, down = 0.1 } -- 뒷몸 뒷마디
-local HEAD: Section = { rd = 0.86, up = 0.2, rb = 0.9, down = 0.12 } -- 머리 공: 몸보다 조금 크고 둥글게 (시트의 큰 머리)
-local STALK: Section = { rd = 0.22, up = 0.06, rb = 0.24, down = 0.04 } -- 꼬리자루
+local HEAD: Section = { rd = 1.06, up = 0.28, rb = 1.08, down = 0.3 } -- 머리 공 (높이 2.72 — 몸보다 조금 크고 둥글게)
+local ROOT: Section = { rd = 1.0, up = 0.3, rb = 1.05, down = 0.32 } -- 앞몸 (높이 2.67, 폭 2.1)
+local MID: Section = { rd = 0.8, up = 0.24, rb = 0.84, down = 0.26 } -- 뒷몸 앞마디 (꼬리 쪽으로 가늘어져요)
+local REAR: Section = { rd = 0.56, up = 0.18, rb = 0.6, down = 0.18 } -- 뒷몸 뒷마디
+local STALK: Section = { rd = 0.27, up = 0.07, rb = 0.29, down = 0.05 } -- 꼬리자루
 
-local ROOT_X0, ROOT_X1 = 0.1, 1.75 -- 원기둥 구간. 머리 공 중심 = ROOT_X1 (주둥이 끝 2.61)
-local MID_X0, MID_X1 = -0.6, 0.45 -- 앞몸 속으로 0.35 겹쳐요 (휘어도 이음매가 벌어지지 않게)
-local REAR_X0, REAR_X1 = -1.35, -0.5
-local STALK_Y = 1.99 -- 꼬리는 몸통 중심선보다 조금 위로 (시트처럼 꼬리가 들려요)
-local STALK_X0, STALK_X1 = -1.95, -1.1
+local HEAD_X = 1.78 -- 머리 공 중심 (주둥이 끝 2.86)
+local ROOT_X0, ROOT_X1 = 0.15, HEAD_X
+local MID_X0, MID_X1 = -0.75, 0.5 -- 앞몸 속으로 겹쳐요 (휘어도 이음매가 벌어지지 않게)
+local REAR_X0, REAR_X1 = -1.55, -0.6
+local STALK_Y = 2.34 -- 꼬리는 몸통 중심선보다 위로 (시트처럼 꼬리가 들려요)
+local STALK_X0, STALK_X1 = -2.3, -1.4
 
 -- 관절 경첩 (Body 좌표)
-local ROOT_PIVOT = { 0.15, Y, 0 } -- 앞몸 뒤끝: 들썩·아치·비틀림이 머리를 들어 올려요
-local MID_PIVOT = { 0.15, Y, 0 }
-local TAIL_PIVOT = { -1.25, STALK_Y, 0 }
+local ROOT_PIVOT = { 0.2, Y, 0 } -- 앞몸 뒤끝: 들썩·아치·비틀림이 머리를 들어 올려요
+local MID_PIVOT = { 0.2, Y, 0 }
+local TAIL_PIVOT = { -1.5, STALK_Y, 0 }
 
 ConceptMackerel.PIVOTS = {
 	FishRoot = ROOT_PIVOT,
@@ -226,20 +229,25 @@ local function tilted(spec: PartSpec, pivot: { number }, turn: { number }): Part
 	return spec
 end
 
----------------------------------------------------------------- 김 띠 (꼬리 쪽 1/3, 비스듬히)
-local NORI_X = -0.85 -- 가운데 (꼬리 쪽 1/3 — 앞마디 끝 공과 뒷마디 이음매를 덮어요)
-local NORI_W = 1.0
-local NORI_TILT = { 0, 0, -12 } -- 위끝이 머리 쪽 (앞에서 보면 시트처럼 비스듬히)
+---------------------------------------------------------------- 김 띠 (뒷몸 앞마디를 비스듬히 감고 밥까지)
+local NORI_X = -0.3 -- 가운데 (머리에서 약 60% — 굵기가 같은 뒷몸 앞마디 위라 띠가 몸에 딱 붙어요)
+local NORI_W = 0.95
+local NORI_TILT_DEG = 4 -- 위끝이 머리 쪽 (앞에서 보면 시트처럼 비스듬히)
 local NORI_PIVOT = { NORI_X, Y, 0 }
-local NORI_WRAP_X = -0.94 -- 밥 김: 띠가 기운 만큼 조금 더 꼬리 쪽 (밥 앞·뒷면 평평한 곳 |x| ≤ 1.35 안)
-local NORI_WRAP_W = 0.8
+-- 띠 자락 아래끝 (z, y): 밥 윗면 가장자리 바로 위. 밥 김(NoriWrap)이 거기서 이어받아요
+local DRAPE_BOTTOM = { 0.98, 1.05 }
+local NORI_WRAP_W = 0.86
 local NORI_WRAP_FRONT = 0.86 -- 밥 김 앞면 아래끝 (얼굴 위끝 0.75보다 위)
 local NORI_WRAP_BACK = 0.3 -- 밥 김 뒷면 아래끝 (뒷면엔 얼굴이 없어요)
+-- 띠가 기운 만큼 밥 김도 꼬리 쪽으로 (자락 아래끝의 x)
+local NORI_WRAP_X = NORI_X + (DRAPE_BOTTOM[2] - Y) * math.tan(math.rad(NORI_TILT_DEG))
 
 local function noriBand(): { PartSpec }
-	local cos = math.cos(math.rad(12))
-	local up = (MID.rd + 0.025) / cos
-	local low = (MID.rb + 0.025) / cos
+	local tilt = { 0, 0, -NORI_TILT_DEG }
+	local cos = math.cos(math.rad(NORI_TILT_DEG))
+	-- 몸에 딱 붙는 띠 (기울면 원판이 몸 속으로 들어가서 반지름을 1/cos만큼)
+	local up = (MID.rd + 0.03) / cos
+	local low = (MID.rb + 0.03) / cos
 	local list = {
 		piece("FishNori", { NORI_W, 2 * up, 2 * up }, NORI, { NORI_X, Y + MID.up, 0 }, "Fabric", {
 			shape = "Cylinder",
@@ -250,11 +258,11 @@ local function noriBand(): { PartSpec }
 			attach = "FishMid",
 		}),
 	}
-	-- 앞·뒤 자락: 띠 옆구리에서 거의 곧게 밥 윗면 바로 위까지 내려와요 (시트처럼 고등어를 밥에 붙잡는 모양).
-	-- 밥 윗면(수평)보다 위에서 끝나서 고등어가 좌우로 흔들려도 밥에 박히지 않아요
+	-- 앞·뒤 자락: 띠의 가장 넓은 옆구리에서 밥 윗면 가장자리까지 비스듬히 (고등어와 밥을 같이 감은 모양).
+	-- 밥 윗면보다 위에서 끝나서 고등어가 흔들려도 밥에 박히지 않아요
 	for _, side in { -1, 1 } do
-		local top = { MID.rb - 0.01, Y - MID.down } -- (z, y) 띠 속
-		local bottom = { MID.rb + 0.06, 1.03 } -- 밥 윗면(1.0) 바로 위
+		local top = { MID.rb - 0.02, Y - MID.down } -- (z, y) 띠 속
+		local bottom = DRAPE_BOTTOM
 		local dz, dy = bottom[1] - top[1], bottom[2] - top[2]
 		local length = math.sqrt(dz * dz + dy * dy)
 		local angle = math.deg(math.atan2(dz, -dy)) -- 세로에서 바깥으로 기운 각
@@ -262,7 +270,7 @@ local function noriBand(): { PartSpec }
 			list,
 			piece(
 				if side < 0 then "FishNoriFront" else "FishNoriBack",
-				{ NORI_W, length + 0.06, 0.05 },
+				{ NORI_W, length + 0.04, 0.05 },
 				NORI,
 				{ NORI_X, (top[2] + bottom[2]) / 2, side * (top[1] + bottom[1]) / 2 },
 				"Fabric",
@@ -272,11 +280,10 @@ local function noriBand(): { PartSpec }
 		)
 	end
 	for i, spec in list do
-		list[i] = tilted(spec, NORI_PIVOT, NORI_TILT)
+		list[i] = tilted(spec, NORI_PIVOT, tilt)
 	end
-	-- 밥을 감는 김 (Body에 붙어 움직이지 않아요): 시트처럼 김이 고등어와 밥을 같이 감은 모양. 고등어 띠의 자락이
-	-- 이 김 윗면에 내려앉아요. 앞면은 얼굴(땀·💢·눈썹 위끝 0.75)을 가리지 않게 가장자리만 짧게 덮고,
-	-- 얼굴이 없는 뒷면(게임 뒤 카메라)은 밥 옆으로 길게 내려가요
+	-- 밥을 감는 김 (Body에 붙어 움직이지 않아요): 띠 자락이 이 김 윗면 가장자리에 내려앉아 밥 옆으로 이어져요.
+	-- 앞면은 얼굴(땀·💢·눈썹 위끝 0.75)을 가리지 않게 가장자리만 짧게, 얼굴이 없는 뒷면(게임 뒤 카메라)은 길게
 	table.insert(
 		list,
 		piece("NoriWrap", { NORI_WRAP_W, 1.03 - NORI_WRAP_FRONT, 2 * 1.35 + 0.08 }, NORI, {
@@ -297,25 +304,31 @@ local function noriBand(): { PartSpec }
 end
 
 ---------------------------------------------------------------- 머리
-local HEAD_X = ROOT_X1
--- 눈 (side -1 = 앞 -Z, 1 = 뒤 +Z): 머리 등 공 옆에 크게 튀어나온 크림 공 + 검은 눈동자 공 + 흰 반짝
-local EYE_X, EYE_Y = 1.88, Y + 0.18
+-- 눈 (side -1 = 앞 -Z, 1 = 뒤 +Z): 머리 옆에 크게 튀어나온 크림 공 + 검은 눈동자 공 + 흰 반짝
+local EYE_X, EYE_Y = 2.0, Y + 0.24
 local function fishEye(side: number): { PartSpec }
 	local tag = if side < 0 then "F" else "B"
 	return {
-		ball(`FishEye{tag}`, 0.8, EYE_CREAM, { EYE_X, EYE_Y, side * 0.64 }, nil, { attach = "FishRoot" }),
-		ball(`FishPupil{tag}`, 0.52, EYE_BLACK, { EYE_X, EYE_Y, side * 0.8 }, nil, { attach = "FishRoot" }),
-		ball(`FishGlint{tag}`, 0.16, WHITE, { EYE_X + 0.1, EYE_Y + 0.13, side * 1.0 }, "Neon", { attach = "FishRoot" }),
+		ball(`FishEye{tag}`, 0.96, EYE_CREAM, { EYE_X, EYE_Y, side * 0.76 }, nil, { attach = "FishRoot" }),
+		ball(`FishPupil{tag}`, 0.62, EYE_BLACK, { EYE_X, EYE_Y, side * 0.95 }, nil, { attach = "FishRoot" }),
+		ball(
+			`FishGlint{tag}`,
+			0.19,
+			WHITE,
+			{ EYE_X + 0.12, EYE_Y + 0.15, side * 1.19 },
+			"Neon",
+			{ attach = "FishRoot" }
+		),
 	}
 end
 
--- 젖은 윤기 띠: 등 원기둥 윗옆구리(위에서 30° 내려온 자리)에 붙은 얇고 긴 밝은 판
+-- 젖은 윤기 띠: 등 원기둥 윗옆구리(위에서 30° 내려온 자리)에 붙은 얇고 긴 빛나는 판
 local function gloss(name: string, x0: number, x1: number, side: number): PartSpec
 	local a = math.rad(30)
 	local radial = ROOT.rd + 0.035
 	return piece(
 		name,
-		{ x1 - x0, 0.03, 0.22 },
+		{ x1 - x0, 0.03, 0.26 },
 		GLOSS,
 		{ (x0 + x1) / 2, Y + ROOT.up + math.cos(a) * radial, side * math.sin(a) * radial },
 		"Neon",
@@ -337,80 +350,78 @@ function ConceptMackerel.topping(): { PartSpec }
 	add(cap("FishHead", HEAD_X, Y, HEAD, "FishRoot"))
 	add({
 		-- 앞몸 뒤끝을 둥글게 (등·배): 앞몸 → 뒷몸이 턱 없이 가늘어지고, 아치로 머리가 들려도 이음매가 안 보여요
-		-- (렌더 1·3회차 비평). 대신 김 띠 속에 완전히 숨어 있던 뒷몸 앞마디 끝 공 둘은 뺐어요 (파츠 예산)
-		ball("FishRootEnd", 2 * ROOT.rd * 0.92, DORSAL, { ROOT_X0, Y + ROOT.up, 0 }, nil, { attach = "FishRoot" }),
-		ball("FishRootEndBelly", 2 * ROOT.rb * 0.92, BELLY, { ROOT_X0, Y - ROOT.down, 0 }, "Foil", {
+		ball("FishRootEnd", 2 * ROOT.rd * 0.9, DORSAL, { ROOT_X0, Y + ROOT.up, 0 }, nil, { attach = "FishRoot" }),
+		ball("FishRootEndBelly", 2 * ROOT.rb * 0.9, BELLY, { ROOT_X0, Y - ROOT.down, 0 }, "Foil", {
 			attach = "FishRoot",
 		}),
-		-- 아가미 선 (머리와 몸 경계). 배 쪽 선은 은빛 배에서 거의 안 보여서 뺐어요 (파츠 예산)
-		rod("FishGill", 1.22, 1.28, Y + ROOT.up, ROOT.rd + 0.012, GILL, nil, { attach = "FishRoot" }),
-		-- 벌린 입: 주둥이를 Z로 꿰뚫어 옆구리 양쪽으로 나오는 짙은 분홍 원판(Z축 원기둥) + 아래쪽 분홍 혀 — 앞·뒤에서 보여요
-		piece("FishMouth", { 1.5, 0.36, 0.36 }, MOUTH, { 2.33, Y - 0.22, 0 }, nil, {
-			shape = "Cylinder",
-			rotation = { 0, 90, 0 },
+		-- 아가미 선 (머리와 몸 경계)
+		rod("FishGill", 1.18, 1.25, Y + ROOT.up, ROOT.rd + 0.012, GILL, nil, { attach = "FishRoot" }),
+		-- 벌린 입: 주둥이 끝 아래쪽을 Z로 가로지르는 짙은 틈(얇은 상자). 머리 공이 끝으로 갈수록 가늘어서
+		-- 주둥이 끝 근처에서만 옆으로 드러나 "벌린 입 선"으로 보여요 (원판이 아니라서 빨간 코로 안 읽혀요).
+		-- 그 아래 분홍 혀(얇은 상자)가 살짝 보여요
+		piece("FishMouth", { 0.56, 0.26, 1.9 }, MOUTH, { 2.46, Y - 0.34, 0 }, nil, {
+			rotation = { 0, 0, -10 },
 			attach = "FishRoot",
 		}),
-		piece("FishTongue", { 1.54, 0.15, 0.15 }, TONGUE, { 2.34, Y - 0.3, 0 }, nil, {
-			shape = "Cylinder",
-			rotation = { 0, 90, 0 },
+		piece("FishTongue", { 0.42, 0.1, 1.84 }, TONGUE, { 2.44, Y - 0.47, 0 }, nil, {
+			rotation = { 0, 0, -10 },
 			attach = "FishRoot",
 		}),
-		-- 등지느러미 (앞) — 쉰 자세 꼭대기 3.2 아래
-		fin("FishDorsal", { 0.06, 0.26, 0.7 }, FIN, { 0.5, Y + ROOT.up + ROOT.rd + 0.06, 0 }, false, nil, {
+		-- 등지느러미 (앞)
+		fin("FishDorsal", { 0.06, 0.26, 0.9 }, FIN, { 0.6, Y + ROOT.up + ROOT.rd + 0.06, 0 }, false, nil, {
 			attach = "FishRoot",
 		}),
 		-- 윤기
-		gloss("FishGlossF", 0.25, 1.5, -1),
-		gloss("FishGlossB", 0.25, 1.5, 1),
-		ball("FishShineF", 0.28, WHITE, { 2.07, Y + 0.8, -0.38 }, nil, { attach = "FishRoot", transparency = 0.1 }),
-		ball("FishShineB", 0.28, WHITE, { 2.07, Y + 0.8, 0.38 }, nil, { attach = "FishRoot", transparency = 0.1 }),
+		gloss("FishGlossF", 0.3, 1.6, -1),
+		gloss("FishGlossB", 0.3, 1.6, 1),
+		ball("FishShineF", 0.34, WHITE, { 2.12, Y + 1.12, -0.42 }, nil, { attach = "FishRoot", transparency = 0.1 }),
+		ball("FishShineB", 0.34, WHITE, { 2.12, Y + 1.12, 0.42 }, nil, { attach = "FishRoot", transparency = 0.1 }),
 	})
 	add(fishEye(-1))
 	add(fishEye(1))
 	add({
-		-- 간격·굵기·기울기를 조금씩 달리해 물결처럼
-		stripe("FishStripe1", 1.06, Y, ROOT, 0.07, 18, "FishRoot"),
-		stripe("FishStripe2", 0.8, Y, ROOT, 0.06, 26, "FishRoot"),
-		stripe("FishStripe3", 0.53, Y, ROOT, 0.08, 20, "FishRoot"),
-		stripe("FishStripe4", 0.27, Y, ROOT, 0.06, 27, "FishRoot"),
+		-- 물결 줄무늬: 기울기를 번갈아(크게·작게) 굵기·간격도 조금씩 달리해 출렁이는 물결처럼
+		stripe("FishStripe1", 1.02, Y, ROOT, 0.08, 24, "FishRoot"),
+		stripe("FishStripe2", 0.78, Y, ROOT, 0.07, 14, "FishRoot"),
+		stripe("FishStripe3", 0.52, Y, ROOT, 0.09, 25, "FishRoot"),
+		stripe("FishStripe4", 0.27, Y, ROOT, 0.07, 15, "FishRoot"),
 	})
-	-- 가슴지느러미 (관절, FishRoot에 매달려 팔랑): 앞쪽 수직변이 아가미 뒤 배 옆구리에
+	-- 가슴지느러미 (관절, FishRoot에 매달려 팔랑): 앞쪽 수직변이 아가미 뒤 옆구리에
 	for _, side in { -1, 1 } do
-		local z = side * (ROOT.rb + 0.07)
+		local z = side * (ROOT.rb + 0.06)
 		table.insert(
 			list,
 			fin(
 				if side < 0 then "FishFinL" else "FishFinR",
-				{ 0.05, 0.78, 1.2 },
+				{ 0.05, 0.86, 1.08 },
 				PECTORAL,
-				{ 0.78, Y - 0.02, z },
+				{ 0.72, Y - 0.04, z },
 				true,
-				{ 0, side * 24, 0 },
+				{ 0, side * 14, 0 },
 				{
 					joint = true,
 					attach = "FishRoot",
-					pivot = { 1.3, Y - 0.02, z },
+					pivot = { 1.22, Y - 0.04, z },
 					transparency = 0.2,
 				}
 			)
 		)
 	end
 
-	-- 뒷몸 (FishMid 관절 파츠 = 앞마디 등 원기둥, 끝 공·뒷마디·김 띠는 붙는 파츠)
+	-- 뒷몸 (FishMid 관절 파츠 = 앞마디 등 원기둥, 뒷마디·김 띠는 붙는 파츠)
 	add(segment("FishMid", MID_X0, MID_X1, Y, MID, nil, { joint = true, attach = "FishRoot", pivot = MID_PIVOT }))
 	add(segment("FishRear", REAR_X0, REAR_X1, Y, REAR, "FishMid"))
 	add(cap("FishRearEnd", REAR_X0, Y, REAR, "FishMid"))
 	add({
-		stripe("FishStripe5", -0.02, Y, MID, 0.07, 20, "FishMid"),
-		stripe("FishStripe6", -0.26, Y, MID, 0.05, 26, "FishMid"),
-		stripe("FishStripe7", -0.48, Y, MID, 0.07, 18, "FishMid"),
-		fin("FishDorsal2", { 0.05, 0.24, 0.4 }, FIN, { -0.2, Y + MID.up + MID.rd + 0.08, 0 }, false, nil, {
+		stripe("FishStripe5", -1.2, Y, REAR, 0.06, 20, "FishMid"),
+		stripe("FishStripe6", -0.92, Y, REAR, 0.06, 10, "FishMid"),
+		fin("FishDorsal2", { 0.05, 0.26, 0.5 }, FIN, { -1.0, Y + REAR.up + REAR.rd + 0.07, 0 }, false, nil, {
 			attach = "FishMid",
 		}),
 	})
 	add(noriBand())
 
-	-- 꼬리 (FishTail 관절 파츠 = 꼬리자루 등 원기둥) + V자 꼬리지느러미
+	-- 꼬리 (FishTail 관절 파츠 = 꼬리자루 등 원기둥) + 크게 V자로 갈라진 꼬리지느러미
 	add({
 		rod("FishTail", STALK_X0, STALK_X1, STALK_Y + STALK.up, STALK.rd, DORSAL, nil, {
 			joint = true,
@@ -427,22 +438,22 @@ function ConceptMackerel.topping(): { PartSpec }
 			"Foil",
 			{ attach = "FishTail" }
 		),
-		fin("FishTailTop", { 0.07, 0.7, 1.1 }, TAIL_FIN, { -2.19, STALK_Y + 0.34, 0 }, true, { 0, 0, -22 }, {
+		fin("FishTailTop", { 0.08, 1.02, 0.96 }, TAIL_FIN, { -2.39, STALK_Y + 0.42, 0 }, true, { 0, 0, -24 }, {
 			attach = "FishTail",
 			effect = "Sparkles",
 			effectColor = { 150, 210, 255 },
 		}),
-		fin("FishTailLow", { 0.07, 0.76, 1.1 }, TAIL_FIN, { -2.19, STALK_Y - 0.31, 0 }, false, { 0, 0, 22 }, {
+		fin("FishTailLow", { 0.08, 1.02, 0.96 }, TAIL_FIN, { -2.39, STALK_Y - 0.38, 0 }, false, { 0, 0, 24 }, {
 			attach = "FishTail",
 		}),
 	})
 
 	-- 물방울: 평소엔 앞몸 속에 숨어 있다가 팔딱할 때 reach만큼 위·바깥으로 (Body 관절)
 	local drops = {
-		{ 0.38, { 0.9, Y, -0.2 }, { 0.9, 1.05, -1.3 } },
-		{ 0.32, { 0.5, Y, 0.2 }, { -2.0, 0.85, 1.25 } },
-		{ 0.3, { 0.7, Y, 0.1 }, { 0.5, 1.3, 1.2 } },
-		{ 0.34, { 0.4, Y, -0.1 }, { -1.5, 1.0, -1.35 } },
+		{ 0.4, { 0.9, Y, -0.2 }, { 1.0, 1.25, -1.3 } },
+		{ 0.34, { 0.5, Y, 0.2 }, { -2.3, 0.8, 1.25 } },
+		{ 0.32, { 0.7, Y, 0.1 }, { 0.6, 1.45, 1.25 } },
+		{ 0.36, { 0.4, Y, -0.1 }, { -1.8, 1.0, -1.35 } },
 	}
 	for i, drop in drops do
 		table.insert(

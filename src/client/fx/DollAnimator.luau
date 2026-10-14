@@ -185,8 +185,18 @@ function DollAnimator.attach(model: Model, mode: Mode, opts: Options?): () -> ()
 		if item:IsA("BasePart") and item ~= body then
 			local joint = jointOf(item, rig, body)
 			if joint then
-				item.Anchored = true -- 관절·용접 대신 CFrame을 직접 써요 (인형은 보이기만)
 				table.insert(driven, { part = item, joint = joint, rel = bodyCf:ToObjectSpace(item.CFrame) })
+			end
+		end
+	end
+	-- 관절·용접 대신 CFrame을 직접 써요 (인형은 보이기만). 움직이는 파츠를 붙잡던 용접·Motor6D는 끊어요:
+	-- 용접이 남아 있으면 CFrame을 쓸 때 같은 덩어리(밥·얼굴·팔다리)까지 끌려가거나 떨릴 수 있어요 (QA 위험).
+	-- 모든 파츠를 다 찾은 뒤에 끊어요(jointOf가 용접을 따라 올라가요). Body와 나머지 파츠의 용접은 그대로예요
+	for _, item in driven do
+		item.part.Anchored = true
+		for _, child in item.part:GetChildren() do
+			if (child:IsA("WeldConstraint") or child:IsA("Motor6D")) and (child :: any).Part1 == item.part then
+				(child :: any).Enabled = false
 			end
 		end
 	end

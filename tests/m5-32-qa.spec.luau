@@ -22,6 +22,8 @@ local F = Anim.FISH
 local DEG = math.pi / 180
 local RICE_TOP = 1.0
 local RICE_FRONT = -1.35
+-- 이 스킨만 이름표가 높아요 (사용자 결정 2026-10-14 4차): 쉰 꼭대기 ≤ TAG − 0.4, 팔딱 꼭대기 ≤ TAG
+local TAG = SushiBody.nameTagHeight(ID)
 
 local SALMON_BOUNDS = SushiBody.bounds(SushiBody.layout("concept-salmon"))
 local MAX_X = (SALMON_BOUNDS.max[1] - SALMON_BOUNDS.min[1]) * 1.25
@@ -118,7 +120,7 @@ return function(t: Test.Test)
 					local label = `{expression}/{item.name}`
 					local layout = SushiPose.posed(base, Anim.fishMotion(item.pose))
 					local b = SushiBody.bounds(layout)
-					t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT + 1e-9, `{label} top {b.max[2]}`)
+					t.ok(b.max[2] <= TAG + 1e-9, `{label} top {b.max[2]}`)
 					t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) <= 1e-9, `{label} sole`)
 					t.ok(b.max[1] - b.min[1] <= MAX_X + 1e-9, `{label} x`)
 					t.ok(b.max[3] - b.min[3] <= MAX_Z + 1e-9, `{label} z`)

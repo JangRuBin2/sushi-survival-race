@@ -172,6 +172,8 @@ local MAX_X = (SALMON_BOUNDS.max[1] - SALMON_BOUNDS.min[1]) * 1.25
 local MAX_Z = (SALMON_BOUNDS.max[3] - SALMON_BOUNDS.min[3]) * 1.25
 local RICE_TOP = 1.0
 local RICE_FRONT = -1.35
+-- 이 스킨만 이름표가 높아요 (사용자 결정 2026-10-14 4차): 쉰 꼭대기 ≤ TAG − 0.4, 팔딱 꼭대기 ≤ TAG
+local TAG = SushiBody.nameTagHeight(ID)
 
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
@@ -488,11 +490,11 @@ return function(t: Test.Test)
 				t.ok(#rest <= 80, `{expression} parts {#rest}`)
 				local b = SushiBody.bounds(rest)
 				near(t, b.min[2], -SushiBody.GROUND_OFFSET, 1e-9, `{expression} sole`)
-				t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{expression} rest top {b.max[2]}`)
+				t.ok(b.max[2] <= TAG - 0.4, `{expression} rest top {b.max[2]}`)
 				for _, item in posedLayouts(expression) do
 					local label = `{expression}/{item.name}`
 					local pb = SushiBody.bounds(item.layout)
-					t.ok(pb.max[2] <= SushiBody.NAME_TAG_HEIGHT, `{label} top {pb.max[2]}`)
+					t.ok(pb.max[2] <= TAG, `{label} top {pb.max[2]}`)
 					near(t, pb.min[2], -SushiBody.GROUND_OFFSET, 1e-9, `{label} sole`)
 					t.ok(pb.max[1] - pb.min[1] <= MAX_X + 1e-9, `{label} x {pb.max[1] - pb.min[1]}`)
 					t.ok(pb.max[3] - pb.min[3] <= MAX_Z + 1e-9, `{label} z {pb.max[3] - pb.min[3]}`)
@@ -511,7 +513,7 @@ return function(t: Test.Test)
 							if lo[2] < RICE_TOP then
 								t.ok(lo[3] >= RICE_FRONT - 1e-6, `{label} {spec.name} covers the face`)
 							end
-							t.ok(hi[2] <= SushiBody.NAME_TAG_HEIGHT, `{label} {spec.name} top`)
+							t.ok(hi[2] <= TAG, `{label} {spec.name} top`)
 						end
 					end
 				end
@@ -603,6 +605,187 @@ return function(t: Test.Test)
 			for _, spec in SushiBody.layout(SALMON) do
 				t.ok(spec.name ~= "NoriWrap", "salmon has no NoriWrap")
 			end
+		end
+	)
+
+	t.test(
+		"4차 결정: 이 스킨만 이름표가 높아요 — 다른 스킨은 3.6 그대로, build가 Body에 높이를 달아요",
+		function()
+			t.ok(TAG > SushiBody.NAME_TAG_HEIGHT, `tag {TAG}`)
+			t.eq(SushiBody.NAME_TAG_HEIGHT, 3.6)
+			for _, skin in Skins.LIST do
+				if skin.id ~= ID then
+					t.eq(SushiBody.nameTagHeight(skin.id), SushiBody.NAME_TAG_HEIGHT, skin.id)
+				end
+			end
+			t.eq(SushiBody.nameTagHeight(nil), SushiBody.NAME_TAG_HEIGHT)
+			t.eq(SushiBody.nameTagHeight("no-such-skin"), SushiBody.NAME_TAG_HEIGHT)
+			local Real = Shims.root("src/shared")
+			local RealBody = Shims.require(Real.SushiBody)
+			local mackerel = RealBody.build(ID)
+			t.eq(mackerel.PrimaryPart:GetAttribute(SushiBody.NAME_TAG_ATTRIBUTE), TAG)
+			local salmon = RealBody.build(SALMON)
+			t.eq(salmon.PrimaryPart:GetAttribute(SushiBody.NAME_TAG_ATTRIBUTE), nil)
+			-- 이름표를 쓰는 곳이 스킨별 높이를 써요 (id 분기 없이 Body 속성·nameTagHeight로)
+			local fx = fs.readFile("src/client/fx/CharacterFxController.luau")
+			t.ok(string.find(fx, "NAME_TAG_ATTRIBUTE", 1, true) ~= nil, "character name tag reads the body attribute")
+			local lobby = fs.readFile("src/client/fx/LobbyFxController.luau")
+			t.ok(string.find(lobby, "nameTagHeight", 1, true) ~= nil, "podium label follows the skin")
+			local render = fs.readFile("tools/render-character.luau")
+			t.ok(string.find(render, "nameTagHeight", 1, true) ~= nil, "renderer name tag follows the skin")
+		end
+	)
+
+	t.test(
+		"4차 결정: 관절 한도 끝까지 팔딱한 자세(들썩·아치·비틀림·꼬리·뒷몸 최대, 물방울 1)도 꼭대기 ≤ 이름표",
+		function()
+			local hurtBend = F.HURT_MID_ARCH + F.HURT_TAIL_ARCH
+			for _, expression in Sample.EXPRESSIONS do
+				local base = SushiBody.layout(ID, expression)
+				for _, rootArch in { 0, F.MAX_ARCH } do
+					for _, bend in { hurtBend, 0, F.MAX_ARCH } do
+						for _, tail in { -F.MAX_TAIL, 0, F.MAX_TAIL } do
+							for _, mid in { -F.MAX_MID, F.MAX_MID } do
+								for _, twist in { -F.MAX_TWIST, F.MAX_TWIST } do
+									local pose = {
+										rootLift = F.MAX_LIFT,
+										rootArch = rootArch,
+										rootTwist = twist,
+										midYaw = mid,
+										midArch = bend / 2,
+										tailYaw = tail,
+										tailArch = bend / 2,
+										finFlap = F.FIN_FLOP,
+										splash = 1,
+									}
+									local b = SushiBody.bounds(SushiPose.posed(base, Anim.fishMotion(pose)))
+									t.ok(b.max[2] <= TAG, `{expression} arch {rootArch} bend {bend} top {b.max[2]}`)
+								end
+							end
+						end
+					end
+				end
+			end
+			-- 쉰 자세는 이름표 − 0.4 아래, 고등어는 시트처럼 밥보다 높아요 (밥 높이 2.0)
+			local rest = SushiBody.layout(ID)
+			local fishTop, fishLow = -math.huge, math.huge
+			for _, spec in rest do
+				if string.sub(spec.name, 1, 4) == "Fish" then
+					local lo, hi = LayoutCheck.box(spec)
+					fishTop = math.max(fishTop, hi[2])
+					fishLow = math.min(fishLow, lo[2])
+				end
+			end
+			t.ok(SushiBody.bounds(rest).max[2] <= TAG - 0.4, "rest top")
+			t.ok(fishTop - fishLow >= 2.6, `fish height {fishTop - fishLow}`)
+		end
+	)
+
+	t.test(
+		"QA B1·B2: 상태 조합 전부(팔딱·착지·공중·달리기·넘어짐 × 모드)에서 값 한도·꼭대기, 바뀌는 순간 끊기지 않아요",
+		function()
+			local eps = 1e-6
+			local base = SushiBody.layout(ID)
+			local count, tops = 0, 0
+			for _, mode in { "Character", "Idle", "Victory", "Preview", "Hurt" } do
+				for _, flop in { false, true } do
+					for _, land in { false, true } do
+						for _, rise in { 0, 10, 30, 60 } do
+							for _, walk in { 0, 0.5, 1.3 } do
+								for _, knock in { 0, 0.5, 1 } do
+									for step = 0, 11 do
+										local t0 = step * 0.05
+										local input = standing(t0, {
+											mode = mode,
+											flopTime = if flop
+												then math.min(t0, Anim.flopDuration(mode) - 0.001)
+												else nil,
+											landTime = if land then t0 else nil,
+											landStrength = if land then 1 else 0,
+											airborne = rise > 0,
+											riseSpeed = rise,
+											walk = walk,
+											phase = t0 * 15.5,
+											knocked = knock > 0,
+											blend = { knock = knock, air = if rise > 0 then Anim.stretch(rise) else 0 },
+										})
+										local p = Anim.fishPose(input)
+										count += 1
+										local label =
+											`{mode} flop {flop} land {land} rise {rise} walk {walk} knock {knock} t {t0}`
+										t.ok(math.abs(p.tailYaw) <= F.MAX_TAIL + eps, `{label} tail`)
+										t.ok(math.abs(p.midYaw) <= F.MAX_MID + eps, `{label} mid`)
+										t.ok(math.abs(p.rootArch) <= F.MAX_ARCH + eps, `{label} arch`)
+										t.ok(math.abs(p.midArch + p.tailArch) <= F.MAX_ARCH + eps, `{label} bend`)
+										t.ok(math.abs(p.rootTwist) <= F.MAX_TWIST + eps, `{label} twist`)
+										t.ok(p.rootLift >= 0 and p.rootLift <= F.MAX_LIFT + eps, `{label} lift`)
+										if step == 2 or step == 6 then
+											tops += 1
+											local b = SushiBody.bounds(SushiPose.posed(base, Anim.fishMotion(p)))
+											t.ok(b.max[2] <= TAG, `{label} top {b.max[2]}`)
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			t.ok(count > 1000 and tops > 100, `combos {count} tops {tops}`)
+			-- 공중 정도만큼 팔딱·착지가 줄어요 (B1): 높이 뛸수록 들썩이 작아요
+			local function lift(rise: number, key: string): number
+				local overrides: { [string]: any } = { airborne = rise > 0, riseSpeed = rise }
+				if key == "flop" then
+					overrides.flopTime = 0.15
+				else
+					overrides.landTime = 0.2
+					overrides.landStrength = 1
+				end
+				return Anim.fishPose(standing(0.15, overrides)).rootLift
+			end
+			for _, key in { "flop", "land" } do
+				t.ok(lift(60, key) < lift(0, key) * 0.5, `{key} fades in the air`)
+			end
+			-- 팔딱 중 달리기 시작: 달릴수록 팔딱이 줄어요
+			local still = Anim.fishPose(standing(0.15, { flopTime = 0.15 })).rootLift
+			local running = Anim.fishPose(standing(0.15, { flopTime = 0.15, walk = 1.3 })).rootLift
+			t.ok(running < still * 0.2, `flop fades while running {running} vs {still}`)
+			-- B2: 팔딱 중 착지 — 팔딱을 끊지 않고 착지 팔딱과 섞어요 (1/60초 꼬리 변화 ≤ 0.12 rad + 진동 몫)
+			local frames = {}
+			local clock = 0
+			for i = 0, 60 do
+				local flopTime = 0.1 + i / 60
+				local landTime = if i >= 20 then (i - 20) / 60 else nil
+				table.insert(
+					frames,
+					standing(clock, {
+						flopTime = if flopTime < F.FLOP_TIME then flopTime else nil,
+						airborne = i < 20,
+						riseSpeed = 0,
+						landTime = landTime,
+						landStrength = if landTime then 1 else 0,
+					})
+				)
+				clock += 1 / 60
+			end
+			local poses = simulate(frames)
+			local maxStep = (F.LAND_TAIL * 2 * math.pi * F.LAND_HZ + F.FLOP_TAIL * 2 * math.pi * F.FLOP_HZ) / 60
+			for i = 2, #poses do
+				local step = math.abs(poses[i].tailYaw - poses[i - 1].tailYaw)
+				t.ok(step <= maxStep + 0.12, `landing during a flop step {i} {step}`)
+			end
+			-- 클라이언트는 착지 때 팔딱을 끊지 않아요
+			local src = fs.readFile("src/client/fx/CharacterFxController.luau")
+			t.ok(string.find(src, "state.flopTime = nil", 1, true) == nil, "landing keeps the flop")
+		end
+	)
+
+	t.test(
+		"QA 위험: DollAnimator는 움직이는 고등어 파츠의 용접·관절을 끄고 CFrame을 써요 (밥·얼굴이 안 끌려가요)",
+		function()
+			local src = fs.readFile("src/client/fx/DollAnimator.luau")
+			t.ok(string.find(src, ".Enabled = false", 1, true) ~= nil, "joints of driven parts are disabled")
+			t.ok(string.find(src, "Part1 == item.part", 1, true) ~= nil, "only joints that hold the driven part")
 		end
 	)
 
@@ -740,7 +923,7 @@ return function(t: Test.Test)
 				end
 				error(name)
 			end
-			local pivot = (base[1] :: any) and { 0.15, 0, 0 }
+			local pivot = RobloxRequire.require(Shared.ConceptMackerel).PIVOTS.FishMid -- 뒷몸 경첩 (Body 좌표)
 			for _, name in { "FishMid", "FishNori", "FishTail", "FishTailTop" } do
 				local a, b = at(base, name), at(yaw, name)
 				-- Y축으로 30° 돌면 경첩에서 거리는 같고(XZ), 높이는 그대로

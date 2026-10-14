@@ -52,7 +52,13 @@ local DEFAULT_GROUND_BELOW_ROOT = 3
 local DIZZY_TEXT = "@_@"
 local DIZZY_SPIN = 360 -- 도/초
 local HIDDEN_THRESHOLD = 0.99
-local NAME_TAG_HEIGHT = SushiBody.NAME_TAG_HEIGHT -- Body 중심에서 이름표까지
+local NAME_TAG_HEIGHT = SushiBody.NAME_TAG_HEIGHT -- Body 중심에서 이름표까지 (기본)
+
+-- 이 Body의 이름표 높이: 기본과 다른 스킨(m5-32 고등어)은 build가 Body에 높이 속성을 달아요 (스킨 id는 몰라요)
+local function nameTagHeightOf(body: BasePart): number
+	local value = body:GetAttribute(SushiBody.NAME_TAG_ATTRIBUTE)
+	return if type(value) == "number" and value > 0 then value else NAME_TAG_HEIGHT
+end
 local NAME_TAG_DISTANCE = 100 -- Roblox 기본 이름표 거리와 같아요
 local NAME_HEIGHT = 24 -- 이름 줄 높이(px)
 local TITLE_HEIGHT = 16 -- 칭호 줄 높이(px, 이름 위)
@@ -153,7 +159,7 @@ local function makeNameTag(body: BasePart, displayName: string): BillboardGui
 	-- 칭호 줄만큼 키우고 그만큼 위로 밀어 이름 줄은 예전 자리 그대로예요
 	gui.Size = UDim2.fromOffset(200, NAME_HEIGHT + TITLE_HEIGHT)
 	gui.SizeOffset = Vector2.new(0, TITLE_HEIGHT / 2 / (NAME_HEIGHT + TITLE_HEIGHT))
-	gui.StudsOffsetWorldSpace = Vector3.new(0, NAME_TAG_HEIGHT, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, nameTagHeightOf(body), 0) -- 👑·칭호 줄도 이 이름표 안이에요
 	gui.LightInfluence = 0
 	gui.MaxDistance = NAME_TAG_DISTANCE
 	local label = Instance.new("TextLabel")
@@ -498,7 +504,8 @@ local function update(character: Model, state: State, dt: number, localCharacter
 		if state.landStrength > 0 then
 			state.fishLandTime = 0
 			state.fishLandStrength = state.landStrength
-			state.flopTime = nil
+			-- 진행 중인 가끔 팔딱은 끊지 않아요 (QA B2 — 끊으면 꼬리가 한 프레임에 튀어요). fishPose가 착지 팔딱과
+			-- 섞고 한도로 묶어요
 		end
 	end
 	state.airborne = inAir

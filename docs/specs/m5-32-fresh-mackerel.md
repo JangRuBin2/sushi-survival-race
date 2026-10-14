@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-32 — 전설 스킨 "고등어 초밥 [신선]" (팔딱거리는 통고등어)
@@ -167,6 +167,10 @@ status: in-dev
   1. **파츠 상한: 고등어만 80** (`SushiBody` 콘셉트 몸 예외 표에서 `fresh-mackerel`의 partBudget = 80, 다른 9종 70 그대로, 테스트로 고정). 24명 모두 고등어여도 캐릭터 파츠 약 1,900개.
   2. **표정 "화남"(Angry)·"슬픔"(Sad)을 만든다**: 시트의 화남(찡그린 눈썹 + ><에 가까운 눈 + 작은 입, 💢)·슬픔(처진 눈 + 눈물 한 방울 + 작은 입)을 **콘셉트 몸 공용 얼굴**(`SushiConceptSample` face)에 추가해 콘셉트 몸 스킨 모두가 쓸 수 있게 한다(`EXPRESSIONS` 6종). 기존 4표정 레이아웃은 바이트 단위로 그대로. 쓰는 곳: 탈의실·뽑기 화면 스킨 상세의 표정 썸네일(m5-31 상세 패널)과 미리보기 인형. 게임 흐름(탈락 = 아픔, 우승 = 신남)은 그대로. 새 표정도 파츠 상한·얼굴 규칙·깜빡임 관절 규칙(감은 눈 표정이면 관절 없음 등)을 지킨다.
   3. **팔딱·첨벙 효과음 넣는다**: `SfxCues`에 `FishFlop`(팔딱 — 큰 팔딱·착지 팔딱 순간), `FishSplash`(첨벙 — 물방울이 튀는 순간) 2개. 소리 id는 사용자가 고르므로(USER-TODO A2) 처음엔 비어 있고, 비어 있으면 조용히 건너뛴다(기존 Sfx 규칙). 클라이언트 로컬 재생, 캐릭터 위치에서 3D 소리(가까울수록 크게, 최대 거리 약 60 studs — 움직임 정지 거리와 같음), 같은 캐릭터당 0.25초에 한 번 이하, 서 있을 때 살랑(작은 움직임)에는 소리 없음. 인형(탈의실·뽑기 미리보기·우승 단상)도 팔딱할 때 소리(탈의실·뽑기 화면에서는 UI 소리로, 볼륨 낮게). 판정·복제 없음.
+- 2026-10-14 · 개발 · 들썩·아치 수치: 가끔 팔딱 들썩 0.3(기본 0.35)·아치 10°(12°), 착지 들썩 0.41×세기(0.45), 비틀림 5° — 꼬리 위 갈래가 팔딱 꼭대기 3.6(이름표)을 넘지 않게. 나머지는 기본값 · 개발 (렌더·테스트 근거, docs/developer/m5-32-fresh-mackerel.md)
+- 2026-10-14 · 개발 · 김 띠: 고등어 띠·자락은 스펙대로 FishMid에 붙어 움직이고, 시트의 "밥까지 감은 김"은 Body에 용접된 **밥 김** `NoriWrap`(밥 윗면 가장자리 + 앞면 위 0.17 — 얼굴의 땀·💢·눈썹을 가리지 않게)·`NoriWrapBack`(뒷면 0.3까지)으로 만듦. 팔딱으로 고등어가 들리면 잠깐 띠와 밥 김 사이가 벌어짐("김에서 튀어 오름"). 이름이 `Fish`가 아니라 고등어 파츠 검사 대신 전용 테스트로 고정 · 개발
+- 2026-10-14 · 개발 · 소리 간격: "캐릭터당 0.25초에 한 번"을 소리마다(FishFlop·FishSplash 각각)로 — 팔딱과 첨벙은 짝이라 같이 울림 (`CharacterAnimLogic.fishSoundFilter`) · 개발
+- 2026-10-14 · 개발 · 파츠 수: 기본 75·신남 71·당황 77·아픔 71·화남 79·슬픔 79 (상한 80) · 개발
 - **열린 질문 (사용자)**
   1. 파츠 상한: 콘셉트 상한 70 안에서 만든다. 렌더 비평에서 "줄무늬·지느러미 때문에 70으로는 시트 퀄리티가 안 나온다"고 판단되면 **이 스킨만 80**까지 올려도 될지(24명 모두 고등어면 캐릭터 파츠 약 1,900개 — 모두 충돌 없음·Massless). 추천: 70으로 먼저 해 보고, 개발이 렌더 근거를 붙여 요청하면 결정.
   2. 시트의 "화남"·"슬픔" 표정을 콘셉트 몸 전체 표정으로 추가할지 — 지금 게임에서 쓰는 곳(탈락 = 아픔, 우승 = 신남)이 없어서 이번엔 뺌. 추천: 나중에 감정 표현(이모트) 기능이 생기면.
@@ -176,3 +180,9 @@ status: in-dev
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
 - 파츠 예산 참고: 공유 부분(밥·받침 8 + 팔·다리 4 + 얼굴 최대 15) ≈ 27 → 고등어(관절 파츠·물방울 포함)는 **약 43개 이하**.
 - 렌더 도구 `--pose`는 `CharacterAnimLogic.fishPose`의 상태를 이름으로 골라 관절 회전을 레이아웃에 적용해 그린다(테스트 AC4와 같은 계산을 재사용).
+- **2026-10-14 개발 완료 (`in-qa`)** — 자세한 기록·렌더 비평 4회·Studio 확인 순서는 `docs/developer/m5-32-fresh-mackerel.md`.
+  - 바뀐 파일: `src/shared/`(ConceptMackerel·PartMath·SushiPose 새, SushiConceptSample·SushiBody·Skins·CharacterAnimLogic·SfxCues·SfxLibrary·ShopLogic·UiLayout), `src/client/`(fx/FishRig·fx/DollAnimator 새, CharacterFxController·탈락/우승 연출·LobbyFxController·Sfx·ui/DrawScreen·ShopScreen·ShopController), `tools/render-character.luau`·`tools/render/Png·Sheet`, `tests/m5-32-fresh-mackerel.spec.luau`·`tests/lib/LayoutSnapshot.luau`·`tests/fixtures/m5-32-layout-snapshot.txt` 외 이름 바꾼 테스트.
+  - 렌더: `docs/renders/characters/fresh-mackerel-{turntable,turntable-lobby,expressions,gameplay-back,gameplay-front,mobile-back,mobile-front,compare,sheet-compare,poses,poses-lobby,flop-strip,closeup}.png`, 처음 상태 `-before-sheet-compare`·`-before-flop-strip`.
+  - m5-31 재QA P3 R1(`detailPanel.Active = true`)·R2(이름·대사 칸 0.52, 휴대폰 큰 미리보기 0.44)도 이 브랜치에 있음.
+  - AC19 현지화: main에 m5-26이 없어 해당 없음.
+  - Studio 확인: 탈의실 전설 탭 카드·가짜 결제(AC14), `tickets 99` 뽑기 확률표·단상(AC14-1, 고등어 당첨은 평균 100장), 서기·달리기·점프·착지·넘어짐 움직임(AC15, Clients and Servers 2명), 인형(AC17), Future 조명(AC16), 8명 성능(AC18).

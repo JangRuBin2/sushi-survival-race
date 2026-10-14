@@ -90,13 +90,13 @@ return function(t: Test.Test)
 		"QA: 나중에 새 4종 id를 예외 목록에서 빼도 장착값은 계란초밥으로 안전하게 돌아가요",
 		function()
 			for _, id in NEW do
-				Skins.EXPERIMENTAL_IDS[id] = nil
+				Skins.CONCEPT_BODY_IDS[id] = nil
 				local ok, result = pcall(function()
 					local raw = ProfileSchema.new() :: any
 					raw.equippedSkin = id
 					return ProfileLogic.migrate(raw)
 				end)
-				Skins.EXPERIMENTAL_IDS[id] = true
+				Skins.CONCEPT_BODY_IDS[id] = true
 				t.ok(ok, `{id} migrate after removal`)
 				t.eq((result :: any).equippedSkin, "tamago", `{id} falls back to tamago`)
 			end
@@ -122,11 +122,13 @@ return function(t: Test.Test)
 				end
 				if tab.id == "all" then
 					local tail = {}
-					for i = #list - 3, #list do
+					-- m5-32 고등어 [신선](order 41)이 맨 끝이라 그 바로 앞 4장
+					for i = #list - 4, #list - 1 do
 						table.insert(tail, list[i].id)
 					end
-					t.eq(tail, NEW, "last four in the all tab")
-					t.eq(list[#list - 4].id, "concept-ikura", "right after concept-ikura")
+					t.eq(tail, NEW, "last four (before fresh-mackerel) in the all tab")
+					t.eq(list[#list].id, "fresh-mackerel")
+					t.eq(list[#list - 5].id, "concept-ikura", "right after concept-ikura")
 				end
 			end
 		end

@@ -17,7 +17,7 @@ local SushiBody = RobloxRequire.require(Shared.SushiBody)
 
 -- 견본 하나의 파츠 상한: 게임 스킨 상한(40)보다 조금 높아요 — 돔·늘어진 가장자리·팔이 파츠를 더 써요
 -- (docs/developer/m5-27-character-concept.md). 게임에 넣을 때 다시 줄여요.
-local SAMPLE_BUDGET = 48
+local SAMPLE_BUDGET = 50 -- m5-32: 화남(💢 네 획)·슬픔(눈물) 표정이 당황보다 2개 많아요 (예전 48)
 
 local function eachVariant(fn: (string, string) -> ())
 	for _, expression in Sample.EXPRESSIONS do
@@ -28,13 +28,13 @@ local function eachVariant(fn: (string, string) -> ())
 end
 
 return function(t: Test.Test)
-	t.test("표정 4종·자세 2종 이름", function()
-		t.eq(Sample.EXPRESSIONS, { "Default", "Happy", "Flustered", "Hurt" })
+	t.test("표정 6종(m5-32 화남·슬픔 추가)·자세 2종 이름", function()
+		t.eq(Sample.EXPRESSIONS, { "Default", "Happy", "Flustered", "Hurt", "Angry", "Sad" })
 		t.eq(Sample.POSES, { "Stand", "Run" })
 	end)
 
 	t.test(
-		"모든 조합: 파츠 ≤ 48, 이름 안 겹침, 모양·크기 정상, 깜빡임(z-fighting) 0, 떠 있는 파츠 0",
+		"모든 조합: 파츠 ≤ 50, 이름 안 겹침, 모양·크기 정상, 깜빡임(z-fighting) 0, 떠 있는 파츠 0",
 		function()
 			eachVariant(function(expression, pose)
 				local layout = Sample.layout(expression, pose)

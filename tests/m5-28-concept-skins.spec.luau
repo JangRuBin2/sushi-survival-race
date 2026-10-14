@@ -91,7 +91,7 @@ return function(t: Test.Test)
 				t.eq(skin.displayName, row[2], `{id} name`)
 				t.eq(skin.order, row[3], `{id} order`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
-				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.conceptBody, true, `{id} conceptBody`)
 				t.ok(Skins.drawGradeOf(id) ~= nil, `{id} drawGrade`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)
@@ -103,8 +103,9 @@ return function(t: Test.Test)
 				t.ok(string.find(skin.displayName, "콘셉트", 1, true) == nil, `{id} no concept prefix`)
 			end
 			-- 탈의실 "전체" 탭 맨 끝, concept-salmon 바로 다음
-			local last = Skins.LIST[#Skins.LIST]
-			t.eq(last.id, "concept-inari") -- m5-29 4종이 뒤에 붙었어요
+			local last = Skins.LIST[#Skins.LIST - 1]
+			t.eq(last.id, "concept-inari") -- m5-29 4종이 뒤에 붙었어요 (그 뒤 m5-32 고등어 [신선] order 41)
+			t.eq(Skins.LIST[#Skins.LIST].id, "fresh-mackerel")
 			t.eq(Skins.get("concept-ikura").order, 36)
 			t.eq(Skins.get(SALMON).order, 32)
 			local ok, problems = Skins.validate(Skins.LIST)
@@ -113,7 +114,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"예외 목록: Skins.EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
+		"예외 목록: Skins.CONCEPT_BODY_IDS = SushiBody.CONCEPT_BODY = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
 		function()
 			local expected = table.clone(Sample.SKIN_IDS)
 			table.sort(expected)
@@ -125,12 +126,12 @@ return function(t: Test.Test)
 				table.sort(list)
 				return list
 			end
-			t.eq(#expected, 9)
-			t.eq(keys(Skins.EXPERIMENTAL_IDS), expected)
-			t.eq(keys(SushiBody.EXPERIMENTAL), expected)
+			t.eq(#expected, 10) -- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차)
+			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
+			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
 			for _, id in Sample.SKIN_IDS do
-				t.eq(SushiBody.EXPERIMENTAL[id].partBudget, BUDGET, id)
-				t.eq(SushiBody.EXPERIMENTAL[id].expressions, Sample.EXPRESSIONS, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if id == "fresh-mackerel" then 80 else BUDGET, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].expressions, Sample.EXPRESSIONS, id)
 			end
 		end
 	)
@@ -152,19 +153,19 @@ return function(t: Test.Test)
 					t.eq((Skins.validate(list)), false, `{id} {change[1]}`)
 				end
 			end
-			-- 예외 목록에 없는 새 id에 experimental을 달면 잡아요 (범위가 명시적 목록뿐)
+			-- 예외 목록에 없는 새 id에 conceptBody를 달면 잡아요 (범위가 명시적 목록뿐)
 			local list = table.clone(Skins.LIST) :: { any }
 			table.insert(list, {
 				id = "concept-nope", -- m5-29: concept-unagi가 목록에 들어가 다른 id로
 				displayName = "x",
 				tier = "Basic",
-				experimental = true,
+				conceptBody = true,
 				speech = { "a" },
 				order = 99,
 			})
 			local ok, problems = Skins.validate(list)
 			t.eq(ok, false)
-			t.ok(string.find(table.concat(problems, ";"), "experimental only for", 1, true) ~= nil, "id scope")
+			t.ok(string.find(table.concat(problems, ";"), "conceptBody only for", 1, true) ~= nil, "id scope")
 		end
 	)
 
@@ -216,11 +217,13 @@ return function(t: Test.Test)
 					local layout = SushiBody.layout(id, expression)
 					local label = `{id}/{expression}`
 					t.eq(layout[1].name, "Body", label)
-					t.ok(#layout <= BUDGET, `{label} parts {#layout}`)
+					t.ok(#layout <= SushiBody.CONCEPT_BODY[id].partBudget, `{label} parts {#layout}`)
 					local b = SushiBody.bounds(layout)
 					t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-9, `{label} sole {b.min[2]}`)
-					t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{label} top {b.max[2]}`)
-					t.eq(SushiBody.effectCount(layout), 0, `{label} effects`)
+					t.ok(b.max[2] <= SushiBody.nameTagHeight(id) - 0.4, `{label} top {b.max[2]}`) -- 고등어만 4.8 (m5-32 4차)
+					-- 특 9종(Basic)은 효과 0, 판매 콘셉트 몸(고등어 전설)은 등급 예산 안
+					local tier = (Skins.get(id) :: any).tier
+					t.ok(SushiBody.effectCount(layout) <= SushiBody.EFFECT_BUDGET[tier], `{label} effects`)
 					t.eq(LayoutCheck.zFight(layout), {}, `{label} z-fighting`)
 					t.eq(LayoutCheck.floating(layout), {}, `{label} floating`)
 					local names = {}
@@ -420,8 +423,16 @@ return function(t: Test.Test)
 			local _, count = string.gsub(source, "require%(", "")
 			t.eq(count, 1)
 			t.ok(string.find(source, "SushiConceptSample.SKIN_IDS", 1, true) ~= nil, "ids from the sample module")
+			-- m5-32: 견본은 고등어 토핑(순수 ConceptMackerel) 하나만, 그 모듈은 순수 PartMath 하나만 불러요
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
-			t.ok(string.find(sample, "require(", 1, true) == nil, "sample requires nothing")
+			local _, sampleCount = string.gsub(sample, "require%(", "")
+			t.eq(sampleCount, 1, "sample requires only ConceptMackerel")
+			t.ok(string.find(sample, "require(script.Parent.ConceptMackerel)", 1, true) ~= nil)
+			local mackerel = fs.readFile("src/shared/ConceptMackerel.luau")
+			local _, mackerelCount = string.gsub(mackerel, "require%(", "")
+			t.eq(mackerelCount, 1, "ConceptMackerel requires only PartMath")
+			t.ok(string.find(mackerel, "require(script.Parent.PartMath)", 1, true) ~= nil)
+			t.eq(string.find(fs.readFile("src/shared/PartMath.luau"), "require(", 1, true), nil, "PartMath is pure")
 		end
 	)
 

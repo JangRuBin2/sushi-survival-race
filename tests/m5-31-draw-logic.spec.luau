@@ -20,6 +20,15 @@ local RewardLogic = RobloxRequire.require(Shared.RewardLogic)
 local AdminLogic = RobloxRequire.require(Shared.AdminLogic)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 
+-- m5-31 때 카탈로그 (전설 없음): 고등어 [신선](m5-32)을 뺀 목록 — 빈 등급 나누기를 그대로 검사해요.
+-- 고등어가 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)
+local M531 = {}
+for _, skin in Skins.LIST do
+	if skin.id ~= "fresh-mackerel" then
+		table.insert(M531, skin)
+	end
+end
+
 -- id, 새 이름, 뽑기 등급
 local SPECIAL = {
 	{ "concept-salmon", "연어초밥 (특)", "Epic" },
@@ -85,7 +94,7 @@ end
 -- 가짜 카탈로그: 전설 1종 추가 (m5-32 고등어 흉내)
 local MACKEREL = "fresh-mackerel-test"
 local function withLegendary(): { any }
-	local list = table.clone(Skins.LIST) :: { any }
+	local list = table.clone(M531) :: { any }
 	table.insert(list, {
 		id = MACKEREL,
 		displayName = "고등어 초밥 [신선]",
@@ -101,7 +110,7 @@ end
 -- 가짜 카탈로그: 영웅(연어) 빼기 (영웅·전설 비움)
 local function withoutEpic(): { any }
 	local list = {}
-	for _, skin in Skins.LIST do
+	for _, skin in M531 do
 		if skin.id ~= "concept-salmon" then
 			table.insert(list, skin)
 		end
@@ -134,7 +143,7 @@ local UNCOMMON_END = 50 / 99
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1 카탈로그
 	t.test(
-		"AC1: 특 9종 이름 '(특)'·drawGrade 표대로·가격 없음·id·order·대사·experimental 그대로, validate 통과",
+		"AC1: 특 9종 이름 '(특)'·drawGrade 표대로·가격 없음·id·order·대사·conceptBody 그대로, validate 통과",
 		function()
 			local orders = {
 				["concept-salmon"] = 32,
@@ -156,7 +165,7 @@ return function(t: Test.Test)
 				t.eq(skin.drawGrade, row[3], `{row[1]} grade`)
 				t.eq(Skins.drawGradeOf(row[1]), row[3])
 				t.eq(skin.tier, "Basic", `{row[1]} tier`)
-				t.eq(skin.experimental, true, `{row[1]} experimental`)
+				t.eq(skin.conceptBody, true, `{row[1]} conceptBody`)
 				t.eq(skin.order, orders[row[1]], `{row[1]} order`)
 				t.eq(#skin.speech, 2, `{row[1]} speech`)
 				t.eq(Skins.isDrawOnly(row[1]), true, row[1])
@@ -169,29 +178,33 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("AC1: DRAW_IDS(9) = drawGrade가 있는 id = EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL", function()
-		local drawIds = {}
-		for _, skin in Skins.LIST do
-			if skin.drawGrade ~= nil then
-				drawIds[skin.id] = true
+	t.test(
+		"AC1: DRAW_IDS(9 + m5-32 고등어) = drawGrade가 있는 id = CONCEPT_BODY_IDS = SushiBody.CONCEPT_BODY",
+		function()
+			local drawIds = {}
+			for _, skin in Skins.LIST do
+				if skin.drawGrade ~= nil then
+					drawIds[skin.id] = true
+				end
 			end
+			t.eq(keys(drawIds), keys(Skins.DRAW_IDS))
+			-- m5-32: 고등어 [신선]이 뽑기 전설 + 콘셉트 몸으로 들어와 10 (뜻이 다른 두 목록이라 명시 목록은 m5-32 테스트에서)
+			t.eq(keys(Skins.DRAW_IDS), keys(Skins.CONCEPT_BODY_IDS))
+			t.eq(keys(Skins.DRAW_IDS), keys(SushiBody.CONCEPT_BODY))
+			t.eq(#keys(Skins.DRAW_IDS), 10)
+			t.eq(DrawLogic.totalSkins(), 10)
+			for _, id in { "tamago", "salmon", "no-such" } do
+				t.eq(Skins.isDraw(id), false, id)
+				t.eq(Skins.isDrawOnly(id), false, id)
+			end
+			t.eq(Skins.DRAW_GRADES, { "Legendary", "Epic", "Rare", "Uncommon", "Common" })
+			local names = {}
+			for _, grade in Skins.DRAW_GRADES do
+				table.insert(names, Skins.DRAW_GRADE_INFO[grade].displayName)
+			end
+			t.eq(names, { "전설", "영웅", "희귀", "고급", "일반" })
 		end
-		t.eq(keys(drawIds), keys(Skins.DRAW_IDS))
-		t.eq(keys(Skins.DRAW_IDS), keys(Skins.EXPERIMENTAL_IDS))
-		t.eq(keys(Skins.DRAW_IDS), keys(SushiBody.EXPERIMENTAL))
-		t.eq(#keys(Skins.DRAW_IDS), 9)
-		t.eq(DrawLogic.totalSkins(), 9)
-		for _, id in { "tamago", "salmon", "no-such" } do
-			t.eq(Skins.isDraw(id), false, id)
-			t.eq(Skins.isDrawOnly(id), false, id)
-		end
-		t.eq(Skins.DRAW_GRADES, { "Legendary", "Epic", "Rare", "Uncommon", "Common" })
-		local names = {}
-		for _, grade in Skins.DRAW_GRADES do
-			table.insert(names, Skins.DRAW_GRADE_INFO[grade].displayName)
-		end
-		t.eq(names, { "전설", "영웅", "희귀", "고급", "일반" })
-	end)
+	)
 
 	t.test("AC1: validate가 잡는 것 / 가짜 고등어(drawGrade + 전설 199)는 통과", function()
 		local function patched(id: string, patch: { [string]: any }): (boolean, string)
@@ -312,7 +325,7 @@ return function(t: Test.Test)
 	t.test(
 		"AC4: 실제 카탈로그 — 전설 0·빈 목록, 영웅 5/99, 희귀 15/99, 고급 30/99, 일반 49/99, 합 1",
 		function()
-			local rows = DrawLogic.grades()
+			local rows = DrawLogic.grades(M531)
 			t.eq(#rows, 5)
 			local order = {}
 			local sum = 0
@@ -363,7 +376,7 @@ return function(t: Test.Test)
 	t.test(
 		"AC5: displayPercents — 전설 '준비 중', 5.0/15.2/30.3/49.5 (합 정확히 100.0), 전설 있으면 1.0/5.0/15.0/30.0/49.0",
 		function()
-			local shown = DrawLogic.displayPercents(DrawLogic.grades())
+			local shown = DrawLogic.displayPercents(DrawLogic.grades(M531))
 			t.eq(shown, {
 				Legendary = "준비 중",
 				Epic = "5.0%",
@@ -392,7 +405,7 @@ return function(t: Test.Test)
 	t.test(
 		"AC5: perSkinPercent — 연어 5.05%, 성게 5.05%, 장어 10.10%, 새우 24.75%; 표시는 grades()에서만",
 		function()
-			local per = DrawLogic.perSkinPercent(DrawLogic.grades())
+			local per = DrawLogic.perSkinPercent(DrawLogic.grades(M531))
 			t.eq(per["concept-salmon"], "5.05%")
 			t.eq(per["concept-uni"], "5.05%")
 			t.eq(per["concept-unagi"], "10.10%")
@@ -414,7 +427,7 @@ return function(t: Test.Test)
 		"AC6: 누적 경계 — 0.0505 영웅, 0.0506 희귀, 0.2020 희귀, 0.2021 고급, 0.5050 고급, 0.5051 일반, 0.9999 일반",
 		function()
 			local function gradeAt(value: number): string
-				return (DrawLogic.roll({}, (fakeRng(value))) :: any).grade
+				return (DrawLogic.roll({}, (fakeRng(value)), M531) :: any).grade
 			end
 			t.eq(gradeAt(0.0505), "Epic")
 			t.eq(gradeAt(0.0506), "Rare")
@@ -438,7 +451,7 @@ return function(t: Test.Test)
 		"AC6: NextInteger(1, n)대로 그 등급 스킨, 새 스킨 Skin / 가진 스킨 Duplicate + 등급 코인, 꽝 없음",
 		function()
 			local rng, calls = fakeRng(0.1, 3)
-			local outcome = DrawLogic.roll({}, rng) :: any
+			local outcome = DrawLogic.roll({}, rng, M531) :: any
 			t.eq(outcome.kind, "Skin")
 			t.eq(outcome.grade, "Rare")
 			t.eq(outcome.skinId, "concept-tako")
@@ -446,8 +459,8 @@ return function(t: Test.Test)
 			t.eq(calls.number, 1)
 			t.eq(calls.integer, 1)
 			t.eq(calls.lastMax, 3)
-			t.eq((DrawLogic.roll({}, (fakeRng(0.3, 2))) :: any).skinId, "concept-unagi")
-			t.eq((DrawLogic.roll({}, (fakeRng(0.9, 2))) :: any).skinId, "concept-tamago")
+			t.eq((DrawLogic.roll({}, (fakeRng(0.3, 2)), M531) :: any).skinId, "concept-unagi")
+			t.eq((DrawLogic.roll({}, (fakeRng(0.9, 2)), M531) :: any).skinId, "concept-tamago")
 			local cases = {
 				{ 0.9, 1, "concept-shrimp", 20 },
 				{ 0.3, 1, "concept-tuna", 40 },
@@ -456,7 +469,7 @@ return function(t: Test.Test)
 			}
 			for _, case in cases do
 				local owned = { [case[3]] = true }
-				local dup = DrawLogic.roll(owned, (fakeRng(case[1], case[2]))) :: any
+				local dup = DrawLogic.roll(owned, (fakeRng(case[1], case[2])), M531) :: any
 				t.eq(dup.kind, "Duplicate", case[3])
 				t.eq(dup.skinId, case[3])
 				t.eq(dup.coins, case[4], case[3])
@@ -474,7 +487,7 @@ return function(t: Test.Test)
 	t.test(
 		"AC7: 고정 시드 100,000번 — 등급 비율 ±0.005, 등급 안 스킨 1/n ±0.01; 보유 4종도 같고 가진 건 Duplicate",
 		function()
-			local rows = DrawLogic.grades()
+			local rows = DrawLogic.grades(M531)
 			for _, ownedList in { {}, { "concept-shrimp", "concept-tuna", "concept-uni", "concept-salmon" } } do
 				local owned: { [string]: boolean } = {}
 				for _, id in ownedList do
@@ -485,7 +498,7 @@ return function(t: Test.Test)
 				local gradeCount: { [string]: number } = {}
 				local skinCount: { [string]: number } = {}
 				for _ = 1, N do
-					local outcome = DrawLogic.roll(owned, rng) :: any
+					local outcome = DrawLogic.roll(owned, rng, M531) :: any
 					gradeCount[outcome.grade] = (gradeCount[outcome.grade] or 0) + 1
 					skinCount[outcome.skinId] = (skinCount[outcome.skinId] or 0) + 1
 					if owned[outcome.skinId] then
@@ -538,13 +551,13 @@ return function(t: Test.Test)
 	t.test(
 		"AC9: featured — 빈 보유 연어, 연어 보유 → 희귀 첫(연어알), 다 가지면 연어, 가짜 전설이면 고등어",
 		function()
-			t.eq(DrawLogic.featured({}), "concept-salmon")
-			t.eq(DrawLogic.featured({ ["concept-salmon"] = true }), "concept-ikura")
+			t.eq(DrawLogic.featured({}, M531), "concept-salmon")
+			t.eq(DrawLogic.featured({ ["concept-salmon"] = true }, M531), "concept-ikura")
 			local all = {}
 			for _, row in SPECIAL do
 				all[row[1]] = true
 			end
-			t.eq(DrawLogic.featured(all), "concept-salmon")
+			t.eq(DrawLogic.featured(all, M531), "concept-salmon")
 			t.eq(DrawLogic.featured({}, withLegendary() :: any), MACKEREL)
 			t.eq(DrawLogic.ownedCount({ ["concept-uni"] = true, tamago = true }), 1)
 		end
@@ -611,8 +624,8 @@ return function(t: Test.Test)
 				t.eq(select(2, ShopLogic.canEquip(id, owned, false, false)), "NotOwned", id)
 			end
 			t.eq(select(2, ShopLogic.canEquip("no-such", owned, false, true)), "UnknownSkin")
-			t.eq(DrawLogic.featured(owned), "concept-salmon")
-			t.eq((DrawLogic.roll(owned, (fakeRng(0))) :: any).kind, "Skin")
+			t.eq(DrawLogic.featured(owned, M531), "concept-salmon")
+			t.eq((DrawLogic.roll(owned, (fakeRng(0)), M531) :: any).kind, "Skin")
 			t.eq(ShopLogic.canBuyWithCoins("salmon", { coins = 999, ownedSkins = owned } :: any).ok, true)
 			t.eq(Config.DEBUG.unlockAllSkinsInStudio, true)
 			local shop = fs.readFile("src/server/ShopService.luau")

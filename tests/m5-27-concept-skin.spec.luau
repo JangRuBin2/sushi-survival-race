@@ -61,7 +61,7 @@ return function(t: Test.Test)
 			t.ok(skin ~= nil, "in catalog")
 			t.eq(skin.displayName, "연어초밥 (특)")
 			t.eq(skin.tier, "Basic")
-			t.eq(skin.experimental, true)
+			t.eq(skin.conceptBody, true)
 			t.eq(skin.drawGrade, "Epic") -- m5-31: 뽑기 등급 영웅
 			for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 				t.eq((skin :: any)[field], nil, field)
@@ -82,38 +82,40 @@ return function(t: Test.Test)
 		"concept-tuna",
 		"concept-unagi",
 		"concept-uni",
+		"fresh-mackerel", -- m5-32 판매 스킨도 콘셉트 몸
 	}
+	table.sort(CONCEPT_IDS)
 	t.test(
-		"예외는 콘셉트 몸 9종뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
+		"예외는 콘셉트 몸 10종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do
-				if skin.experimental ~= nil then
+				if skin.conceptBody ~= nil then
 					flagged[skin.id] = true
 				end
 			end
 			t.eq(sortedKeys(flagged), CONCEPT_IDS)
-			t.eq(sortedKeys(Skins.EXPERIMENTAL_IDS), CONCEPT_IDS)
-			t.eq(sortedKeys(SushiBody.EXPERIMENTAL), CONCEPT_IDS)
-			t.ok(flagged[ID], "concept-salmon still experimental")
-			t.ok(SushiBody.EXPERIMENTAL[ID].partBudget <= 70, "budget ≤ 70 (m5-30)")
+			t.eq(sortedKeys(Skins.CONCEPT_BODY_IDS), CONCEPT_IDS)
+			t.eq(sortedKeys(SushiBody.CONCEPT_BODY), CONCEPT_IDS)
+			t.ok(flagged[ID], "concept-salmon still conceptBody")
+			t.ok(SushiBody.CONCEPT_BODY[ID].partBudget <= 70, "budget ≤ 70 (m5-30)")
 		end
 	)
 
 	t.test(
-		"validate: 다른 스킨에 experimental을 달거나 실험 스킨에 가격을 붙이면 잡아요",
+		"validate: 다른 스킨에 conceptBody를 달거나 실험 스킨에 가격을 붙이면 잡아요",
 		function()
 			local list = table.clone(Skins.LIST) :: { any }
 			for i, skin in list do
 				if skin.id == "salmon" then
 					local copy = table.clone(skin)
-					copy.experimental = true
+					copy.conceptBody = true
 					list[i] = copy
 				end
 			end
 			local ok, problems = Skins.validate(list)
 			t.eq(ok, false)
-			t.ok(string.find(table.concat(problems, ";"), "experimental only for", 1, true) ~= nil, "id scope")
+			t.ok(string.find(table.concat(problems, ";"), "conceptBody only for", 1, true) ~= nil, "id scope")
 
 			local priced = table.clone(Skins.LIST) :: { any }
 			for i, skin in priced do
@@ -240,7 +242,7 @@ return function(t: Test.Test)
 				local label = `{ID}/{expression}`
 				t.eq(layout[1].name, "Body", label)
 				t.eq(layout[1].rotation, nil, label)
-				t.ok(#layout <= SushiBody.EXPERIMENTAL[ID].partBudget, `{label} parts {#layout}`)
+				t.ok(#layout <= SushiBody.CONCEPT_BODY[ID].partBudget, `{label} parts {#layout}`)
 				local b = SushiBody.bounds(layout)
 				t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-9, `{label} sole {b.min[2]}`)
 				t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{label} below name tag {b.max[2]}`)

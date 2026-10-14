@@ -137,9 +137,10 @@ return function(t: Test.Test)
 		function()
 			t.eq(SushiBody.PART_BUDGET, 40)
 			local ids = {}
-			for id, rule in SushiBody.EXPERIMENTAL do
+			for id, rule in SushiBody.CONCEPT_BODY do
 				table.insert(ids, id)
-				t.eq(rule.partBudget, 70, id)
+				-- m5-32 고등어 [신선]만 80 (사용자 결정 2026-10-14 3차)
+				t.eq(rule.partBudget, if id == "fresh-mackerel" then 80 else 70, id)
 			end
 			table.sort(ids)
 			local expected = table.clone(Sample.SKIN_IDS)
@@ -147,7 +148,7 @@ return function(t: Test.Test)
 			t.eq(ids, expected)
 			-- 실험 스킨이 아닌 스킨은 여전히 40 이하 (표정 4종 모두)
 			for _, skin in Skins.LIST do
-				if skin.experimental ~= true and SushiBody.hasLayout(skin.id) then
+				if skin.conceptBody ~= true and SushiBody.hasLayout(skin.id) then
 					for _, expression in { nil :: string?, "Default", "Happy", "Flustered", "Hurt" } do
 						local count = #SushiBody.layout(skin.id, expression)
 						t.ok(count <= SushiBody.PART_BUDGET, `{skin.id}/{tostring(expression)} parts {count}`)
@@ -156,14 +157,14 @@ return function(t: Test.Test)
 			end
 			-- 상한 검사가 실제로 동작해요: 새 4종 상한을 기본 레이아웃보다 낮추면 validate가 거절
 			for _, id in NEW do
-				local rule = SushiBody.EXPERIMENTAL[id]
+				local rule = SushiBody.CONCEPT_BODY[id]
 				local saved = rule.partBudget
 				rule.partBudget = #SushiBody.layout(id) - 1
 				local ok, problems = Skins.validate(Skins.LIST)
 				rule.partBudget = saved
 				t.eq(ok, false, `{id} over budget rejected`)
 				t.ok(
-					string.find(table.concat(problems, ";"), "experimental budget", 1, true) ~= nil,
+					string.find(table.concat(problems, ";"), "concept body budget", 1, true) ~= nil,
 					`{id} budget message`
 				)
 			end

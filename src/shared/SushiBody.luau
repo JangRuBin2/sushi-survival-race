@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   EXPERIMENTAL[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -49,6 +49,9 @@ export type PartSpec = {
 	transparency: number?, -- 0~1, 없으면 0 (m5-07 유령 천)
 	joint: boolean?, -- true면 WeldConstraint 대신 Motor6D(PART_JOINT_NAME)로 Body에 붙어요 — 클라이언트 움직임용 (m5-25)
 	attach: string?, -- 이 이름의 파츠에 용접 (없으면 Body). 눈동자·하이라이트가 눈 테두리를 따라 움직이게 (m5-25)
+	-- joint + attach면 Motor6D의 Part0이 그 파츠예요 — 관절 사슬 (m5-32 고등어 FishRoot → FishMid → FishTail)
+	pivot: { number }?, -- 관절 경첩 (Body 좌표, m5-32). Motor6D 속성 "Pivot"으로 복사돼요 (없으면 파츠 중심)
+	reach: { number }?, -- 물방울 관절이 splash 1일 때 옮겨 가는 거리 (Body 축, m5-32). Motor6D 속성 "Reach"
 }
 
 export type Bounds = {
@@ -57,7 +60,7 @@ export type Bounds = {
 }
 
 local DEFAULT_ID = "tamago"
--- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부, Skins.EXPERIMENTAL_IDS와 같은 id)
+-- 콘셉트 몸 실험 스킨 (m5-27 concept-salmon + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부, Skins.CONCEPT_BODY_IDS와 같은 id)
 local CONCEPT_IDS: { [string]: boolean } = {}
 for _, id in SushiConceptSample.SKIN_IDS do
 	CONCEPT_IDS[id] = true
@@ -975,17 +978,42 @@ end
 SushiBody.GROUND_OFFSET = 2.25
 assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concept skin feet must match GROUND_OFFSET")
 
--- 실험 스킨의 명시적 예외 (m5-27·m5-28). 여기 있는 id만 BASE_NAMES·BOUNDS_TOLERANCE 검사를 건너뛰고, 파츠 상한은 partBudget.
--- 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요. 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
-type ExperimentalRule = { partBudget: number, expressions: { string } }
-local experimental: { [string]: ExperimentalRule } = {}
+-- 콘셉트 몸 스킨의 명시적 예외 (m5-27·m5-28, m5-32에서 이름을 바꿈). 여기 있는 id만 BASE_NAMES 검사를 건너뛰고,
+-- 파츠 상한은 partBudget. 외곽은 boundsTolerance가 있으면 concept-salmon 외곽과 비교해요(m5-32 고등어 — 전설 ±25%),
+-- 없으면 비교하지 않아요(특 9종). 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요.
+-- 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
+-- nameTagHeight가 있으면 그 스킨만 이름표를 그 높이에 띄워요 (m5-32 고등어 — 사용자 결정 2026-10-14 4차). 없으면 NAME_TAG_HEIGHT
+export type ConceptBodyRule = {
+	partBudget: number,
+	expressions: { string },
+	boundsTolerance: number?,
+	nameTagHeight: number?,
+}
+local conceptBody: { [string]: ConceptBodyRule } = {}
 for id in CONCEPT_IDS do
 	-- 파츠 상한 70 (m5-30, 사용자 결정 2026-10-14: 토핑 디테일을 위해 47 → 70)
-	experimental[id] = { partBudget = 70, expressions = SushiConceptSample.EXPRESSIONS :: any }
+	conceptBody[id] = { partBudget = 70, expressions = SushiConceptSample.EXPRESSIONS :: any }
 end
-SushiBody.EXPERIMENTAL = experimental
+-- m5-32 고등어 [신선]: 파츠 상한 80 (사용자 결정 2026-10-14 3차 — 이 스킨만), 전설 외곽 ±25% (concept-salmon 기준)
+conceptBody["fresh-mackerel"] = {
+	partBudget = 80,
+	expressions = SushiConceptSample.EXPRESSIONS :: any,
+	boundsTolerance = 0.25,
+	-- 이 스킨만 이름표를 위로 (사용자 결정 2026-10-14 4차): 고등어를 시트처럼 크게 + 위아래 팔딱을 크게.
+	-- 쉰 꼭대기 ≤ 이름표 − 0.4, 가장 크게 팔딱한 자세(관절 한도 끝까지) ≤ 이름표 (테스트로 고정)
+	nameTagHeight = 4.8,
+}
+SushiBody.CONCEPT_BOUNDS_BASE = "concept-salmon" -- boundsTolerance 비교 기준 스킨
+SushiBody.CONCEPT_BODY = conceptBody
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)
 SushiBody.NAME_TAG_HEIGHT = 3.6
+SushiBody.NAME_TAG_ATTRIBUTE = "NameTagHeight" -- build가 기본과 다른 스킨의 Body에 다는 속성 (클라이언트 이름표가 읽어요)
+
+-- 스킨별 이름표 높이 (Body 중심에서). 대부분 NAME_TAG_HEIGHT, 콘셉트 몸 예외 표에 nameTagHeight가 있으면 그 값
+function SushiBody.nameTagHeight(appearanceId: string?): number
+	local rule = if appearanceId then conceptBody[appearanceId] else nil
+	return (rule and rule.nameTagHeight) or SushiBody.NAME_TAG_HEIGHT
+end
 
 -- 모든 스킨이 계란초밥과 크기·위치·회전까지 같은 기준 파츠 (m5-25). 발·볼은 색만 바꿀 수 있어요.
 SushiBody.BASE_NAMES = {
@@ -1057,6 +1085,8 @@ local function copySpec(spec: PartSpec): PartSpec
 		transparency = spec.transparency,
 		joint = spec.joint,
 		attach = spec.attach,
+		pivot = copyList(spec.pivot),
+		reach = copyList(spec.reach),
 	}
 end
 
@@ -1184,13 +1214,15 @@ local function addEffect(target: BasePart, effect: Effect, color: { number }?)
 	end
 end
 
-function SushiBody.build(appearanceId: string, expression: string?): Model
+-- 레이아웃(파츠 목록)으로 Model을 만들어요. build가 쓰고, 렌더 도구가 포즈를 적용한 레이아웃(posed)을 그릴 때도 써요
+function SushiBody.buildLayout(layout: { PartSpec }, modelName: string): Model
 	local model = Instance.new("Model")
-	model.Name = `SushiBody_{appearanceId}`
+	model.Name = modelName
 
-	local layout = SushiBody.layout(appearanceId, expression)
 	local parts: { [string]: BasePart } = {}
+	local specs: { [string]: PartSpec } = {}
 	for _, spec in layout do
+		specs[spec.name] = spec
 		-- 먼저 어떤 클래스를 만들지 나누고(Wedge는 WedgePart, 나머지는 Part), 그다음 Ball/Cylinder만
 		-- Enum.PartType .Shape 속성을 설정해요 (m5-21 — WedgePart에는 .Shape가 없어요)
 		local part: BasePart
@@ -1236,14 +1268,33 @@ function SushiBody.build(appearanceId: string, expression: string?): Model
 			continue
 		end
 		if spec.joint then
+			-- 관절 사슬 (m5-32): attach가 있으면 그 파츠가 Part0 (없으면 Body)
+			local parent = (spec.attach and parts[spec.attach]) or body
 			local motor = Instance.new("Motor6D")
 			motor.Name = SushiBody.PART_JOINT_NAME
-			motor.Part0 = body
+			motor.Part0 = parent
 			motor.Part1 = part
-			-- C0 = 파츠 자리(회전 포함), C1 = 원점. Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을
-			-- C0:VectorToObjectSpace로 바꿔 넣어요 (CharacterFxController)
-			motor.C0 = part.CFrame
+			-- C0 = 부모 기준 파츠 자리(회전 포함), C1 = 원점 → Transform이 identity면 레이아웃 자리 그대로.
+			-- Transform은 파츠 축 기준이라, 클라이언트는 Body 축 이동을 C0:VectorToObjectSpace로 바꿔 넣어요
+			-- (CharacterFxController). Body가 부모면 C0 = 파츠 자리(예전 그대로)
+			-- 사슬 부모(고등어 FishRoot·FishMid)는 회전이 없어서 C0 = 위치 차이 · 자기 회전이에요 (회전한 부모면 일반식)
+			local parentSpec = if spec.attach then specs[spec.attach] else nil
+			motor.C0 = if parent == body
+				then part.CFrame
+				elseif parentSpec and parentSpec.rotation == nil then CFrame.new(vec({
+					spec.offset[1] - parentSpec.offset[1],
+					spec.offset[2] - parentSpec.offset[2],
+					spec.offset[3] - parentSpec.offset[3],
+				})) * angles(spec.rotation)
+				else parent.CFrame:Inverse() * part.CFrame
 			motor.C1 = CFrame.identity
+			-- 경첩·물방울 거리는 속성으로 (클라이언트 FishRig가 읽어요). 테스트용 가짜 Instance에는 SetAttribute가 없을 수 있어요
+			if spec.pivot then
+				pcall(motor.SetAttribute, motor, "Pivot", vec(spec.pivot))
+			end
+			if spec.reach then
+				pcall(motor.SetAttribute, motor, "Reach", vec(spec.reach))
+			end
 			motor.Parent = part
 		else
 			local anchor = (spec.attach and parts[spec.attach]) or body
@@ -1255,6 +1306,17 @@ function SushiBody.build(appearanceId: string, expression: string?): Model
 	end
 
 	model.PrimaryPart = body
+	return model
+end
+
+function SushiBody.build(appearanceId: string, expression: string?): Model
+	local model = SushiBody.buildLayout(SushiBody.layout(appearanceId, expression), `SushiBody_{appearanceId}`)
+	-- 이름표가 기본과 다른 스킨만 Body에 높이를 달아요 (다른 스킨의 build 결과는 그대로)
+	local tag = SushiBody.nameTagHeight(appearanceId)
+	local body = model.PrimaryPart
+	if body and tag ~= SushiBody.NAME_TAG_HEIGHT then
+		pcall(body.SetAttribute, body, SushiBody.NAME_TAG_ATTRIBUTE, tag)
+	end
 	return model
 end
 

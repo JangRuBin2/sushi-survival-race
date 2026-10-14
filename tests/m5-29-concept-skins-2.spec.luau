@@ -121,19 +121,20 @@ return function(t: Test.Test)
 				t.eq(skin.speech, row[4], `{id} speech`)
 				t.eq(Cutscene.SKIN_LINES[id], row[4], `{id} elimination lines`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
-				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.conceptBody, true, `{id} conceptBody`)
 				t.ok(Skins.drawGradeOf(id) ~= nil, `{id} drawGrade`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)
 				end
 			end
 			local tail = {}
-			for i = #Skins.LIST - 3, #Skins.LIST do
+			-- m5-32 고등어 [신선](order 41)이 맨 끝이라 그 바로 앞 4장
+			for i = #Skins.LIST - 4, #Skins.LIST - 1 do
 				table.insert(tail, Skins.LIST[i].id)
 			end
 			t.eq(tail, { "concept-unagi", "concept-uni", "concept-tako", "concept-inari" })
-			t.eq(Skins.LIST[#Skins.LIST - 4].id, "concept-ikura")
-			t.eq(#Skins.LIST, 40)
+			t.eq(Skins.LIST[#Skins.LIST - 5].id, "concept-ikura")
+			t.eq(#Skins.LIST, 41)
 			t.eq(#Skins.byTier("Basic"), 10)
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))

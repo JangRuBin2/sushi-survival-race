@@ -20,9 +20,11 @@
 --   얼굴: 밥 앞면에 작은 타원 눈(원판 두 개를 겹친 캡슐) + 하이라이트, 작게 벌린 웃는 입(진한 입 + 분홍 혀), 분홍 볼
 --   팔: 옆에 작은 네모 흰 손(벙어리장갑), 다리: 짧은 네모 흰 발 두 개. 팔·다리는 Motor6D(나중에 흔들 수 있게)
 
+local ConceptMackerel = require(script.Parent.ConceptMackerel)
+
 local SushiConceptSample = {}
 
-export type Expression = "Default" | "Happy" | "Flustered" | "Hurt"
+export type Expression = "Default" | "Happy" | "Flustered" | "Hurt" | "Angry" | "Sad"
 export type Pose = "Stand" | "Run"
 type Shape = "Block" | "Ball" | "Cylinder" | "Wedge"
 -- SushiBody.PartSpec과 같은 모양 (구조 타입이라 SushiBody가 그대로 받아요)
@@ -39,9 +41,12 @@ export type PartSpec = {
 	transparency: number?,
 	joint: boolean?,
 	attach: string?,
+	pivot: { number }?, -- 관절 경첩 (Body 좌표, m5-32 고등어)
+	reach: { number }?, -- 물방울 관절이 splash 1일 때 옮겨 가는 거리 (m5-32)
 }
 
-SushiConceptSample.EXPRESSIONS = { "Default", "Happy", "Flustered", "Hurt" } :: { Expression }
+-- m5-32 (사용자 결정 2026-10-14 3차): 화남·슬픔을 더해 6종. 앞 4종 레이아웃은 그대로예요
+SushiConceptSample.EXPRESSIONS = { "Default", "Happy", "Flustered", "Hurt", "Angry", "Sad" } :: { Expression }
 SushiConceptSample.POSES = { "Stand", "Run" } :: { Pose }
 -- 이 몸을 쓰는 실험 스킨 (m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게 군함·문어·유부).
 -- 밥·얼굴·팔다리는 같고 토핑만 달라요 (유부만 밥 색·재질을 바꿔요 — 스펙 "inari 예외")
@@ -56,6 +61,8 @@ SushiConceptSample.SKIN_IDS = {
 	"concept-uni",
 	"concept-tako",
 	"concept-inari",
+	-- m5-32 전설 판매 스킨 (뽑기 전설에서도 나와요): 밥 위에 통고등어 한 마리
+	"fresh-mackerel",
 } :: { string }
 
 ---------------------------------------------------------------- 치수
@@ -772,6 +779,9 @@ local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	["concept-uni"] = uniTopping,
 	["concept-tako"] = takoTopping,
 	["concept-inari"] = inariTopping,
+	["fresh-mackerel"] = function(_variant: Variant): { PartSpec }
+		return ConceptMackerel.topping()
+	end,
 }
 
 ---------------------------------------------------------------- 얼굴
@@ -870,6 +880,11 @@ local function cheeks(): { PartSpec }
 	}
 end
 
+-- 화남 💢 (m5-32): 앞에서 봐서 오른쪽(캐릭터의 -X) 이마, 눈썹 높이. 네 획이 마름모를 그려요 {dx, dy, 기울기}
+local ANGER = { 230, 60, 60 }
+local ANGER_X, ANGER_Y = -1.18, 0.24
+local ANGER_MARK = { { -0.07, 0.07, 45 }, { 0.07, 0.07, -45 }, { -0.07, -0.07, -45 }, { 0.07, -0.07, 45 } }
+
 local function face(expression: Expression, variant: Variant): { PartSpec }
 	if expression == "Happy" then
 		return join(happyEyes(), smile(0.5), cheeks())
@@ -893,6 +908,30 @@ local function face(expression: Expression, variant: Variant): { PartSpec }
 			}),
 			piece("BandagePad", { 0.18, 0.16, 0.05 }, BANDAGE_PAD, { -1.0, -0.12, FRONT - 0.07 }, "Fabric", {
 				rotation = { 0, 0, -30 },
+			}),
+		})
+	elseif expression == "Angry" then
+		-- 화남 (m5-32, 시트): 안쪽이 내려간 눈썹 + 작게 다문 입 + 앞에서 봐서 오른쪽 이마의 빨간 💢 (마름모 네 획)
+		local list = join(openEyes(variant), cheeks(), {
+			piece("Mouth", { 0.24, 0.08, 0.06 }, MOUTH, { 0, MOUTH_Y + 0.02, FACE_Z }),
+			stroke("BrowLeft", 0.32, -EYE_X + 0.02, EYE_Y + 0.36, -22),
+			stroke("BrowRight", 0.32, EYE_X - 0.02, EYE_Y + 0.36, 22),
+		})
+		for i, mark in ANGER_MARK do
+			table.insert(list, stroke(`BrowVein{i}`, 0.15, ANGER_X + mark[1], ANGER_Y + mark[2], mark[3], ANGER))
+		end
+		return list
+	elseif expression == "Sad" then
+		-- 슬픔 (m5-32, 시트): 안쪽이 올라간 처진 눈썹 + 아래로 굽은 작은 입 + 앞에서 봐서 오른쪽 눈 밑 눈물 한 방울
+		return join(openEyes(variant), cheeks(), {
+			stroke("Mouth", 0.22, 0, MOUTH_Y - 0.02, 0),
+			stroke("MouthCornerLeft", 0.1, -0.13, MOUTH_Y - 0.05, 35),
+			stroke("MouthCornerRight", 0.1, 0.13, MOUTH_Y - 0.05, -35),
+			stroke("BrowLeft", 0.28, -EYE_X, EYE_Y + 0.34, 20),
+			stroke("BrowRight", 0.28, EYE_X, EYE_Y + 0.34, -20),
+			ball("EyeTear", 0.16, SWEAT, { -EYE_X - 0.06, EYE_Y - 0.4, FRONT - 0.05 }, "Glass"),
+			piece("EyeTearTip", { 0.1, 0.1, 0.06 }, SWEAT, { -EYE_X - 0.06, EYE_Y - 0.31, FRONT - 0.05 }, "Glass", {
+				rotation = { 0, 0, 45 },
 			}),
 		})
 	end

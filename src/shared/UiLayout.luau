@@ -144,4 +144,10 @@ function UiLayout.inside(r: Rect, width: number, height: number): boolean
 	return r.x >= 0 and r.y >= 0 and r.x + r.size <= width and r.y + r.size <= height
 end
 
+-- 3D 미리보기 인형 카메라 거리 (m5-32): 기본 10 studs. 도는 인형의 가로 반지름이 2.4보다 크면(고등어처럼 밥 양옆으로
+-- 길게 나온 스킨) 그만큼 뒤로 물러나 돌 때 머리·꼬리가 화면 밖으로 안 나가요. 다른 스킨(반지름 ≤ 2.4)은 그대로 10
+function UiLayout.previewDistance(radius: number): number
+	return math.max(10, 10 + (radius - 2.4) * 4)
+end
+
 return UiLayout

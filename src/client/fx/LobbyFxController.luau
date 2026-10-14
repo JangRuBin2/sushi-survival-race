@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local LobbyLayout = require(ReplicatedStorage.Shared.LobbyLayout)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
+local DollAnimator = require(script.Parent.DollAnimator)
 
 local LobbyFxController = {}
 
@@ -53,6 +54,14 @@ local function placeDoll(podiumFolder: Instance)
 	end
 	local attrs = LobbyLayout.WINNER_ATTRS
 	local appearanceId = podiumFolder:GetAttribute(attrs.appearanceId)
+	-- 이름표가 높은 스킨(m5-32 고등어)이면 단상 이름표도 그만큼(인형 크기 배율) 로컬로 올려요. 서버 이름표 자리는 그대로
+	local showcase = podiumFolder:FindFirstChild("ShowcaseLabel")
+	local billboard = showcase and showcase:FindFirstChild("Showcase")
+	if billboard and billboard:IsA("BillboardGui") then
+		local tag = SushiBody.nameTagHeight(if type(appearanceId) == "string" then appearanceId else nil)
+		local lift = (tag - SushiBody.NAME_TAG_HEIGHT) * LobbyLayout.PODIUM.scale
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, lift, 0)
+	end
 	if type(appearanceId) ~= "string" then
 		return -- 아직 우승자 없음 (이름표만 "다음 우승자는 누구?")
 	end
@@ -73,6 +82,8 @@ local function placeDoll(podiumFolder: Instance)
 		CFrame.new(podium.center.x, height, podium.center.z) * CFrame.Angles(0, math.rad(podium.facingYawDeg), 0)
 	)
 	model.Parent = podiumFolder
+	-- 우승자 단상: 고등어 관절이 있으면 신나게 팔딱 (m5-32, 카메라 60 안에서만 돌고 인형이 바뀌면 저절로 멈춰요)
+	DollAnimator.attach(model, "Victory", { sound = "World" })
 end
 
 local function watchPodium(lobby: Instance)

@@ -535,7 +535,7 @@ local function unagiTopping(_variant: Variant): { PartSpec }
 			{ 0, (EEL_Y + BAND_BOTTOM) / 2, -face },
 			"Fabric"
 		),
-		-- 띠 바깥(1.43)에 붙어 내려오다가 띠 아래에서는 밥 등면(1.35)에 붙어요
+		-- 판 끝 바깥(1.54)에서 띠 바깥(1.43) 쪽으로 내려오다가 띠 아래에서는 밥 등면(1.35)에 붙어요
 		piece("NoriBack", { NORI_W, EEL_Y - BAND_BOTTOM, 0.1 }, NORI, { 0, (EEL_Y + BAND_BOTTOM) / 2, face }, "Fabric"),
 		piece(
 			"NoriBackLow",

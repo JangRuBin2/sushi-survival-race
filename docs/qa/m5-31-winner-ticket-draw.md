@@ -2,7 +2,7 @@
 
 - 스펙: `docs/specs/m5-31-winner-ticket-draw.md`
 - 검증 커밋: `a5bc3f2` (브랜치 `m5-31-winner-ticket-draw`, main `ab91c52`까지 병합됨) + QA 테스트 `tests/m5-31-qa.spec.luau`
-- 결과: **반려 → `in-dev`** (P2 1건 — 휴대폰 뽑기 화면 버튼 여러 개가 44px보다 작아 AC24를 못 지킴. P0/P1 없음, P3 2건)
+- 결과: 1차 **반려**(P2 B1) → 재QA(`af6072d`) **통과 → `qa-passed`** (아래 "재QA" 절이 최신). 1차 요약: (P2 1건 — 휴대폰 뽑기 화면 버튼 여러 개가 44px보다 작아 AC24를 못 지킴. P0/P1 없음, P3 2건)
   - 이번 QA는 "P0~P2면 반려"로 요청받아 그 기준을 따랐다(WORKFLOW 기본은 P0/P1). 서버 판정·확률·경제 쪽(AC1~AC16)은 모두 통과했고, 고칠 곳은 클라이언트 `DrawScreen.luau` 배치뿐이다.
 
 ## 자동 검증 (2026-10-14, Windows 로컬, worktree `agent-a6786423e039151fb`)
@@ -40,7 +40,7 @@
 | AC21 보유 목록·상세 | 사용자 확인 필요 | 체크리스트 5 |
 | AC22 잠금 | 사용자 확인 필요 | 체크리스트 6 (서버 `isLocked` 거절은 코드로 확인) |
 | AC23 Studio 전부 입기 | 사용자 확인 필요 | 체크리스트 1·7 |
-| AC24 휴대폰 | **실패 예상 (코드 계산)** | B1 — Studio 에뮬레이터로 최종 확인 필요 |
+| AC24 휴대폰 | 1차 실패 예상(B1) → 재QA 계산 통과, 사용자 확인 필요 | 재QA 절 — Studio 에뮬레이터로 최종 확인 |
 
 - lune으로 확인한 수용 기준: AC1~AC16 **16개 통과**, AC17 해당 없음, AC18~AC23 사용자 확인 필요, AC24 실패 예상(B1).
 
@@ -134,9 +134,58 @@
   - 서버 원칙: onDraw 인자·속성 없음, update 안 재확인, 간격 먼저, 전부 입기는 서버 설정만·`ownedSkins` 안 바꿈, 티켓을 바꾸는 파일 목록, RewardService 같은 update·ticketsFull
   - 대표 스킨 순서, 판매 금지(묶음·패스·결제·코드), 이벤트 기간 우승 1장·통과/탈락/결승 패배 0장
 
+## 재QA (2026-10-14, 커밋 `af6072d`)
+- 바뀐 src: `src/client/ui/DrawScreen.luau`, 새 `src/shared/DrawScreenLayout.luau`뿐(`git diff 2885529 af6072d -- src`). 서버·경제 코드 변화 없음.
+
+### 자동 검증
+| 명령 | 결과 |
+|---|---|
+| `rojo build -o build.rbxl` | 통과 |
+| `stylua --check src tests tools` | 통과 |
+| `selene src` | 통과 (0 errors, 0 warnings) |
+| `lune run tests` | **1912 passed, 0 failed** (개발 1910 + QA 재검 2) |
+| `luau-lsp analyze …` | 통과 (끝 코드 0) |
+
+### B1 (휴대폰 버튼 44px) — 해결
+- `DrawScreenLayout.heights(m)`이 버튼마다 `UiLayout.touchSize(base, m)`(UIScale 안 좌표)를 주고, `setLayout`이 ✕ 3곳(창·ⓘ 창·상세)·ⓘ·"뽑기 시작하기"·결과 "확인"/"입기"·상세 "입기"·표정 줄 높이를 이 Offset으로 정한다(가로는 Scale).
+- 직접 계산 (실제 px = Offset × UIScale):
+  | 화면 | UIScale | 버튼 높이(UIScale 안) | 실제 |
+  |---|---|---|---|
+  | 844×390 · 667×375 · 568×320 | 0.6 | 모두 74 (`ceil(44/0.6)`) | **44.4px** |
+  | 1366×768 | 1.067 | 기본값(✕·입기 44, ⓘ 42, 시작·표정 52, 결과 48) | 45~55px |
+  | 1920×1080 | 1.25 | 기본값 | 50~65px |
+  - 1차 표의 버튼(17~38px) 모두 44px 이상이 된다.
+- 휴대폰 상세 공간: 844×390에서 상세 창 안쪽 약 513(UIScale 안), 아래 줄(입기 74 + 표정 74 + 간격 16) = 164 → 큰 미리보기 자리 약 349. 568×320에서도 아래 줄이 상세 높이의 절반 안(QA 테스트로 고정).
+- 겹치는 상세 창: 휴대폰에서 카드를 누르면 `openDetail` → 📦 목록 탭에서만 보이고(`setTab`: `id == "list" and detailOpen`), ✕(`detailClose`)로 닫힌다. ZIndex 5, 불투명. 다른 탭에 갔다 와도 열린 상태는 유지(의도로 봄).
+- 넓은 화면 회귀: 넓은 화면 분기가 `detailPanel.ZIndex = 1`, 투명도 0.2, `detailClose` 숨김, 큰 미리보기 위치를 원래대로 되돌리고 `detailPanel.Visible = true`. 1366×768·1920×1080에서 상세판(창 × 0.37 − 패딩)에 아래 줄 112가 들어가고 큰 미리보기 약 120~134가 남아 표정 줄과 겹치지 않음(계산). 휴대폰 ↔ 넓은 화면을 오가도 두 분기가 같은 속성을 모두 다시 정한다.
+- 테스트 `tests/m5-31-qa-fix.spec.luau`(4개): 화면 6종에서 버튼 실제 px ≥ 44(`touchSize` 하한을 검사), 844×390 높이 ≥ 74·PC는 기본값, **`setLayout` 소스가 QA 표의 버튼 10곳을 모두 `DrawScreenLayout` 높이로 정하는지 고정**, B2 소스 고정. 첫 테스트는 `touchSize` 정의상 거의 항상 참이지만, 소스 고정 테스트와 묶여 "버튼이 이 높이를 쓴다"를 지키므로 의미 있다고 판단.
+
+### B2 (두근두근 중 배경 변화) — 해결
+- `render`가 `busy` 동안 상태만 저장하고 `pendingPaint = true`, `reveal`이 `pendingPaint = false` 후 `paint`, `showMessage`(오류·입기 안내)가 보류가 있으면 `paint`.
+- 보류가 남는 길 확인: `ShopController.runDraw`는 `pcall(remote.InvokeServer, remote)` 뒤 성공이면 `reveal`, 그 밖(통신 오류·거절·`result` 없음)은 모두 `showMessage` — 두 함수 모두 `busy = false`. 창을 닫아도(`setOpen(false)`, 라운드 시작으로 숨김) `runDraw`는 계속 끝까지 가서 둘 중 하나를 부른다. 이후 `ShopController.render`가 다시 부르면 `busy`가 아니라 바로 그린다. 남는 길은 `InvokeServer`가 영원히 돌아오지 않는 경우뿐인데, 서버 핸들러는 `pcall`로 감싸 늘 값을 돌려주고 플레이어가 나가면 클라이언트도 없어진다.
+- QA 테스트 "QA 재검 B2: runDraw는 pcall 뒤 성공이면 reveal, 아니면 showMessage…"로 고정.
+
+### B3 (휴대폰 배치 결정 기록) — 해결
+- 스펙 "결정 기록 (개발)"에 탭 3개를 고른 이유(짧은 변 ≤ 500에서 한 화면에 다 넣으면 44px·글씨 잘림), 상세는 스펙대로 겹치는 창으로 바꿨다는 것, 사용자가 탭 배치를 이미 봤다는 것이 남음.
+
+### 새로 본 것 (P3, 막지 않음 — Studio 확인)
+- **[P3] R1 휴대폰 상세 창이 아래 카드로 터치를 흘릴 수 있다.** `detailPanel`은 `Active`가 없는 Frame이라, 상세 창의 빈 곳을 누르거나 끌면 아래 목록 카드·스크롤이 반응할 수 있다(누르면 다른 스킨 상세로 바뀜, 해는 없음). 위치 `src/client/ui/DrawScreen.luau:471-476`, compact 분기 `setLayout`. 고치려면 compact에서 `detailPanel.Active = true`(또는 투명 버튼 막). Studio 체크리스트 9.
+- **[P3] R2 휴대폰 상세에서 큰 미리보기가 이름·대사 칸과 조금 겹친다.** 큰 미리보기(가로 46%, 오른쪽 끝 −(✕ + 8))의 왼쪽 끝이 이름 칸(가로 62%)·대사 칸(55%) 안으로 들어간다(844×390 계산으로 너비의 약 10~15%). 글씨가 짧으면 안 보일 수 있음. 모양만의 문제. Studio 체크리스트 9.
+- 사소: compact 분기에 `listPanel.Size`를 두 번 정함(`0.52` 뒤 `1`) — 동작 영향 없음.
+
+### 재QA Studio 체크리스트 (위 1~8에 더해)
+9. Device 에뮬레이터 iPhone 가로(844×390)·작은 기기(568×320):
+   - `PlayerGui.DrawGui` 안 ✕ 3곳·ⓘ·"뽑기 시작하기"·결과 "확인"/"입기"·상세 "입기"·표정 썸네일의 `AbsoluteSize.Y`가 44 이상.
+   - 📦 목록 → 카드 → 상세가 목록 위에 겹쳐 뜨고 ✕로 닫힘. 상세 창 빈 곳을 눌렀을 때 아래 카드가 눌리지 않는지(R1), 큰 미리보기가 이름·대사를 가리지 않는지(R2).
+   - 넓은 화면(PC 창)으로 돌아가면 상세가 오른쪽 아래 판으로 돌아오고 ✕가 없는지.
+10. 두근두근 동안 결과 창 바깥의 "보유 스킨 목록 n/9"·🔒·단상이 그대로이고, 결과가 뜬 뒤에 바뀌는지.
+
+### 결론
+- P0/P1/P2 없음. 남은 것은 P3 R1·R2뿐(1차 B1·B2·B3은 해결). 스펙 상태 **`qa-passed`**. 수용 기준: AC1~AC16 lune 통과, AC24는 계산상 통과(Studio 최종 확인), AC18~AC24 사용자 확인 필요.
+
 ## 인계 메모
 - 브랜치: `m5-31-winner-ticket-draw` (worktree `.claude/worktrees/agent-a6786423e039151fb`). main 병합은 하지 않았음.
-- 끝난 것: 검증 5단계(1906 passed, 0 failed), AC1~AC16 lune 확인, 서버·보안 리뷰, 기존 테스트 diff 리뷰, DrawScreen 리뷰, QA 테스트 18개, 이 리포트, 스펙 상태 `in-dev`.
-- 남은 것: developer가 B1(휴대폰 버튼 44px) 고치기 — 필요하면 B2·B3도. 그 뒤 재QA(B1 계산 다시 + Studio 체크리스트 8), 사용자 Studio 확인 1~8, 뽑기 소리 id(사용자).
-- 다음에 할 첫 단계: developer가 `src/client/ui/DrawScreen.luau` `setLayout`에서 B1 표의 버튼 높이를 `UiLayout.touchSize(44, m)` Offset으로 바꾸고 상세판을 휴대폰에서 키움(또는 겹치는 창).
-- 막힌 점: 없음. 휴대폰 실제 픽셀은 Studio 에뮬레이터로 최종 확인해야 함(렌더러 없음).
+- 끝난 것: 1차 QA(B1 P2 반려) → developer 수정 `af6072d` → 재QA 통과, 스펙 `qa-passed`. 검증 5단계 1912 passed / 0 failed. QA 테스트 `tests/m5-31-qa.spec.luau` 20개.
+- 남은 것: 사용자 Studio 확인 1~10, P3 R1·R2(선택), 뽑기 소리 id(사용자), docs-writer 문서 반영(스펙 "문서 반영" 절), main 병합 뒤 검증 다시.
+- 다음에 할 첫 단계: 메인 세션이 브랜치를 main에 병합하고 5단계를 다시 돌린 뒤 docs-writer에 넘김.
+- 막힌 점: 없음. 휴대폰 실제 픽셀은 Studio 에뮬레이터로 최종 확인.

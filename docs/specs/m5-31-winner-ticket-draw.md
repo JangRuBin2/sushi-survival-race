@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-31 — 우승자 뽑기 티켓 (🎫 무료 등급별 뽑기 · 특 스킨 9종 · Studio 전부 입기)
@@ -254,3 +254,6 @@ rojo build OK · stylua --check OK · selene 0 errors/0 warnings · `lune run te
 - **B3**: 결정 기록(개발)에 탭 배치 이유를 남김.
 - Studio 확인 추가: Device 에뮬레이터 844×390에서 `PlayerGui.DrawGui` 버튼 `AbsoluteSize.Y` ≥ 44, 📦 목록에서 카드 → 상세 창 → ✕. 두근두근 동안 결과 창 바깥 n/9가 그대로인지.
 - 검증: rojo build OK · stylua --check OK · selene 0/0 · `lune run tests` **1910 passed, 0 failed** · luau-lsp 끝 코드 0.
+
+### 재QA 통과 (2026-10-14, `af6072d`, `docs/qa/m5-31-winner-ticket-draw.md` "재QA")
+- B1·B2·B3 해결 확인(휴대폰 버튼 실제 44.4px 이상, 두근두근 중 다시 그리기 보류는 reveal/showMessage로 항상 풀림). 1912 passed, 0 failed. 남은 P3: R1 휴대폰 상세 창 터치 통과 가능, R2 큰 미리보기가 이름 칸과 조금 겹침(Studio 확인).

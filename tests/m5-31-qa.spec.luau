@@ -20,6 +20,8 @@ local ShopLogic = RobloxRequire.require(Shared.ShopLogic)
 local Offers = RobloxRequire.require(Shared.Offers)
 local CodeLogic = RobloxRequire.require(Shared.CodeLogic)
 local ReceiptLogic = RobloxRequire.require(Shared.ReceiptLogic)
+local UiLayout = RobloxRequire.require(Shared.UiLayout)
+local DrawScreenLayout = RobloxRequire.require(Shared.DrawScreenLayout)
 
 -- 실제 누적 경계: roll과 같은 순서로 grades()의 chance를 더한 값 (5/99 등과 부동소수가 조금 달라요)
 local function cumulative(): { [string]: number }
@@ -524,6 +526,48 @@ return function(t: Test.Test)
 			t.eq(tickets[1], 1, "winner 1 ticket")
 			t.eq(tickets[2], nil, "eliminated no ticket")
 			t.eq(tickets[3], nil, "final loser no ticket")
+		end
+	)
+
+	---------------------------------------------------------------- 재QA (B1·B2 수정 af6072d)
+	t.test(
+		"QA 재검 B1: 가장 작은 휴대폰(568×320)·844×390에서 상세 창 아래 줄(표정+입기)이 상세 높이의 절반 안, 큰 미리보기 자리 남음",
+		function()
+			for _, size in { { 568, 320 }, { 667, 375 }, { 844, 390 } } do
+				local m = UiLayout.metrics(size[1], size[2])
+				t.eq(m.compact, true)
+				local h = DrawScreenLayout.heights(m)
+				-- DrawScreen 휴대폰 배치: 창 = 화면 높이 × 0.96, 탭 줄 = touch + 16 (UIScale 안), 상세 = 내용 전체 − 패딩 20
+				local touch = UiLayout.touchSize(44, m)
+				local windowUnits = size[2] * 0.96 / m.scale
+				local contentUnits = windowUnits - (touch + 16)
+				local detailInner = contentUnits - 20
+				local bottom = h.wear + 8 + h.expression + 8
+				t.ok(bottom <= detailInner * 0.5, `{size[1]}x{size[2]} bottom {bottom} / {detailInner}`)
+				-- 실제 px도 44 이상 (휴대폰에서는 모두 touchSize 하한)
+				for name, units in h :: any do
+					t.ok(units * m.scale >= 44 - 1e-6, `{size[1]}x{size[2]} {name}`)
+				end
+			end
+		end
+	)
+
+	t.test(
+		"QA 재검 B2: runDraw는 pcall 뒤 성공이면 reveal, 아니면 showMessage — 보류(pendingPaint)를 푸는 길이 항상 하나",
+		function()
+			local controller = fs.readFile("src/client/ui/ShopController.luau")
+			local body = string.match(controller, "local function runDraw%(%).-\n\tend\n") :: string
+			t.ok(body ~= nil, "runDraw body")
+			t.ok(string.find(body, "pcall(remote.InvokeServer, remote)", 1, true) ~= nil)
+			local revealAt = string.find(body, "drawScreen:reveal(drawResult)", 1, true)
+			local messageAt = string.find(body, "drawScreen:showMessage(message, true)", 1, true)
+			t.ok(revealAt ~= nil and messageAt ~= nil, "both branches")
+			t.ok(string.find(body, "\t\telse\n", revealAt :: number, true) ~= nil, "else branch after reveal")
+			local screen = fs.readFile("src/client/ui/DrawScreen.luau")
+			local reveal = string.match(screen, "function screen%.reveal.-\n\tend\n") :: string
+			local message = string.match(screen, "function screen%.showMessage.-\n\tend\n") :: string
+			t.ok(string.find(reveal, "busy = false", 1, true) ~= nil)
+			t.ok(string.find(message, "busy = false", 1, true) ~= nil)
 		end
 	)
 end

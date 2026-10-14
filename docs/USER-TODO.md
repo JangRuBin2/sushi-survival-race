@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-14 (맵 3차 배치 6개 스펙 m5-33~39·맵 길이 늘리기 m5-40 — A1·A2·B3에 추가). 그 전: 2026-10-13 (M5 반영 — m5-01~m5-11, m5-13~m5-22 `done`: 새 맵 9개, 시즌 이벤트, 🎁 상점·VIP, 연출 팩, 🎟 코드, 관리자 명령, 스킨 31종. m5-23 맵 비주얼 키트는 재QA 대기, m5-24 아트 패스 진행 중. 기획서 GDD v0.6 변경 이력)
+> 마지막 갱신: 2026-10-14 (맵 3차 배치 6개 스펙 m5-33~39·맵 길이 늘리기 m5-40·모바일 버튼 위치 편집 m5-41 — A1·A2·B3에 추가). 그 전: 2026-10-13 (M5 반영 — m5-01~m5-11, m5-13~m5-22 `done`: 새 맵 9개, 시즌 이벤트, 🎁 상점·VIP, 연출 팩, 🎟 코드, 관리자 명령, 스킨 31종. m5-23 맵 비주얼 키트는 재QA 대기, m5-24 아트 패스 진행 중. 기획서 GDD v0.6 변경 이력)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -133,6 +133,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 | (M5) 기존 맵 다듬기 | 3-10 **T** (원본 [`m5-20`](qa/m5-20-map-quality-pass.md)) | 아니요 |
 | (M5) 맵 비주얼 키트(조명) | 3-11 (원본 [`m5-23`](qa/m5-23-map-visual-kit.md), 재QA 전) | B1-1(Future 확인) 먼저 |
 | (M5, 개발 뒤) 맵 3차 배치 6개 | 각 스펙의 "Studio 확인" 절 — [`m5-34`](specs/m5-34-map-dish-sink.md)~[`m5-39`](specs/m5-39-map-onsen-claw.md) (QA 리포트가 나오면 그쪽) | 아니요 (`forceMapPlan`·`overtimeAt` 사용 후 `nil`). 렌더 PNG(`docs/renders/<맵>/after-*.png`)를 시트와 비교해 방향이 맞는지 먼저 봐 주면 좋아요 |
+| (M5, 개발 뒤) 📱 버튼 위치 편집 | [`m5-41`](specs/m5-41-touch-button-layout.md) AC11~AC17 — Test → Device 에뮬레이터(휴대폰·태블릿 바꿔 가며), 점프 버튼이 제자리로 돌아가지 않는지(AC12)가 제일 중요 | 아니요. 재접속 유지는 C1 퍼블리시 뒤 실제 휴대폰으로 |
 | (M5, 개발 뒤) 맵 길이 늘리기 | [`m5-40`](specs/m5-40-map-length-pass.md) AC9~AC12 — Race 클리어 시간·한 판 전체 시간 재기 | 아니요. 한 판 시간은 친구 테스트 때 |
 
 공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)은 확인 후 원래 값(`nil`/`false`)으로, `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요. `src/server/CodeList.luau`는 커밋되지 않아요.

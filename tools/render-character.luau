@@ -463,10 +463,13 @@ local function renderExpressions(dir: string, lighting: any, skinId: string?)
 	save(`{dir}/expressions.png`, sheet)
 end
 
+local COMPARE_WITH: { [string]: string } = { unagi = "eel", tako = "octopus" }
+
 -- 지금 게임 스킨 ↔ 콘셉트 (3/4 앞, 뒤). 견본은 연어, 스킨 id면 같은 음식 (concept-tuna ↔ tuna, concept-ikura ↔ ikura)
 local function renderCompare(dir: string, lighting: any, skinId: string?)
 	local w, h, pad = 300, 340, 6
 	local now = if skinId then string.sub(skinId, #"concept-" + 1) else "salmon"
+	now = COMPARE_WITH[now] or now -- m5-29: 이름이 다른 같은 음식 (unagi ↔ eel, tako ↔ octopus)
 	if Skins.get(now) == nil then
 		now = "salmon"
 	end

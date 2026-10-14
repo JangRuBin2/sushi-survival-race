@@ -8,7 +8,7 @@
 --   Skins.forProduct(productId)  개발자 상품 id → 스킨 (m4-14 결제가 써요)
 --   Skins.validate(list)    카탈로그 검사: (ok, 문제 목록). 테스트와 서버 시작 때 한 번
 --   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥 + 실험 스킨). 보유 판단은 이걸로 해요
---   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura).
+--   Skins.EXPERIMENTAL_IDS  실험 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari).
 --                           experimental = true는 여기 있는 id만 쓸 수 있어요
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
@@ -59,6 +59,11 @@ Skins.EXPERIMENTAL_IDS = {
 	["concept-shrimp"] = true,
 	["concept-tamago"] = true,
 	["concept-ikura"] = true,
+	-- m5-29 장어·성게 군함·문어·유부
+	["concept-unagi"] = true,
+	["concept-uni"] = true,
+	["concept-tako"] = true,
+	["concept-inari"] = true,
 } :: { [string]: boolean }
 
 Skins.TIERS = { "Basic", "Common", "Rare", "Epic", "Legendary" } :: { Tier }
@@ -385,6 +390,39 @@ Skins.LIST = {
 		experimental = true,
 		speech = { "알이 다 쏟아졌어!", "톡톡 터지는 맛~" },
 		order = 36,
+	},
+	-- m5-29 콘셉트 몸 실험 스킨 2차 4종 (같은 밥·얼굴·팔다리, 유부만 밥 색이 유부)
+	{
+		id = "concept-unagi",
+		displayName = "콘셉트 장어초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
+		order = 37,
+	},
+	{
+		id = "concept-uni",
+		displayName = "콘셉트 성게 군함 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
+		order = 38,
+	},
+	{
+		id = "concept-tako",
+		displayName = "콘셉트 문어초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
+		order = 39,
+	},
+	{
+		id = "concept-inari",
+		displayName = "콘셉트 유부초밥 (테스트)",
+		tier = "Basic",
+		experimental = true,
+		speech = { "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
+		order = 40,
 	},
 } :: { Skin }
 

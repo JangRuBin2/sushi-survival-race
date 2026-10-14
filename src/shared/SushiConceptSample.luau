@@ -43,10 +43,20 @@ export type PartSpec = {
 
 SushiConceptSample.EXPRESSIONS = { "Default", "Happy", "Flustered", "Hurt" } :: { Expression }
 SushiConceptSample.POSES = { "Stand", "Run" } :: { Pose }
--- 이 몸을 쓰는 실험 스킨 (m5-27 연어 + m5-28 참치·새우·계란·연어알 군함). 밥·얼굴·팔다리는 같고 토핑만 달라요
+-- 이 몸을 쓰는 실험 스킨 (m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게 군함·문어·유부).
+-- 밥·얼굴·팔다리는 같고 토핑만 달라요 (유부만 밥 색·재질을 바꿔요 — 스펙 "inari 예외")
 local SALMON_ID = "concept-salmon"
-SushiConceptSample.SKIN_IDS =
-	{ SALMON_ID, "concept-tuna", "concept-shrimp", "concept-tamago", "concept-ikura" } :: { string }
+SushiConceptSample.SKIN_IDS = {
+	SALMON_ID,
+	"concept-tuna",
+	"concept-shrimp",
+	"concept-tamago",
+	"concept-ikura",
+	"concept-unagi",
+	"concept-uni",
+	"concept-tako",
+	"concept-inari",
+} :: { string }
 
 ---------------------------------------------------------------- 치수
 local RICE_W, RICE_H, RICE_D, RICE_R = 3.6, 2.0, 2.7, 0.45 -- 밥 (y -1.0~1.0, 세로 모서리 반지름)
@@ -95,6 +105,15 @@ local EGG_LAYER = { 196, 120, 30 } -- 겹 사이 갈색 줄
 local IKURA = { 255, 92, 28 } -- 연어알 (Glass)
 local CUCUMBER = { 92, 170, 70 } -- 연어알 군함 오이 조각
 local IKURA_BED = { 236, 96, 30 } -- 알 아래 깔린 주황 (김 그릇 윗면을 덮어요)
+-- m5-29 콘셉트 스킨 2차 토핑 색
+local UNAGI = { 100, 58, 28 } -- 타레 바른 구운 장어 (진한 갈색, Glass = 윤기)
+local UNI = { 236, 116, 20 } -- 성게 주황
+local UNI_MUSTARD = { 246, 146, 32 } -- 성게 겨자빛 주황 (덩어리 사이 골이 보이게 번갈아)
+local TAKO = { 248, 240, 240 } -- 문어 흰 살
+local TAKO_RIM = { 150, 40, 62 } -- 적갈·보라 껍질 가장자리
+local TAKO_SUCKER = { 196, 92, 132 } -- 빨판
+local INARI_POUCH = { 204, 136, 60 } -- 유부 주머니 (공유 밥 파츠 색)
+local INARI_RIM = { 158, 96, 38 } -- 주머니 입구 테두리 (조금 진하게)
 
 ---------------------------------------------------------------- 도우미
 type Extra = { shape: Shape?, rotation: { number }?, joint: boolean?, transparency: number?, attach: string? }
@@ -216,11 +235,33 @@ local function join(...: { PartSpec }): { PartSpec }
 end
 
 ---------------------------------------------------------------- 몸 (표정·자세·토핑과 무관 — 모든 콘셉트 스킨이 같아요)
-local function rice(): { PartSpec }
-	return join(roundedPrism("Body", { 0, 0, 0 }, RICE_W, RICE_H, RICE_D, RICE_R, RICE, "Salt"), {
+-- 공유 밥·받침 파츠의 색·재질만 스킨이 바꿀 수 있어요 (m5-29 유부 — 크기·위치는 그대로). 받침도 같이 바꿔요:
+-- 밥과 받침이 0.01 겹쳐 옆면이 같은 평면이라 색이 다르면 z-fighting 검사에 걸리고, 다리가 흰색이라 발은 그대로 구분돼요
+type RiceLook = { color: { number }, material: string }
+local RICE_LOOK: { [string]: RiceLook } = {
+	["concept-inari"] = { color = INARI_POUCH, material = "Fabric" },
+}
+
+local function rice(skinId: string?): { PartSpec }
+	local look = RICE_LOOK[skinId or SALMON_ID]
+	local bodyColor = if look then look.color else RICE
+	local bodyMaterial = if look then look.material else "Salt"
+	return join(roundedPrism("Body", { 0, 0, 0 }, RICE_W, RICE_H, RICE_D, RICE_R, bodyColor, bodyMaterial), {
 		-- 아래 한 단 좁은 받침: 바닥 모서리가 둥글어 보이게 (상자 두 개를 엇갈려 모서리를 깎아요)
-		piece("BodyBase", { RICE_W - 0.9, BASE_H, RICE_D - 0.3 }, RICE, { 0, -1.0 - BASE_H / 2 + 0.01, 0 }, "Salt"),
-		piece("BodyBaseWide", { RICE_W - 0.3, BASE_H, RICE_D - 0.9 }, RICE, { 0, -1.0 - BASE_H / 2 + 0.01, 0 }, "Salt"),
+		piece(
+			"BodyBase",
+			{ RICE_W - 0.9, BASE_H, RICE_D - 0.3 },
+			bodyColor,
+			{ 0, -1.0 - BASE_H / 2 + 0.01, 0 },
+			bodyMaterial
+		),
+		piece(
+			"BodyBaseWide",
+			{ RICE_W - 0.3, BASE_H, RICE_D - 0.9 },
+			bodyColor,
+			{ 0, -1.0 - BASE_H / 2 + 0.01, 0 },
+			bodyMaterial
+		),
 	})
 end
 
@@ -417,12 +458,201 @@ local function ikuraTopping(_variant: Variant): { PartSpec }
 	return list
 end
 
+---------------------------------------------------------------- m5-29 토핑 (장어·성게 군함·문어·유부)
+-- 장어·성게는 사용자 캐릭터 시트(docs/귀여운 우니와 장어 초밥 캐릭터 시트.png)를 따라요: 둘 다 몸 위쪽을 김 띠가
+-- 한 바퀴 두르고(얼굴 위 y 0.32부터 — 얼굴·팔은 띠 아래), 그 위에 토핑. 비평은 docs/developer/m5-29-concept-skins-2.md
+
+-- 몸 위쪽을 두르는 김 띠 (앞·옆·뒤 모두 밥 바깥으로 0.08 — 얼굴 높이 0.3보다 위라 얼굴을 안 가려요)
+local BAND_W, BAND_D, BAND_R = 3.72, 2.86, 0.5
+local BAND_BOTTOM = 0.32
+local function band(top: number): { PartSpec }
+	return roundedPrism(
+		"Band",
+		{ 0, (BAND_BOTTOM + top) / 2, 0 },
+		BAND_W,
+		top - BAND_BOTTOM,
+		BAND_D,
+		BAND_R,
+		NORI,
+		"Fabric"
+	)
+end
+
+-- 장어: 김 띠 위에 넓게 늘어진 구운 장어 판(진한 갈색 타레, Glass = 윤기) + 가운데 세로 김 띠 (시트의 참깨는 파츠 상한 47 때문에 뺐어요)
+-- (위 → 둥근 앞 모서리 → 앞 띠까지, 위 → 둥근 뒤 모서리 → 등 아래까지 — 모서리는 판과 같은 축 원기둥이라 휘어 보여요)
+local EEL_W, EEL_T, EEL_D = 3.96, 0.72, 3.0
+local EEL_Y = 1.0 + EEL_T / 2 - 0.05 -- 판 중심 (아래끝 0.95 — 띠 위끝 1.02 속, 밥 위끝 1.0과 겹면 안 되게 띠를 0.02 높여요)
+local EEL_EDGE_Z = (EEL_D - EEL_T) / 2 -- 판 앞뒤 둥근 모서리 원기둥 z
+local function unagiTopping(_variant: Variant): { PartSpec }
+	local wrap = EEL_T + 0.08
+	local face = EEL_D / 2 + 0.04 -- 판 앞뒤 끝(1.5)보다 바깥
+	return join(band(1.02), pillow("Eel", { 0, EEL_Y, 0 }, EEL_W, EEL_T, EEL_D, UNAGI, "Glass"), {
+		piece("NoriTop", { NORI_W, 0.08, 2 * EEL_EDGE_Z + 0.1 }, NORI, { 0, EEL_Y + EEL_T / 2 + 0.02, 0 }, "Fabric"),
+		piece(
+			"NoriFrontEdge",
+			{ NORI_W, wrap, wrap },
+			NORI,
+			{ 0, EEL_Y, -EEL_EDGE_Z },
+			"Fabric",
+			{ shape = "Cylinder" }
+		),
+		piece("NoriBackEdge", { NORI_W, wrap, wrap }, NORI, { 0, EEL_Y, EEL_EDGE_Z }, "Fabric", { shape = "Cylinder" }),
+		piece(
+			"NoriFront",
+			{ NORI_W, EEL_Y - BAND_BOTTOM, 0.1 },
+			NORI,
+			{ 0, (EEL_Y + BAND_BOTTOM) / 2, -face },
+			"Fabric"
+		),
+		piece("NoriBack", { NORI_W, EEL_Y + 0.97, 0.1 }, NORI, { 0, (EEL_Y - 0.97) / 2, face }, "Fabric"),
+	})
+end
+
+-- 성게 군함: 몸 위쪽 김 띠가 밥보다 높이 솟아 그릇이 되고(연어알 군함과 달리 등·옆 아래는 밥이 보여요), 위에
+-- 짧고 통통한 혀 모양 덩어리 4줄(앞뒤로 누운 원기둥 + 앞뒤 공, 서로 겹쳐 골이 생기고 가운데 둘이 높아 볼록)
+-- + 맨 위 초록 잎 둘. 둥근 알·오이는 없어요 (연어알과 구분)
+local UNI_WALL_TOP = 1.45
+type Lobe = { x: number, lift: number, length: number, color: { number } }
+local LOBES: { Lobe } = {
+	{ x = -1.28, lift = -0.06, length = 0.8, color = UNI_MUSTARD },
+	{ x = -0.42, lift = 0.26, length = 1.2, color = UNI },
+	{ x = 0.42, lift = 0.26, length = 1.1, color = UNI_MUSTARD },
+	{ x = 1.28, lift = -0.06, length = 0.8, color = UNI },
+}
+local LOBE_D = 1.04
+local function uniTopping(_variant: Variant): { PartSpec }
+	local list = band(UNI_WALL_TOP)
+	local y0 = UNI_WALL_TOP - 0.02
+	local top = 0
+	for i, lobe in LOBES do
+		local y = y0 + lobe.lift
+		local half = lobe.length / 2
+		top = math.max(top, y + LOBE_D / 2)
+		table.insert(
+			list,
+			piece(`Lobe{i}`, { lobe.length, LOBE_D, LOBE_D }, lobe.color, { lobe.x, y, 0 }, nil, {
+				shape = "Cylinder",
+				rotation = ALONG_Z,
+			})
+		)
+		table.insert(list, ball(`Lobe{i}Front`, LOBE_D, lobe.color, { lobe.x, y, -half }))
+		table.insert(list, ball(`Lobe{i}Back`, LOBE_D, lobe.color, { lobe.x, y, half }))
+	end
+	-- 맨 위 초록 잎 (가운데 두 덩어리 사이 골에 꽂혀 V자로 벌어져요)
+	for i, sx in { -1, 1 } do
+		table.insert(
+			list,
+			piece(`Leaf{i}`, { 0.62, 0.14, 0.32 }, CUCUMBER, { sx * 0.24, top + 0.04, -0.15 }, nil, {
+				rotation = { 0, sx * 20, sx * 35 },
+			})
+		)
+	end
+	return list
+end
+
+-- 문어: 흰 돔 + 보라·적갈 늘어진 가장자리 + 돔 양 끝 공 부분에 빨판 원판 4개 + 가운데 김 띠
+-- 빨판은 돔 표면 법선을 보는 얇은 원판 (돔 양 끝 공 중심에서 dir 방향)
+type Sucker = { side: number, dir: { number } }
+local SUCKERS: { Sucker } = {
+	{ side = -1, dir = { -0.5, 0.8, 0.35 } },
+	{ side = -1, dir = { -0.75, 0.55, -0.3 } },
+	{ side = 1, dir = { 0.5, 0.8, -0.3 } },
+	{ side = 1, dir = { 0.75, 0.55, 0.35 } },
+}
+local SUCKER_D, SUCKER_T = 0.46, 0.08
+local function takoTopping(_variant: Variant): { PartSpec }
+	local list = dome(TAKO, nil, TAKO_RIM)
+	local r = RIDGE_D / 2
+	for i, sucker in SUCKERS do
+		local dir = sucker.dir
+		local len = math.sqrt(dir[1] * dir[1] + dir[2] * dir[2] + dir[3] * dir[3])
+		local nx, ny, nz = dir[1] / len, dir[2] / len, dir[3] / len
+		-- 원기둥 축(X)을 법선으로: CFrame.Angles(a, 0, phi) * X = (cos phi, sin phi cos a, sin phi sin a)
+		local phi = math.deg(math.acos(nx))
+		local a = math.deg(math.atan2(nz, ny))
+		local out = r + SUCKER_T / 2 - 0.03 -- 반쯤 묻혀요
+		table.insert(
+			list,
+			piece(
+				`Sucker{i}`,
+				{ SUCKER_T, SUCKER_D, SUCKER_D },
+				TAKO_SUCKER,
+				{ sucker.side * RIDGE_HALF + nx * out, RIDGE_Y + ny * out, nz * out },
+				nil,
+				{ shape = "Cylinder", rotation = { a, 0, phi } }
+			)
+		)
+	end
+	return join(list, nori())
+end
+
+-- 유부: 공유 밥 파츠가 유부 색(RICE_LOOK) — 몸 전체가 주머니. 위에 말린 입구 테두리(앞뒤·옆 원기둥 + 구석 공),
+-- 입구 안에 흰 밥(위쪽만)과 밥알 덩어리, 뒤쪽이 안으로 접힌 자락. 테두리 앞은 밥 앞면보다 0.02 안쪽 (얼굴 높이보다 위)
+local LIP_T = 0.4 -- 테두리 굵기
+local LIP_Y = RICE_H / 2 + 0.04 -- 테두리 중심 (꼭대기 1.24)
+local LIP_X = RICE_W / 2 - RICE_R -- 앞뒤 테두리 반길이 (1.35)
+local LIP_Z = RICE_D / 2 - RICE_R -- 옆 테두리 반길이 (0.9)
+local function inariTopping(_variant: Variant): { PartSpec }
+	local lipZ = RICE_D / 2 - LIP_T / 2 - 0.02
+	local lipX = RICE_W / 2 - LIP_T / 2 - 0.02
+	local corner = (RICE_R - LIP_T / 2 - 0.02) / math.sqrt(2)
+	local list: { PartSpec } = {
+		piece("LipFront", { 2 * LIP_X + 0.1, LIP_T, LIP_T }, INARI_RIM, { 0, LIP_Y, -lipZ }, "Fabric", {
+			shape = "Cylinder",
+		}),
+		piece("LipBack", { 2 * LIP_X + 0.1, LIP_T, LIP_T }, INARI_RIM, { 0, LIP_Y, lipZ }, "Fabric", {
+			shape = "Cylinder",
+		}),
+		piece("LipLeft", { 2 * LIP_Z + 0.1, LIP_T, LIP_T }, INARI_RIM, { -lipX, LIP_Y, 0 }, "Fabric", {
+			shape = "Cylinder",
+			rotation = ALONG_Z,
+		}),
+		piece("LipRight", { 2 * LIP_Z + 0.1, LIP_T, LIP_T }, INARI_RIM, { lipX, LIP_Y, 0 }, "Fabric", {
+			shape = "Cylinder",
+			rotation = ALONG_Z,
+		}),
+	}
+	local i = 0
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			i += 1
+			table.insert(
+				list,
+				ball(
+					`LipCorner{i}`,
+					LIP_T,
+					INARI_RIM,
+					{ sx * (LIP_X + corner), LIP_Y, sz * (LIP_Z + corner) },
+					"Fabric"
+				)
+			)
+		end
+	end
+	-- 입구 안 흰 밥 (위쪽만) + 밥알 덩어리
+	table.insert(list, piece("InariRice", { 2.9, 0.2, 2.0 }, RICE, { 0, RICE_H / 2 + 0.08, 0 }, "Salt"))
+	for k, p in { { -0.62, -0.25 }, { 0.5, -0.1 }, { -0.05, 0.3 } } do
+		table.insert(list, ball(`InariGrain{k}`, 0.56, RICE, { p[1], RICE_H / 2 + 0.12, p[2] }, "Salt"))
+	end
+	-- 뒤 테두리가 안으로 접힌 자락 (주름)
+	table.insert(
+		list,
+		piece("InariFold", { 2.4, 0.16, 0.8 }, INARI_POUCH, { 0, LIP_Y + 0.14, lipZ - 0.42 }, "Fabric", {
+			rotation = { 18, 0, 0 },
+		})
+	)
+	return list
+end
+
 local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	["concept-salmon"] = salmonTopping,
 	["concept-tuna"] = tunaTopping,
 	["concept-shrimp"] = shrimpTopping,
 	["concept-tamago"] = tamagoTopping,
 	["concept-ikura"] = ikuraTopping,
+	["concept-unagi"] = unagiTopping,
+	["concept-uni"] = uniTopping,
+	["concept-tako"] = takoTopping,
+	["concept-inari"] = inariTopping,
 }
 
 ---------------------------------------------------------------- 얼굴
@@ -610,12 +840,29 @@ local function toppingOf(skinId: string?): (Variant) -> { PartSpec }
 end
 
 -- 견본 (렌더용, 자세 포함). skinId 없으면 연어 (m5-27 그대로)
+-- 입 덮개(MouthCover)는 밥 앞면과 같은 색이어야 입 원판 윗변을 가려요 → 밥 색을 바꾼 스킨(유부)은 덮개도 따라가요
+local function maskWithRice(list: { PartSpec }, skinId: string?): { PartSpec }
+	local look = RICE_LOOK[skinId or SALMON_ID]
+	if look then
+		for _, spec in list do
+			if spec.name == "MouthCover" then
+				spec.color = look.color
+				spec.material = look.material
+			end
+		end
+	end
+	return list
+end
+
 function SushiConceptSample.layout(expression: Expression?, pose: Pose?, skinId: string?): { PartSpec }
-	return join(
-		rice(),
-		toppingOf(skinId)(SAMPLE),
-		face(expression or "Default", SAMPLE),
-		limbs(pose or "Stand", SAMPLE)
+	return maskWithRice(
+		join(
+			rice(skinId),
+			toppingOf(skinId)(SAMPLE),
+			face(expression or "Default", SAMPLE),
+			limbs(pose or "Stand", SAMPLE)
+		),
+		skinId
 	)
 end
 
@@ -623,7 +870,7 @@ end
 -- 모르는 skinId는 오류 (SushiBody가 SKIN_IDS만 넘겨요)
 function SushiConceptSample.gameLayout(expression: string?, skinId: string?): { PartSpec }
 	local chosen: Expression = if isExpression(expression) then expression :: any else "Default"
-	return join(rice(), toppingOf(skinId)(GAME), face(chosen, GAME), limbs("Stand", GAME))
+	return maskWithRice(join(rice(skinId), toppingOf(skinId)(GAME), face(chosen, GAME), limbs("Stand", GAME)), skinId)
 end
 
 local function vec(v: { number }): Vector3

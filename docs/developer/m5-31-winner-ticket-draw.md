@@ -1,5 +1,12 @@
 # m5-31 우승자 뽑기 티켓 — 개발 작업 기록
 
+## 2026-10-14 — QA 반려 수정(B1·B2·B3), 다시 `in-qa`
+- 브랜치: `m5-31-winner-ticket-draw` (QA 커밋 2885529 위)
+- 끝난 것: B1 휴대폰 버튼 44px(`DrawScreenLayout` + `setLayout`, 상세는 겹치는 창), B2 두근두근 중 다시 그리기 보류, B3 결정 기록. 테스트 `tests/m5-31-qa-fix.spec.luau` 4개. 검증 5단계 통과(1910 passed, 0 failed).
+- 남은 것: 재QA, Studio 확인(에뮬레이터 844×390 버튼 `AbsoluteSize.Y` ≥ 44, 상세 창 열고 닫기, 두근두근 중 n/9 그대로).
+- 다음에 할 첫 단계: 재QA 리포트 확인.
+- 막힌 점: 없음.
+
 ## 2026-10-14 — 구현 끝, `in-qa`
 - 브랜치: `m5-31-winner-ticket-draw` (main 7a30de7에서 시작, origin/main 2차 스펙까지 병합 — 문서만 바뀜, 충돌 없음)
 - 끝난 것

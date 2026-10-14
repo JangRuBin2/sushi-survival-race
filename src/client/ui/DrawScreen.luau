@@ -11,13 +11,16 @@
 --       (등급 배지·이름·대사 한 줄·큰 인형·표정 썸네일·"입기").
 --   결과: "스킨 획득!" 창 (등급색 빛 번짐·반짝임, 인형, 이름 + 등급 배지, "확인"·"입기"). 이미 가진 스킨이면
 --       "이미 가진 스킨 → 🍚 +N". 결과 전 약 1.2초 두근두근(빛이 커졌다 작아졌다).
---   휴대폰(compact): 위에 탭 "🎫 뽑기 / 📊 확률 / 📦 목록"으로 한 번에 한 칸씩 (겹치지 않게).
+--   휴대폰(compact): 위에 탭 "🎫 뽑기 / 📊 확률 / 📦 목록"으로 한 번에 한 칸씩 (겹치지 않게). 목록 탭에서 카드를
+--       누르면 상세가 목록 위에 겹치는 창으로 떠요(✕로 닫기). 버튼 높이는 DrawScreenLayout.heights(44px 이상, QA B1).
+--   두근두근 ~ 결과 공개 사이에 온 프로필 변화는 결과를 보여 준 뒤에 그려요 (QA B2).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
+local DrawScreenLayout = require(ReplicatedStorage.Shared.DrawScreenLayout)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -540,6 +543,17 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, 14)
 
 	---------------------------------------------------------------- 닫기
+	-- 휴대폰에서 겹치는 상세 창 닫기 (QA B1·B3)
+	local detailClose = scaledButton("✕", Color3.fromRGB(50, 60, 90), {
+		Name = "DetailClose",
+		Parent = detailPanel,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(44, 44),
+		Visible = false,
+		ZIndex = 3,
+	}, 22)
+
 	local closeButton = scaledButton("✕", Color3.fromRGB(50, 60, 90), {
 		Name = "Close",
 		Parent = window,
@@ -766,6 +780,9 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	local angle = 0
 	local resultModel: Model? = nil
 	local refresh: () -> () = function() end -- 아래 paint로 바꿔요 (카드 클릭)
+	local openDetail: () -> () = function() end -- 휴대폰: 상세 창 열기 (아래 setTab 뒤에 정해요)
+	local detailOpen = false -- 휴대폰에서 상세 창이 열려 있는지
+	local pendingPaint = false -- 두근두근 중에 온 화면 변화 (결과 공개 뒤에 그려요)
 
 	local function ownedMap(): { [string]: boolean }
 		local map: { [string]: boolean } = {}
@@ -853,6 +870,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 				Kit.onClick(button, function()
 					selectedId = skinId
 					refresh()
+					openDetail()
 				end)
 				cards[skinId] = { button = button, viewport = viewport, lock = lock, stroke = stroke }
 			end
@@ -1027,9 +1045,17 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			stageCol.Visible = id == "draw"
 			oddsPanel.Visible = id == "odds"
 			listPanel.Visible = id == "list"
-			detailPanel.Visible = id == "list"
+			detailPanel.Visible = id == "list" and detailOpen
 		end
 	end
+	openDetail = function()
+		detailOpen = true
+		setTab(currentTab)
+	end
+	Kit.onClick(detailClose, function()
+		detailOpen = false
+		setTab(currentTab)
+	end)
 
 	for i, tab in TABS do
 		local button = scaledButton(tab.label, NAVY, {
@@ -1107,6 +1133,10 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 
 	function screen.render(_self: DrawScreen, newState: RenderState)
 		state = newState
+		if busy then
+			pendingPaint = true -- 결과보다 먼저 목록·단상이 바뀌지 않게 (QA B2)
+			return
+		end
 		if gui.Enabled then
 			paint()
 		end
@@ -1189,6 +1219,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			resultWear.Visible = false
 		end
 		selectedId = result.skinId
+		pendingPaint = false
 		paint()
 	end
 
@@ -1199,6 +1230,10 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			pulse = nil
 		end
 		hideResult()
+		if pendingPaint then
+			pendingPaint = false
+			paint()
+		end
 		startReason.Text = message
 		startReason.TextColor3 = if isError then Color.Error else Color3.fromRGB(120, 60, 40)
 		local s = state
@@ -1208,7 +1243,25 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	function screen.setLayout(_self: DrawScreen, m: UiLayout.Metrics)
 		metrics = m
 		local touch = UiLayout.touchSize(44, m)
-		closeButton.Size = UDim2.fromOffset(touch, touch)
+		local h = DrawScreenLayout.heights(m) -- 실제 44px 이상 (QA B1)
+		closeButton.Size = UDim2.fromOffset(h.close, h.close)
+		infoButton.Size = UDim2.fromOffset(h.info, h.info)
+		infoClose.Size = UDim2.fromOffset(h.close, h.close)
+		infoScroll.Position = UDim2.fromOffset(0, h.close + 6)
+		infoScroll.Size = UDim2.new(1, 0, 1, -(h.close + 6))
+		detailClose.Size = UDim2.fromOffset(h.close, h.close)
+		startButton.AnchorPoint = Vector2.new(0.5, 1)
+		startButton.Position = UDim2.fromScale(0.5, 0.93)
+		startButton.Size = UDim2.new(0.82, 0, 0, h.start)
+		okButton.Size = UDim2.new(0.42, 0, 0, h.result)
+		resultWear.Size = UDim2.new(0.42, 0, 0, h.result)
+		-- 상세: 아래에 표정 줄 + 입기 줄 (Offset 높이), 큰 미리보기는 그 위
+		local bottom = h.wear + 8 + h.expression + 8
+		exprRow.Position = UDim2.new(0, 0, 1, -(h.wear + 8 + h.expression))
+		exprRow.Size = UDim2.new(1, 0, 0, h.expression)
+		wearButton.Size = UDim2.new(0.55, 0, 0, h.wear)
+		detailNote.Size = UDim2.new(0.43, 0, 0, h.wear)
+		detailView.Size = UDim2.new(0.46, 0, 1, -bottom)
 		grid.ScrollBarThickness = UiLayout.scrollBarThickness(m)
 		local cardHeight = math.max(110, UiLayout.touchSize(110, m))
 		if m.compact then
@@ -1235,8 +1288,14 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			oddsPanel.Size = UDim2.fromScale(0.94, 0.98)
 			listPanel.Position = UDim2.fromScale(0.02, 0)
 			listPanel.Size = UDim2.fromScale(0.96, 0.52)
-			detailPanel.Position = UDim2.fromScale(0.02, 0.54)
-			detailPanel.Size = UDim2.fromScale(0.96, 0.45)
+			listPanel.Size = UDim2.fromScale(0.96, 1)
+			-- 상세는 목록 위에 겹치는 창 (카드를 누르면 열리고 ✕로 닫아요)
+			detailPanel.Position = UDim2.fromScale(0.02, 0)
+			detailPanel.Size = UDim2.fromScale(0.96, 1)
+			detailPanel.ZIndex = 5
+			detailPanel.BackgroundTransparency = 0
+			detailClose.Visible = true
+			detailView.Position = UDim2.new(1, -(h.close + 8), 0, 0)
 			gridLayout.CellSize = UDim2.new(1 / 3, -6, 0, cardHeight)
 			resultCard.Size = UDim2.fromScale(0.94, 0.9)
 		else
@@ -1264,6 +1323,10 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			listPanel.Size = UDim2.fromScale(0.6, 0.37)
 			detailPanel.Position = UDim2.fromScale(0.625, 0.615)
 			detailPanel.Size = UDim2.fromScale(0.363, 0.37)
+			detailPanel.ZIndex = 1
+			detailPanel.BackgroundTransparency = 0.2
+			detailClose.Visible = false
+			detailView.Position = UDim2.fromScale(1, 0.02)
 			gridLayout.CellSize = UDim2.new(0.25, -6, 0, cardHeight)
 			resultCard.Size = UDim2.fromScale(0.62, 0.88)
 			signCol.Visible = true

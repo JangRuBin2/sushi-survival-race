@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-31 — 우승자 뽑기 티켓 (🎫 무료 등급별 뽑기 · 특 스킨 9종 · Studio 전부 입기)
@@ -227,6 +227,7 @@ status: in-dev
 - `DataService`는 `ShopLogic`을 require하지 않고 `ShopService.init`이 `DataService.setStudioUnlockAll`로 알려 줌(가짜 DataService 테스트를 안 깨려고).
 - 단상은 ViewportFrame 안 3D 원기둥 대신 2D 둥근 Frame(그라데이션) + 인형 ViewportFrame — Studio에서 보고 바꿀 것. 결과 연출 시간은 `DrawScreen.SUSPENSE_TIME` 1.2초 + 열림 0.35~0.5초.
 - `saveNow` 안 부름(무료 보상). 현지화(AC17): main에 m5-26 `Localization/Strings.csv` 없음 → **해당 없음**, 문구는 코드 상수.
+- (QA B3) 휴대폰 배치는 스펙 UI 11("왼쪽 열을 위 한 줄로 접고 상세는 겹치는 창")과 달리 **탭 3개 "🎫 뽑기 / 📊 확률 / 📦 목록"**으로 나눈다. 짧은 변 ≤ 500px 화면에서 단상·확률표 5줄·목록을 한 화면에 다 넣으면 버튼이 44px를 못 지키고 글씨가 잘려서, 한 번에 한 칸씩 크게 보여 주는 쪽을 골랐다. 탭 1에서 간판은 접고 뽑기권 한 줄 + 단상·버튼, 안내 문구는 ⓘ 안. 상세는 B1 수정 때 스펙대로 **목록 위에 겹치는 창**(✕로 닫기)으로 바꿨다. 사용자는 탭 배치 재현 화면을 이미 봤음(메인 세션 전달) · developer
 
 ### Studio 확인 방법 (AC18~AC24)
 1. 커밋 값 그대로 Play → 탈의실 모든 카드 "입기 (Studio)", 입으면 바뀜, 서버 Output `[ShopService] Studio: all skins can be worn…`. 🎫 뽑기 화면 보유 목록 0/9(저장 안 됨).
@@ -246,3 +247,10 @@ rojo build OK · stylua --check OK · selene 0 errors/0 warnings · `lune run te
 - **in-dev 이유: [P2] B1** 휴대폰(짧은 변 ≤ 500)에서 뽑기 화면 버튼(상세 "입기" 약 17px, 표정 썸네일 29px, ⓘ·ⓘ 창 ✕ 26px, 결과 "확인"·"입기" 37px, "뽑기 시작하기" 38px — 844×390 계산)이 44px보다 작아 AC24를 못 지킴. `DrawScreen.setLayout`이 이 버튼들을 `UiLayout.touchSize`로 맞추지 않음. 이번 QA는 "P0~P2면 반려" 기준.
 - P3: B2 두근두근 중 배경 보유 목록이 먼저 바뀜, B3 휴대폰 배치(탭 3개·상세 아래 반쪽)가 스펙 UI 11과 다르고 결정 기록에 없음.
 - AC1~AC16 lune 통과(1906 passed, 0 failed), 서버 판정·보안 문제 없음.
+
+### QA 수정 (2026-10-14, developer)
+- **B1**: 새 순수 모듈 `src/shared/DrawScreenLayout.luau`(`heights(m)` — 버튼별 높이를 `UiLayout.touchSize`로, 실제 44px 이상). `DrawScreen.setLayout`이 ✕(창·ⓘ 창·상세)·ⓘ·"뽑기 시작하기"·결과 "확인"/"입기"·상세 "입기"·표정 썸네일 높이를 Offset으로 정함. 휴대폰 상세는 목록 위에 겹치는 창(✕). 테스트 `tests/m5-31-qa-fix.spec.luau`(화면 6종에서 버튼 실제 px ≥ 44, setLayout 소스 고정).
+- **B2**: `DrawScreen.render`가 두근두근(busy) 중에는 상태만 저장(`pendingPaint`)하고, `reveal`(또는 오류 `showMessage`) 뒤에 그린다 — 목록 n/9·🔒·단상이 결과보다 먼저 바뀌지 않음.
+- **B3**: 결정 기록(개발)에 탭 배치 이유를 남김.
+- Studio 확인 추가: Device 에뮬레이터 844×390에서 `PlayerGui.DrawGui` 버튼 `AbsoluteSize.Y` ≥ 44, 📦 목록에서 카드 → 상세 창 → ✕. 두근두근 동안 결과 창 바깥 n/9가 그대로인지.
+- 검증: rojo build OK · stylua --check OK · selene 0/0 · `lune run tests` **1910 passed, 0 failed** · luau-lsp 끝 코드 0.

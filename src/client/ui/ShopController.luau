@@ -299,6 +299,18 @@ function ShopController.start(_gui: Instance)
 				end
 			end)
 		end,
+		-- m5-32: 뽑기 + 판매 스킨(고등어 [신선]) 상세의 로벅스 구매 — 탈의실과 같은 흐름(RequestRobuxPurchase)
+		buyRobux = function(skinId: string)
+			task.spawn(buyRobux, skinId)
+			drawScreen:showMessage(
+				if robux.fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
+				false
+			)
+		end,
+		robuxOpen = function(skinId: string): boolean
+			local skin = Skins.get(skinId)
+			return skin ~= nil and ShopLogic.robuxOpen(skin, robux.fake)
+		end,
 	})
 	UiScaleController.attach(drawScreen.gui)
 

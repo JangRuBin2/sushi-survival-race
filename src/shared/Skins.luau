@@ -15,8 +15,9 @@
 --   Skins.DRAW_GRADES       뽑기 등급 순서 (전설 → 일반). 상점 등급(tier)과 별개예요
 --   Skins.DRAW_GRADE_INFO   뽑기 등급 이름·영어 이름·색 (확률표·배지)
 --   Skins.DRAW_INFO         탈의실 카드 구석 "🎫 특" 표시 이름·색 (뽑기 스킨)
---   Skins.EXPERIMENTAL_IDS  콘셉트 몸 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari).
---                           experimental = true(몸 모양 예외 — SushiBody.EXPERIMENTAL 파츠 상한)는 여기 있는 id만 쓸 수 있어요
+--   Skins.CONCEPT_BODY_IDS  콘셉트 몸 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari,
+--                           m5-32 fresh-mackerel). conceptBody = true(몸 모양 예외 — SushiBody.CONCEPT_BODY 파츠 상한·외곽 규칙)는
+--                           여기 있는 id만 쓸 수 있어요. 콘셉트 몸은 등급과 무관해요(특 = Basic + 뽑기 전용, 고등어 = 전설 판매 + 뽑기)
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
 -- 가격: 로벅스는 개발자 상품으로 팔아요 (m4-14). 사용자가 Creator Dashboard에서 만든 상품 id를 아래 각 스킨의
@@ -41,9 +42,9 @@ export type Skin = {
 	productId: number?, -- 개발자 상품 id (사용자가 상품을 만든 뒤 채워요, USER-TODO C3). 예: productId = 1234567890,
 	speech: { string }, -- 탈락 말풍선 대사 1~2줄
 	order: number, -- 탈의실 정렬 순서
-	-- 콘셉트 몸 스킨 (m5-27): SushiBody.EXPERIMENTAL의 몸 모양 예외(자기 몸 모양, 파츠 상한)를 받아요.
-	-- m5-31부터 무료가 아니라 뽑기 전용 특 스킨(draw)이에요 — 이 표시는 몸 모양 예외로만 남아요
-	experimental: boolean?,
+	-- 콘셉트 몸 스킨 (m5-27, m5-32에서 지금 이름으로 바꿈): SushiBody.CONCEPT_BODY의 몸 모양 예외(자기 몸 모양,
+	-- 파츠 상한)를 받아요. 몸 모양만 뜻하고 가격·얻는 길과는 무관해요 (특 9종 = 뽑기 전용, 고등어 = 전설 판매 + 뽑기)
+	conceptBody: boolean?,
 	-- 🎫 뽑기 등급 (m5-31). 있으면 뽑기 풀에 들어가요. 상점 등급(tier)과 별개
 	drawGrade: DrawGrade?,
 }
@@ -72,9 +73,9 @@ Skins.DEFAULT_ID = Config.Appearance.Default -- "tamago"
 Skins.COMMON_COINS = 300 -- 일반 스킨 코인 해금 가격 (GDD 9.4)
 Skins.RARE_COINS = 900 -- 레어 스킨 코인 해금 가격 (GDD 9.4)
 
--- 콘셉트 몸 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.EXPERIMENTAL과 같아야 해요)
--- m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부. m5-31부터 뽑기 전용 특 스킨
-Skins.EXPERIMENTAL_IDS = {
+-- 콘셉트 몸 스킨으로 허용하는 id (명시적 예외 목록 — SushiBody.CONCEPT_BODY와 같아야 해요)
+-- m5-27 연어 + m5-28 참치·새우·계란·연어알 군함 + m5-29 장어·성게·문어·유부 (뽑기 전용 특 스킨) + m5-32 고등어 [신선]
+Skins.CONCEPT_BODY_IDS = {
 	["concept-salmon"] = true,
 	["concept-tuna"] = true,
 	["concept-shrimp"] = true,
@@ -85,9 +86,11 @@ Skins.EXPERIMENTAL_IDS = {
 	["concept-uni"] = true,
 	["concept-tako"] = true,
 	["concept-inari"] = true,
+	-- m5-32 판매 스킨도 콘셉트 몸을 써요
+	["fresh-mackerel"] = true,
 } :: { [string]: boolean }
 
--- 🎫 drawGrade가 있는 id (m5-31, 명시 목록 — validate가 카탈로그와 같은지 봐요). 지금은 EXPERIMENTAL_IDS와 같아요
+-- 🎫 drawGrade가 있는 id (m5-31, 명시 목록 — validate가 카탈로그와 같은지 봐요). 특 9종 + m5-32 고등어 [신선]
 Skins.DRAW_IDS = {
 	["concept-salmon"] = true,
 	["concept-tuna"] = true,
@@ -98,6 +101,7 @@ Skins.DRAW_IDS = {
 	["concept-uni"] = true,
 	["concept-tako"] = true,
 	["concept-inari"] = true,
+	["fresh-mackerel"] = true, -- m5-32 전설 (판매 + 뽑기)
 } :: { [string]: boolean }
 
 -- drawGrade + robux 스킨(m5-32 고등어)이 지켜야 하는 등급별 로벅스 가격 (가격 A안)
@@ -405,7 +409,7 @@ Skins.LIST = {
 		id = "concept-salmon",
 		displayName = "연어초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Epic", -- 뽑기 등급 (m5-31)
 		speech = { "새 모습 어때?", "연어 돔이 말랑말랑~" },
 		order = 32,
@@ -415,7 +419,7 @@ Skins.LIST = {
 		id = "concept-tuna",
 		displayName = "참치초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "참치는 빨강이 생명!", "결 따라 데굴데굴~" },
 		order = 33,
@@ -424,7 +428,7 @@ Skins.LIST = {
 		id = "concept-shrimp",
 		displayName = "새우초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Common", -- 뽑기 등급 (m5-31)
 		speech = { "꼬리가 먼저 떨어졌어…", "탱글탱글 새우 출동!" },
 		order = 34,
@@ -433,7 +437,7 @@ Skins.LIST = {
 		id = "concept-tamago",
 		displayName = "계란초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Common", -- 뽑기 등급 (m5-31)
 		speech = { "폭신한 계란 착지 실패!", "김 띠 꽉 묶을걸…" },
 		order = 35,
@@ -442,7 +446,7 @@ Skins.LIST = {
 		id = "concept-ikura",
 		displayName = "연어알 군함 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "알이 다 쏟아졌어!", "톡톡 터지는 맛~" },
 		order = 36,
@@ -452,7 +456,7 @@ Skins.LIST = {
 		id = "concept-unagi",
 		displayName = "장어초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "소스가 너무 미끄러웠어!", "지글지글 구운 장어~" },
 		order = 37,
@@ -461,7 +465,7 @@ Skins.LIST = {
 		id = "concept-uni",
 		displayName = "성게 군함 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "성게가 흘러내려…", "김 그릇 꽉 잡아!" },
 		order = 38,
@@ -470,7 +474,7 @@ Skins.LIST = {
 		id = "concept-tako",
 		displayName = "문어초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Rare", -- 뽑기 등급 (m5-31)
 		speech = { "빨판으로 붙어 볼걸…", "쫄깃쫄깃 문어 출동!" },
 		order = 39,
@@ -479,10 +483,22 @@ Skins.LIST = {
 		id = "concept-inari",
 		displayName = "유부초밥 (특)",
 		tier = "Basic",
-		experimental = true,
+		conceptBody = true,
 		drawGrade = "Uncommon", -- 뽑기 등급 (m5-31)
 		speech = { "주머니에서 밥이 샜어!", "달콤한 유부 속으로~" },
 		order = 40,
+	},
+	-- m5-32 전설: 콘셉트 몸 위에 팔딱거리는 통고등어 (사용자 시트 docs/고등어 초밥 캐릭터 시트.png).
+	-- 로벅스로 사도 되고 🎫 뽑기 전설(1%)로도 나와요 — 같은 보유(ownedSkins) 하나
+	{
+		id = "fresh-mackerel",
+		displayName = "고등어 초밥 [신선]",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary", -- 뽑기 전설 (m5-32 2차 결정)
+		speech = { "아직 팔딱팔딱 살아 있다고!", "오늘 아침에 잡힌 몸이야~" },
+		order = 41,
 	},
 } :: { Skin }
 
@@ -576,6 +592,13 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 		baseBounds.max[2] - baseBounds.min[2],
 		baseBounds.max[3] - baseBounds.min[3],
 	}
+	-- 콘셉트 몸 외곽 기준 (m5-32): concept-salmon
+	local conceptBounds = SushiBody.bounds(SushiBody.layout(SushiBody.CONCEPT_BOUNDS_BASE))
+	local conceptExtents = {
+		conceptBounds.max[1] - conceptBounds.min[1],
+		conceptBounds.max[2] - conceptBounds.min[2],
+		conceptBounds.max[3] - conceptBounds.min[3],
+	}
 	for index, skin in list do
 		local where = `#{index} {tostring(skin.id)}`
 		if type(skin.id) ~= "string" or skin.id == "" then
@@ -594,12 +617,12 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 			table.insert(problems, `{where}: duplicate order {skin.order}`)
 		end
 		orders[skin.order] = true
-		local experimental = skin.experimental == true
-		if skin.experimental ~= nil and skin.experimental ~= true then
-			table.insert(problems, `{where}: experimental must be true or nil`)
+		local conceptBody = skin.conceptBody == true
+		if skin.conceptBody ~= nil and skin.conceptBody ~= true then
+			table.insert(problems, `{where}: conceptBody must be true or nil`)
 		end
-		if experimental and Skins.EXPERIMENTAL_IDS[skin.id] ~= true then
-			table.insert(problems, `{where}: experimental only for Skins.EXPERIMENTAL_IDS`)
+		if conceptBody and Skins.CONCEPT_BODY_IDS[skin.id] ~= true then
+			table.insert(problems, `{where}: conceptBody only for Skins.CONCEPT_BODY_IDS`)
 		end
 		local grade = (skin :: any).drawGrade
 		local draw = grade ~= nil
@@ -707,15 +730,30 @@ function Skins.validate(list: { Skin }): (boolean, { string })
 					)
 				end
 			end
-			-- 실험 스킨은 자기 몸 모양이라 기준 외곽 비교 대신 파츠 상한(SushiBody.EXPERIMENTAL)만 봐요
-			local exception = if experimental then SushiBody.EXPERIMENTAL[skin.id] else nil
-			if experimental and exception == nil then
-				table.insert(problems, `{where}: experimental skin needs SushiBody.EXPERIMENTAL`)
+			-- 콘셉트 몸 스킨은 자기 몸 모양이라 기준(계란초밥) 외곽 비교 대신 파츠 상한(SushiBody.CONCEPT_BODY)을 보고,
+			-- boundsTolerance가 있으면(m5-32 고등어) concept-salmon 외곽보다 X·Z가 그 비율 넘게 크지 않은지 봐요
+			local exception = if conceptBody then SushiBody.CONCEPT_BODY[skin.id] else nil
+			if conceptBody and exception == nil then
+				table.insert(problems, `{where}: concept body skin needs SushiBody.CONCEPT_BODY`)
 			end
 			if exception ~= nil and #layout > exception.partBudget then
-				table.insert(problems, `{where}: parts {#layout} > experimental budget {exception.partBudget}`)
+				table.insert(problems, `{where}: parts {#layout} > concept body budget {exception.partBudget}`)
 			end
-			local tolerance = if experimental then nil else SushiBody.BOUNDS_TOLERANCE[skin.tier]
+			local conceptTolerance = if exception then exception.boundsTolerance else nil
+			if conceptTolerance ~= nil then
+				local bounds = SushiBody.bounds(layout)
+				for _, axis in { 1, 3 } do
+					local size = bounds.max[axis] - bounds.min[axis]
+					local ratio = size / conceptExtents[axis]
+					if ratio > 1 + conceptTolerance then
+						table.insert(
+							problems,
+							`{where}: concept body bounds axis {axis} outside tolerance (ratio {ratio} vs {conceptTolerance})`
+						)
+					end
+				end
+			end
+			local tolerance = if conceptBody then nil else SushiBody.BOUNDS_TOLERANCE[skin.tier]
 			if tolerance ~= nil then
 				local bounds = SushiBody.bounds(layout)
 				for axis = 1, 3 do

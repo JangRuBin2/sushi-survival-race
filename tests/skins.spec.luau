@@ -57,6 +57,8 @@ local EXPECTED = {
 	{ "concept-uni", "성게 군함 (특)", "Basic", nil, nil },
 	{ "concept-tako", "문어초밥 (특)", "Basic", nil, nil },
 	{ "concept-inari", "유부초밥 (특)", "Basic", nil, nil },
+	-- m5-32 전설 (뽑기 전설에서도 나와요)
+	{ "fresh-mackerel", "고등어 초밥 [신선]", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -90,7 +92,7 @@ return function(t: Test.Test)
 				-- productId: m4-14 이후 사용자가 채워요 (nil 또는 양의 정수, 기본 스킨은 항상 nil)
 				local pid = skin.productId
 				t.ok(pid == nil or (type(pid) == "number" and pid > 0 and pid % 1 == 0), `{row[1]} productId`)
-				if row[1] == "tamago" or Skins.EXPERIMENTAL_IDS[row[1]] then
+				if row[1] == "tamago" or Skins.isDrawOnly(row[1]) then
 					t.eq(pid, nil, "default skin has no product")
 				end
 				t.eq(Skins.get(row[1]), skin)
@@ -147,8 +149,8 @@ return function(t: Test.Test)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
-			t.eq(#Skins.byTier("Legendary"), 6)
-			t.eq(#Skins.byTier(nil), 40)
+			t.eq(#Skins.byTier("Legendary"), 7) -- m5-32 고등어 [신선]
+			t.eq(#Skins.byTier(nil), 41)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -233,8 +235,8 @@ return function(t: Test.Test)
 			local base = byName(SushiBody.layout("tamago"))
 			t.eq(#SushiBody.BASE_NAMES, 22)
 			for _, skin in Skins.LIST do
-				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
-				if skin.experimental then
+				-- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.CONCEPT_BODY)
+				if skin.conceptBody then
 					local sb = SushiBody.bounds(SushiBody.layout(skin.id))
 					t.ok(math.abs(-sb.min[2] - SushiBody.GROUND_OFFSET) < 1e-6, `{skin.id} bottom {sb.min[2]}`)
 					continue
@@ -271,8 +273,8 @@ return function(t: Test.Test)
 		function()
 			local base = extents(SushiBody.layout("tamago"))
 			for _, skin in Skins.LIST do
-				if skin.experimental then
-					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.EXPERIMENTAL)
+				if skin.conceptBody then
+					continue -- 실험 스킨(m5-27 concept-salmon)은 자기 몸 모양이라 기준 몸 검사에서 빼요 (SushiBody.CONCEPT_BODY)
 				end
 				local size = extents(SushiBody.layout(skin.id))
 				local tolerance = SushiBody.BOUNDS_TOLERANCE[skin.tier] or TOLERANCE
@@ -330,6 +332,8 @@ return function(t: Test.Test)
 				["ghost-tamago"] = { "Glow" },
 				["tree-maki"] = { "Sparkles" },
 				["vip-gold-tamago"] = { "Sparkles" },
+				-- m5-32 전설: 꼬리지느러미 물빛 반짝이 하나 (첨벙은 물방울 파츠)
+				["fresh-mackerel"] = { "Sparkles" },
 			}
 			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do

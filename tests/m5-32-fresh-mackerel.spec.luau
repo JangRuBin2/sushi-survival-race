@@ -557,6 +557,55 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test(
+		"AC4: 밥을 감는 김(NoriWrap) — Body에 붙어 안 움직이고, 얼굴보다 위·밥 앞면 평평한 곳에, 고등어 띠 자락이 그 위에",
+		function()
+			for _, expression in Sample.EXPRESSIONS do
+				local layout = SushiBody.layout(ID, expression)
+				local wrap, faceTop = nil, -math.huge
+				local drapes = {}
+				for _, spec in layout do
+					if spec.name == "NoriWrap" then
+						wrap = spec
+					elseif spec.name == "FishNoriFront" or spec.name == "FishNoriBack" then
+						table.insert(drapes, spec)
+					else
+						local lo, hi = LayoutCheck.box(spec)
+						-- 밥 앞면에 붙은 얼굴 파츠 (눈·입·볼·땀·눈물·💢)
+						if lo[3] < RICE_FRONT + 0.1 and hi[2] < RICE_TOP and lo[2] > -1 then
+							faceTop = math.max(faceTop, hi[2])
+						end
+					end
+				end
+				t.ok(wrap ~= nil, `{expression} NoriWrap`)
+				local w = wrap :: any
+				t.eq(w.joint, nil, `{expression} wrap is not a joint`)
+				t.eq(w.attach, nil, `{expression} wrap welds to Body`)
+				local lo, hi = LayoutCheck.box(w)
+				t.ok(lo[2] >= faceTop + 0.1, `{expression} wrap bottom {lo[2]} above face top {faceTop}`)
+				t.ok(
+					lo[1] >= -1.35 - 1e-6 and hi[1] <= 1.35 + 1e-6,
+					`{expression} wrap on the flat front x {lo[1]}..{hi[1]}`
+				)
+				t.ok(lo[3] >= RICE_FRONT - 0.06, `{expression} wrap hugs the rice front {lo[3]}`)
+				t.ok(hi[2] <= RICE_TOP + 0.05, `{expression} wrap top {hi[2]}`)
+				-- 고등어 띠 자락 아래끝이 김 윗면에 닿거나 살짝 들어가요 (쉰 자세에서 틈이 없게, 밥 윗면 - 0.2 위)
+				t.eq(#drapes, 2, `{expression} drapes`)
+				for _, drape in drapes do
+					local dlo = LayoutCheck.box(drape)
+					t.ok(
+						dlo[2] <= hi[2] + 0.02 and dlo[2] >= RICE_TOP - 0.2,
+						`{expression} {drape.name} lands on the wrap {dlo[2]} vs {hi[2]}`
+					)
+				end
+			end
+			-- 다른 콘셉트 스킨에는 없어요
+			for _, spec in SushiBody.layout(SALMON) do
+				t.ok(spec.name ~= "NoriWrap", "salmon has no NoriWrap")
+			end
+		end
+	)
+
 	---------------------------------------------------------------- AC5 공유 부분·스냅숏
 	t.test(
 		"AC5: 다른 40종(콘셉트 9종 × 표정 4종 포함) 레이아웃이 main(8f700a4)과 바이트 단위로 같아요",
@@ -585,7 +634,8 @@ return function(t: Test.Test)
 			for _, expression in Sample.EXPRESSIONS do
 				local mine = {}
 				for _, spec in SushiBody.layout(ID, expression) do
-					if not isFishPart(spec.name) then
+					-- 고등어 파츠와 밥을 감는 김(NoriWrap)만 빼면 연어와 같아요 (연어도 Nori를 빼고 비교)
+					if not isFishPart(spec.name) and string.sub(spec.name, 1, 4) ~= "Nori" then
 						table.insert(mine, LayoutSnapshot.spec(spec))
 					end
 				end

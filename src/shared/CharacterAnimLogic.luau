@@ -163,7 +163,7 @@ CharacterAnimLogic.FISH = {
 	FLOP_ROOT_ARCH = rad(10),
 	FLOP_MID_ARCH = rad(6),
 	FLOP_TAIL_ARCH = rad(6),
-	FLOP_TWIST = rad(4),
+	FLOP_TWIST = rad(5),
 	-- 달리기: 걸음 위상의 2배
 	RUN_MIN_WALK = 0.2, -- 이보다 빨리 걸으면 새 팔딱을 시작하지 않아요
 	RUN_TAIL = rad(22),
@@ -179,7 +179,7 @@ CharacterAnimLogic.FISH = {
 	LAND_HZ = 4,
 	LAND_TAIL = rad(40),
 	LAND_MID = rad(14),
-	LAND_LIFT = 0.38,
+	LAND_LIFT = 0.41,
 	LAND_ROOT_ARCH = rad(8),
 	LAND_MID_ARCH = rad(5),
 	LAND_TAIL_ARCH = rad(5),

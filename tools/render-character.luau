@@ -26,6 +26,7 @@
 -- 정면·3/4·후면 ↔ 같은 각도 렌더)를 그려요.
 --   --pose <이름|all>  CharacterAnimLogic.fishTestPoses의 자세(Rest·TailLeft·TailRight·JumpArch·LandPeak·Knocked·Hurt·
 --                      Splash)를 관절에 적용해 그려요 (SushiPose.posed — 테스트 AC4와 같은 계산). turntable에 붙어요
+--   closeup.png       앞·3/4·뒤 큰 칸 (비평용)
 --   --sheet <png>      sheet-compare에 붙일 시트 (기본 docs/고등어 초밥 캐릭터 시트.png)
 -- 한계: tools/render-map과 같아요 (Sparkles·Decal·SurfaceGui·이름표는 안 그려요, 파티클은 한 순간의 점 구름).
 -- gameplay 뷰의 이름표는 렌더 뒤에 5×7 픽셀 글자로 흉내만 내요 (진짜는 GothamBold 18px).
@@ -662,8 +663,8 @@ local function renderConceptSkin(root: string, lighting: any, skinId: string)
 		for index, frame in strip do
 			table.insert(cells, {
 				gameId(skinId, nil, `land{index}/{frames}`),
-				0,
-				6,
+				30, -- 3/4: 꼬리 좌우 파닥(Y축)도 보이게
+				8,
 				string.format("T %.2fS", frame.time),
 			})
 		end
@@ -680,6 +681,14 @@ local function renderConceptSkin(root: string, lighting: any, skinId: string)
 	end
 	if wants("sheet") then
 		renderSheetCompare(`{dir}/sheet-compare.png`, lighting, skinId)
+	end
+	if wants("closeup") then
+		-- 크게 두 장 (앞·3/4) — 줄무늬·윤기·입·지느러미를 글로 비평할 때 (m5-32)
+		renderRow(`{dir}/closeup.png`, lighting, {
+			{ gameId(skinId, nil, nil), 0, 6, "FRONT" },
+			{ gameId(skinId, nil, nil), 35, 12, "3/4" },
+			{ gameId(skinId, nil, nil), 180, 14, "BACK" },
+		}, 560, 480)
 	end
 	if wants("gameplay") then
 		-- 뒤 카메라: 나 = 이 스킨(달리며 꼬리를 흔드는 순간), 앞에 장어(특)·판매 장어 / 앞 카메라: 연어(특)·이 스킨·판매 장어

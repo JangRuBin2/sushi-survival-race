@@ -3,6 +3,7 @@ local LayoutCheck = require("../tools/render/LayoutCheck")
 local Shared = RobloxRequire.root("src/shared")
 local Skins = RobloxRequire.require(Shared.Skins)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
+local SushiPose = RobloxRequire.require(Shared.SushiPose)
 local Sample = RobloxRequire.require(Shared.SushiConceptSample)
 local Anim = RobloxRequire.require(Shared.CharacterAnimLogic)
 
@@ -24,7 +25,7 @@ end
 print("salmon", ext(SushiBody.bounds(SushiBody.layout("concept-salmon"))))
 local base = SushiBody.layout("fresh-mackerel", "Flustered")
 for _, item in Anim.fishTestPoses() do
-	local l = SushiBody.posed(base, Anim.fishMotion(item.pose))
+	local l = SushiPose.posed(base, Anim.fishMotion(item.pose))
 	local fishOnly = {}
 	local minY = math.huge
 	for _, s in l do
@@ -32,7 +33,10 @@ for _, item in Anim.fishTestPoses() do
 			table.insert(fishOnly, s)
 			local lo = LayoutCheck.box(s)
 			if string.sub(s.name, 1, 4) == "Fish" and not string.find(s.name, "Nori") then
-				if lo[2] < minY then minY = lo[2]; print("  min", s.name, lo[2]) end
+				if lo[2] < minY then
+					minY = lo[2]
+					print("  min", s.name, lo[2])
+				end
 			end
 		end
 	end

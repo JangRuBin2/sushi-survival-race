@@ -38,7 +38,7 @@ type Doll = {
 	clock: number,
 	flopWait: number,
 	flopTime: number?,
-	soundAt: number?,
+	soundAt: { [string]: number }, -- 소리 이름 → 마지막으로 울린 시각
 	alive: boolean,
 }
 
@@ -102,15 +102,11 @@ local function play(doll: Doll, cues: { string })
 	if kind == nil then
 		return
 	end
-	for _, cue in cues do
-		local now = os.clock()
-		if cue == "FishSplash" or CharacterAnimLogic.fishSoundAllowed(doll.soundAt, now) then
-			doll.soundAt = now
-			if kind == "World" then
-				Sfx.play(cue, doll.body)
-			else
-				Sfx.play(cue, nil, DollAnimator.UI_VOLUME)
-			end
+	for _, cue in CharacterAnimLogic.fishSoundFilter(doll.soundAt, cues, os.clock()) do
+		if kind == "World" then
+			Sfx.play(cue, doll.body)
+		else
+			Sfx.play(cue, nil, DollAnimator.UI_VOLUME)
 		end
 	end
 end
@@ -206,7 +202,7 @@ function DollAnimator.attach(model: Model, mode: Mode, opts: Options?): () -> ()
 		-- 처음 팔딱은 조금 빨리 (화면을 열자마자 보이게)
 		flopWait = 0.4 + math.random() * 0.6,
 		flopTime = nil,
-		soundAt = nil,
+		soundAt = {},
 		alive = true,
 	}
 	table.insert(dolls, doll)

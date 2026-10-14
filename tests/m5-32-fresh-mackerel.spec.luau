@@ -1034,6 +1034,19 @@ return function(t: Test.Test)
 			t.eq(Anim.fishSoundAllowed(nil, 5), true)
 			t.eq(Anim.fishSoundAllowed(5, 5.2), false)
 			t.eq(Anim.fishSoundAllowed(5, 5.25), true)
+			-- 같은 소리는 캐릭터당 0.25초에 한 번: 착지(팔딱+첨벙 짝) 직후 다시 팔딱이 와도 0.25초 안이면 안 울려요
+			local last = {}
+			t.eq(Anim.fishSoundFilter(last, { "FishFlop", "FishSplash" }, 10), { "FishFlop", "FishSplash" })
+			t.eq(Anim.fishSoundFilter(last, { "FishFlop" }, 10.1), {})
+			t.eq(Anim.fishSoundFilter(last, { "FishSplash" }, 10.2), {})
+			t.eq(Anim.fishSoundFilter(last, { "FishFlop", "FishSplash" }, 10.25), { "FishFlop", "FishSplash" })
+			-- 초당 60프레임으로 계속 울리라고 해도 0.25초에 한 번 이하
+			local plays, clock = 0, 20
+			for _ = 1, 60 do
+				plays += #Anim.fishSoundFilter(last, { "FishFlop" }, clock)
+				clock += 1 / 60
+			end
+			t.ok(plays <= 4, `plays {plays}`)
 			t.eq(Anim.fishCues("Flop", "Character", nil, 0), { "FishFlop" })
 			t.eq(Anim.fishCues("Flop", "Victory", 0.05, 0.07), { "FishSplash" })
 			t.eq(Anim.fishCues("Flop", "Character", 0.1, 0.12), {})

@@ -581,4 +581,17 @@ function CharacterAnimLogic.fishSoundAllowed(last: number?, now: number): boolea
 	return last == nil or now - last >= CharacterAnimLogic.FISH.SOUND_GAP
 end
 
+-- 이번 프레임에 실제로 울릴 소리만 골라요: 같은 캐릭터에서 같은 소리(FishFlop·FishSplash 각각)는 SOUND_GAP에 한 번
+-- 이하. last(소리 이름 → 마지막으로 울린 시각)를 바꿔요. 팔딱과 첨벙은 짝이라 서로 막지 않아요
+function CharacterAnimLogic.fishSoundFilter(last: { [string]: number }, cues: { string }, now: number): { string }
+	local out: { string } = {}
+	for _, cue in cues do
+		if CharacterAnimLogic.fishSoundAllowed(last[cue], now) then
+			last[cue] = now
+			table.insert(out, cue)
+		end
+	end
+	return out
+end
+
 return CharacterAnimLogic

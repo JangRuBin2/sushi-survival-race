@@ -94,7 +94,7 @@ type State = {
 	flopTime: number?,
 	fishLandTime: number?,
 	fishLandStrength: number,
-	fishSoundAt: number?,
+	fishSoundAt: { [string]: number }, -- 소리 이름 → 마지막으로 울린 시각
 }
 
 local states: { [Model]: State } = {}
@@ -128,7 +128,7 @@ local function newState(): State
 		flopTime = nil,
 		fishLandTime = nil,
 		fishLandStrength = 0,
-		fishSoundAt = nil,
+		fishSoundAt = {},
 	}
 end
 
@@ -322,13 +322,9 @@ end
 
 -- 물고기 팔딱 (m5-32): 가끔 팔딱·착지 팔딱 시계를 돌리고 fishPose → 관절 Transform, 소리 (캐릭터당 SOUND_GAP)
 local function fishSound(state: State, cues: { string }, root: BasePart)
-	for _, cue in cues do
-		local now = os.clock()
-		-- 팔딱과 같은 프레임의 첨벙은 짝이라 같이 울려요 (간격은 팔딱 기준)
-		if cue == "FishSplash" or CharacterAnimLogic.fishSoundAllowed(state.fishSoundAt, now) then
-			state.fishSoundAt = now
-			Sfx.play(cue, root)
-		end
+	-- 같은 소리는 캐릭터당 SOUND_GAP에 한 번 이하 (팔딱·첨벙은 짝이라 서로 막지 않아요)
+	for _, cue in CharacterAnimLogic.fishSoundFilter(state.fishSoundAt, cues, os.clock()) do
+		Sfx.play(cue, root)
 	end
 end
 

@@ -235,7 +235,8 @@ local function makeDizzy(body: BasePart): BillboardGui
 	gui.Name = "Dizzy"
 	gui.Adornee = body
 	gui.Size = UDim2.fromOffset(90, 44)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+	-- 이름표 0.6 아래 (기본 스킨 3, 이름표가 높은 스킨은 같이 올라가요 — m5-32 QA B3: 고등어 몸 속에 가려졌어요)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, nameTagHeightOf(body) - (NAME_TAG_HEIGHT - 3), 0)
 	gui.LightInfluence = 0
 	gui.MaxDistance = 120
 	local label = Instance.new("TextLabel")

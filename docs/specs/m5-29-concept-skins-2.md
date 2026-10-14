@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-29 — 콘셉트 몸 스킨 2차 4종 (장어·성게 군함·문어·유부, 무료 테스트)

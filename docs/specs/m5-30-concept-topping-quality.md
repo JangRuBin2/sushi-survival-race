@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-30 — 콘셉트 스킨 2차 토핑 퀄리티 패스 (장어·성게 군함·문어·유부)

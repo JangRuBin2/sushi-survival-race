@@ -3,7 +3,7 @@
 에이전트가 할 수 없는 일만 모았어요. 개발은 이 일들이 없어도 대체값(메모리 저장, 한 플레이스 모드, 가짜 결제)으로 계속 진행돼요.
 실제 서버에서만 확인되는 항목이 이 일들 뒤로 미뤄질 뿐이에요.
 
-> 마지막 갱신: 2026-10-14 (맵 3차 배치 6개 스펙 m5-33~39·맵 길이 늘리기 m5-40·모바일 버튼 위치 편집 m5-41 — A1·A2·B3에 추가). 그 전: 2026-10-13 (M5 반영 — m5-01~m5-11, m5-13~m5-22 `done`: 새 맵 9개, 시즌 이벤트, 🎁 상점·VIP, 연출 팩, 🎟 코드, 관리자 명령, 스킨 31종. m5-23 맵 비주얼 키트는 재QA 대기, m5-24 아트 패스 진행 중. 기획서 GDD v0.6 변경 이력)
+> 마지막 갱신: 2026-10-14 저녁 (main 병합분 문서 반영 — m5-24 아트 패스 v2, m5-25 캐릭터, m5-28~30 콘셉트 스킨, m5-31 🎫 뽑기, m5-32 고등어, m5-41 버튼 편집 `done`: A1 고등어 결정 정리, A2 뽑기 소리 2개, B3 확인 목록 → DEV-SETUP 3-12, C3 고등어 상품). 그 전: 2026-10-14 (맵 3차 배치 6개 스펙 m5-33~39·맵 길이 늘리기 m5-40·모바일 버튼 위치 편집 m5-41 — A1·A2·B3에 추가). 그 전: 2026-10-13 (M5 반영 — m5-01~m5-11, m5-13~m5-22 `done`: 새 맵 9개, 시즌 이벤트, 🎁 상점·VIP, 연출 팩, 🎟 코드, 관리자 명령, 스킨 31종. m5-23 맵 비주얼 키트는 재QA 대기, m5-24 아트 패스 진행 중. 기획서 GDD v0.6 변경 이력)
 > 끝낸 항목은 `- [x]`로 바꾸고, 결과·결정은 맨 아래 "답변 기록"에 적어 주세요. 에이전트가 그걸 읽고 반영해요.
 
 ---
@@ -41,11 +41,11 @@
   - 천장(보장): 이제 꽝은 없지만 전설 고등어는 1%라 평균 100장, 50장 뽑아도 못 얻을 확률 약 60%(R$ 199로 살 수도 있음). 없음 유지(추천, 일단) / "N장마다 영웅 이상 보장" 추가
   - 4명 친구 방에서 우승 몰아주기로 티켓 모으기: 막지 않음 유지(추천, 일단) / "5명 이상 판에서만 티켓"
   - 기본값(바꾸고 싶으면 알려 주세요): 티켓 상한 99장, 새 스킨 자동으로 안 입힘(결과 화면 "입기"), 단상 대표 스킨 = 아직 없는 가장 높은 등급
-- [ ] **🐟 고등어 초밥 [신선] 남은 결정 (급하지 않음)** — 읽을 곳: [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md) "열린 질문"
-  - 파츠 상한: 콘셉트 상한 70으로 먼저 만들고, 렌더로 부족하다는 근거가 나오면 이 스킨만 80까지 올릴지
-  - 시트의 화남·슬픔 표정: 이번엔 뺌(게임에서 쓰는 곳 없음) — 나중에 이모트가 생기면
-  - "팔딱"·"첨벙" 효과음: 무음으로 먼저 보고 결정
-  - 움직임 체감(Studio, 개발 뒤): 팔딱이 너무 잦거나 정신없으면 간격·각도를 숫자로 알려 주세요
+- [ ] **🐟 고등어 초밥 [신선] 남은 결정 (급하지 않음)** — 읽을 곳: [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md) "결정 기록"
+  - **확정됨 (2026-10-14)**: 이 스킨만 파츠 상한 80, 화남·슬픔 표정 추가(콘셉트 몸 공용), 팔딱·첨벙 효과음 넣기(id는 A2), 이 스킨만 이름표를 4.8로 올리고 고등어를 크게 — 모두 main에 들어갔어요
+  - 남은 것: 움직임 체감(Studio — [`docs/DEV-SETUP.md`](DEV-SETUP.md) 3-12 E): 팔딱이 너무 잦거나 정신없으면 간격·각도를 숫자로 알려 주세요. 시트와의 남은 차이(밥이 네모, 김 띠가 좁음, 근접 정면 혀)가 거슬리는지도
+- [ ] **🍣 콘셉트 스킨 그림 판단 (급하지 않음, Studio에서 본 뒤)** — 장어초밥 (특)을 정면 눈높이에서 볼 때 주황 살이 너무 커서 연어처럼 보이는지(시트처럼 진갈색 타레가 더 많아야 하는지), 휴대폰 뒤 카메라에서 참치 (특) 결이 안 보여도 괜찮은지. 읽을 곳: [`docs/qa/m5-30-concept-topping-quality.md`](qa/m5-30-concept-topping-quality.md) B-V1, [`docs/qa/m5-28-concept-skins.md`](qa/m5-28-concept-skins.md) P3-2
+- [ ] **🗺 맵 아트 판단 2개 (Studio에서 본 뒤)** — 인형뽑기 결승 연장전에 상자와 함께 오락실 전체(바닥·벽·옆 오락기)가 35° 기우는 연출이 괜찮은지(아니면 방 장식만 고정하는 작업이 생겨요), 간장 늪·도마·라멘의 옛 안개 판을 보이지 않는 자리로 옮겨 둔 것으로 됐는지. 읽을 곳: [`docs/qa/m5-24-map-art-pass-v2.md`](qa/m5-24-map-art-pass-v2.md) B2·B4
 - [ ] **🗺 한 판 전체 시간 목표 (m5-40, 급하지 않음)** — "맵이 좀 짧다" 요청을 재 보니 지금 한 판이 약 2.8~3.5분(Race가 빠른 사람 12~32초)이에요. Race를 45~55초로 늘리고 Survival을 75초로 하면 약 3.9~5.1분이 돼요. (A) 4~5분 유지 — 추천 / (B) 5~6분으로 더 길게. 읽을 곳: [`docs/specs/m5-40-map-length-pass.md`](specs/m5-40-map-length-pass.md) "측정"·"열린 질문"
 - [ ] **🗺 맵 3차 배치 6개 기본값 (급하지 않음)** — 콘셉트 시트대로 스펙을 썼고, 기존 맵과 겹치는 부분은 장애물을 바꿔 차별화했어요(우주 레일은 방향이 바뀌고 저중력 구간 추가, 수산시장 얼음은 미끄럽지 않은 밀어내는 블록, 찻잎 정원은 굴러가는 찻잔을 단을 옮겨 피함, 온천 인형뽑기는 집게가 바닥을 안 집고 충격파 고리를 만듦). 바꾸고 싶은 것만 알려 주세요. 읽을 곳: [`docs/GDD.md`](GDD.md) §5.3 "3차 배치", [`docs/REFERENCE-map-batch-3.md`](REFERENCE-map-batch-3.md) 2절
 - [ ] **출시 방식 결정** — 한 플레이스 모드(로비와 매치가 한 서버, C2 불필요)로 먼저 낼지, 로비/매치 분리(C2 필요)로 낼지. 소리(A2)가 아직 없으면 무음 상태로 비공개 테스트를 시작해도 되는지.
@@ -62,7 +62,8 @@
 - [ ] 효과음 — 기본 연출 8개: `VictoryFanfare`(우승 팡파르), `SpeechPop`(말풍선), `ChefHand`(셰프 손 등장), `FishClap`(물고기 박수), `GrabStart`(잡기 시작), `ChopstickWarn`(젓가락 경고), `HotTileSizzle`(철판 지글), `ChefHandWarn`(셰프 손 경고)
 - [ ] 효과음 — M5 기능 5개: `Overtime`(결승 연장전 시작 — 경적·징, m5-01), `TokenGet`(이벤트 재화 받음, m5-07), `CodeRedeemed`(코드 보상 성공, m5-10), `CatMeow`(고양이 손님 연출 "냠!" 직후, m5-09), `Fireworks`(불꽃이 터질 때, m5-09)
 - [ ] 효과음 — 새 맵 10개: `IkuraPop`(연어알 폭탄 터짐, m5-04), `OilSplash`(기름이 솟구침 — 지글·촤악, m5-05), `FanGust`(송풍구 바람, m5-06), `JellyBoing`(젤리 튕김, m5-06), `BounceBoing`(방방 바닥 튕김, m5-14), `BlockCreak`(블록탑 삐걱임, m5-16), `CatToyBounce`(장난감 공에 맞음, m5-17), `CatPawWarn`(고양이 발 경고, m5-17), `CatPawSwipe`(고양이 발에 밀림, m5-17), `ClawLift`(집게가 칸을 들어 올림, m5-19)
-- [ ] 효과음 — 맵 3차 배치 14개 (m5-33~39, 개발 전 — 지금 골라 두면 개발 때 바로 넣어요): `SpongeSquish`(수세미에 밀림 — 뽀드득·찍, 설거지통), `RailSwitch`(우주 레일 방향 바뀜 경고 — 삐빅), `MeteorWarn`(운석 경고 — 휘이잉), `MeteorImpact`(운석 쾅), `RiceBubble`(밥알 끓어 펑 — 보글·퐁), `SteamWhistle`(증기 밸브 휘파람 — 삐이익), `SteamBlast`(증기 칙 분사), `MarketFishWarn`(생선 낙하 경고 — 시장 경고음·호루라기), `MarketFishSlam`(생선 철퍼덕·팔딱), `IceBlockSlide`(얼음 블록 미끄러짐 — 스르륵), `TeaCupRoll`(찻잔 굴러감 — 도자기 데구르르), `TeaFieldCrumble`(차밭 무너짐 — 흙·잎 와르르), `ClawSlam`(인형뽑기 쿵), `OnsenRise`(온천물 차오름 — 보글보글 물소리)
+- [ ] 효과음 — 🎫 뽑기 2개 (m5-31): `DrawReveal`(결과 공개 — 접시 뚜껑이 열리는 "짠!"), `DrawWin`(새 스킨 당첨 — 짧은 축하음)
+- [ ] 효과음 — 맵 3차 배치 14개 (m5-33~39, 개발 전 — cue 이름은 m5-33 기반 작업 때 `SfxCues`에 들어가요. 지금 골라 두면 그때 바로 넣어요): `SpongeSquish`(수세미에 밀림 — 뽀드득·찍, 설거지통), `RailSwitch`(우주 레일 방향 바뀜 경고 — 삐빅), `MeteorWarn`(운석 경고 — 휘이잉), `MeteorImpact`(운석 쾅), `RiceBubble`(밥알 끓어 펑 — 보글·퐁), `SteamWhistle`(증기 밸브 휘파람 — 삐이익), `SteamBlast`(증기 칙 분사), `MarketFishWarn`(생선 낙하 경고 — 시장 경고음·호루라기), `MarketFishSlam`(생선 철퍼덕·팔딱), `IceBlockSlide`(얼음 블록 미끄러짐 — 스르륵), `TeaCupRoll`(찻잔 굴러감 — 도자기 데구르르), `TeaFieldCrumble`(차밭 무너짐 — 흙·잎 와르르), `ClawSlam`(인형뽑기 쿵), `OnsenRise`(온천물 차오름 — 보글보글 물소리)
 - [ ] 효과음 — 고등어 초밥 [신선] 2개 (m5-32): `FishFlop`(고등어가 팔딱 — 젖은 물고기가 튀는 "퍼덕"), `FishSplash`(첨벙 — 작은 물 튀김)
 - 반복 재생이 자연스러운 곡(루프), 저작권이 Roblox 라이선스인 것만 고르세요.
 
@@ -102,7 +103,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 - 맵 순서 고정: `src/shared/Config.luau`의 `DEBUG.forceMapPlan`에 맵 id 3~4개 → 확인 후 **반드시 `nil`로 되돌리기**
 
 ### B3. M4·M5 확인 (기능별 QA 리포트의 "사용자 Studio 확인 체크리스트" 절)
-- [ ] M5: [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10** A~T(연장전·관리자 미리보기·기반·시즌·상점·연출·코드·관리자 명령·스킨·새 맵 9개·기존 맵 다듬기)와 **3-11**(맵 비주얼 키트 — Future 조명·맵별 조명). 디버그·관리자 설정 표와 되돌리기 포함. 새 맵은 3-10 J~S — 특히 **줄다리기 발판 30° 미끄러짐(R2)**, 캣타워 넉백(Q3), 인형뽑기 2명 결승 길이(S2)를 숫자로 적어 주세요.
+- [ ] M5: [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-10** A~T(연장전·관리자 미리보기·기반·시즌·상점·연출·코드·관리자 명령·스킨·새 맵 9개·기존 맵 다듬기), **3-11**(맵 비주얼 키트 — Future 조명·맵별 조명), **3-12** A~F(맵 12개 아트 패스 v2·캐릭터·콘셉트 스킨·🎫 뽑기·고등어·📱 버튼 편집). 3-12 맨 위 "리포트를 쓴 뒤 바뀐 점"을 먼저 읽어 주세요(콘셉트 스킨 이름·확률 값이 리포트와 달라요). 디버그·관리자 설정 표와 되돌리기 포함. 새 맵은 3-10 J~S — 특히 **줄다리기 발판 30° 미끄러짐(R2)**, 캣타워 넉백(Q3), 인형뽑기 2명 결승 길이(S2)를 숫자로 적어 주세요.
 - [ ] [`docs/DEV-SETUP.md`](DEV-SETUP.md) **3-9** A~O에 기능별로 모아 두었어요(QA 뒤 고쳐진 것·확정 가격 반영, 디버그 설정 표와 되돌리기 포함). 원본은 아래 QA 리포트예요.
 
 | 기능 | 읽을 파일 | 사용자 작업 먼저? |
@@ -132,11 +133,16 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 | (M5) 새 맵 9개 | 3-10 **J~S** (원본 `docs/qa/m5-04-…`~`m5-06-…`, `m5-13-…`~`m5-19-…`, 재QA 절 포함) | 아니요 (`forceMapPlan`·`overtimeAt` 사용 후 `nil`). 체감은 친구 테스트 |
 | (M5) 기존 맵 다듬기 | 3-10 **T** (원본 [`m5-20`](qa/m5-20-map-quality-pass.md)) | 아니요 |
 | (M5) 맵 비주얼 키트(조명) | 3-11 (원본 [`m5-23`](qa/m5-23-map-visual-kit.md), 재QA 전) | B1-1(Future 확인) 먼저 |
+| (M5) 기존 맵 12개 아트 패스 v2 | 3-12 **A** (원본 [`m5-24`](qa/m5-24-map-art-pass-v2.md)) | 아니요 (`forceMapPlans`·`overtimeAt` 사용 후 `nil`). 인형뽑기 연장전 기울기는 보고 A1 "맵 아트 판단"에 답해 주세요 |
+| (M5) 캐릭터 퀄리티 | 3-12 **B** (원본 [`m5-25`](qa/m5-25-character-quality.md)) | 아니요 |
+| (M5) 콘셉트 몸 스킨 9종 (특) | 3-12 **C** (원본 [`m5-28`](qa/m5-28-concept-skins.md), [`m5-29`](qa/m5-29-concept-skins-2.md), [`m5-30`](qa/m5-30-concept-topping-quality.md)) | 아니요 (이름·탭은 3-12 "바뀐 점"대로) |
+| (M5) 🎫 우승자 뽑기 | 3-12 **D** (원본 [`m5-31`](qa/m5-31-winner-ticket-draw.md), 재QA 절 포함) | 아니요 (`unlockAllSkinsInStudio = false`로 본 뒤 `true`로). 7번만 `persistDataInStudio`(C1 먼저) |
+| (M5) 🐟 고등어 초밥 [신선] | 3-12 **E** (원본 [`m5-32`](qa/m5-32-fresh-mackerel.md), 재QA 절 포함) | 가짜 결제는 아니요(`fakeRobuxInStudio`), 실제 결제는 C1 + C3(고등어 상품) + 퍼블리시 |
+| (M5) 📱 버튼 위치 편집 | 3-12 **F** (원본 [`m5-41`](qa/m5-41-touch-button-layout.md)) — 점프 버튼이 제자리로 돌아가지 않는지(3번)가 제일 중요 | 아니요. 재접속 유지는 C1 퍼블리시 뒤 실제 휴대폰으로 |
 | (M5, 개발 뒤) 맵 3차 배치 6개 | 각 스펙의 "Studio 확인" 절 — [`m5-34`](specs/m5-34-map-dish-sink.md)~[`m5-39`](specs/m5-39-map-onsen-claw.md) (QA 리포트가 나오면 그쪽) | 아니요 (`forceMapPlan`·`overtimeAt` 사용 후 `nil`). 렌더 PNG(`docs/renders/<맵>/after-*.png`)를 시트와 비교해 방향이 맞는지 먼저 봐 주면 좋아요 |
-| (M5, 개발 뒤) 📱 버튼 위치 편집 | [`m5-41`](specs/m5-41-touch-button-layout.md) AC11~AC17 — Test → Device 에뮬레이터(휴대폰·태블릿 바꿔 가며), 점프 버튼이 제자리로 돌아가지 않는지(AC12)가 제일 중요 | 아니요. 재접속 유지는 C1 퍼블리시 뒤 실제 휴대폰으로 |
 | (M5, 개발 뒤) 맵 길이 늘리기 | [`m5-40`](specs/m5-40-map-length-pass.md) AC9~AC12 — Race 클리어 시간·한 판 전체 시간 재기 | 아니요. 한 판 시간은 친구 테스트 때 |
 
-공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)은 확인 후 원래 값(`nil`/`false`)으로, `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요. `src/server/CodeList.luau`는 커밋되지 않아요.
+공통: 다인원은 Studio **Test → Clients and Servers**, 휴대폰은 **Test → Device** 에뮬레이터. 디버그 설정(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)은 확인 후 원래 값(`nil`/`false`)으로, **`unlockAllSkinsInStudio`는 `true`로**(구매·뽑기를 볼 때만 false), `src/server/AdminConfig.luau`의 `StudioAllAdmins`는 `true`로 되돌리고 커밋하지 마세요. `src/server/CodeList.luau`는 커밋되지 않아요.
 
 ---
 
@@ -192,7 +198,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
     | unicorn-roll | 유니콘 롤 | 199 |
     | pumpkin-sushi | 호박 초밥 (할로윈 한정) | 99 |
     | santa-shrimp | 산타 새우 (크리스마스 한정) | 99 |
-  - **m5-32 전설 스킨 1개 더** (개발 전 — 스킨이 main에 들어간 뒤 만들어도 돼요): `fresh-mackerel` · 고등어 초밥 [신선] · **199** (🎫 뽑기 전설로도 나오지만 판매도 해요). id는 `src/shared/Skins.luau`의 `fresh-mackerel` `productId`에. 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
+  - **m5-32 전설 스킨 1개 더** (main에 들어왔어요 — 지금 만들어도 돼요): `fresh-mackerel` · 고등어 초밥 [신선] · **199** (🎫 뽑기 전설로도 나오지만 판매도 해요). id는 `src/shared/Skins.luau`의 `fresh-mackerel` `productId`에(지금 비어 있어서 버튼이 "곧 열려요"). 특 스킨 9종(`concept-*`)은 뽑기 전용이라 상품을 만들지 않아요. 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
 - [ ] **C3-1. 특별 상품 5개 + 게임 패스 1개** (m5-08) — 스킨 상품 id와 겹치면 안 돼요
   - Developer Products 5개 → id를 `src/shared/Offers.luau`의 각 상품 `productId`에
 
@@ -236,6 +242,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 (예) 2026-10-09: 하루 첫 판 기준 한국 시간으로. 결승 3초 대기 삭제. Lobby 음악 id 1234567890.
 ```
 
+- 2026-10-14 (4차): 고등어만 이름표를 위로(4.8) 올리고 고등어를 시트처럼 크게, 팔딱도 크게 — 반영됨(m5-32, main)
 - 2026-10-14: 한 판 목표 4~5분 유지(m5-40 Q1 A안) — 스펙 반영됨
 - 2026-10-14: 아바타 유형은 R15로 고정하기로(사용자). — USER-TODO B1-2에 넣음
 - 2026-10-14 (3차): 뽑기 천장 없음, 적은 인원 방 몰아주기 일단 둠. 고등어만 파츠 상한 80, 화남·슬픔 표정 만들기(콘셉트 몸 공용), 팔딱·첨벙 효과음 넣기(id는 A2). — 스펙 반영됨(m5-31·m5-32)

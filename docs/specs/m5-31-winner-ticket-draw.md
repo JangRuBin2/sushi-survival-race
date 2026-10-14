@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-31 — 우승자 뽑기 티켓 (🎫 무료 등급별 뽑기 · 특 스킨 9종 · Studio 전부 입기)

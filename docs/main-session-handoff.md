@@ -2,6 +2,43 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-10-14 — 콘셉트 스킨 2차·토핑·뽑기·고등어·버튼 편집 병합, 문서 반영
+
+main `4229e9a` 기준. 문서 반영(docs-writer) 뒤 5단계: rojo OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **1992 passed, 0 failed (134개 파일)** · luau-lsp 끝 코드 0. 스펙 m5-24·25·28·29·30·31·32·41 → `done`(문서 반영 끝). m5-23은 `in-qa` 그대로(재QA 리포트 없음).
+
+### 오늘 main에 들어온 것
+| 스펙 | 병합 커밋 | QA 리포트 |
+|---|---|---|
+| m5-24 젠가 소개 카메라 수정(QA B1) | `bd0209b` | `docs/qa/m5-24-map-art-pass-v2.md` (`KNOWN_INTRO_BUG` 비움) |
+| m5-29 콘셉트 스킨 2차 4종(장어·성게·문어·유부) | `f47c428` | `docs/qa/m5-29-concept-skins-2.md` |
+| m5-30 콘셉트 토핑 퀄리티(상한 47 → 70) | `44df7ce` | `docs/qa/m5-30-concept-topping-quality.md` |
+| m5-31 🎫 우승자 뽑기(등급별 1/5/15/30/49, 꽝 없음, 특 스킨 9종, Studio 전부 입기, 프로필 v3, `tickets`, `DrawScreen`·`DrawScreenLayout`) | `8f700a4` | `docs/qa/m5-31-winner-ticket-draw.md` (재QA 절) |
+| m5-32 고등어 초밥 [신선](전설 R$ 199 + 뽑기 전설, `CharacterAnimLogic.fishPose`·`FishRig`·`DollAnimator`, 화남·슬픔, `FishFlop`·`FishSplash`, 파츠 80, 이름표 4.8) | `c3a1977` + `1218c5b`(B3 "@_@" 높이) | `docs/qa/m5-32-fresh-mackerel.md` (재QA 절) |
+| m5-41 터치 버튼 위치·크기 편집(⚙, `TouchLayoutLogic`, 프로필 `settings.touchLayout`) | `4229e9a` | `docs/qa/m5-41-touch-button-layout.md` |
+
+### 남은 P3 (막지 않음 — 각 QA 리포트)
+- m5-31: 재QA R1(상세 창 빈 곳 터치가 아래 카드로 샘)·R2(큰 미리보기가 이름·대사와 겹침)는 m5-32 브랜치에서 코드로 고침 — Studio 확인만 남음(DEV-SETUP 3-12 D·E). 단상이 2D 둥근 판(3D 원기둥 아님), compact 분기 `listPanel.Size` 두 번 설정(무해).
+- m5-32: 근접 정면에서 분홍 혀가 "빨간 띠"처럼 보일 수 있음, 커진 고등어가 레이스 뒤 카메라 앞 시야를 조금 더 가림, 밥이 네모·김 띠가 시트보다 좁음. planner: 스펙 AC7 연속성 문구를 결정 기록(4차 R2) 기준으로 고치기.
+- m5-41: B1 "Starting"(카운트다운) 잠금이 실제 이벤트 순서에서 안 걸림(`TouchLayoutController.luau` `if not inMatch or not was then phase = nil` — 고치면 `m5-41-qa` "편집 잠금" 기대값 `startingLocked`를 true로), B2 점프를 옮긴 뒤 "기본값으로" 미리보기가 노치 기기에서 실제 기본 자리와 조금 다름. AC12(점프 버튼이 되돌아가는지)는 Studio 실측 — 되돌아가면 자체 점프 버튼(D3).
+- m5-30: B-V1 장어 정면·옆에서 타레가 얇은 뚜껑으로만 보이고 주황 살이 대부분(사용자 판단 뒤 다음 패스 — USER-TODO A1), B-D1 개발 메모 파츠 수 표·`SushiConceptSample.luau` NoriBack 주석 "띠 바깥(1.43)에 붙어"(실제 0.06 틈).
+- m5-29: B1·B2는 m5-30에서 고쳐짐(QA 확인). B3 스펙 AC5 inari 예외 문구(MouthCover 색) — planner.
+- m5-28: 새우 꼬리 넘어질 때 묻힘 가능, 휴대폰 뒤 카메라 참치 결, 연어알 Glass, `LayoutCheck.floating` 외곽 상자 기준.
+- m5-25: 바짝 줌 때 몸 속 비침, 탈락 젓가락이 인형을 뚫음, 잡기 Beam 시작점, `VictoryCutsceneController.luau:33` `DEFAULT_GROUND_OFFSET = 2.3`(안 쓰이는 대비값, 실제 2.25).
+- m5-24: B2 인형뽑기 연장전에 오락실 전체가 35° 기욺(planner·사용자 판단), B4·Q1 m5-20 안개 판 처리(planner), B3 방방 플레이어 시점은 렌더러로 못 봄.
+- 코드 주석 어긋남(developer, 동작 영향 없음): `src/shared/SushiBody.luau:17` "concept-* 9종"(지금 `CONCEPT_BODY`는 고등어 포함 10), `src/shared/SushiConceptSample.luau:12` EXPRESSIONS 설명이 4종(지금 6종 — Angry·Sad).
+- GDD(planner): 9.2 제목 "31종 구현됨"(지금 41), 9.6 제목 "스펙 ready — 개발 전"(지금 done), 6절 버튼 위치 편집 "개발 전"(지금 done), m5-25 QA가 짚은 6절 "밥 블록 + 김 띠" 옛 몸 설명.
+
+### 다음 세션 첫 단계
+1. **새 맵은 m5-33(맵 3차 기반)부터** — main에서(공용 `shared/maps/init.luau`·SfxCues·`MapFxPresets` 담당). m5-32가 이미 main에 있어서 `SfxCues` 충돌 걱정 없음. 그다음 m5-34~39를 worktree 6개로 병렬, 이어서 m5-40(맵 길이).
+2. m5-26 현지화: 작업 브랜치(`m5-26-i18n-p2` 등)가 main에 없음 — QA P1 B1(방 이름 필터) 상태부터 확인. 병합하면 특 스킨 9종·고등어·뽑기·버튼 편집 문구의 CSV 키가 필요(각 스펙 AC17/AC19 "해당 없음"으로 넘어감).
+3. m5-12 콘솔 UI(`ready`), m5-23 재QA.
+4. 사용자 Studio 확인: `docs/DEV-SETUP.md` 3-12 A~F(맨 위 "리포트를 쓴 뒤 바뀐 점" — 콘셉트 스킨 이름 "(특)", 확률 1/5/15/30/49), 3-10·3-11, USER-TODO B1-1(Future)·B1-2(R15 고정)·C3(고등어 상품 R$ 199).
+
+### 정리 안 된 worktree (`git worktree list`, 직접 지우지 않음)
+- **오늘 끝나서 지워도 되는 것**(브랜치 HEAD가 main에 들어감, 미커밋 변경 없음): `.claude/worktrees/agent-ab9091411269b46ae`(m5-29-concept-skins), `.claude/worktrees/m5-30-quality`(m5-30-concept-topping-quality), `.claude/worktrees/agent-a6786423e039151fb`(m5-31-winner-ticket-draw), `.claude/worktrees/agent-a10906f098e1dcf01`(m5-32-fresh-mackerel), `.claude/worktrees/agent-ae4d1902cea6f9e79`(m5-41-touch-button-layout). 예: `git worktree remove .claude/worktrees/m5-30-quality`.
+- 그 밖에 예전 worktree 39개도 HEAD가 main에 들어가 있음(m5-03~m5-10, m5-24-fix-jenga-cam, m5-25-character, work-concept-skin, `worktree-agent-*` 등) — 같이 지워도 됨.
+- **main에 없는 것(지우지 말 것)**: `agent-a06f37e723d85815c`(`work`, m5-26 QA 수정·2단계 메모), `agent-a7f8f95e5a59abaa6`(`reqa`, m5-26 재QA — main 병합 + 콘셉트 스킨 현지화 키), `agent-a95d1bc4c017a1335`(wip m5-26 B1 restoreRoom 필터, 중단), `agent-ae9b5a68ebafe22b1`(m5-26 개발 메모), `agent-af28d14b6bfa74cd9`(m5-26 QA 리포트, P1 B1). 모두 m5-26 현지화 계열.
+
 ## 2026-10-13 밤 — m5-24·m5-28 QA 통과, main 병합
 
 - `m5-24-merge`(4그룹 통합, QA 65a8fbc)와 `m5-28-concept-skins`(QA 12d293b)를 main에 병합. 병합 뒤 5단계: rojo OK · stylua OK · selene 0/0/0 · `lune run tests` **1842 passed, 0 failed** · luau-lsp 끝 코드 0. 두 스펙 `qa-passed`.

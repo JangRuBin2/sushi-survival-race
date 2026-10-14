@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-32 — 전설 스킨 "고등어 초밥 [신선]" (팔딱거리는 통고등어)

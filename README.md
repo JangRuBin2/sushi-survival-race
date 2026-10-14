@@ -39,10 +39,13 @@
 | 잡기 (누르고 있기) | 마우스 왼쪽 | R2 | 잡기 버튼 |
 | 관전 대상 바꾸기 | Q / E | | 화면 좌우 버튼 |
 
+모바일은 위쪽 바의 ⚙ → "버튼 위치 편집"으로 점프·다이브·잡기 버튼을 옮기고 크기를 바꿀 수 있다(프로필에 저장).
+
 ### 진행·상점
 
 - 라운드 통과, 결승 진출, 우승, 하루 첫 판에 밥알 코인을 준다. 승수에 따라 칭호가 붙는다.
-- 스킨 31종. 스킨은 겉모습만 바꾸고 크기·판정·속도는 같다. 일반·레어 스킨은 코인으로도 열 수 있고, 나머지는 로벅스(29~199)로 산다. 뽑기와 능력치 판매는 없다.
+- 스킨 41종. 스킨은 겉모습만 바꾸고 크기·판정·속도는 같다. 일반·레어 스킨은 코인으로도 열 수 있고, 나머지는 로벅스(29~199)로 산다. 능력치 판매는 없다.
+- 우승하면 🎫 뽑기권 1장을 받아 무료로 뽑는다. 꽝은 없고 등급 확률(전설 1% ~ 일반 49%)은 뽑기 화면에 공개한다. 뽑기권은 우승으로만 얻고 로벅스나 재화로 팔지 않는다(유료 뽑기 없음). 특 스킨 9종은 뽑기로만 나오고, 전설 고등어 초밥 [신선]은 뽑기와 판매 둘 다 된다.
 - 그 밖에 시즌 이벤트(이벤트 재화로 한정 스킨 교환), 스킨 묶음과 탈락·우승 연출 팩, VIP 패스(겉모습 혜택만), 보상 코드가 있다.
 
 ## 개발
@@ -64,12 +67,12 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 실패가 있어도 종료 코드가 0이다. 마지막 줄의 "0 failed"를 확인할 것
+lune run tests     # 1992개(134개 파일, 2026-10-14). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```
 
-Studio 없이 맵을 PNG로 확인하려면 `lune run tools/render-map <맵 id>`를 쓴다. 혼자 테스트하는 법, 디버그 설정, Studio 확인 목록은 [docs/DEV-SETUP.md](docs/DEV-SETUP.md)에 있다.
+Studio 없이 맵을 PNG로 확인하려면 `lune run tools/render-map <맵 id>`, 캐릭터·스킨은 `lune run tools/render-character <스킨 id>`를 쓴다. 혼자 테스트하는 법, 디버그 설정, Studio 확인 목록은 [docs/DEV-SETUP.md](docs/DEV-SETUP.md)에 있다.
 
 보상 코드 목록은 저장소가 공개라서 커밋하지 않는다. `src/server/CodeList.example.luau`를 `CodeList.luau`로 복사해 쓰면 된다(`.gitignore`에 있음).
 
@@ -81,7 +84,7 @@ src/client/   UI, 카메라, 효과음, 연출, 입력
 src/shared/   설정, 리모트, Roblox API를 쓰지 않는 순수 로직
   maps/       맵 모듈 15개와 장식 키트
 tests/        Lune 테스트
-tools/        맵 미리보기 렌더러
+tools/        맵·캐릭터 미리보기 렌더러
 docs/         기획서, 스펙, QA 리포트, 변경 기록
 ```
 

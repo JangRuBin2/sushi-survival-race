@@ -6,15 +6,14 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 **v0.6** 변경 이력(스킨 규칙 완화·맵 테마 확장, 2026-10-09). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- 기획서 **v0.7**(무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - **M5 (운영 업데이트) 진행 중**
-  - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종.
-  - m5-23 맵 비주얼 키트·미리보기 렌더러: **main에 있음, `in-qa`**(QA 수정 B1~B6 반영, 재QA 전).
-  - m5-24 기존·새 맵 12개 아트 패스 v2: **진행 중**, main에 없음. wip 브랜치 `m5-24-art-a`(rotating-belt·hot-plate·skewer-showdown)·`-b`(soy-swamp·chef-board·tug-of-war-platform)·`-c`(ramen-rapids·giant-jenga·claw-machine-prize)·`-d`(bouncy-castle-maze·lantern-bridge·cat-cafe-shelves), 인계 메모는 각 브랜치의 `docs/developer/m5-24-group-<a~d>.md`.
-  - m5-12 콘솔 UI: `ready`, 시작 전.
-- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-11), Future 조명 확인, 기본값 결정, 소리 고르기, 코드 목록, 퍼블리시·Match 플레이스·상품 만들기, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
-- **다음 단계**: m5-23 재QA → m5-24 그룹 병합·QA → 사용자 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개.
-- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터, 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v2), 밥알 코인·승수·칭호, 휴대폰 UI, 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 31종·탈의실, 로벅스 결제, 결승 연장전, 맵 15개, 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령).
+  - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), m5-41 터치 버튼 위치·크기 편집.
+  - m5-23 맵 비주얼 키트·미리보기 렌더러: **main에 있음, `in-qa`**(QA 수정 B1~B6 반영, 재QA 전 — m5-24 QA가 키트 테스트를 같이 돌렸지만 m5-23 재QA 리포트는 아직 없음).
+  - `ready`(기획만, 개발 전): **m5-33~m5-39 맵 3차 배치 6개**(m5-33 기반이 먼저 — 껍데기 6개·`maps/init` 등록·SfxCues·파티클 프리셋, 그 뒤 m5-34~39 맵마다 worktree), **m5-40 맵 길이 늘리기**, m5-26 현지화(작업 브랜치 `m5-26-i18n-p2` 등은 main 미병합), m5-12 콘솔 UI.
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-12), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함), 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
+- **다음 단계**: m5-33 맵 3차 기반(main) → m5-34~39 맵 worktree 병렬 → m5-40 맵 길이 → m5-26 현지화 병합 → m5-12 콘솔 UI. 그사이 m5-23 재QA, 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개.
+- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 15개(아트 패스 v2), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령).
 - 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
 ## 맵 풀 (15개, 전부 랜덤 판 풀)
@@ -25,14 +24,18 @@
 | Final (4) | `skewer-showdown` 회전 꼬치 쇼다운 · `ikura-bombs` 연어알 폭탄 접시 · `tug-of-war-platform` 줄다리기 발판 · `claw-machine-prize` 인형뽑기 기계 속 |
 
 ## 스킨 · 상점 규칙
-- 스킨은 **겉모습만** 바꾼다. 크기·히트박스·속도는 모두 같다(Body·눈·입·발 = 계란초밥). 능력치 판매·뽑기 없음 (GDD 9.1). 초밥이 아닌 음식·캐릭터도 세계관에 맞으면 된다(v0.6).
-- **등급별 한도**(m5-21, `SushiBody.EFFECT_BUDGET`·`BOUNDS_TOLERANCE`, `Skins.validate`가 서버 시작 때 검사): 효과 일반·레어 1개 / 에픽·전설 2개(종류 Fire·Sparkles·Smoke·Glow), 외곽 상자 일반·레어 ±15% / 에픽·전설 ±25%. 몸 파츠 모양에 Wedge 허용.
-- 캐릭터 외형은 **`AppearanceService.applyAppearance` 한 곳**에서만 입힌다. `Attributes.AppearanceId`를 쓰는 곳도 여기뿐. 인형(탈락·우승 연출·단상·탈의실)은 `SushiBody.build`로 따로 만든다.
-- 카탈로그 `shared/Skins.luau` **31종**: 기본 1(계란초밥) + 판매 25(일반 8·레어 7·에픽 5·전설 5) + 시즌 4(`season`, 기간에만 — 호박 초밥·산타 새우 R$ 99, 유령 계란초밥·트리 마키 이벤트 재화 80) + VIP 전용 1(`vip-gold-tamago`, `vipOnly`). **가격 A안**: 로벅스 29/59/99/199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만. 코인을 로벅스로 파는 상품은 만들지 않는다.
+- 스킨은 **겉모습만** 바꾼다. 크기·히트박스·속도는 모두 같다(히트박스·발바닥 `SushiBody.GROUND_OFFSET` 하나). 능력치 판매 없음. 초밥이 아닌 음식·캐릭터도 세계관에 맞으면 된다(v0.6).
+- **유료 뽑기 없음, 무료 뽑기만**(GDD v0.7 9.1·9.6, m5-31): 🎫 우승자 뽑기권은 **우승(`Won`)으로만** 얻고(1장, 상한 99) Robux·코인·이벤트 재화·코드·특별 상품·VIP로 **팔거나 주지 않는다**. 뽑기 자체를 돈·재화로 할 수 없고, 확률을 올리는 상품·보장권·천장도 없다. 꽝 없음 — 등급 확률 전설 1 / 영웅 5 / 희귀 15 / 고급 30 / 일반 49%(`Config.Draw.GradeWeights`, 등급 안에서 균등), 이미 가진 스킨이면 등급별 🍚 20/40/80/150/300. 확률은 뽑기 화면에 공개(화면 = 서버 `DrawLogic.grades`, 빈 등급은 나머지에 비율대로). 판단은 순수 `DrawLogic`, 지급은 `ShopService`의 `DrawTicket`이 `DataService.update` 한 번(`saveNow` 안 함 — 무료 보상).
+- **등급별 한도**(m5-21, `SushiBody.EFFECT_BUDGET`·`BOUNDS_TOLERANCE`, `Skins.validate`가 서버 시작 때 검사): 효과 일반·레어 1개 / 에픽·전설 2개(종류 Fire·Sparkles·Smoke·Glow), 외곽 상자 일반·레어 ±15% / 에픽·전설 ±25%. 몸 파츠 모양에 Wedge 허용. 일반 스킨은 기준 몸(`SushiBody.BASE_NAMES` 22개, m5-25)을 그대로 쓰고 파츠 ≤ `SushiBody.PART_BUDGET`(40).
+- **콘셉트 몸 예외**(`Skin.conceptBody`, `Skins.CONCEPT_BODY_IDS` = `SushiBody.CONCEPT_BODY` 10종): 넓은 밥 + 작은 눈·팔·다리 몸(`SushiConceptSample`, 표정 6종 Default·Happy·Flustered·Hurt·Angry·Sad). 파츠 상한 **70**(m5-30), **`fresh-mackerel`만 80**·외곽은 concept-salmon 기준 ±25%·이름표 높이 **4.8**(`SushiBody.nameTagHeight(id)`, 나머지 3.6 — Body `NameTagHeight` 속성은 클라이언트 이름표 위치에만 쓰고 권한 판단에 안 씀). 스킨 id 분기 없이 이 표로만 다르게 한다.
+- **특 스킨**(뽑기 전용 9종 `concept-*`, 이름 "○○ (특)"): `drawGrade`가 있고 다른 얻는 길(robux·coins·tokens·season·vipOnly·productId)이 없다(`Skins.isDrawOnly`), 내부 `tier = "Basic"`, **무료 아님**(`Skins.isFree`는 계란초밥만). 뽑기 풀 = `drawGrade`가 있는 스킨(`Skins.DRAW_IDS` 10). **고등어 초밥 [신선](`fresh-mackerel`)**은 유일한 "`drawGrade` + `robux`" 스킨 — 전설 R$ 199 판매와 뽑기 전설이 같이 있고 보통 판매 규칙(`Skins.TIER_ROBUX`)을 따른다. 뽑기 등급(일반·고급·희귀·영웅·전설)은 상점 등급과 다른 말이다.
+- 캐릭터 외형은 **`AppearanceService.applyAppearance` 한 곳**에서만 입힌다. `Attributes.AppearanceId`를 쓰는 곳도 여기뿐. 인형(탈락·우승 연출·단상·탈의실·뽑기 화면)은 `SushiBody.build`로 따로 만든다. 캐릭터 움직임(숨쉬기·깜빡임·걸음·고등어 팔딱 `CharacterAnimLogic.fishPose`)은 클라이언트 로컬(`CharacterFxController`, 인형은 `DollAnimator`)이고 판정과 무관.
+- 카탈로그 `shared/Skins.luau` **41종**: 기본 1(계란초밥) + 판매 26(일반 8·레어 7·에픽 5·전설 6 — 고등어 포함) + 시즌 4(`season`, 기간에만 — 호박 초밥·산타 새우 R$ 99, 유령 계란초밥·트리 마키 이벤트 재화 80) + VIP 전용 1(`vip-gold-tamago`, `vipOnly`) + 특 9(뽑기 전용). **가격 A안**: 로벅스 29/59/99/199, 코인 일반 300 / 레어 900, 에픽·전설은 로벅스만. 코인을 로벅스로 파는 상품은 만들지 않는다.
+- **Studio 전부 입기**(`Config.DEBUG.unlockAllSkinsInStudio`, 커밋 값 `true`): Studio에서 보유와 상관없이 모든 스킨을 입을 수 있다. `ownedSkins`에는 아무것도 넣지 않고 뽑기·구매 판단은 저장된 보유만 본다. 실서버에서는 무시, `persistDataInStudio = true`면 꺼짐(경고 한 줄).
 - 로벅스 결제는 `RobuxShopService`의 `ProcessReceipt` **하나**(특별 상품도 `OfferService`가 `setOfferPort`로 "무엇을 주는지"만 등록). 프로필 `saveNow` 성공 → 구매 기록(`Purchases_v1`, 키 PurchaseId) 성공일 때만 `PurchaseGranted`. 판단은 순수 `ReceiptLogic`·`OfferLogic`. 상품 id는 사용자가 만든 뒤 `Skins.luau`·`Offers.luau`에.
 - **특별 상품**(m5-08, `shared/Offers.luau`): 스타터 팩·에픽/전설 세트·연출 2종(개발자 상품), VIP 패스(게임 패스). **VIP 영구 스킨은 `UserOwnsGamePassAsync`가 true일 때만** 지급(구매 이벤트만 믿지 않음). VIP 혜택은 겉모습뿐(👑·[VIP]·금박 스킨, 코인 배수 없음). `Attributes.Vip`·`EliminationFx`·`VictoryFx`는 서버만 달고 권한 판단에 쓰지 않는다.
 - 이벤트 재화(🍬/⭐)는 `Shared.Seasons` 기간에만 서버가 지급·차감(`BuyWithTokens`). "지금 시각"은 서버 `Seasons.now` — `DEBUG.eventNow`는 Studio에서만.
-- 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·해금·연출 장착을 거절한다(`ShopService.isLocked`).
+- 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·해금·연출 장착·뽑기를 거절한다(`ShopService.isLocked`). 터치 버튼 위치 편집(m5-41)도 레이서로 배치된 동안은 클라이언트가 막는다.
 - Studio 가짜 결제(`fakeRobuxInStudio`)·가짜 VIP(`fakeVipInStudio`)는 `persistDataInStudio`와 같이 켜면 꺼진다(운영 저장소에 가짜 기록 금지).
 
 ## 코드 보상 규칙 (m5-10)
@@ -43,7 +46,7 @@
 - 관리자 판단은 **서버만**, 접속할 때 `AdminLogic.isAdmin`으로 한 번 계산해 `AdminService`의 표(`admins[UserId]`)에 두고 리모트마다 다시 본다. 입력은 `player.UserId`, `RunService:IsStudio()`, `game.CreatorType/CreatorId`, 서버 전용 `src/server/AdminConfig.luau`뿐. 이름·클라이언트 속성으로는 판단하지 않는다. 규칙: Studio + `StudioAllAdmins`면 누구나, 실서버는 `LiveEnabled`이고 `UserId > 0`이고 (`UserIds` 목록 또는 `IncludeOwner` + 개인 계정 소유자). 지금 목록 `{ 11402290839 }`.
 - **비밀번호·PIN·키 입력 방식은 금지**(계정 탈취 위험, Roblox 커뮤니티 기준 위반). 관리자 목록은 `Shared.Config`에 두지 않는다. `Attributes.IsAdmin`은 패널을 만들지 말지만 정하고 권한이 아니다.
 - 미리보기(스킨·연출)는 **경제에 기록하지 않는다**: `ShopService`의 메모리 슬롯(`setPreview`/`getPreview`)과 Player 속성만. 외형 순서는 `AdminLogic.pickAppearance`(미리보기 > 장착 > 계란초밥). 서버 간 유지는 MemoryStore `AdminPreview_v1`(키 `u_<UserId>`, 1시간). `AdminService` 소스에는 `DataService`·`ShopLogic`·`ReceiptLogic`·`PurchaseLog`·`RewardService`가 없어야 한다(테스트가 고정) — 경제를 건드리는 명령은 `AdminCommands`(첫 명령 때 lazy require).
-- **명령 등급**(`AdminLogic.commandTier`/`canRun`): `Info`(`info`, `fx` 미리보기) = 실서버에서도 됨 / `Test`(`start`, `plan`) = Studio만 / `StudioOnly`(`coins`, `tokens`, `resetprofile`) = Studio만이고 **`persistDataInStudio = true`면 거절**("저장을 켠 Studio에서는 쓸 수 없어요"). 실서버에서 Test·StudioOnly를 켜는 설정은 없다(사용자 결정). 명령은 부른 사람 본인에게만. 로그 `[Admin] 이름(UserId) <명령> <값> -> ok|<이유>`.
+- **명령 등급**(`AdminLogic.commandTier`/`canRun`): `Info`(`info`, `fx` 미리보기) = 실서버에서도 됨 / `Test`(`start`, `plan`) = Studio만 / `StudioOnly`(`coins`, `tokens`, `tickets`, `resetprofile`) = Studio만이고 **`persistDataInStudio = true`면 거절**("저장을 켠 Studio에서는 쓸 수 없어요"). 실서버에서 Test·StudioOnly를 켜는 설정은 없다(사용자 결정). 명령은 부른 사람 본인에게만. 로그 `[Admin] 이름(UserId) <명령> <값> -> ok|<이유>`.
 
 ## 역할 분담 (에이전트 협업)
 기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
@@ -58,7 +61,7 @@
 - **맵**: 라운드마다 맵이 바뀐다. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
 - **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람(리셋·퇴장이 섞이면 그쪽이 더 나쁜 등수). **연장전**(결승 = 마지막 라운드에서만): 90초에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 안전 상한 150초(+`HardCapMargin` 40)에 가장 높이 있는 1명 우승. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
 - **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제. 리셋·퇴장은 구제 없음. 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
-- **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100, 하루 첫 판 +50(UTC). 이벤트 기간에는 재화도(`Config.Events.Tokens`). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
+- **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100 + 🎫 뽑기권 1장(`Config.Draw`), 하루 첫 판 +50(UTC). 이벤트 기간에는 재화도(`Config.Events.Tokens`). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
 - **판정은 전부 서버**(결승선, 탈락, 순위, 코인, 구매, 코드, 이동 감시). 클라이언트는 입력·UI·연출만(얼음 관성 이동처럼 판정 없는 이동 보정 포함).
 
 ## 기술 스택과 구조
@@ -71,43 +74,47 @@ default.project.json     # Rojo 트리, Lighting(Future), Baseplate·LobbySpawn,
 rokit.toml               # rojo 7.7.1, stylua 2.5.2, selene 0.32.0, lune 0.10.5, luau-lsp 1.70.1
 types/                   # luau-lsp Roblox 정의(커밋), README.md
 assets/map-art/          # 사용자 Studio 장식 <맵 id>.rbxm (장식 전용)
-tools/                   # render-map.luau + render/(Shims, Scene, Raster, Materials, Png) — 맵 미리보기 렌더러 (m5-23)
+tools/                   # render-map.luau(맵, m5-23) · render-character.luau(캐릭터, m5-25 — --sample·--pose·sheet-compare)
+                         # + render/(Shims, Scene, Raster, Materials, Png, Sheet, LayoutCheck)
 src/
   server/            -> ServerScriptService.Server
     init.server.luau     # 모든 서비스 init() 다음 start()
-    DataService          # 프로필 DataStore(PlayerData_v1), 세션 잠금, update/saveNow/onLoaded/setViewExtra
+    DataService          # 프로필 DataStore(PlayerData_v1), 세션 잠금, update/saveNow/onLoaded/setViewExtra, SaveSettings(칸별 간격)
     PlaceService  PlaceBackend  RoomDirectory  RoomService(forceStart)  MatchService(setNextPlan)  MatchEvents
     RoundService         # prepareRound → run/cancel. 맵 Model에 Arena 태그, 결승 연장전 루프
     EliminationService  CharacterUtil  AppearanceService  GrabService  MovementGuardService
     LobbyService         # 로비 건물·조명·단상·시즌 장식 (Match 역할이면 안 지음)
     RewardService        # 코인·승수·칭호·이벤트 재화 (MatchEvents 구독)
-    ShopService          # EquipSkin, BuyWithCoins, BuyWithTokens, 장착 resolver, 미리보기 슬롯, isLocked
+    ShopService          # EquipSkin, BuyWithCoins, BuyWithTokens, DrawTicket(🎫 뽑기, m5-31), 장착 resolver, 미리보기 슬롯, isLocked, Studio 전부 입기
     RobuxShopService  PurchaseLog          # ProcessReceipt(유일), 구매 기록 Purchases_v1
     OfferService         # RequestOfferPurchase, EquipFx, VIP 확인 (m5-08)
     CodeService  CodeConfig  CodeList.example   # RedeemCode, 코드 로더 (CodeList.luau는 .gitignore)
     AdminConfig  AdminService  AdminCommands    # 관리자 목록(서버 전용)·판단 표·리모트, 명령 실행
   client/            -> StarterPlayerScripts.Client
     init.client.luau  CameraDirector  ProfileStore  PriceCache(지역 가격 캐시)  Sfx
-    ui/                  # Lobby*, Room*, Hud*, Spectate*, Coin*, Shop*(탈의실·이벤트 탭), Offer*(🎁 상점), Code*(🎟 코드),
-                         # Admin*(🛠 미리보기·명령 탭), ChatTagController([VIP]), UiScaleController
-    fx/                  # CharacterFxController, EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
+    ui/                  # Lobby*, Room*, Hud*, Spectate*, Coin*, Shop*(탈의실·이벤트·🎫 특 탭), DrawScreen(🎫 뽑기 화면, m5-31),
+                         # Offer*(🎁 상점), Code*(🎟 코드), Admin*(🛠 미리보기·명령 탭), ChatTagController([VIP]), UiScaleController,
+                         # SettingsButton(⚙ 메뉴)·TouchLayoutEditor(버튼 위치 편집, m5-41)
+    fx/                  # CharacterFxController(캐릭터 움직임·이름표), FishRig·DollAnimator(고등어 관절·인형 움직임, m5-32),
+                         # EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
                          # LobbyFxController, MapLightingController(맵별 조명), MapDecorFxController(장식 움직임)
-    input/               # Dive*, Grab*, IceController(얼음 관성, m5-06)
+    input/               # Dive*, Grab*, IceController(얼음 관성, m5-06), TouchLayoutController(점프·다이브·잡기 배치, m5-41)
   shared/            -> ReplicatedStorage.Shared
-    Config  Remotes(RemoteFunction 15 + RemoteEvent 11 = 26)  Types  Attributes   # 공용 파일
+    Config  Remotes(RemoteFunction 16 + RemoteEvent 11 = 27)  Types  Attributes   # 공용 파일
     Rules  RoundLogic  RoomLogic  SpectateLogic  Cleanup  CameraPriority
-    SushiBody  Skins  ShopLogic  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
-    ProfileSchema(v2)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
-    LobbyLayout  UiLayout  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
+    SushiBody  SushiConceptSample(콘셉트 몸)  ConceptMackerel  SushiPose  PartMath  CharacterAnimLogic   # 캐릭터 몸·움직임
+    Skins  ShopLogic  DrawLogic  DrawScreenLayout  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
+    ProfileSchema(v3)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
+    LobbyLayout  UiLayout  TouchLayoutLogic  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
     DiveLogic  GrabLogic  GrabInputLogic  IceLogic  SfxCues  SfxLibrary
     maps/
       init.luau  MapTypes.luau                     # 맵 풀(ALL), 공통 인터페이스 + validate
       MapKit  MapKitLogic  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
       <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 15개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
-tests/               # 순수 로직·가짜 Roblox 테스트 (112개 파일 1736개). init.luau 실행기, lib/
+tests/               # 순수 로직·가짜 Roblox 테스트 (134개 파일 1992개, 2026-10-14 main 4229e9a). init.luau 실행기, lib/, fixtures/
 docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md  REFERENCE-*.md
-  specs/  qa/  proposals/  renders/<mapId>/(커밋한 before/after PNG)
+  specs/  qa/  proposals/  renders/<mapId>/·renders/characters/(커밋한 before/after PNG)
   planner/  developer/  docs-writer/  playtest/
 ```
 
@@ -154,7 +161,7 @@ export type RoundContext = {
 - 클라이언트에서 온 리모트 인자는 서버에서 항상 검증한다 (타입, 범위, 길이, 방 소속, 방장 여부, 요청 간격). 서버 → 클라이언트 이벤트는 서버가 `OnServerEvent`를 듣지 않는다.
 - 데이터 변경은 `DataService.update`(동기) 안에서만. 결제처럼 "저장된 뒤에만" 끝나야 하는 일은 `saveNow`의 결과를 본다. Studio는 기본으로 메모리 저장이다.
 - **디버그 설정** (`Config.DEBUG`, 서버는 `RunService:IsStudio()`일 때만 적용). **커밋할 때는 아래 기본값** — 테스트가 커밋 값을 고정한다. 사용법은 `docs/DEV-SETUP.md` 3-9·3-10.
-  - `minPlayersToStart = 1`, `forceMapPlan = nil`, `forceMapPlans = nil`, `persistDataInStudio = false`, `simulateMatchServer = false`, `logArenaStats = false`, `fakeRobuxInStudio = false`, `overtimeAt = nil`, `eventNow = nil`(UTC 초, 시즌 확인), `fakeVipInStudio = false`.
+  - `minPlayersToStart = 1`, `forceMapPlan = nil`, `forceMapPlans = nil`, `persistDataInStudio = false`, `simulateMatchServer = false`, `logArenaStats = false`, `fakeRobuxInStudio = false`, `overtimeAt = nil`, `eventNow = nil`(UTC 초, 시즌 확인), `fakeVipInStudio = false`, **`unlockAllSkinsInStudio = true`**(Studio 전부 입기 — 구매·뽑기 흐름을 볼 때만 false).
   - 관리자 설정 `src/server/AdminConfig.luau`: 커밋 값 `StudioAllAdmins = true`(비관리자 화면 확인 때만 false), `LiveEnabled = true`(사용자 확정, 공개 출시 전 재확인).
 
 ## 검증 (작업 끝내기 전에 반드시, 5단계)
@@ -163,11 +170,12 @@ export type RoundContext = {
 rojo build -o build.rbxl       # 1. 프로젝트 구조 확인 (build.rbxl은 커밋하지 않음)
 stylua --check src tests tools # 2. 포맷/문법 (고칠 때는 stylua src tests tools)
 selene src                     # 3. 린트
-lune run tests                 # 4. 테스트 — 마지막 줄 "N passed, 0 failed"를 읽는다 (실패가 있어도 끝 코드는 0)
+lune run tests                 # 4. 테스트 — 마지막 줄 "N passed, 0 failed"를 읽는다 (실패가 있으면 끝 코드 1)
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사 (끝 코드 0)
 ```
-- **`lune run tests`는 실패가 있어도 끝 코드 0으로 끝난다.** 반드시 마지막 요약 줄의 `0 failed`를 확인한다.
+- `lune run tests`는 실패가 하나라도 있으면(또는 spec 파일이 없으면) 끝 코드 1이다(`tests/init.luau`). 끝 코드만 믿지 말고 마지막 요약 줄의 `0 failed`도 확인한다(예전 문서의 "실패가 있어도 끝 코드 0"은 틀린 설명이었음).
+- 캐릭터 모습 확인(Studio 없이): `lune run tools/render-character <skinId|all> [--view …] [--light studio|lobby|both]` → `build/renders/characters/`(DEV-SETUP 2-2).
 - 맵 모습 확인(Studio 없이): `lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all] [--quality fast|high]` → `build/renders/<mapId>/*.png` + `stats.txt`(예산·`void%`). 근사 렌더러라 최종 판단은 Studio. 사용법·한계는 `docs/DEV-SETUP.md` 2-1.
 - **도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 분명히 적는다.** 돌려 보지 않은 것을 통과로 적지 않는다.
 - 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다. 마일스톤별 확인 목록은 `docs/DEV-SETUP.md`, 사용자가 손으로 할 일은 `docs/USER-TODO.md`.

@@ -141,13 +141,13 @@ return function(t: Test.Test)
 	end)
 
 	t.test("AC2: 코스 공간 상자가 실제 코스 폭·길이를 덮어요", function()
-		-- 회전 벨트: 구간이 출발선(0)부터 끝 벽(-120)까지 빈틈없이 이어지고, 벽 안쪽 폭과 같아요
+		-- 회전 벨트: 구간이 출발선(0)부터 끝 벽(m5-40: -390)까지 빈틈없이 이어지고, 벽 안쪽 폭과 같아요
 		local sections = BeltArt.SECTIONS
 		t.eq(sections[1].front, 0)
 		for i = 2, #sections do
 			t.eq(sections[i].front, sections[i - 1].back, `belt section {i} continues`)
 		end
-		t.eq(sections[#sections].back, -120)
+		t.eq(sections[#sections].back, -390) -- m5-40 길이 늘리기 (옛 -120)
 		t.eq(BeltArt.FINISH_LINE_Z, sections[#sections].back + 4)
 		local belt = BeltArt.courseVolume()
 		t.eq(#belt, #sections)
@@ -229,8 +229,8 @@ return function(t: Test.Test)
 		t.eq(Layout.MOUNTAIN_HEIGHT, 12)
 		t.eq(Layout.SLOPE_LOW, 12)
 		t.eq(Layout.SLOPE_HIGH, 20)
-		t.eq(Layout.totalLength(), 174)
-		t.eq(Layout.finishLineZ(), -170)
+		t.eq(Layout.totalLength(), 409) -- m5-40 길이 늘리기 (옛 174)
+		t.eq(Layout.finishLineZ(), -405) -- m5-40 (옛 -170)
 		t.eq(Layout.BALL_DIAMETER, 5)
 		t.eq(Layout.WASABI_UP, 80)
 		t.eq(Layout.WASABI_FORWARD, 30)
@@ -530,18 +530,17 @@ return function(t: Test.Test)
 					end
 					t.ok(found, `{label} keeps point {want.pos.x},{want.pos.y},{want.pos.z}`)
 				end
-				t.eq(#remaining, 1, `{label} has exactly one new point`)
+				t.eq(#remaining, 2, `{label} has the m5-20 reverse shot + the m5-40 wide shot`)
 			end
+			-- m5-40: 결승 샷(옛 4번째 점)은 길어진 코스의 뒷부분 넓은 샷으로 바뀌어서 기존 3개 + 새 2개예요
 			keepsOld(BeltArt.introCamera(), {
 				pt(0, 14, 6, 0, 2, -24),
 				pt(0, 17, -66, 0, 2, -88),
-				pt(0, 18, -96, 0, 3, -118),
 				pt(0, 12, 10, 0, 3, -20),
 			}, "rotating-belt")
 			keepsOld(SwampArt.introCamera(), {
 				pt(0, 16, 4, 0, 2, -30),
 				pt(-4, 26, -50, -4, 6, -72),
-				pt(0, 38, -128, 0, 20, -168),
 				pt(0, 12, 10, 0, 4, -30),
 			}, "soy-swamp")
 		end

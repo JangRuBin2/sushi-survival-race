@@ -13,6 +13,7 @@ local Config = RobloxRequire.require(Shared.Config)
 local IntroCameraLogic = RobloxRequire.require(Shared.IntroCameraLogic)
 local MapKitLogic = RobloxRequire.require(Shared.maps.MapKitLogic)
 local BeltArt = RobloxRequire.require(Shared.maps.RotatingBeltArt)
+local BeltLayout = RobloxRequire.require(Shared.maps.RotatingBeltLayout)
 
 local BELT_PATH = "src/shared/maps/RotatingBelt.luau"
 
@@ -105,8 +106,16 @@ return function(t: Test.Test)
 	t.test(
 		"치수: 아트 SECTIONS·결승선·간장 종지 위치가 RotatingBelt.luau 소스 상수와 같아요",
 		function()
-			local depths = { DEPTH_START, DEPTH_BELT_A, DEPTH_NARROW, DEPTH_BELT_B, DEPTH_FINISH }
-			local widths = { WIDTH_NORMAL + 4, WIDTH_NORMAL, WIDTH_NARROW, WIDTH_NORMAL, WIDTH_NORMAL + 4 }
+			-- m5-40: 벨트 B와 결승 사이에 RotatingBeltLayout.NEW_SECTIONS가 끼어요 (옛 다섯 구간 치수는 소스 상수 그대로)
+			local depths = { DEPTH_START, DEPTH_BELT_A, DEPTH_NARROW, DEPTH_BELT_B }
+			local widths = { WIDTH_NORMAL + 4, WIDTH_NORMAL, WIDTH_NARROW, WIDTH_NORMAL }
+			for _, section in BeltLayout.NEW_SECTIONS do
+				table.insert(depths, section.depth)
+				table.insert(widths, section.half * 2)
+			end
+			table.insert(depths, DEPTH_FINISH)
+			table.insert(widths, WIDTH_NORMAL + 4)
+			t.eq(#BeltArt.SECTIONS, #depths, "section count")
 			local cursor = 0
 			for i, section in BeltArt.SECTIONS do
 				t.eq(section.front, cursor, `section {i} front`)
@@ -198,7 +207,8 @@ return function(t: Test.Test)
 					t.ok(commas >= 5, `addFloor call passes physics: {args}`)
 				end
 			end
-			t.eq(floorCalls, 5, "start, belt A, narrow, belt B, finish floors")
+			-- m5-40: 새 구간 바닥 4곳(쉼터·옆 벨트·슬라롬·벨트 C 분기)이 더해져 9
+			t.eq(floorCalls, 9, "start, belt A, narrow, belt B, m5-40 new sections (4 kinds), finish floors")
 			t.ok(
 				string.find(belt, "CustomPhysicalProperties = PhysicalProperties.new(physics)", 1, true) ~= nil,
 				"addFloor applies physics"

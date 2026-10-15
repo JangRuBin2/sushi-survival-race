@@ -2,7 +2,7 @@
 -- 간장 늪 & 와사비 산 아트 (m4-02 → m5-20 → m5-24 v2): 장식·소개 카메라·색·조명을 순수 데이터로 적어요 (Roblox API 없음 → lune 테스트).
 --   SoySwampArt.COLORS          판정 파츠(바닥·산·경사로·웅덩이·패드·날치알)에 칠할 색 { r, g, b }
 --   SoySwampArt.decor()         장식 DecorSpec 목록 (MapKit.buildDecor로 Decor 폴더에, 충돌·쿼리·터치 없음)
---   SoySwampArt.introCamera()   라운드 소개 경유점 (출발 위 → 와사비 패드·절벽 → 산 위 반전 샷 → 날치알 내리막·결승 → 출발선 뒤)
+--   SoySwampArt.introCamera()   라운드 소개 경유점 (출발 위 → 와사비 패드·절벽 → 산 위 반전 샷 → 뒷부분 넓은 샷(m5-40) → 출발선 뒤)
 --   SoySwampArt.courseVolume()  장식이 들어가면 안 되는 상자들 (구간마다 벽 안쪽, 그 구간 바닥 위 2~12)
 --   SoySwampArt.BUDGET          "Extended" (m5-24 — 장식 1500·조명 24·그림자 2·파티클 16·움직임 80)
 --   SoySwampArt.LIGHTING        맵 조명 분위기 (m5-23 PRESETS["soy-swamp"]에서 시작해 다듬음)
@@ -73,6 +73,8 @@ SoySwampArt.COLORS = {
 	spawn = { r = 246, g = 196, b = 70 },
 	finish = { r = 255, g = 196, b = 40 },
 	tobiko = { r = 255, g = 112, b = 28 }, -- 날치알 공
+	stone = { r = 228, g = 220, b = 198 }, -- m5-40 징검다리 발판 윗면 (군함말이 밥 — 간장 강 위에서 가장 밝게)
+	nori = { r = 40, g = 56, b = 44 }, -- m5-40 징검다리 발판 기둥 (군함말이 김)
 } :: { [string]: RGB }
 
 SoySwampArt.SOY_REFLECTANCE = 0.25
@@ -84,7 +86,7 @@ SoySwampArt.FOG_PANEL = "FogPanel"
 local FOG: RGB = { r = 90, g = 55, b = 30 } -- 간장·나무 톤 갈색-호박색 (m5-20 ③)
 
 local HALF = Layout.WIDTH / 2
-local CZ = (Layout.START.front + Layout.FINISH.back) / 2 -- 코스 가운데 z (-87)
+local CZ = (Layout.START.front + Layout.FINISH.back) / 2 -- 코스 가운데 z (m5-40: -204.5)
 local UP: Vec3 = { x = 0, y = 0, z = 90 } -- Cylinder 축(X)을 세워요
 local WASABI_BUMP = { r = 120, g = 182, b = 56 }
 local HILLS = {
@@ -562,7 +564,7 @@ end
 -- 결승선 체크무늬 (결승선 위에 얇게)
 local function addFinishChecker(list: { DecorSpec })
 	local lineZ = Layout.finishLineZ()
-	local y = Layout.SLOPE_HIGH + 0.45
+	local y = Layout.SLOPE2_HIGH + 0.45
 	local cols = Layout.WIDTH
 	for row = 0, 1 do
 		for col = 0, cols - 1 do
@@ -621,7 +623,7 @@ end
 -- 결승 문: 코스 벽 바깥 기둥 둘 + 벽 위 가로대 + 노렌 + 등불 (어디서든 보이는 높은 표지)
 local function addFinishGate(list: { DecorSpec })
 	local z = Layout.finishLineZ()
-	local topY = Layout.WALL_HEIGHT + 8
+	local topY = Layout.SLOPE2_HIGH + 26 -- m5-40: 결승 단(40) 위 시야 상자(+12)보다 노렌 아래 끝이 높게
 	for _, side in { -1, 1 } do
 		local x = side * (HALF + 3)
 		append(
@@ -858,7 +860,7 @@ local function addGeta(list: { DecorSpec })
 		)
 	)
 	-- 다리 (호수 속으로)
-	for _, z in { -10, -66, -122, -166 } do
+	for _, z in { -10, -66, -122, -166, -228, -290, -350, -404 } do
 		append(
 			list,
 			MapKitShapes.roundedBox(
@@ -880,7 +882,7 @@ local function addGeta(list: { DecorSpec })
 	local rng = MapKitShapes.rng(24)
 	for k = 0, 17 do
 		local side = if k % 2 == 0 then -1 else 1
-		local z = -6 - k * 9.5 + rng:range(-2, 2)
+		local z = -6 - k * 22 + rng:range(-2, 2) -- m5-40: 길어진 판 전체에 듬성듬성
 		append(
 			list,
 			MapKitShapes.capsule(
@@ -1140,6 +1142,344 @@ local function addPendantLamp(list: { DecorSpec })
 	bulb.castShadow = false
 end
 
+---------------------------------------------------------------------------------- m5-40 새 구간
+
+-- 김 징검다리 발판(판정: 김 기둥 + 밥 판) 발치 물결
+local function addStoneWraps(list: { DecorSpec })
+	local bed = Layout.RIVER_BED_Y
+	for _, stone in Layout.STONES do
+		local w, d = stone.width, stone.depth
+		-- 강물에 닿는 자리 물결 (얇은 고리)
+		part(
+			list,
+			"StoneRipple",
+			"Block",
+			v(w + 1.6, 0.1, d + 1.6),
+			c(96, 54, 28),
+			"SmoothPlastic",
+			v(stone.x, bed + 0.36, stone.z)
+		)
+	end
+end
+
+-- 간장 강이 벽 밖으로 넘쳐 호수로 떨어지는 폭포 줄기 둘
+local function addRiverBanks(list: { DecorSpec })
+	-- 강물이 벽 밖 게타 가장자리로 넘쳐 호수로 떨어지는 줄기 (양옆, 작은 반투명 원기둥)
+	local bed = Layout.RIVER_BED_Y
+	for k, z in { -190, -222 } do
+		local side = if k == 1 then -1 else 1
+		local x = side * (HALF + 3)
+		local len = bed - LAKE_Y
+		local stream =
+			part(list, "RiverFall", "Cylinder", v(len, 3, 3), c(84, 40, 18), "Glass", v(x, LAKE_Y + len / 2, z), UP)
+		stream.transparency = 0.25
+		stream.reflectance = 0.2
+		local lip =
+			part(list, "RiverFallLip", "Ball", v(4, 3, 4), c(84, 40, 18), "Glass", v(x - side * 0.6, bed + 0.5, z))
+		lip.transparency = 0.25
+		append(
+			list,
+			MapKitShapes.ring("RiverFallSplash", 4, 1, 0.5, 10, c(96, 52, 26), "SmoothPlastic", v(x, LAKE_Y + 0.3, z))
+		)
+	end
+	local foam =
+		part(list, "RiverFallFx", "Block", v(3, 0.4, 3), LAKE, "SmoothPlastic", v(HALF + 3, LAKE_Y + 0.4, -222))
+	foam.transparency = 1
+	foam.particle = "Bubbles"
+	foam.particleRate = 5
+end
+
+-- 와사비 산 2: 산 1과 반대로 오른쪽(+x) 벽 바깥이 높은 층층 언덕 + 호수에서 솟은 덩어리
+local function addHills2(list: { DecorSpec })
+	local centerZ = (Layout.MOUNTAIN2.front + Layout.MOUNTAIN2.back) / 2
+	local base = Layout.MOUNTAIN2_BASE
+	local layers = {
+		{ w = 20, h = 5, d = 52 },
+		{ w = 15, h = 5, d = 42 },
+		{ w = 10, h = 5, d = 30 },
+		{ w = 6, h = 4, d = 18 },
+	}
+	for i, layer in layers do
+		local inner = HALF + 0.75
+		append(
+			list,
+			MapKitShapes.bevelBox(
+				"WasabiHill",
+				v(layer.w, layer.h, layer.d),
+				HILLS[(i - 1) % #HILLS + 1],
+				"Pebble",
+				v(inner + layer.w / 2, base + (i - 1) * 5 + layer.h / 2, centerZ - 2),
+				1.2
+			)
+		)
+	end
+	-- 왼쪽 벽 바깥은 낮은 언덕 두 단 (느린 길 쪽)
+	for i = 1, 2 do
+		local layer = layers[i + 1]
+		append(
+			list,
+			MapKitShapes.bevelBox(
+				"WasabiHill",
+				v(layer.w, layer.h, layer.d),
+				HILLS[i],
+				"Pebble",
+				v(-(HALF + 0.75 + layer.w / 2), base + (i - 1) * 5 + layer.h / 2, centerZ + 6),
+				1.2
+			)
+		)
+	end
+	part(list, "HillRiceCap", "Ball", v(6, 6, 6), WHITE, "Sand", v(HALF + 3.75, base + 21, centerZ - 2))
+	for k = 0, 3 do
+		local d = 2.4 - k * 0.3
+		part(
+			list,
+			"HillRiceDrip",
+			"Ball",
+			v(d, d, d),
+			P.RiceShade,
+			"Sand",
+			v(HALF + 5 + k * 1.6, base + 19.6 - k * 1.4, centerZ + (if k % 2 == 0 then 3 else -3.5))
+		)
+	end
+	-- 받침 덩어리 (호수에서 솟아 언덕을 받쳐요)
+	local masses = {
+		{ d = 40, x = 32, y = 0, z = centerZ + 8, s = 1 },
+		{ d = 46, x = 46, y = -12, z = centerZ - 18, s = 2 },
+		{ d = 54, x = 40, y = -26, z = centerZ + 28, s = 4 },
+		{ d = 30, x = 58, y = 6, z = centerZ - 2, s = 3 },
+		{ d = 28, x = 22, y = 8, z = centerZ - 14, s = 1 },
+		{ d = 34, x = -30, y = -8, z = centerZ + 14, s = 4 },
+		{ d = 26, x = -22, y = 6, z = centerZ - 6, s = 2 },
+	}
+	for _, m in masses do
+		part(list, "WasabiMass", "Ball", v(m.d, m.d * 0.9, m.d), MOUNTAIN_SHADES[m.s], "Pebble", v(m.x, m.y, m.z))
+	end
+	local s =
+		part(list, "WasabiSparkle", "Block", v(4, 1, 8), P.Wasabi, "SmoothPlastic", v(HALF + 8, base + 16, centerZ))
+	s.transparency = 1
+	s.particle = "Sparkle"
+	s.particleRate = 3
+	s.castShadow = false
+	-- 패드 위 울퉁불퉁한 와사비 공 (패드 위로 0.5 이하)
+	for _, pad in Layout.WASABI_PADS_2 do
+		local top = base + Layout.PAD_THICKNESS
+		for i = 0, 2 do
+			for j = 0, 1 do
+				local d = if (i + j) % 2 == 0 then 0.8 else 0.6
+				local x = pad.x - pad.width / 2 + 0.8 + i * ((pad.width - 1.6) / 2)
+				local z = pad.z - pad.depth / 4 + j * (pad.depth / 2)
+				part(list, "WasabiPadBump", "Ball", v(d, d, d), WASABI_BUMP, "Sand", v(x, top + 0.45 - d / 2, z))
+			end
+		end
+	end
+end
+
+-- 히어로: 내리막 2 꼭대기 양옆의 거대 군함말이 두 개 — 위에 날치알이 수북하고, 두 레인으로 공이 굴러 나오는 원인.
+-- 실제 군함 지름 4 cm → 40 (작은 초밥 눈에는 탑). 김 띠 + 밥 + 날치알 산 + 흘러내린 알.
+local function addGunkanTowers(list: { DecorSpec })
+	local topY = Layout.SLOPE2_HIGH
+	for k, side in { -1, 1 } do
+		local x = side * (HALF + 24)
+		local z = Layout.BALL_SPAWN_Z_2 + 6
+		local base = LAKE_Y
+		local h = topY + 8 - base -- 받침 기둥 위 밥 윗면이 결승 단보다 8 높게
+		-- 도자기 굽 받침
+		disc(list, "GunkanStand", 4, 44, P.Porcelain, "SmoothPlastic", x, base, z).reflectance = 0.06
+		disc(list, "GunkanStandRim", 1, 45, P.PorcelainRim, "SmoothPlastic", x, base + 4, z)
+		-- 김 띠 (원기둥) + 위 테두리 밝은 김
+		disc(list, "GunkanNori", h - 5, 40, NORI_GREEN, "Fabric", x, base + 5, z)
+		disc(list, "GunkanNoriEdge", 1.2, 41, shade(NORI_GREEN, 1.4), "Fabric", x, base + h - 1.2, z)
+		disc(list, "GunkanRice", 2, 37, WHITE, "Sand", x, base + h - 2.2, z)
+		-- 날치알 산 (주황 공 무리) + 반짝임
+		part(list, "GunkanTobiko", "Ball", v(40, 13, 40), TOBIKO_SHADES[k], "Sand", v(x, base + h + 1, z))
+		-- 김 이음매 (코스 쪽 면에 짙은 세로 띠)
+		part(
+			list,
+			"GunkanNoriSeam",
+			"Block",
+			v(1.2, h - 6, 3),
+			shade(NORI_GREEN, 0.7),
+			"Fabric",
+			v(x - side * 19.8, base + 5 + (h - 6) / 2, z)
+		)
+		local rng = MapKitShapes.rng(400 + k)
+		for e = 0, 17 do
+			local a = rng:range(0, math.pi * 2)
+			local rr = rng:range(3, 17)
+			local d = rng:range(2.6, 3.8)
+			local egg = part(
+				list,
+				"TobikoEgg",
+				"Ball",
+				v(d, d, d),
+				TOBIKO_SHADES[(e % 3) + 1],
+				"Glass",
+				v(
+					x + math.cos(a) * rr,
+					base + h + 1 + 6.5 * math.sqrt(math.max(1 - (rr / 20) ^ 2, 0)),
+					z + math.sin(a) * rr
+				)
+			)
+			egg.reflectance = 0.15
+			egg.transparency = 0.1
+			egg.castShadow = false
+			if e % 5 == 0 then
+				egg.anim = { kind = "Pulse", period = 2.4 + e * 0.15, amount = 0.08 }
+			end
+		end
+		-- 코스 쪽으로 흘러내린 알 줄기 (벽 바깥, 결승 단 높이 근처)
+		for e = 0, 3 do -- 벽(x 12) 바깥에서 멈춰요
+			part(
+				list,
+				"TobikoSpill",
+				"Ball",
+				v(2.2, 2.2, 2.2),
+				TOBIKO_SHADES[(e % 3) + 1],
+				"Sand",
+				v(x - side * (16 + e * 1.4), base + h - 1 - e * 1.6, z + 4 - e * 1.2)
+			)
+		end
+		-- 군함 옆 오이 조각 장식 (색 대비 — 와사비와 다른 진녹)
+		part(
+			list,
+			"GunkanCucumber",
+			"Cylinder",
+			v(1.6, 12, 12),
+			c(70, 120, 60),
+			"SmoothPlastic",
+			v(x + side * 4, base + h + 9, z - 8),
+			v(20, 0, 70)
+		)
+	end
+	-- 결승 문 뒤 날치알 빛 (따뜻한 주황 — 보이는 원인: 결승 위 등)
+end
+
+-- 뒷부분 위 종이 등. 징검다리 위는 옛 등처럼 벽 위 들보(49)에, 내리막 2 위는 바닥이 높아서(시야 상자 위 끝 44~52)
+-- 벽 위에 세운 짧은 기둥이 받친 더 높은 들보(60)에 매달려요. 소개 카메라 경로(x 0)를 비켜 x ±6.
+local function addBackLanterns(list: { DecorSpec })
+	local spots = {
+		{ x = 6, y = 36, z = -205, beamY = Layout.WALL_HEIGHT + 1, lit = true }, -- 징검다리 위
+		{ x = 6, y = 57, z = -352, beamY = 64, lit = true }, -- 내리막 2 위
+	}
+	for _, sp in spots do
+		local ball = part(list, "Lantern", "Ball", v(3.6, 4, 3.6), c(214, 96, 54), "Fabric", v(sp.x, sp.y, sp.z))
+		if sp.lit then
+			ball.light = { kind = "Point", color = c(255, 176, 96), brightness = 1.6, range = 28 }
+		end
+		disc(list, "LanternCap", 0.5, 1.8, BLACK, "SmoothPlastic", sp.x, sp.y + 1.6, sp.z)
+		disc(list, "LanternCap", 0.5, 1.8, BLACK, "SmoothPlastic", sp.x, sp.y - 2.1, sp.z)
+		local cordLen = sp.beamY - 1 - (sp.y + 2.1)
+		part(
+			list,
+			"LanternCord",
+			"Cylinder",
+			v(cordLen, 0.2, 0.2),
+			BLACK,
+			"SmoothPlastic",
+			v(sp.x, sp.y + 2.1 + cordLen / 2, sp.z),
+			UP
+		)
+		append(
+			list,
+			MapKitShapes.roundedBox(
+				"LanternBeam",
+				v(Layout.WIDTH + 6, 2, 2),
+				WOOD_DARK,
+				"Wood",
+				v(0, sp.beamY, sp.z),
+				{ radius = 0.5, style = "vertical" }
+			)
+		)
+		if sp.beamY > Layout.WALL_HEIGHT + 1 then
+			for _, side in { -1, 1 } do
+				part(
+					list,
+					"LanternPost",
+					"Block",
+					v(1.6, sp.beamY - Layout.WALL_HEIGHT, 1.6),
+					WOOD_DARK,
+					"Wood",
+					v(side * (HALF + 2), (sp.beamY + Layout.WALL_HEIGHT) / 2, sp.z)
+				)
+			end
+		end
+	end
+end
+
+-- 뒷부분 호수 소품: 떠 있는 김 조각·파 줄기·연근 (코스 벽 바깥 20~60)
+local function addBackLakeProps(list: { DecorSpec })
+	local nori = { { -24, -196 }, { 22, -236 }, { -26, -268 }, { 24, -318 }, { -22, -350 }, { 26, -392 } }
+	for i, n in ipairs(nori) do
+		part(
+			list,
+			"NoriFlake",
+			"Block",
+			v(8 + (i % 3) * 2, 0.4, 6 + (i % 2) * 2),
+			if i % 2 == 0 then NORI_GREEN else BLACK,
+			"Fabric",
+			v(n[1], LAKE_Y + 0.4, n[2]),
+			v(0, i * 41, 0)
+		).anim =
+			{ kind = "Bob", period = 4 + (i % 3), amount = 0.5 }
+	end
+	local scallions = { { 24, -206 }, { -26, -330 }, { 22, -372 } }
+	for i, sc in ipairs(scallions) do
+		local h = 30 + (i % 2) * 6
+		part(
+			list,
+			"Scallion",
+			"Cylinder",
+			v(h, 1.8, 1.8),
+			if i % 2 == 0 then SCALLION else shade(SCALLION, 0.8),
+			"SmoothPlastic",
+			v(sc[1], LAKE_Y + h / 2, sc[2]),
+			v(0, i * 50, 90 + (if i % 2 == 0 then 8 else -8))
+		).anim =
+			{ kind = "Sway", period = 5 + i, amount = 3, axis = "X" }
+	end
+	local lotus = { { x = -44, z = -232, d = 24, tilt = 10 }, { x = 46, z = -340, d = 20, tilt = -12 } }
+	for _, l in lotus do
+		local local_: { DecorSpec } = {}
+		append(
+			local_,
+			MapKitShapes.rimDisc(
+				"LotusSlice",
+				l.d,
+				3,
+				LOTUS,
+				"SmoothPlastic",
+				v(0, 0, 0),
+				{ rimColor = shade(LOTUS, 0.85), rimWidth = 1.2, rimHeight = 0.8, segments = 14 }
+			)
+		)
+		part(
+			local_,
+			"LotusHole",
+			"Cylinder",
+			v(3.3, l.d * 0.16, l.d * 0.16),
+			LOTUS_HOLE,
+			"SmoothPlastic",
+			v(0, 0.05, 0),
+			UP
+		)
+		for k = 0, 5 do
+			local a = math.rad(k * 60 + 15)
+			local r = l.d * 0.3
+			part(
+				local_,
+				"LotusHole",
+				"Cylinder",
+				v(3.3, l.d * 0.18, l.d * 0.18),
+				LOTUS_HOLE,
+				"SmoothPlastic",
+				v(math.cos(a) * r, 0.05, math.sin(a) * r),
+				UP
+			)
+		end
+		append(list, MapKitShapes.transform(local_, v(l.x, LAKE_Y + 0.4, l.z), v(l.tilt, 0, l.tilt * 0.5)))
+	end
+end
+
 function SoySwampArt.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addPuddleRims(list)
@@ -1160,6 +1500,13 @@ function SoySwampArt.decor(): { DecorSpec }
 	addTobikoHills(list)
 	addFinishGate(list)
 	addPendantLamp(list)
+	-- m5-40 길이 늘리기: 새 구간
+	addStoneWraps(list)
+	addRiverBanks(list)
+	addHills2(list)
+	addGunkanTowers(list)
+	addBackLanterns(list)
+	addBackLakeProps(list)
 	return list
 end
 
@@ -1170,7 +1517,8 @@ function SoySwampArt.introCamera(): { IntroPoint }
 		-- m5-20 ⑤ 와사비 산 정상 위 반전 샷. m5-24 (m5-20 QA B3): 바로 아래를 보면 lookAt이 퇴화해 굴러갈 수 있어
 		-- 앞(-Z)으로 조금 기울여요 (수평 방향이 계속 앞이라 m5-20 QA AC12도 그대로).
 		{ pos = v(0, 36, -86), lookAt = v(0, 12, -96) },
-		{ pos = v(0, 38, -128), lookAt = v(0, 20, -168) }, -- 날치알 내리막 → 결승
+		-- m5-40: 쉼터 위 높은 곳에서 새 뒷부분(김 징검다리 → 와사비 산 2 → 내리막 2 → 결승 문)을 한 번에
+		{ pos = v(0, 64, -150), lookAt = v(0, 30, -262) },
 		{ pos = v(0, 12, 10), lookAt = v(0, 4, -30) }, -- 출발선 뒤 (내 자리)
 	}
 end
@@ -1186,6 +1534,9 @@ function SoySwampArt.courseVolume(): { Bounds }
 	local h = Layout.MOUNTAIN_HEIGHT
 	local body = Layout.MOUNTAIN_BODY
 	local bodyRight = body.x + body.width / 2
+	local body2 = Layout.MOUNTAIN2_BODY
+	local body2Left = body2.x - body2.width / 2
+	local top2 = Layout.MOUNTAIN2_BASE + Layout.MOUNTAIN2_HEIGHT
 	return {
 		-- 출발·늪·산 앞 평지 (바닥 0)
 		box(-HALF, HALF, Layout.APPROACH.back, Layout.START.front, 0),
@@ -1195,8 +1546,19 @@ function SoySwampArt.courseVolume(): { Bounds }
 		box(bodyRight, HALF, Layout.MOUNTAIN.back, Layout.MOUNTAIN.front, 0, h),
 		-- 날치알 내리막 (바닥 12 → 20)
 		box(-HALF, HALF, Layout.SLOPE.back, Layout.SLOPE.front, Layout.SLOPE_LOW, Layout.SLOPE_HIGH),
-		-- 결승 (바닥 20)
-		box(-HALF, HALF, Layout.FINISH.back, Layout.FINISH.front, Layout.SLOPE_HIGH),
+		-- m5-40 쉼터 (바닥 20)
+		box(-HALF, HALF, Layout.LANDING.back, Layout.LANDING.front, Layout.SLOPE_HIGH),
+		-- m5-40 김 징검다리 (강바닥 16 ~ 발판 20)
+		box(-HALF, HALF, Layout.RIVER.back, Layout.RIVER.front, Layout.RIVER_BED_Y, Layout.SLOPE_HIGH),
+		-- m5-40 산 2 앞 평지 (바닥 20)
+		box(-HALF, HALF, Layout.APPROACH2.back, Layout.APPROACH2.front, Layout.MOUNTAIN2_BASE),
+		-- m5-40 산 2 몸통 꼭대기 (바닥 32) + 왼쪽 경사로·통로 (20 → 32)
+		box(body2Left, HALF, Layout.MOUNTAIN2.back, Layout.MOUNTAIN2.front, top2),
+		box(-HALF, body2Left, Layout.MOUNTAIN2.back, Layout.MOUNTAIN2.front, Layout.MOUNTAIN2_BASE, top2),
+		-- m5-40 날치알 내리막 2 (바닥 32 → 40)
+		box(-HALF, HALF, Layout.SLOPE2.back, Layout.SLOPE2.front, Layout.SLOPE2_LOW, Layout.SLOPE2_HIGH),
+		-- 결승 (바닥 40)
+		box(-HALF, HALF, Layout.FINISH.back, Layout.FINISH.front, Layout.SLOPE2_HIGH),
 	}
 end
 

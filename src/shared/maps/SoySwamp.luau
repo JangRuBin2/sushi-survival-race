@@ -1,7 +1,8 @@
 --!strict
 -- Race 맵 "간장 늪 & 와사비 산" (GDD 5.2 ②, 스펙 m2-02).
 -- 출발 → 간장 늪(웅덩이 사이 지그재그 마른 길) → 와사비 산(패드로 바로 / 옆 통로+경사로로 돌아서)
--- → 날치알 내리막(결승 쪽이 높고 공이 굴러 내려와요) → 결승.
+-- → 날치알 내리막(결승 쪽이 높고 공이 굴러 내려와요) → 쉼터 → (m5-40) 김 징검다리 → 와사비 산 2(좌우 반대)
+-- → 날치알 내리막 2(공 두 줄) → 결승.
 -- 치수·튜닝 값은 SoySwampLayout, 장애물 동작은 SoySwampHazards에 있어요.
 -- 코스는 origin의 LookVector(로컬 -Z)로 뻗어요. build/start 안에서만 Roblox API를 써서 Lune에서 require해도 안전해요.
 
@@ -76,6 +77,61 @@ local function build(origin: CFrame): Model
 			CustomPhysicalProperties = SMOOTH,
 			Parent = model,
 		})
+	end
+
+	-- 바닥 baseY 위에 높이 height인 블록 (m5-40 새 구간 — 단이 여러 높이예요)
+	local function blockAt(
+		name: string,
+		x: number,
+		baseY: number,
+		z: number,
+		width: number,
+		depth: number,
+		height: number,
+		color: Color3,
+		material: Enum.Material
+	): BasePart
+		return makePart({
+			Name = name,
+			Size = Vector3.new(width, height, depth),
+			CFrame = at(x, baseY + height / 2, z),
+			Color = color,
+			Material = material,
+			CustomPhysicalProperties = SMOOTH,
+			Parent = model,
+		})
+	end
+
+	-- 윗면이 (x, y1, z1) → (x, y2, z2) 선을 지나는 기울어진 판 (m5-40 경사로·내리막 2)
+	local function slabPart(
+		name: string,
+		x: number,
+		width: number,
+		z1: number,
+		y1: number,
+		z2: number,
+		y2: number,
+		color: Color3,
+		material: Enum.Material
+	): BasePart
+		local a = Vector3.new(x, y1, z1)
+		local b = Vector3.new(x, y2, z2)
+		local mid = (a + b) / 2
+		local thickness = 1
+		local localCFrame = CFrame.lookAt(mid, b) * CFrame.new(0, -thickness / 2, 0)
+		return makePart({
+			Name = name,
+			Size = Vector3.new(width, thickness, (b - a).Magnitude),
+			CFrame = origin * localCFrame,
+			Color = color,
+			Material = material,
+			CustomPhysicalProperties = SMOOTH,
+			Parent = model,
+		})
+	end
+
+	local function spanCenter(span: { front: number, back: number }): (number, number)
+		return (span.front + span.back) / 2, span.front - span.back
 	end
 
 	local half = Layout.WIDTH / 2
@@ -228,24 +284,157 @@ local function build(origin: CFrame): Model
 		CustomPhysicalProperties = SMOOTH,
 		Parent = model,
 	})
-	-- 경사판 아래 빈틈은 받침(아래)·결승 단(앞)·양옆 벽으로 막혀 있어서 따로 채우지 않아요.
+	-- 경사판 아래 빈틈은 받침(아래)·쉼터 단(앞)·양옆 벽으로 막혀 있어서 따로 채우지 않아요.
 
-	-- 5. 결승 구간: 내리막 꼭대기 높이의 단 + 결승선(표시용, 판정은 start의 위치 판정)
-	local finishDepth = Layout.FINISH.front - Layout.FINISH.back
+	-- 5. 쉼터 (m5-40: 옛 결승 단 — 같은 자리·높이)
+	local landingZ, landingDepth = spanCenter(Layout.LANDING)
+	block(
+		"LandingBase",
+		0,
+		landingZ,
+		Layout.WIDTH,
+		landingDepth,
+		Layout.SLOPE_HIGH,
+		COLORS.floor,
+		Enum.Material.WoodPlanks
+	)
+
+	-- 6. 김 징검다리 (m5-40): 강바닥 받침 + 간장 강(SoySauce 태그) + 김 발판 기둥 + 오른쪽 구석 나오는 경사로
+	local riverZ, riverDepth = spanCenter(Layout.RIVER)
+	local bed = Layout.RIVER_BED_Y
+	block("RiverBase", 0, riverZ, Layout.WIDTH, riverDepth, bed, COLORS.mountain, Enum.Material.Sand)
+	local river = makePart({
+		Name = "SoyRiver",
+		Size = Vector3.new(Layout.WIDTH, Layout.PUDDLE_DEPTH, riverDepth),
+		CFrame = at(0, bed + 0.1 + Layout.PUDDLE_DEPTH / 2, riverZ),
+		Color = COLORS.soy,
+		Material = Enum.Material.Glass,
+		Reflectance = Art.SOY_REFLECTANCE,
+		Transparency = 0.15,
+		CanCollide = false,
+		CanTouch = false,
+		Parent = puddles,
+	})
+	CollectionService:AddTag(river, "SoySauce")
+	-- 발판 = 군함말이: 김(짙은 녹흑) 기둥 + 맨 위 밥 판(가장 밝게 — 밟는 곳). 둘 다 판정 파츠.
+	local capThickness = 0.8
+	for i, stone in Layout.STONES do
+		blockAt(
+			`NoriStone{i}`,
+			stone.x,
+			bed,
+			stone.z,
+			stone.width,
+			stone.depth,
+			Layout.SLOPE_HIGH - capThickness - bed,
+			COLORS.nori,
+			Enum.Material.Fabric
+		)
+		blockAt(
+			`StoneRice{i}`,
+			stone.x,
+			Layout.SLOPE_HIGH - capThickness,
+			stone.z,
+			stone.width,
+			stone.depth,
+			capThickness,
+			COLORS.stone,
+			Enum.Material.Sand
+		)
+	end
+	local riverRamp = Layout.RIVER_RAMP
+	slabPart(
+		"RiverRamp",
+		riverRamp.x,
+		riverRamp.width,
+		riverRamp.low,
+		bed,
+		riverRamp.high,
+		Layout.SLOPE_HIGH,
+		COLORS.ramp,
+		Enum.Material.WoodPlanks
+	)
+
+	-- 7. 와사비 산 2 (m5-40): 산 1을 좌우로 뒤집은 모양 + 잘게 나뉜 패드 3개 + 느린 길 통로의 간장
+	local base2 = Layout.MOUNTAIN2_BASE
+	local approach2Z, approach2Depth = spanCenter(Layout.APPROACH2)
+	block("Approach2Base", 0, approach2Z, Layout.WIDTH, approach2Depth, base2, COLORS.floor, Enum.Material.WoodPlanks)
+	local mountain2Z, mountain2Depth = spanCenter(Layout.MOUNTAIN2)
+	block("Mountain2Base", 0, mountain2Z, Layout.WIDTH, mountain2Depth, base2, COLORS.mountain, Enum.Material.Sand)
+	local h2 = Layout.MOUNTAIN2_HEIGHT
+	local body2 = Layout.MOUNTAIN2_BODY
+	blockAt("MountainBody2", body2.x, base2, body2.z, body2.width, body2.depth, h2, COLORS.mountain, Enum.Material.Sand)
+	local back2 = Layout.MOUNTAIN2_BACK
+	blockAt("MountainBack2", back2.x, base2, back2.z, back2.width, back2.depth, h2, COLORS.mountain, Enum.Material.Sand)
+	local ramp2 = Layout.RAMP2
+	slabPart(
+		"Ramp2",
+		ramp2.x,
+		ramp2.width,
+		ramp2.low,
+		base2,
+		ramp2.high,
+		base2 + h2,
+		COLORS.ramp,
+		Enum.Material.WoodPlanks
+	)
+	for i, box in Layout.WASABI_PADS_2 do
+		local pad = makePart({
+			Name = `WasabiPad{#Layout.WASABI_PADS + i}`,
+			Size = Vector3.new(box.width, Layout.PAD_THICKNESS, box.depth),
+			CFrame = at(box.x, base2 + Layout.PAD_THICKNESS / 2, box.z),
+			Color = COLORS.wasabi,
+			Material = Enum.Material.Neon,
+			Parent = pads,
+		})
+		CollectionService:AddTag(pad, "Wasabi")
+	end
+	local corridor = Layout.CORRIDOR_PUDDLE
+	local corridorSoy = makePart({
+		Name = "SoyCorridor",
+		Size = Vector3.new(corridor.width, Layout.PUDDLE_DEPTH, corridor.depth),
+		CFrame = at(corridor.x, base2 + 0.1 + Layout.PUDDLE_DEPTH / 2, corridor.z),
+		Color = COLORS.soy,
+		Material = Enum.Material.Glass,
+		Reflectance = Art.SOY_REFLECTANCE,
+		Transparency = 0.15,
+		CanCollide = false,
+		CanTouch = false,
+		Parent = puddles,
+	})
+	CollectionService:AddTag(corridorSoy, "SoySauce")
+
+	-- 8. 날치알 내리막 2 (m5-40): 산 2 꼭대기 높이의 받침 위에 결승 쪽이 높은 판
+	local slope2Z, slope2Depth = spanCenter(Layout.SLOPE2)
+	block("Slope2Base", 0, slope2Z, Layout.WIDTH, slope2Depth, Layout.SLOPE2_LOW, COLORS.mountain, Enum.Material.Sand)
+	slabPart(
+		"TobikoSlope2",
+		0,
+		Layout.WIDTH,
+		Layout.SLOPE2.front,
+		Layout.SLOPE2_LOW,
+		Layout.SLOPE2.back,
+		Layout.SLOPE2_HIGH,
+		COLORS.slope,
+		Enum.Material.WoodPlanks
+	)
+
+	-- 9. 결승 구간: 내리막 2 꼭대기 높이의 단 + 결승선(표시용, 판정은 start의 위치 판정)
+	local finishZ, finishDepth = spanCenter(Layout.FINISH)
 	block(
 		"FinishBase",
 		0,
-		Layout.FINISH.front - finishDepth / 2,
+		finishZ,
 		Layout.WIDTH,
 		finishDepth,
-		Layout.SLOPE_HIGH,
+		Layout.SLOPE2_HIGH,
 		COLORS.floor,
 		Enum.Material.WoodPlanks
 	)
 	makePart({
 		Name = "FinishLine",
 		Size = Vector3.new(Layout.WIDTH, 0.4, 1),
-		CFrame = at(0, Layout.SLOPE_HIGH + 0.2, Layout.finishLineZ()),
+		CFrame = at(0, Layout.SLOPE2_HIGH + 0.2, Layout.finishLineZ()),
 		Color = COLORS.finish,
 		Material = Enum.Material.Neon,
 		CanCollide = false,

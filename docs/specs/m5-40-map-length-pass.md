@@ -137,3 +137,11 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### L1 …). 바뀐 파일, 바꾼 기존 단언 목록, 실측 클리어 시간, 전/후 PNG, 휴대폰 메모, 남은 이슈 -->
+
+### L1 (rotating-belt · soy-swamp) — 브랜치 `m5-len-a`
+- **새 길이·추정**(`Logic.estimateClearTime`, 실측 아님 — AC9는 Studio): rotating-belt 114 → **383.5**(결승선 -386, 추정 47.2초) · soy-swamp 168 → **402.5**(결승선 -405, 추정 44.2초).
+- **새 구간**: belt = 쉼터(흰 노렌 문) → 지그재그 옆 벨트 4장(좌우 교대 밀기 10, 칸막이 틈은 미는 반대쪽) → 쉼터 → 접시 탑 슬라롬(탑 12개, 높이 12·13.5) → 벨트 C + 젓가락 3개(대기 2.5~3.5) → 결승·셰프. soy = 옛 결승 단은 쉼터 → 김 징검다리(군함말이 발판 7개, 틈 3.5, 빠지면 간장 강 → 오른쪽 구석 경사로, 탈락 없음) → 와사비 산 2(좌우 반대, 패드 3개, 느린 길 통로에 간장) → 날치알 내리막 2(32→40, 레인 2개) → 결승(높이 40).
+- **바뀐 파일**: `RotatingBelt.luau`·`RotatingBeltArt.luau`·`RotatingBeltChopstick.luau`(station별 대기 범위 속성, 옛 범위로 자름)·새 `RotatingBeltLayout.luau`·`RotatingBeltLogic.luau`, `SoySwamp.luau`·`SoySwampArt.luau`·`SoySwampHazards.luau`(공 생성 자리 여러 개)·`SoySwampLayout.luau`·새 `SoySwampLogic.luau`, 새 `tests/m5-40-l1.spec.luau`(16개).
+- **바꾼 기존 단언(AC6, 전부 의도한 길이·카메라 값)**: `m4-02-qa` 구간 깊이 목록에 새 구간 추가·`floorCalls` 5→9 · `m5-20-qa` belt[4].pos (0,18,-96)→(8,24,-112), swamp[4].pos (0,38,-128)→(0,64,-150) · `map-art-race` 벨트 끝 -120→-390, 간장 `totalLength` 174→409·`finishLineZ` -170→-405, keepsOld에서 옛 결승 샷 점 제외(새 점 1→2) · `map-soy-swamp` 구간 순서에 새 구간·길이 150~190→360~440 · `m5-24-qa` 판정 지문 belt·soy 두 줄(공용 테스트 — 다른 그룹 줄은 안 건드림).
+- **렌더**: `docs/renders/<id>/{before,after}-length-{overview,eye,intro-04,top}.png` + `after-length-stats.txt`. void% 전 뷰 ≤ 3%(belt overview는 가게 밖 거리 바닥·실루엣 띠로 3%). 휴대폰 메모: belt tris 103.7k → 109.0k, 장식 1386 → 1492/1500(결승 체크무늬·메뉴 글씨·술병·식탁 6→4를 덜어 재분배), 판정 파츠 57 → 213(접시 탑이 접시 한 장씩 고정 판정 파츠); soy tris 87.4k → 116.7k, 장식 966 → 1288.
+- **Studio 확인**: `Config.DEBUG.forceMapPlan = { "rotating-belt", "soy-swamp", "skewer-showdown" }`(확인 뒤 nil). 옆 벨트가 옆으로 미는지·칸막이 틈으로 대각선 이동, 접시 탑 S자, 벨트 C 젓가락, 징검다리에서 빠지면 느려지고 경사로로 나오는지, 산 2 패드 3개 착지, 내리막 2 공 두 줄, 완주 시간(AC9).

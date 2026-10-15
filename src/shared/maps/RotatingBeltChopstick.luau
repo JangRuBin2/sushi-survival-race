@@ -30,6 +30,16 @@ local Chopstick = {}
 
 Chopstick.TAG = TAG
 
+-- 대기 시간 범위를 옛 범위(COOLDOWN_MIN~MAX) 안으로 잘라요 (m5-40 새 구간 수치는 기존 범위 안)
+function Chopstick.cooldownRange(low: number?, high: number?): (number, number)
+	local a = math.clamp(low or COOLDOWN_MIN, COOLDOWN_MIN, COOLDOWN_MAX)
+	local b = math.clamp(high or COOLDOWN_MAX, COOLDOWN_MIN, COOLDOWN_MAX)
+	if b < a then
+		a, b = b, a
+	end
+	return a, b
+end
+
 -- GetTagged만 쓰는 최소 모양 (테스트가 가짜를 넘길 수 있게)
 type TagSource = { GetTagged: (self: any, tag: string) -> { Instance } }
 
@@ -60,11 +70,17 @@ end
 
 -- station 하나를 짓는다. stationCFrame은 바닥 위(y=0)를 기준으로 하는 월드 CFrame.
 -- 포획 판정용 Zone에 CollectionService 태그 "Chopstick"을 붙인다.
-function Chopstick.build(stationCFrame: CFrame): Model
+-- m5-40: cooldownMin/Max를 주면 그 station만 다음 사이클 대기 시간을 바꿔요 (COOLDOWN_MIN~MAX 범위 안으로 잘라요).
+function Chopstick.build(stationCFrame: CFrame, cooldownMin: number?, cooldownMax: number?): Model
 	local CollectionService = game:GetService("CollectionService")
 
 	local station = Instance.new("Model")
 	station.Name = "ChopstickStation"
+	if cooldownMin and cooldownMax then
+		local low, high = Chopstick.cooldownRange(cooldownMin, cooldownMax)
+		station:SetAttribute("CooldownMin", low)
+		station:SetAttribute("CooldownMax", high)
+	end
 
 	local zone = Instance.new("Part")
 	zone.Name = "Zone"
@@ -208,9 +224,15 @@ function Chopstick.run(station: Model, ctx: MapTypes.RoundContext)
 	local zone = station:FindFirstChild("Zone") :: BasePart
 	local warning = station:FindFirstChild("Warning") :: BasePart
 	assert(zone and warning, "chopstick station missing Zone/Warning parts")
+	local low = station:GetAttribute("CooldownMin")
+	local high = station:GetAttribute("CooldownMax")
+	local cooldownMin, cooldownMax = Chopstick.cooldownRange(
+		if type(low) == "number" then low else nil,
+		if type(high) == "number" then high else nil
+	)
 
 	while ctx.isActive() do
-		task.wait(ctx.rng:NextNumber(COOLDOWN_MIN, COOLDOWN_MAX))
+		task.wait(ctx.rng:NextNumber(cooldownMin, cooldownMax))
 		if not ctx.isActive() then
 			break
 		end

@@ -28,7 +28,13 @@ Layout.SWAMP = { front = -16, back = -60 } :: Span
 Layout.APPROACH = { front = -60, back = -72 } :: Span -- 와사비 산 앞 평지 (와사비 패드가 있어요)
 Layout.MOUNTAIN = { front = -72, back = -112 } :: Span
 Layout.SLOPE = { front = -112, back = -160 } :: Span -- 날치알 내리막 (결승 쪽이 높아요)
-Layout.FINISH = { front = -160, back = -174 } :: Span
+-- m5-40 길이 늘리기: 옛 결승 단(높이 20)은 쉼터가 되고, 그 뒤에 김 징검다리 → 와사비 산 2 → 날치알 내리막 2 → 결승.
+Layout.LANDING = { front = -160, back = -174 } :: Span -- 쉼터 (옛 결승 단, 높이 SLOPE_HIGH)
+Layout.RIVER = { front = -174, back = -237 } :: Span -- 김 징검다리 (간장 강, 바닥 RIVER_BED_Y)
+Layout.APPROACH2 = { front = -237, back = -251 } :: Span -- 와사비 산 2 앞 평지 (패드 3개, 높이 SLOPE_HIGH)
+Layout.MOUNTAIN2 = { front = -251, back = -307 } :: Span -- 와사비 산 2 (몸통이 오른쪽, 느린 길이 왼쪽)
+Layout.SLOPE2 = { front = -307, back = -395 } :: Span -- 날치알 내리막 2 (공이 두 줄로)
+Layout.FINISH = { front = -395, back = -409 } :: Span -- 결승 (높이 SLOPE2_HIGH)
 
 -- 간장 늪: 웅덩이 3개가 번갈아 한쪽 끝만 비워서, 폭 4의 마른 길이 지그재그로 이어져요.
 Layout.DRY_PATH_WIDTH = 4
@@ -56,8 +62,59 @@ Layout.SLOPE_HIGH = 20
 Layout.BALL_SPAWN_Z = -157 -- 공이 생기는 z (내리막 꼭대기 바로 아래)
 Layout.BALL_SPAWN_HALF_WIDTH = 9 -- 공이 생기는 x 범위 (±)
 
--- 결승: 높이 SLOPE_HIGH의 평지. 결승선을 끝 벽보다 FINISH_LINE_INSET 앞에 둬요 (넘은 뒤 서 있을 자리).
+-- 결승: 높이 SLOPE2_HIGH의 평지. 결승선을 끝 벽보다 FINISH_LINE_INSET 앞에 둬요 (넘은 뒤 서 있을 자리).
 Layout.FINISH_LINE_INSET = 4
+
+-- m5-40 ① 김 징검다리: 간장 강(바닥 RIVER_BED_Y, 간장 판이 깔려 있어요) 위로 김 조각 발판 기둥이 윗면 SLOPE_HIGH까지
+-- 솟아 있어요. 발판 사이 틈은 3.5 (점프 한 번이면 넘지만 정확히 디뎌야 해요). 떨어지면 간장 속이라 느리고 점프가
+-- 안 돼서(기존 간장 규칙 그대로), 오른쪽 구석 경사로(RIVER_RAMP)까지 걸어가 올라와야 해요 — 탈락은 없어요.
+Layout.RIVER_BED_Y = 16 -- 강바닥 윗면 (발판 윗면보다 4 아래 — 간장 판 위에 서 있으면 간장 안)
+Layout.RIVER_GAP = 3.5
+Layout.STONES = {
+	{ x = -5, z = -180, width = 7, depth = 5 },
+	{ x = 2, z = -188.5, width = 7, depth = 5 },
+	{ x = 7, z = -197, width = 6, depth = 5 },
+	{ x = 0, z = -205.5, width = 7, depth = 5 },
+	{ x = -6, z = -214, width = 6, depth = 5 },
+	{ x = 1, z = -222.5, width = 7, depth = 5 },
+	{ x = -4, z = -231, width = 7, depth = 5 },
+} :: { Box }
+-- 강에 빠진 사람이 나오는 경사로: 오른쪽 구석, low(강바닥) → high(건너편 둑 윗면)
+Layout.RIVER_RAMP = { x = 9.5, width = 5, low = -221, high = -237 }
+
+-- m5-40 ② 와사비 산 2: 산 1을 좌우로 뒤집었어요 — 몸통이 오른쪽(x -4~12), 느린 길(지면 통로 + 경사로)이 왼쪽.
+-- 패드는 3개로 잘게 나뉘어 계단처럼 어긋나 있고, 느린 길 통로에는 간장 웅덩이가 있어 더 느려요.
+Layout.MOUNTAIN2_BASE = 20 -- 산 2 앞 평지·통로 바닥 (= SLOPE_HIGH)
+Layout.MOUNTAIN2_HEIGHT = 12 -- 바닥 위 몸통 높이 (산 1과 같아요 → 꼭대기 32)
+Layout.MOUNTAIN2_BODY = { x = 4, z = -275, width = 16, depth = 48 } :: Box -- z -251 ~ -299
+Layout.MOUNTAIN2_BACK = { x = 0, z = -303, width = 24, depth = 8 } :: Box -- z -299 ~ -307, 폭 전체
+Layout.RAMP2 = { x = -6, width = 4, low = -299, high = -267 }
+Layout.WASABI_PADS_2 = {
+	{ x = -1.5, z = -242, width = 4, depth = 4 },
+	{ x = 4, z = -244.5, width = 4, depth = 4 },
+	{ x = 9.5, z = -247, width = 4, depth = 4 },
+} :: { Box }
+Layout.CORRIDOR_PUDDLE = { x = -10.2, z = -277, width = 3.6, depth = 14 } :: Box -- 느린 길 통로의 간장
+
+-- m5-40 ③ 날치알 내리막 2: 높이 SLOPE2_LOW → SLOPE2_HIGH, 공이 두 줄(왼쪽·오른쪽 레인)로 따로 굴러 내려와요.
+Layout.SLOPE2_LOW = 32
+Layout.SLOPE2_HIGH = 40
+Layout.BALL_LANES_2 = {
+	{ minX = -9.5, maxX = -3 },
+	{ minX = 3, maxX = 9.5 },
+}
+Layout.BALL_SPAWN_Z_2 = -392
+
+-- m5-40 길이 추정 (빠른 사람, 초): 1번 줄 스폰 → 결승선을 걷는 시간 + 구간별 지연
+Layout.WALK_SPEED = 16 -- Config.Character.WalkSpeed와 같아요
+Layout.SECTION_DELAY = {
+	SWAMP = 3, -- 지그재그 마른 길 (돌아가는 거리 + 간장 피하기)
+	MOUNTAIN = 2, -- 와사비 비행 + 착지
+	SLOPE = 3, -- 날치알 피하기 (가끔 1초 넘어짐)
+	RIVER = 5, -- 김 발판 7번 정확히 디디기
+	MOUNTAIN2 = 2, -- 작은 패드 겨누기 + 비행
+	SLOPE2 = 4, -- 두 줄 날치알
+} :: { [string]: number }
 
 -- 스폰 24개 (6열 × 4줄)
 Layout.SPAWN_COLUMNS = 6
@@ -113,6 +170,13 @@ function Layout.slopeHeightAt(z: number): number
 	return Layout.SLOPE_LOW + (Layout.SLOPE_HIGH - Layout.SLOPE_LOW) * t
 end
 
+-- 내리막 2 위 로컬 z에서의 바닥 높이 (m5-40)
+function Layout.slope2HeightAt(z: number): number
+	local t = (Layout.SLOPE2.front - z) / (Layout.SLOPE2.front - Layout.SLOPE2.back)
+	t = math.clamp(t, 0, 1)
+	return Layout.SLOPE2_LOW + (Layout.SLOPE2_HIGH - Layout.SLOPE2_LOW) * t
+end
+
 -- 판 위 영역 판정: rel은 판 CFrame 기준 상대 좌표, sizeX/sizeZ는 판 크기.
 -- 판 가운데 높이 기준으로 아래 below, 위 above 사이에 있어야 해요.
 function Layout.isAbovePlate(
@@ -133,8 +197,10 @@ function Layout.soyWalkSpeed(baseWalkSpeed: number): number
 end
 
 -- 공이 사라져야 하는지: 오래됐거나, 내리막 아래 끝을 지나 굴러 나왔거나, 너무 아래로 떨어졌거나.
-function Layout.ballExpired(age: number, localZ: number, localY: number): boolean
-	return age >= Layout.BALL_LIFETIME or localZ > Layout.SLOPE.front or localY < -Layout.FALL_DEPTH
+-- slope를 안 넘기면 내리막 1 (m5-40: 내리막 2 공은 Layout.SLOPE2를 넘겨요).
+function Layout.ballExpired(age: number, localZ: number, localY: number, slope: Span?): boolean
+	local front = (slope or Layout.SLOPE).front
+	return age >= Layout.BALL_LIFETIME or localZ > front or localY < -Layout.FALL_DEPTH
 end
 
 -- 키(플레이어 등)별 쿨다운. tryUse가 true면 지금 써도 되고, 그 시각부터 duration 동안은 false예요.

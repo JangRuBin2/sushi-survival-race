@@ -5,6 +5,7 @@
 
 local fs = require("@lune/fs")
 
+local LocTest = require("./lib/LocTest")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -376,7 +377,10 @@ return function(t: Test.Test)
 	t.test(
 		"AC5: displayPercents — 전설 '준비 중', 5.0/15.2/30.3/49.5 (합 정확히 100.0), 전설 있으면 1.0/5.0/15.0/30.0/49.0",
 		function()
-			local shown = DrawLogic.displayPercents(DrawLogic.grades(M531))
+			local shown: { [string]: string } = {}
+			for grade, value in DrawLogic.displayPercents(DrawLogic.grades(M531)) do
+				shown[grade] = LocTest.ko(value) -- 빈 등급은 LocText (m5-26)
+			end
 			t.eq(shown, {
 				Legendary = "준비 중",
 				Epic = "5.0%",
@@ -539,7 +543,7 @@ return function(t: Test.Test)
 		t.eq(select(2, DrawLogic.canDraw(wallet(2), true)), "Locked")
 		t.eq(select(2, DrawLogic.canDraw(wallet(2), false, false)), "CannotSave")
 		t.eq(DrawLogic.canDraw(wallet(1), false, true), true)
-		t.eq(DrawLogic.message("NoTickets"), "우승하면 🎫 뽑기권을 받아요")
+		t.eq(LocTest.ko(DrawLogic.message("NoTickets")), "우승하면 🎫 뽑기권을 받아요")
 		local w = wallet(0)
 		local snapshot = table.clone(w)
 		DrawLogic.canDraw(w)
@@ -599,11 +603,11 @@ return function(t: Test.Test)
 		t.eq(coins[2], 10 + 30)
 		t.eq(tickets[1], 1)
 		t.eq(tickets[2], nil)
-		t.eq(RewardLogic.ticketToastText(1, false), "+1 🎫 우승 뽑기권")
-		t.eq(RewardLogic.ticketToastText(0, true), "🎫 뽑기권이 가득 찼어요 (99장)")
+		t.eq(LocTest.ko(RewardLogic.ticketToastText(1, false)), "+1 🎫 우승 뽑기권")
+		t.eq(LocTest.ko(RewardLogic.ticketToastText(0, true)), "🎫 뽑기권이 가득 찼어요 (99장)")
 		t.eq(RewardLogic.ticketToastText(nil, nil), nil)
-		t.eq(RewardLogic.summaryText(140, 500, nil, nil, 1), "이번 판 +140 🍚 🎫 +1 (총 500)")
-		t.eq(RewardLogic.summaryText(140, 500), "이번 판 +140 🍚 (총 500)")
+		t.eq(LocTest.ko(RewardLogic.summaryText(140, 500, nil, nil, 1)), "이번 판 +140 🍚 🎫 +1 (총 500)")
+		t.eq(LocTest.ko(RewardLogic.summaryText(140, 500)), "이번 판 +140 🍚 (총 500)")
 		local src = fs.readFile("src/server/RewardService.luau")
 		t.ok(string.find(src, "DrawLogic.addTickets(p.drawTickets, tickets)", 1, true) ~= nil)
 		t.ok(string.find(src, "ticketsFull =", 1, true) ~= nil)
@@ -754,7 +758,7 @@ return function(t: Test.Test)
 			local tabs = ShopLogic.tabs(nil)
 			t.eq(tabs[1].id, "all")
 			t.eq(tabs[2].id, "draw")
-			t.eq(tabs[2].label, "🎫 특")
+			t.eq(LocTest.ko(tabs[2].label), "🎫 특")
 			local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 			local ids = {}
 			for _, skin in ShopLogic.visibleSkins(view, tabs[2], nil) do
@@ -794,37 +798,42 @@ return function(t: Test.Test)
 			local view: any = { coins = 99999, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 			local state = ShopLogic.cardState(Skins.get("concept-uni"), view)
 			t.eq(state.kind, "Draw")
-			t.eq(ShopLogic.cardButtonText(state), "🎫 뽑기로 얻기")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "🎫 뽑기로 얻기")
 			t.eq(ShopLogic.robuxButtonText(state), nil)
 			view.studioUnlockAll = true
 			for _, id in { "concept-uni", "golden-otoro", "vip-gold-tamago" } do
 				local studio = ShopLogic.cardState(Skins.get(id), view)
 				t.eq(studio.kind, "Equip", id)
-				t.eq(ShopLogic.cardButtonText(studio), "입기 (Studio)", id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(studio)), "입기 (Studio)", id)
 			end
 			view.ownedSkins = { "concept-uni", "tamago" }
-			t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get("concept-uni"), view)), "입기")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get("concept-uni"), view))), "입기")
 			local screen = fs.readFile("src/client/ui/ShopScreen.luau")
-			t.ok(string.find(screen, "Text = `🎫 {gradeInfo.displayName}`", 1, true) ~= nil)
+			-- 카드 배지 = 뽑기 등급 이름 (m5-26: 키 shop.drawBadge + Loc.drawGradeName)
+			t.ok(
+				string.find(screen, 'Loc.t("shop.drawBadge", { grade = Loc.drawGradeName(drawGrade) })', 1, true) ~= nil
+			)
 		end
 	)
 
 	t.test("결과 글씨·뽑기권 글씨", function()
 		t.eq(
-			DrawLogic.resultText(
-				{ kind = "Skin", skinId = "concept-ikura", grade = "Rare", coins = 0, ticketsLeft = 1 },
-				"연어알 군함 (특)"
+			LocTest.ko(
+				DrawLogic.resultText(
+					{ kind = "Skin", skinId = "concept-ikura", grade = "Rare", coins = 0, ticketsLeft = 1 },
+					"연어알 군함 (특)"
+				)
 			),
 			"🎉 연어알 군함 (특) 획득!"
 		)
 		t.eq(
-			DrawLogic.resultText({
+			LocTest.ko(DrawLogic.resultText({
 				kind = "Duplicate",
 				skinId = "concept-ikura",
 				grade = "Rare",
 				coins = 80,
 				ticketsLeft = 1,
-			}),
+			})),
 			"이미 가진 스킨이에요 → 🍚 +80"
 		)
 		t.eq(DrawLogic.ticketText(3), "×3")

@@ -75,6 +75,19 @@ hud.timer.overtime,⚡ {seconds}초,overtime countdown timer,seconds=12,⚡ {sec
 input.dive.btn,🤸 다이브,mobile dive button,,🤸 Dive
 input.grab.btn,✊ 잡기,mobile grab button,,✊ Grab
 input.grabbed,잡혔다!,tag over a grabbed player,,Grabbed!
+input.jump.btn,⬆ 점프,mobile jump button name in the button layout editor,,⬆ Jump
+input.layout.bigger.btn,크게 +,touch button layout editor button,,Bigger +
+input.layout.info,"버튼을 끌어 옮기고, 눌러서 고른 뒤 크기를 바꿔요",touch button layout editor help line,,"Drag buttons to move them. Tap one, then change its size."
+input.layout.joystick,이동 조이스틱 자리,touch button layout editor: area reserved for the move joystick,,Move joystick area
+input.layout.menuItem,✋ 버튼 위치 편집,settings menu item that opens the touch button layout editor,,✋ Edit Button Layout
+input.layout.menuLocked,라운드 중에는 편집할 수 없어요,settings menu item while in a round,,Can't edit during a round
+input.layout.overlap,버튼이 겹쳐요 — 떨어뜨려야 저장돼요,touch button layout editor warning,,Buttons overlap. Move them apart to save.
+input.layout.presetCompact.btn,엄지 가까이,touch button layout editor preset button (buttons near the thumb),,Near Thumb
+input.layout.presetDefault.btn,기본,touch button layout editor preset button,,Default
+input.layout.presetLarge.btn,크게,touch button layout editor preset button (big buttons),,Large
+input.layout.reset.btn,기본값으로,touch button layout editor button,,Reset
+input.layout.save.btn,저장,touch button layout editor button,,Save
+input.layout.smaller.btn,작게 −,touch button layout editor button,,Smaller −
 intro.go,출발!,big text when the round starts,,GO!
 lobby.codeNeeded,방 코드 {count}자리를 입력해 주세요,lobby error line,count=4,Please type the {count}-digit room code
 lobby.codePlaceholder,방 코드 {count}자리,room code input placeholder,count=4,{count}-digit room code
@@ -111,6 +124,11 @@ map.claw-machine-prize.name,인형뽑기 기계 속,map name or one-line rule sh
 map.claw-machine-prize.rule,집게가 훑고 지나가는 유리 상자 안에서 버텨요.,map name or one-line rule shown at round intro,,Survive inside the glass box while the claw sweeps by.
 map.dessert-fridge.name,디저트 냉장고,map name or one-line rule shown at round intro,,Dessert Fridge
 map.dessert-fridge.rule,미끄러운 얼음을 건너 냉장고 문까지 달려요!,map name or one-line rule shown at round intro,,Slide across the slippery ice and race to the fridge door!
+map.dish-sink.name,깨끗하게! 설거지통,map name or one-line rule shown at round intro,,Squeaky Clean Sink
+map.dish-sink.rule,빙글빙글 접시와 움직이는 수세미를 피해 깨끗한 접시까지 달려요!,map name or one-line rule shown at round intro,,"Dodge the spinning plates and moving sponges, and run to the clean plate!"
+map.fish-market.name,수산시장,map name or one-line rule shown at round intro,,Fish Market
+map.fish-market.rule,떨어지는 생선과 밀려오는 얼음을 피해 상자 위에서 버텨요!,map name or one-line rule shown at round intro,,"Dodge falling fish and sliding ice, and hang on atop the crates!"
+map.fish-market.sign,수산시장,big shop sign text inside the Fish Market map,,FISH MARKET
 map.giant-jenga.name,와르르 나무 블록,map name or one-line rule shown at round intro,,Tumbling Blocks
 map.giant-jenga.rule,블록이 빠진 쪽으로 바닥이 기울어요. 떨어지지 말고 끝까지 버텨요!,map name or one-line rule shown at round intro,,The floor tips toward the missing blocks. Hang on to the end!
 map.hot-plate.name,뜨거운 철판,map name or one-line rule shown at round intro,,Hot Plate
@@ -119,8 +137,12 @@ map.ikura-bombs.name,연어알 폭탄 접시,map name or one-line rule shown at 
 map.ikura-bombs.rule,떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!,map name or one-line rule shown at round intro,,Dodge the falling roe bombs and be the last one standing!
 map.lantern-bridge.name,등불 다리 건너기,map name or one-line rule shown at round intro,,Lantern Bridge
 map.lantern-bridge.rule,흔들리는 다리와 종이 등불 사이를 건너요.,map name or one-line rule shown at round intro,,Cross the wobbly bridge past the paper lanterns.
+map.onsen-claw.name,온천탕 인형뽑기,map name or one-line rule shown at round intro,,Hot Spring Claw Machine
+map.onsen-claw.rule,"인형뽑기가 쿵! 퍼지는 충격파는 점프로 넘고, 차오르는 온천물을 피해요!",map name or one-line rule shown at round intro,,The claw slams down! Jump over the shockwaves and stay above the rising hot water!
 map.ramen-rapids.name,라멘 국물 급류,map name or one-line rule shown at round intro,,Ramen Rapids
 map.ramen-rapids.rule,"국물 급류를 타고 차슈·나루토를 밟아 건너, 결승선까지!",map name or one-line rule shown at round intro,,"Ride the broth rapids, hop across chashu and naruto, and reach the finish!"
+map.rice-cooker.name,초대형 밥솥,map name or one-line rule shown at round intro,,Giant Rice Cooker
+map.rice-cooker.rule,끓어오르는 밥알과 뜨거운 증기를 피해 밥 위에서 버텨요!,map name or one-line rule shown at round intro,,"Dodge the bubbling rice and hot steam, and hang on atop the rice!"
 map.rotating-belt.name,회전 벨트,map name or one-line rule shown at round intro,,Spinning Belt
 map.rotating-belt.rule,젓가락을 피해 벨트를 거슬러 결승선까지 달려요,map name or one-line rule shown at round intro,,"Run against the belt, dodge the chopsticks, and reach the finish!"
 map.skewer-showdown.name,회전 꼬치 쇼다운,map name or one-line rule shown at round intro,,Skewer Showdown
@@ -128,6 +150,10 @@ map.skewer-showdown.rule,돌아오는 꼬치를 뛰어넘고 끝까지 버티세
 map.soy-swamp.name,간장 늪 & 와사비 산,map name or one-line rule shown at round intro,,Soy Swamp & Wasabi Hill
 map.soy-swamp.rule,"간장 웅덩이는 피하고, 와사비 패드로 튀어 올라 결승선까지!",map name or one-line rule shown at round intro,,"Avoid the soy puddles, launch off wasabi pads, and reach the finish!"
 map.soy-swamp.spicy,매워!!,floating text over a player who hits a wasabi pad (Soy Swamp map),,So spicy!!
+map.space-conveyor.name,우주 회전초밥,map name or one-line rule shown at round intro,,Space Sushi Train
+map.space-conveyor.rule,"방향이 바뀌는 우주 레일을 타고, 떨어지는 운석을 피해 결승까지!",map name or one-line rule shown at round intro,,"Ride the space rails as they switch direction, dodge falling meteors, and reach the finish!"
+map.tea-garden.name,찻잎 정원,map name or one-line rule shown at round intro,,Tea Leaf Garden
+map.tea-garden.rule,"굴러오는 찻잔을 피해 단을 옮기고, 무너지는 차밭에서 끝까지 버텨요!",map name or one-line rule shown at round intro,,"Dodge rolling teacups, hop between terraces, and outlast the crumbling tea field!"
 map.tempura-pot.name,튀김 냄비 탈출,map name or one-line rule shown at round intro,,Tempura Pot Escape
 map.tempura-pot.rule,차오르는 기름을 피해 위로! 튀는 기름도 조심!,map name or one-line rule shown at round intro,,Climb away from the rising oil! Watch out for splashes!
 map.tug-of-war-platform.name,줄다리기 발판,map name or one-line rule shown at round intro,,Tug-of-War Platform
@@ -200,7 +226,11 @@ reward.reason.MatchPlayed,판 참가,coin reason (event treats),,Played a match
 reward.reason.RoundPass,라운드 통과,coin reason,,Round cleared
 reward.reason.Win,우승!,coin reason,,Win!
 reward.summary,이번 판 +{total} 🍚 (총 {coins}),match coin summary line,"total=210; coins=1,234",This match: +{total} 🍚 (Total: {coins})
+reward.summaryTickets,이번 판 +{total} 🍚 🎫 +{tickets} (총 {coins}),match coin summary line with a draw ticket,"total=210; tickets=1; coins=1,234",This match: +{total} 🍚 🎫 +{tickets} (Total: {coins})
 reward.summaryTokens,이번 판 +{total} 🍚 +{tokens} {icon} (총 {coins}),match coin summary line with event treats,"total=210; tokens=8; icon=🍬; coins=1,234",This match: +{total} 🍚 +{tokens} {icon} (Total: {coins})
+reward.summaryTokensTickets,이번 판 +{total} 🍚 +{tokens} {icon} 🎫 +{tickets} (총 {coins}),match coin summary line with event treats and a draw ticket,"total=210; tokens=8; icon=🍬; tickets=1; coins=1,234",This match: +{total} 🍚 +{tokens} {icon} 🎫 +{tickets} (Total: {coins})
+reward.ticketFull,🎫 뽑기권이 가득 찼어요 ({max}장),toast when draw tickets are at the limit,max=99,🎫 Draw tickets are full ({max})
+reward.ticketToast,+{count} 🎫 우승 뽑기권,toast when the winner gets a draw ticket,count=1,+{count} 🎫 Winner Draw Ticket
 reward.toast.both,+{amount} 🍚 +{tokens} {icon} {label},coin + event treat toast,amount=10; tokens=1; icon=🍬; label=Round cleared,+{amount} 🍚 +{tokens} {icon} {label}
 reward.toast.coins,+{amount} 🍚 {label},coin toast,amount=10; label=Round cleared,+{amount} 🍚 {label}
 reward.toast.tokens,+{tokens} {icon} {label},event treat toast,tokens=1; icon=🍬; label=Played a match,+{tokens} {icon} {label}
@@ -247,8 +277,11 @@ season.halloween-2026.token,사탕,seasonal event name or event treat name,,Cand
 sfx.mute.all.btn,🔇 모두 끔,mute button (all off),,🔇 All Off
 sfx.mute.music.btn,🎵 음악 끔,mute button (music off),,🎵 Music Off
 sfx.mute.on.btn,🔊 소리 켬,mute button (all sound on),,🔊 Sound On
+shop.btn.draw,🎫 뽑기로 얻기,wardrobe card button (draw-only skin you don't own),,🎫 From Draws
 shop.btn.needCoins,🍚 {count}개 더 필요해요,wardrobe card button (not enough coins),count=180,Need {count} more 🍚
 shop.btn.offSale,판매 기간이 아니에요,wardrobe card button,,Not on Sale
+shop.btn.openDraw,🎫 뽑기,wardrobe header button that opens the skin draw,,🎫 Draw
+shop.btn.openDrawCount,🎫 뽑기 {count},wardrobe header button that opens the skin draw (tickets owned),count=3,🎫 Draw {count}
 shop.btn.robux,R$ {price},wardrobe card button (Robux price),price=99,R$ {price}
 shop.btn.robuxBuy,R$ {price} · 사기,wardrobe card second button,price=29,R$ {price} · Buy
 shop.btn.robuxSoon,R$ {price} — 곧 열려요,"wardrobe card button (Robux price, not open yet)",price=99,R$ {price} · Soon
@@ -258,8 +291,50 @@ shop.btn.tokens,{icon} {price} · 받기,wardrobe card button (event treat price
 shop.btn.unlock,🍚 {price} · 해금,wardrobe card button (coin price),price=300,🍚 {price} · Unlock
 shop.btn.vipOnly,👑 VIP 전용,wardrobe card button,,👑 VIP Only
 shop.btn.wear,입기,wardrobe card button,,Wear
+shop.btn.wearStudio,입기 (Studio),wardrobe card button (Studio test: wear without owning),,Wear (Studio)
 shop.btn.wearing,입는 중,wardrobe card button (current skin),,Wearing
 shop.checkPrompt,결제 창을 확인해 주세요,purchase status line,,Check the purchase window
+shop.draw.btn.ok,확인,skin draw result button,,OK
+shop.draw.btn.start,🎫 뽑기 시작하기  >,skin draw screen big start button,,🎫 Start Draw >
+shop.draw.duplicateLine,중복이면 🍚 +{coins},draw odds detail: coins for a duplicate,coins=20,Duplicate: +{coins} 🍚
+shop.draw.empty,준비 중,draw odds table: a grade that has no skins yet,,Coming Soon
+shop.draw.featured,{name} 획득 가능!,skin draw speech bubble over the featured skin,name=Salmon Sushi (Special),{name} up for grabs!
+shop.draw.hint,1등만 뽑기권을 획득할 수 있어요! (확률에 따라 스킨이 지급돼요),skin draw screen hint box,,Only the winner gets a draw ticket! (Skins are given by the odds)
+shop.draw.listTitle,보유 스킨 목록,skin draw screen collection title,,Skin Collection
+shop.draw.locked,🔒 아직 없어요,skin draw collection card (not owned),,🔒 Not Yet
+shop.draw.noSkinsYet,아직 스킨이 없어요,draw odds detail: grade with no skins,,No skins yet
+shop.draw.notOwned,아직 없어요,skin draw detail note,,Not owned yet
+shop.draw.oddsNote,"👑 뽑기권은 1등에게만 지급되며, 등급별 확률에 따라 스킨이 획득됩니다. 이미 가진 스킨이 나오면 🍚 코인으로 바뀌어요.","skin draw screen odds note, long-ok",,"👑 Only the winner gets draw tickets. Skins are drawn by grade odds. If you already own the skin, you get 🍚 coins instead."
+shop.draw.oddsTitle,스킨 등급별 확률,skin draw screen odds table title,,Odds by Grade
+shop.draw.owned,보유 중,skin draw detail note,,Owned
+shop.draw.perSkinLine,{name} — 각 {percent},draw odds detail: one skin and its chance,name=Salmon Sushi (Special); percent=5.05%,{name}: {percent} each
+shop.draw.perSkinTitle,스킨별 확률,skin draw odds detail window title,,Odds per Skin
+shop.draw.pressOk,· 확인 버튼을 눌러 주세요 ·,skin draw result hint line,,· Press OK ·
+shop.draw.resultDuplicate,이미 가진 스킨이에요 → 🍚 +{coins},"skin draw result line (already owned, coins instead)",coins=80,Already owned → +{coins} 🍚
+shop.draw.resultSkin,🎉 {name} 획득!,skin draw result line,name=Salmon Sushi (Special),🎉 You got {name}!
+shop.draw.resultTitle,👑 스킨 획득!,skin draw result window title,,👑 You Got a Skin!
+shop.draw.roundingNote,확률은 반올림한 값이라 합이 100%와 조금 다를 수 있어요.,draw odds detail note,,"Odds are rounded, so the total may be slightly off from 100%."
+shop.draw.subtitle,"지금, 특별한 스킨을 획득할 수 있는 기회!",skin draw screen subtitle under the sign,,Your chance to get a special skin!
+shop.draw.suspense,두근두근…,skin draw waiting for the result,,Drumroll…
+shop.draw.tab.draw,🎫 뽑기,skin draw screen tab (phone),,🎫 Draw
+shop.draw.tab.list,📦 목록,skin draw screen tab (phone),,📦 Skins
+shop.draw.tab.odds,📊 확률,skin draw screen tab (phone),,📊 Odds
+shop.draw.ticketsLabel,보유 중인 뽑기권,skin draw screen: label above the ticket count,,Your Draw Tickets
+shop.draw.title,스킨 뽑기,skin draw screen title on a wooden sign,,Skin Draw
+shop.drawBadge,🎫 {grade},small draw grade badge on a wardrobe card,grade=Rare,🎫 {grade}
+shop.drawErr.CannotSave,저장이 안 되는 상태예요,skin draw error line,,Saving isn't working right now
+shop.drawErr.Locked,매치가 끝나면 뽑을 수 있어요,skin draw error line,,You can draw after the match
+shop.drawErr.NoPool,뽑을 스킨이 없어요,skin draw error line,,No skins to draw
+shop.drawErr.NoProfile,프로필을 불러오는 중이에요,skin draw error line,,Loading your profile...
+shop.drawErr.NoTickets,우승하면 🎫 뽑기권을 받아요,skin draw error line,,Win a match to get a 🎫 draw ticket
+shop.drawErr.TooFast,잠시 뒤에 다시 해 주세요,skin draw error line,,Wait a moment and try again
+shop.drawGrade.Common,일반,"skin draw grade name (draw odds table, badge)",,Common
+shop.drawGrade.Epic,영웅,"skin draw grade name (draw odds table, badge)",,Epic
+shop.drawGrade.Legendary,전설,"skin draw grade name (draw odds table, badge)",,Legendary
+shop.drawGrade.Rare,희귀,"skin draw grade name (draw odds table, badge)",,Rare
+shop.drawGrade.Uncommon,고급,"skin draw grade name (draw odds table, badge)",,Uncommon
+shop.drawHint,🎫 뽑기 {grade}에서도 나와요,wardrobe preview note: this skin can also come from draws,grade=Legendary,🎫 Also in {grade} draws
+shop.drawTierLine,🎫 특 · {grade},wardrobe preview grade line for a draw-only skin,grade=Rare,🎫 Special · {grade}
 shop.err.AlreadyOwned,이미 가진 스킨이에요,wardrobe error line,,You already have this skin
 shop.err.CannotSave,저장이 안 되는 상태예요,wardrobe error line,,Saving isn't working right now
 shop.err.EventEnded,이벤트 기간이 아니에요,wardrobe error line,,The event isn't running right now
@@ -288,6 +363,7 @@ shop.result.worn,{name} 입었어요!,Wardrobe result line,name=Salmon,Now weari
 shop.tab.all,전체,wardrobe tab,,All
 shop.tab.christmas,🎄 크리스마스,wardrobe tab (event),,🎄 Holiday
 shop.tab.common,일반,wardrobe tab (tier),,Common
+shop.tab.draw,🎫 특,wardrobe tab (skins you only get from draws),,🎫 Special
 shop.tab.epic,에픽,wardrobe tab (tier),,Epic
 shop.tab.event,{icon} {name},"wardrobe tab for an event without its own label, long-ok",icon=🍬; name=Halloween Sushi Festival,{icon} {name}
 shop.tab.halloween,🎃 할로윈,wardrobe tab (event),,🎃 Spooky
@@ -303,21 +379,33 @@ skin.california-roll.speech.2,날치알이 톡톡!,skin name or a short line the
 skin.cat-sushi.name,고양이 초밥,skin name or a short line the skin says when eaten (playful),,Cat Sushi
 skin.cat-sushi.speech.1,야옹~ 잡아봐!,skin name or a short line the skin says when eaten (playful),,Meow~ Catch me!
 skin.cat-sushi.speech.2,"수염도 쫑긋, 귀도 쫑긋!",skin name or a short line the skin says when eaten (playful),,"Whiskers up, ears up!"
-skin.concept-ikura.name,콘셉트 연어알 군함 (테스트),skin name or a short line the skin says when eaten (playful),,Concept Salmon Roe Gunkan (Test)
+skin.concept-ikura.name,연어알 군함 (특),skin name or a short line the skin says when eaten (playful),,Salmon Roe Gunkan (Special)
 skin.concept-ikura.speech.1,알이 다 쏟아졌어!,skin name or a short line the skin says when eaten (playful),,All my roe spilled out!
 skin.concept-ikura.speech.2,톡톡 터지는 맛~,skin name or a short line the skin says when eaten (playful),,A pop-pop popping taste~
-skin.concept-salmon.name,콘셉트 연어초밥 (테스트),skin name or a short line the skin says when eaten (playful),,Concept Salmon Sushi (Test)
+skin.concept-inari.name,유부초밥 (특),skin name or a short line the skin says when eaten (playful),,Inari Sushi (Special)
+skin.concept-inari.speech.1,주머니에서 밥이 샜어!,skin name or a short line the skin says when eaten (playful),,Rice leaked out of my pocket!
+skin.concept-inari.speech.2,달콤한 유부 속으로~,skin name or a short line the skin says when eaten (playful),,Into the sweet tofu pocket~
+skin.concept-salmon.name,연어초밥 (특),skin name or a short line the skin says when eaten (playful),,Salmon Sushi (Special)
 skin.concept-salmon.speech.1,새 모습 어때?,skin name or a short line the skin says when eaten (playful),,How do I look now?
 skin.concept-salmon.speech.2,연어 돔이 말랑말랑~,skin name or a short line the skin says when eaten (playful),,My salmon dome is squishy~
-skin.concept-shrimp.name,콘셉트 새우초밥 (테스트),skin name or a short line the skin says when eaten (playful),,Concept Shrimp Sushi (Test)
+skin.concept-shrimp.name,새우초밥 (특),skin name or a short line the skin says when eaten (playful),,Shrimp Sushi (Special)
 skin.concept-shrimp.speech.1,꼬리가 먼저 떨어졌어…,skin name or a short line the skin says when eaten (playful),,My tail fell off first…
 skin.concept-shrimp.speech.2,탱글탱글 새우 출동!,skin name or a short line the skin says when eaten (playful),,"Bouncy shrimp, on the move!"
-skin.concept-tamago.name,콘셉트 계란초밥 (테스트),skin name or a short line the skin says when eaten (playful),,Concept Egg Sushi (Test)
+skin.concept-tako.name,문어초밥 (특),skin name or a short line the skin says when eaten (playful),,Octopus Sushi (Special)
+skin.concept-tako.speech.1,빨판으로 붙어 볼걸…,skin name or a short line the skin says when eaten (playful),,Should've stuck on with my suckers…
+skin.concept-tako.speech.2,쫄깃쫄깃 문어 출동!,skin name or a short line the skin says when eaten (playful),,"Chewy octopus, on the move!"
+skin.concept-tamago.name,계란초밥 (특),skin name or a short line the skin says when eaten (playful),,Egg Sushi (Special)
 skin.concept-tamago.speech.1,폭신한 계란 착지 실패!,skin name or a short line the skin says when eaten (playful),,Fluffy egg landing failed!
 skin.concept-tamago.speech.2,김 띠 꽉 묶을걸…,skin name or a short line the skin says when eaten (playful),,Should've tied my seaweed belt tighter…
-skin.concept-tuna.name,콘셉트 참치초밥 (테스트),skin name or a short line the skin says when eaten (playful),,Concept Tuna Sushi (Test)
+skin.concept-tuna.name,참치초밥 (특),skin name or a short line the skin says when eaten (playful),,Tuna Sushi (Special)
 skin.concept-tuna.speech.1,참치는 빨강이 생명!,skin name or a short line the skin says when eaten (playful),,Red is a tuna's whole life!
 skin.concept-tuna.speech.2,결 따라 데굴데굴~,skin name or a short line the skin says when eaten (playful),,Rolling along the grain~
+skin.concept-unagi.name,장어초밥 (특),skin name or a short line the skin says when eaten (playful),,Eel Sushi (Special)
+skin.concept-unagi.speech.1,소스가 너무 미끄러웠어!,skin name or a short line the skin says when eaten (playful),,The sauce was too slippery!
+skin.concept-unagi.speech.2,지글지글 구운 장어~,skin name or a short line the skin says when eaten (playful),,Sizzling grilled eel~
+skin.concept-uni.name,성게 군함 (특),skin name or a short line the skin says when eaten (playful),,Sea Urchin Gunkan (Special)
+skin.concept-uni.speech.1,성게가 흘러내려…,skin name or a short line the skin says when eaten (playful),,My urchin is sliding off…
+skin.concept-uni.speech.2,김 그릇 꽉 잡아!,skin name or a short line the skin says when eaten (playful),,Hold that seaweed cup tight!
 skin.crown-tuna.name,크라운 참치,skin name or a short line the skin says when eaten (playful),,Crown Tuna
 skin.crown-tuna.speech.1,오늘의 왕은 나야!,skin name or a short line the skin says when eaten (playful),,"Today, I'm the king!"
 skin.crown-tuna.speech.2,"참치 중의 참치, 왕관을 쓰다",skin name or a short line the skin says when eaten (playful),,The tuna of all tunas wears the crown
@@ -333,6 +421,9 @@ skin.eel.speech.2,장어 먹고 힘내자~,skin name or a short line the skin sa
 skin.egg-toast.name,에그토스트,skin name or a short line the skin says when eaten (playful),,Egg Toast
 skin.egg-toast.speech.1,폭신폭신 식빵 위에 반숙 노른자!,skin name or a short line the skin says when eaten (playful),,A runny yolk on fluffy bread!
 skin.egg-toast.speech.2,한 입 베어 물면 사르르~,skin name or a short line the skin says when eaten (playful),,One bite and it melts~
+skin.fresh-mackerel.name,고등어 초밥 [신선],skin name or a short line the skin says when eaten (playful),,Mackerel Sushi [Fresh]
+skin.fresh-mackerel.speech.1,아직 팔딱팔딱 살아 있다고!,skin name or a short line the skin says when eaten (playful),,I'm still flip-flopping fresh!
+skin.fresh-mackerel.speech.2,오늘 아침에 잡힌 몸이야~,skin name or a short line the skin says when eaten (playful),,Caught just this morning~
 skin.galaxy-roll.name,갤럭시 롤,skin name or a short line the skin says when eaten (playful),,Galaxy Roll
 skin.galaxy-roll.speech.1,우주의 맛이 느껴져?,skin name or a short line the skin says when eaten (playful),,Can you taste the universe?
 skin.galaxy-roll.speech.2,별빛처럼 반짝반짝~,skin name or a short line the skin says when eaten (playful),,Sparkly like starlight~

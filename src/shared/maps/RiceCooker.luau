@@ -170,6 +170,7 @@ local function buildTimer(model: Model, origin: CFrame)
 	label.TextStrokeTransparency = 0.6
 	label.TextStrokeColor3 = color3(Art.COLORS.timerTextGlow)
 	label.Text = Logic.formatTimer(Logic.TIME_LIMIT)
+	label.AutoLocalize = false -- 숫자 타이머: 자동 번역·수집 대상 아님 (m5-26)
 	label.Parent = gui
 	gui.Parent = display
 	display.Parent = model

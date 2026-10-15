@@ -15,7 +15,7 @@
 --   formatNumber(n) / ordinal(n, language) / placeValue(n, language) (영어만 서수)
 --   needsLateRefresh(language) / newLateMap / recordLate / lateEntryFor   늦게 온 번역기로 다시 쓰기 (QA B4)
 --   isLocText(value) / text(key, args)
---   동적 키: mapNameKey, mapRuleKey, skinNameKey, skinSpeechKey, tierKey, offerNameKey, offerBlurbKey,
+--   동적 키: mapNameKey, mapRuleKey, skinNameKey, skinSpeechKey, tierKey, drawGradeKey, offerNameKey, offerBlurbKey,
 --            offerPerkKey, fxNameKey, seasonNameKey, seasonTokenKey, titleKey, rewardReasonKey, monthKey, cutsceneLineKey
 
 local Types = require(script.Parent.Types)

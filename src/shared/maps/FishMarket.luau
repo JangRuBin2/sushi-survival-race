@@ -22,6 +22,7 @@ local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
 local MapTypes = require(script.Parent.MapTypes)
 local MoveExempt = require(script.Parent.Parent.MoveExempt)
+local WorldText = require(script.Parent.Parent.WorldText)
 
 local ID = "fish-market"
 local CRATE_TAG = "MarketCrate"
@@ -177,7 +178,7 @@ local function build(origin: CFrame): Model
 			local label = Instance.new("TextLabel")
 			label.Size = UDim2.fromScale(1, 1)
 			label.BackgroundTransparency = 1
-			label.Text = "수산시장"
+			WorldText.mark(label, "map.fish-market.sign") -- "수산시장", 클라이언트가 그 사람 언어로 채워요 (m5-26)
 			label.TextScaled = true
 			label.Font = Enum.Font.GothamBlack
 			label.TextColor3 = Color3.fromRGB(184, 44, 40)

@@ -130,7 +130,7 @@ function CoinController.start(_gui: Instance)
 			info.ticketsFull == true
 		)
 		if ticketText then
-			screen:toast(ticketText)
+			screen:toast(Loc.text(ticketText))
 		end
 		refreshSummary()
 	end)

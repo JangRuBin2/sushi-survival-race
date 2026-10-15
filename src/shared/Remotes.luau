@@ -26,7 +26,7 @@
 --   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증). 반환 문구는 한국어 문자열
 --   DrawTicket()                           🎫 우승자 티켓 1장으로 뽑기 (m5-31, ShopService: 요청 간격
 --                                 Config.Draw.RequestCooldown·잠금·저장 가능 검증, 인자는 받지 않아요). 반환
---                                 (ok, err?, result: DrawResult?) — 확률·결과는 서버만 정해요
+--                                 (ok, err: LocText?, result: DrawResult?) — 확률·결과는 서버만 정해요
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록

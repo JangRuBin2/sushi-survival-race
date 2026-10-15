@@ -4,6 +4,7 @@
 -- 카탈로그·대사, 저장 없이 모두가 가짐, 공유 몸, 유부 예외, 외곽 폭, 관절·깜빡임, 진짜 Instance build, 견본 경로.
 -- 표정마다 파츠 ≤ 70·발바닥·이름표·겹침·떠 있음과 "토핑이 얼굴을 안 가려요"는 m5-28 테스트가 SKIN_IDS 전체로 봐요.
 
+local LocTest = require("./lib/LocTest")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -176,10 +177,14 @@ return function(t: Test.Test)
 					id
 				)
 				local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
-				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), view)), "🎫 뽑기로 얻기", id)
+				t.eq(
+					LocTest.ko(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), view))),
+					"🎫 뽑기로 얻기",
+					id
+				)
 				local ownedView =
 					{ coins = 0, equippedSkin = "tamago", ownedSkins = { id, "tamago" }, eventTokens = {} }
-				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView)), "입기", id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView))), "입기", id)
 				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not owned in a new profile`)
 				local raw = ProfileSchema.new() :: any
 				raw.equippedSkin = id

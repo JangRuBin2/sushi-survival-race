@@ -107,7 +107,7 @@ function ShopController.start(_gui: Instance)
 				ownedSkins = current.ownedSkins,
 				equippedSkin = current.equippedSkin,
 				studioUnlockAll = current.studioUnlockAll == true,
-				disabledReason = if tickets <= 0 then DrawLogic.message("NoTickets") else nil,
+				disabledReason = if tickets <= 0 then Loc.text(DrawLogic.message("NoTickets")) else nil,
 			})
 		end
 	end
@@ -203,9 +203,9 @@ function ShopController.start(_gui: Instance)
 			drawScreen:reveal(drawResult)
 		else
 			local message = if not called
-				then "서버와 연결이 불안정해요"
-				elseif type(err) == "string" then err
-				else "다시 해 주세요"
+				then Loc.t("common.err.connection")
+				elseif err ~= nil then Loc.text(err)
+				else Loc.t("common.err.retry")
 			drawScreen:showMessage(message, true)
 		end
 		render()
@@ -293,19 +293,17 @@ function ShopController.start(_gui: Instance)
 				local ok, err = request("EquipSkin", skinId)
 				if ok then
 					local skin = Skins.get(skinId)
-					drawScreen:showMessage(`{if skin then skin.displayName else skinId} 입었어요!`, false)
+					local skinName = if skin then Loc.skinName(skin.id) else skinId
+					drawScreen:showMessage(Loc.t("shop.result.worn", { name = skinName }), false)
 				else
-					drawScreen:showMessage(err or "다시 해 주세요", true)
+					drawScreen:showMessage(err or Loc.t("common.err.retry"), true)
 				end
 			end)
 		end,
 		-- m5-32: 뽑기 + 판매 스킨(고등어 [신선]) 상세의 로벅스 구매 — 탈의실과 같은 흐름(RequestRobuxPurchase)
 		buyRobux = function(skinId: string)
 			task.spawn(buyRobux, skinId)
-			drawScreen:showMessage(
-				if robux.fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
-				false
-			)
+			drawScreen:showMessage(if robux.fake then Loc.t("shop.fakePaying") else Loc.t("shop.checkPrompt"), false)
 		end,
 		robuxOpen = function(skinId: string): boolean
 			local skin = Skins.get(skinId)

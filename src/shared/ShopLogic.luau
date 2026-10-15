@@ -548,12 +548,12 @@ function ShopLogic.cardButtonText(state: CardState): LocText
 end
 
 -- 뽑기에서도 나오는 판매 스킨 안내 (m5-32 고등어 [신선]: "🎫 뽑기 전설에서도 나와요"). 뽑기 전용·뽑기 아님이면 nil
-function ShopLogic.drawHint(skin: Skins.Skin): string?
+function ShopLogic.drawHint(skin: Skins.Skin): LocText?
 	local grade = Skins.drawGradeOf(skin.id)
 	if grade == nil or Skins.isDrawOnly(skin.id) then
 		return nil
 	end
-	return `🎫 뽑기 {Skins.DRAW_GRADE_INFO[grade].displayName}에서도 나와요`
+	return LocalizeLogic.text("shop.drawHint", { grade = LocalizeLogic.text(LocalizeLogic.drawGradeKey(grade)) })
 end
 
 -- 일반·레어 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)

@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 local TouchLayoutEditor = require(script.Parent.TouchLayoutEditor)
@@ -24,8 +25,6 @@ local WIDTH = 36
 local MAX_HEIGHT = 36
 local GAP = 6 -- 음소거 버튼과 사이
 local MENU_WIDTH = 240
-local ITEM_TEXT = "✋ 버튼 위치 편집"
-local LOCKED_TEXT = "라운드 중에는 편집할 수 없어요"
 
 local started = false
 
@@ -89,7 +88,7 @@ function SettingsButton.start(_gui: Instance)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		ZIndex = 2,
 	}, { Kit.corner(10), Kit.padding(6), Kit.list(Enum.FillDirection.Vertical, 6) })
-	local item = Kit.button(ITEM_TEXT, Color.Salmon, {
+	local item = Kit.button(Loc.t("input.layout.menuItem"), Color.Salmon, {
 		Name = "EditTouchLayout",
 		Parent = menu,
 		LayoutOrder = 1,
@@ -103,7 +102,7 @@ function SettingsButton.start(_gui: Instance)
 	local function refreshItem()
 		local locked = TouchLayoutController.isLocked()
 		Kit.setEnabled(item, not locked)
-		item.Text = if locked then LOCKED_TEXT else ITEM_TEXT
+		item.Text = if locked then Loc.t("input.layout.menuLocked") else Loc.t("input.layout.menuItem")
 		item.TextColor3 = if locked then Color.Text else Color.White
 	end
 

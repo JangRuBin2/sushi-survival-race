@@ -165,7 +165,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Size = UDim2.fromScale(0.3, 1),
 	})
 	-- 🎫 뽑기 패널 열기 (m5-31)
-	local drawOpenButton = Kit.button("🎫 뽑기", SPECIAL_COLOR, {
+	local drawOpenButton = Kit.button(Loc.t("shop.btn.openDraw"), SPECIAL_COLOR, {
 		Name = "OpenDraw",
 		Parent = header,
 		Position = UDim2.fromScale(0.3, 0),
@@ -526,7 +526,9 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	function screen.setTickets(_self: ShopScreen, tickets: number)
 		badge.Visible = tickets > 0
 		badge.Text = if tickets > 99 then "99" else tostring(tickets)
-		drawOpenButton.Text = if tickets > 0 then `🎫 뽑기 {tickets}` else "🎫 뽑기"
+		drawOpenButton.Text = if tickets > 0
+			then Loc.t("shop.btn.openDrawCount", { count = tickets })
+			else Loc.t("shop.btn.openDraw")
 	end
 
 	function screen.setButtonVisible(_self: ShopScreen, visible: boolean)

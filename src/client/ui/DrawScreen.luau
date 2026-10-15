@@ -25,6 +25,7 @@ local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
@@ -83,7 +84,16 @@ end
 
 local function gradeName(grade: string?): string
 	local info = if grade then Skins.DRAW_GRADE_INFO[grade :: Skins.DrawGrade] else nil
-	return if info then info.displayName else "?"
+	return if info and grade then Loc.drawGradeName(grade) else "?"
+end
+
+-- 확률표 등급 이름: 한국어 넓은 화면은 "전설 (Legendary)", 휴대폰·다른 언어는 이름만 (m5-26)
+local function gradeFullName(grade: Skins.DrawGrade, compact: boolean?): string
+	local name = Loc.drawGradeName(grade)
+	if compact or Loc.language() ~= "ko" then
+		return name
+	end
+	return `{name} ({Skins.DRAW_GRADE_INFO[grade].english})`
 end
 
 -- 글씨: 칸에 맞춰 줄고 maxSize를 넘지 않아요 (화면 크기가 달라도 안 넘쳐요)
@@ -200,9 +210,9 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		Visible = false,
 	}, { Kit.list(Enum.FillDirection.Horizontal, 6) })
 	local TABS = {
-		{ id = "draw", label = "🎫 뽑기" },
-		{ id = "odds", label = "📊 확률" },
-		{ id = "list", label = "📦 목록" },
+		{ id = "draw", label = Loc.t("shop.draw.tab.draw") },
+		{ id = "odds", label = Loc.t("shop.draw.tab.odds") },
+		{ id = "list", label = Loc.t("shop.draw.tab.list") },
 	}
 	local tabButtons: { [string]: TextButton } = {}
 	local currentTab = "draw"
@@ -247,7 +257,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, 40)
 	local signTitle = text({
 		Parent = sign,
-		Text = "스킨 뽑기",
+		Text = Loc.t("shop.draw.title"),
 		Position = UDim2.fromScale(0.05, 0.08),
 		Size = UDim2.fromScale(0.9, 0.5),
 		TextColor3 = Color.White,
@@ -256,7 +266,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	Kit.new("UIStroke", { Parent = signTitle, Color = WOOD_DARK, Thickness = 3 })
 	text({
 		Parent = sign,
-		Text = "지금, 특별한 스킨을\n획득할 수 있는 기회!",
+		Text = Loc.t("shop.draw.subtitle"),
 		Position = UDim2.fromScale(0.06, 0.6),
 		Size = UDim2.fromScale(0.88, 0.34),
 		TextColor3 = Color3.fromRGB(255, 240, 215),
@@ -278,7 +288,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, 46)
 	text({
 		Parent = ticketBox,
-		Text = "보유 중인 뽑기권",
+		Text = Loc.t("shop.draw.ticketsLabel"),
 		Position = UDim2.fromScale(0.36, 0.1),
 		Size = UDim2.fromScale(0.6, 0.35),
 		TextColor3 = Color.White,
@@ -293,7 +303,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	local hintBox = text({
 		Name = "Hint",
 		Parent = signCol,
-		Text = "1등만 뽑기권을 획득할 수 있어요!\n(확률에 따라 스킨이 지급돼요)",
+		Text = Loc.t("shop.draw.hint"),
 		BackgroundColor3 = DARK_BOX,
 		BackgroundTransparency = 0.35,
 		TextColor3 = Color.White,
@@ -342,7 +352,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		ZIndex = 3,
 	}, 16)
 	Kit.corner(12).Parent = bubble
-	local startButton = scaledButton("🎫 뽑기 시작하기  >", YELLOW, {
+	local startButton = scaledButton(Loc.t("shop.draw.btn.start"), YELLOW, {
 		Name = "Start",
 		Parent = stageCol,
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -378,7 +388,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, { Kit.corner(16), Kit.padding(10) }) :: Frame
 	text({
 		Parent = oddsPanel,
-		Text = "스킨 등급별 확률",
+		Text = Loc.t("shop.draw.oddsTitle"),
 		Size = UDim2.fromScale(0.8, 0.12),
 		TextColor3 = Color3.fromRGB(40, 50, 90),
 	}, 24)
@@ -426,7 +436,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	end
 	local oddsNote = text({
 		Parent = oddsPanel,
-		Text = "👑 뽑기권은 1등에게만 지급되며, 등급별 확률에 따라 스킨이 획득됩니다. 이미 가진 스킨이 나오면 🍚 코인으로 바뀌어요.",
+		Text = Loc.t("shop.draw.oddsNote"),
 		Position = UDim2.fromScale(0, 0.835),
 		Size = UDim2.fromScale(1, 0.165),
 		BackgroundColor3 = Color.Row,
@@ -445,7 +455,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, { Kit.corner(14), Kit.padding(8) }) :: Frame
 	local listTitle = text({
 		Parent = listPanel,
-		Text = "보유 스킨 목록",
+		Text = Loc.t("shop.draw.listTitle"),
 		Size = UDim2.new(0.7, 0, 0, 26),
 		TextColor3 = Color.White,
 	}, 20)
@@ -544,7 +554,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		table.insert(exprViews, view)
 		table.insert(exprHolders, holder)
 	end
-	local wearButton = scaledButton("입기", Color.Salmon, {
+	local wearButton = scaledButton(Loc.t("shop.btn.wear"), Color.Salmon, {
 		Name = "Wear",
 		Parent = detailPanel,
 		AnchorPoint = Vector2.new(0, 1),
@@ -602,7 +612,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}) :: Frame
 	text({
 		Parent = infoLayer,
-		Text = "스킨별 확률",
+		Text = Loc.t("shop.draw.perSkinTitle"),
 		Size = UDim2.new(1, -56, 0, 40),
 		TextColor3 = Color3.fromRGB(40, 50, 90),
 		ZIndex = 30,
@@ -732,7 +742,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	end
 	local resultTitle = text({
 		Parent = resultCard,
-		Text = "👑 스킨 획득!",
+		Text = Loc.t("shop.draw.resultTitle"),
 		Position = UDim2.fromScale(0.05, 0.03),
 		Size = UDim2.fromScale(0.9, 0.12),
 		TextColor3 = YELLOW,
@@ -771,7 +781,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = 23,
 	}, 18)
-	local okButton = scaledButton("확인", YELLOW, {
+	local okButton = scaledButton(Loc.t("shop.draw.btn.ok"), YELLOW, {
 		Parent = resultCard,
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.fromScale(0.95, 0.97),
@@ -779,7 +789,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		TextColor3 = YELLOW_TEXT,
 		ZIndex = 23,
 	}, 24)
-	local resultWear = scaledButton("입기", Color.Salmon, {
+	local resultWear = scaledButton(Loc.t("shop.btn.wear"), Color.Salmon, {
 		Parent = resultCard,
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0.05, 0.97),
@@ -840,7 +850,6 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			local grade = row.grade
 			for _, skinId in row.skinIds do
 				order += 1
-				local skin = Skins.get(skinId) :: Skins.Skin
 				local button = Kit.new("TextButton", {
 					Name = skinId,
 					Parent = grid,
@@ -863,7 +872,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 				doll(viewport, skinId, nil)
 				text({
 					Parent = button,
-					Text = skin.displayName,
+					Text = Loc.skinName(skinId),
 					Position = UDim2.fromScale(0.04, 0.6),
 					Size = UDim2.fromScale(0.92, 0.18),
 					TextColor3 = Color.White,
@@ -878,7 +887,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 				})
 				local lock = text({
 					Parent = button,
-					Text = "🔒 아직 없어요",
+					Text = Loc.t("shop.draw.locked"),
 					AnchorPoint = Vector2.new(0.5, 0),
 					Position = UDim2.fromScale(0.5, 0.2),
 					Size = UDim2.fromScale(0.9, 0.2),
@@ -905,7 +914,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		clearChildren(featuredView)
 		featuredModel = if id then doll(featuredView, id, "Happy", "Preview") else nil
 		local skin = if id then Skins.get(id) else nil
-		bubble.Text = if skin then `{skin.displayName}\n획득 가능!` else ""
+		bubble.Text = if skin then Loc.t("shop.draw.featured", { name = Loc.skinName(skin.id) }) else ""
 		bubble.Visible = skin ~= nil
 	end
 
@@ -918,8 +927,8 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		local grade = Skins.drawGradeOf(id)
 		detailBadge.Text = gradeName(grade)
 		detailBadge.BackgroundColor3 = gradeColor(grade)
-		detailName.Text = skin.displayName
-		detailLine.Text = `💬 "{skin.speech[1]}"`
+		detailName.Text = Loc.skinName(id)
+		detailLine.Text = `💬 "{Loc.skinSpeech(id, 1)}"`
 		local rule = SushiBody.CONCEPT_BODY[id]
 		local expressions: { string } = if rule then rule.expressions :: any else {}
 		if detailFor ~= id then
@@ -946,15 +955,16 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		-- m5-32: 뽑기 + 판매 스킨(고등어 [신선])은 안 가졌으면 "R$ 199로 사기" (상품 id 전엔 "곧 열려요")
 		local buyable = not can and skin.robux ~= nil
 		local open = buyable and actions.robuxOpen(id)
+		local price = skin.robux or 0
 		wearButton.Text = if wearing
-			then "입는 중"
-			elseif can and not owns(id) then "입기 (Studio)"
-			elseif can then "입기"
-			elseif buyable and open then `R$ {skin.robux}로 사기`
-			elseif buyable then `R$ {skin.robux} — 곧 열려요`
-			else "🎫 뽑기로 얻기"
+			then Loc.t("shop.btn.wearing")
+			elseif can and not owns(id) then Loc.t("shop.btn.wearStudio")
+			elseif can then Loc.t("shop.btn.wear")
+			elseif buyable and open then Loc.t("shop.btn.robuxBuy", { price = price })
+			elseif buyable then Loc.t("shop.btn.robuxSoon", { price = price })
+			else Loc.t("shop.btn.draw")
 		Kit.setEnabled(wearButton, (can and not wearing) or open)
-		detailNote.Text = if owns(id) then "보유 중" else "아직 없어요"
+		detailNote.Text = if owns(id) then Loc.t("shop.draw.owned") else Loc.t("shop.draw.notOwned")
 	end
 
 	local function paint()
@@ -967,17 +977,16 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		ticketCount.Text = DrawLogic.ticketText(s.tickets)
 		local reason = s.disabledReason
 		Kit.setEnabled(startButton, reason == nil and not busy)
-		startReason.Text = if busy then "두근두근…" else (reason or "")
+		startReason.Text = if busy then Loc.t("shop.draw.suspense") else (reason or "")
 		-- 화면 확률 = 서버 판정과 같은 DrawLogic.grades (빈 등급은 "준비 중")
 		local grades = DrawLogic.grades()
 		local percents = DrawLogic.displayPercents(grades)
 		local compact = metrics ~= nil and metrics.compact
 		for _, row in grades do
 			local ui = oddsRows[row.grade]
-			local info = Skins.DRAW_GRADE_INFO[row.grade]
 			local empty = row.chance <= 0
-			ui.label.Text = if compact then info.displayName else `{info.displayName} ({info.english})`
-			ui.percent.Text = percents[row.grade]
+			ui.label.Text = gradeFullName(row.grade, compact)
+			ui.percent.Text = Loc.text(percents[row.grade])
 			ui.frame.BackgroundColor3 = if empty
 				then Color3.fromRGB(225, 225, 228)
 				else ui.color:Lerp(Color.White, if row.grade == "Legendary" then 0.6 else 0.82)
@@ -986,19 +995,19 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		local perSkin = DrawLogic.perSkinPercent(grades)
 		local lines: { string } = {}
 		for _, row in grades do
-			local info = Skins.DRAW_GRADE_INFO[row.grade]
-			table.insert(lines, `<b>{info.displayName} ({info.english}) · {percents[row.grade]}</b>`)
+			table.insert(lines, `<b>{gradeFullName(row.grade)} · {Loc.text(percents[row.grade])}</b>`)
 			if #row.skinIds == 0 then
-				table.insert(lines, "  아직 스킨이 없어요")
+				table.insert(lines, `  {Loc.t("shop.draw.noSkinsYet")}`)
 			end
 			for _, skinId in row.skinIds do
 				local skin = Skins.get(skinId)
-				table.insert(lines, `  {if skin then skin.displayName else skinId} — 각 {perSkin[skinId]}`)
+				local name = if skin then Loc.skinName(skinId) else skinId
+				table.insert(lines, `  {Loc.t("shop.draw.perSkinLine", { name = name, percent = perSkin[skinId] })}`)
 			end
-			table.insert(lines, `  중복이면 🍚 +{row.duplicateCoins}`)
+			table.insert(lines, `  {Loc.t("shop.draw.duplicateLine", { coins = row.duplicateCoins })}`)
 		end
 		table.insert(lines, "")
-		table.insert(lines, DrawLogic.ROUNDING_NOTE)
+		table.insert(lines, Loc.text(DrawLogic.ROUNDING_NOTE))
 		infoText.Text = table.concat(lines, "\n")
 		local owned = 0
 		for skinId, card in cards do
@@ -1178,7 +1187,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		busy = true
 		hideResult()
 		resultLayer.Visible = true
-		resultTitle.Text = "두근두근…"
+		resultTitle.Text = Loc.t("shop.draw.suspense")
 		resultName.Visible = false
 		resultLine.Text = ""
 		okButton.Visible = false
@@ -1236,17 +1245,17 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		clearChildren(resultView)
 		resultModel = doll(resultView, result.skinId, "Happy", "Victory")
 		resultName.Visible = true
-		resultName.Text = `{if skin then skin.displayName else result.skinId}  [{gradeName(result.grade)}]`
+		resultName.Text = `{if skin then Loc.skinName(result.skinId) else result.skinId}  [{gradeName(result.grade)}]`
 		resultStroke.Color = color
 		okButton.Visible = true
 		if result.kind == "Skin" then
-			resultTitle.Text = "👑 스킨 획득!"
-			resultLine.Text = "· 확인 버튼을 눌러 주세요 ·"
+			resultTitle.Text = Loc.t("shop.draw.resultTitle")
+			resultLine.Text = Loc.t("shop.draw.pressOk")
 			revealedSkin = result.skinId
 			resultWear.Visible = true
 		else
-			resultTitle.Text = "👑 스킨 획득!"
-			resultLine.Text = DrawLogic.resultText(result)
+			resultTitle.Text = Loc.t("shop.draw.resultTitle")
+			resultLine.Text = Loc.text(DrawLogic.resultText(result))
 			revealedSkin = nil
 			resultWear.Visible = false
 		end

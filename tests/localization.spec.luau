@@ -203,6 +203,11 @@ return function(t: Test.Test)
 		for _, tier in Skins.TIERS do
 			t.eq(sourceOf(LocalizeLogic.tierKey(tier)), Skins.TIER_INFO[tier].displayName, tier)
 		end
+		-- 🎫 뽑기 등급 (m5-31, 상점 등급과 다른 말) — m5-26 p3
+		for _, grade in Skins.DRAW_GRADES do
+			t.eq(sourceOf(LocalizeLogic.drawGradeKey(grade)), Skins.DRAW_GRADE_INFO[grade].displayName, grade)
+			t.ok(LocalizeLogic.isDynamicKey(LocalizeLogic.drawGradeKey(grade)), grade)
+		end
 	end)
 
 	t.test("AC5: 상품·연출·시즌·칭호·보상 이유·탈락 대사가 데이터와 같아요", function()
@@ -259,6 +264,9 @@ return function(t: Test.Test)
 			end
 			for _, tier in Skins.TIERS do
 				add(LocalizeLogic.tierKey(tier))
+			end
+			for _, grade in Skins.DRAW_GRADES do
+				add(LocalizeLogic.drawGradeKey(grade))
 			end
 			for _, offer in Offers.LIST do
 				add(LocalizeLogic.offerNameKey(offer.id))

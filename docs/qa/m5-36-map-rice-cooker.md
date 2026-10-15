@@ -111,3 +111,9 @@
 - **남은 것**: B1(P2)·B2·B3(P3)는 반려 사유 아님 — 병합 전 또는 다음 맵 다듬기 때 개발이 고치면 좋음(특히 B1은 한 줄). 사용자 Studio AC11~AC17(위 체크리스트).
 - **다음 첫 단계**: 메인 세션이 `m5-map-rice`를 main에 병합하고 병합 뒤 검증 5단계를 다시 돌린다(다른 배치 3 맵과 처음 만남). B1을 고치면 `tests/m5-36-qa.spec.luau`의 `STEP`을 1/30으로 바꿔 끓어오름이 나오는지 한 번 확인.
 - **막힌 점**: 없음.
+
+## 개발 수정 (2026-10-15, developer — 메인 세션 요청)
+- **B1**: `RiceCooker.luau` 끓어오름 루프가 `Logic.burstWave(math.max(elapsed(), 5))`를 써서, `task.wait`가 os.clock보다 조금 일찍 깨도 첫 차례가 나와요. 증기는 미리 계산한 `steamTimes`의 시각(`at`)으로 띠를 골라 같은 문제 없음(확인). 회귀 테스트: `tests/m5-36-qa.spec.luau` 하네스에 `clockLag`(start 뒤 os.clock이 스케줄러보다 늦음)를 넣고 "B1 회귀" 1개 추가 — 고치기 전 코드로 돌리면 실패, 고친 뒤 통과.
+- **B2**: 걸린 등을 y 66 → 42로 내림(전구 ~41.4, 꼭대기 윗면까지 약 37 < range 60). 판정 파츠 그대로, 시야 검사(윗면 + 16 위) 통과. after PNG·stats 갱신.
+- **B3**: Contrast 0.18 → 0.15.
+- 검증 5단계 통과: lune 2029 passed, 0 failed, selene 0/0, luau-lsp 끝 코드 0.

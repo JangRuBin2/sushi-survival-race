@@ -125,7 +125,7 @@ Art.LIGHTING = {
 		Glare = 0.2,
 		Haze = 1.6,
 	},
-	ColorCorrection = { Brightness = 0.02, Contrast = 0.18, Saturation = 0.08, TintColor = c(255, 246, 236) },
+	ColorCorrection = { Brightness = 0.02, Contrast = 0.15, Saturation = 0.08, TintColor = c(255, 246, 236) },
 	Bloom = { Intensity = 0.45, Size = 24, Threshold = 1.2 },
 	SunRays = { Intensity = 0.06, Spread = 0.6 },
 } :: MapLighting.LightingPreset
@@ -816,7 +816,7 @@ end
 ---------------------------------------------------------------- MG: 걸린 등 (언덕 위, 그림자 SpotLight 1)
 
 local function addLamp(list: { DecorSpec })
-	local x, y, z = -14, 66, -6
+	local x, y, z = -14, 42, -6 -- 전구가 꼭대기 윗면에서 약 37 (Spot range 60 안, QA B2)
 	local lampOpts: Extra = { rotation = UPRIGHT, reflectance = 0.15 }
 	add(
 		list,

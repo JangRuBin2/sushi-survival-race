@@ -53,7 +53,8 @@ type Harness = {
 }
 
 local function newHarness(): Harness
-	local harness: any = { now = 0, marks = {}, cues = {}, roots = {}, pushes = {} }
+	-- clockLag: 0보다 크면 os.clock()이 스케줄러 시계보다 그만큼 늦어요 (start 뒤) — task.wait가 "일찍" 깨는 경우 (B1)
+	local harness: any = { now = 0, clockLag = 0, marks = {}, cues = {}, roots = {}, pushes = {} }
 	-- 실제 task.wait·task.delay처럼 적어도 다음 틱에 깨어나요 (같은 틱 안에서 다시 돌지 않게)
 	local sleepers: { { at: number, started: number, tick: number, co: thread?, fn: any } } = {}
 	local tick = 0
@@ -205,7 +206,7 @@ local function newHarness(): Harness
 	env.task = fakeTask
 	env.os = {
 		clock = function(): number
-			return harness.now
+			return if harness.now > 0 then harness.now - harness.clockLag else harness.now
 		end,
 	}
 	env.game = {
@@ -369,6 +370,22 @@ local function startRoom(h: Harness, origin: any, racers: { any }, rng: any): (a
 end
 
 return function(t: Test.Test)
+	t.test(
+		"B1 회귀: task.wait가 os.clock보다 조금 일찍 깨도 첫 끓어오름이 나오고 판 내내 이어져요",
+		function()
+			local h = newHarness()
+			h.clockLag = 0.001 -- 깬 순간 elapsed() = 4.999
+			local a = racer("a", ARENA, CX + 16, CZ, 0)
+			startRoom(h, ARENA, { a }, constRng(0))
+			h.advance(5.1)
+			t.ok(countCue(h, "RiceBubble") == 0, "still warning")
+			h.advance(1.8) -- 6.9초: 첫 터짐
+			t.eq(countCue(h, "RiceBubble"), 1, "first burst despite the early wake")
+			h.advance(30)
+			t.ok(countCue(h, "RiceBubble") >= 5, `bursts keep coming ({countCue(h, "RiceBubble")})`)
+		end
+	)
+
 	t.test(
 		"QA 낙하선: 루트 로컬 Y −19.9 무사 · −20.1 탈락 (회전한 아레나 origin 기준), 끝난 라운드는 판정 없음",
 		function()

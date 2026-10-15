@@ -1,5 +1,10 @@
 # m5-36 map-rice-cooker — 개발 작업 기록
 
+## 2026-10-15 — QA 뒤 수정 B1~B3 (최신)
+- 브랜치 `m5-map-rice`, QA 커밋 b5614e7 위. 스펙은 qa-passed 유지.
+- B1(끓어오름 첫 차례 시계 어긋남) `math.max(elapsed(), first)` + QA 하네스 `clockLag` 회귀 테스트, B2 걸린 등 y 42(Spot이 언덕에 닿음, after PNG 갱신), B3 Contrast 0.15.
+- 검증 5단계 통과 (lune 2029 passed, 0 failed). 남은 것: 메인 세션 병합 + 병합 뒤 검증, 사용자 Studio AC11~AC17.
+
 ## 2026-10-15 — 구현·아트 끝, in-qa (최신)
 - **브랜치**: `m5-map-rice` (origin/main b2769b8 = m5-33 QA 통과 위에서 시작). worktree `C:\Users\inter\sushi-survival-race\.claude\worktrees\agent-ae20aaa05ea79fc0e`. Rojo 포트 34894(serve는 안 돌림).
 - **끝난 것**: 스펙 규칙 전부(5단 밥 언덕, 낙하 −20, 끓어오름 일정·곳 고르기·경고·넉백, 증기 일정·띠·점선·밸브 흔들림·분사·넉백, 디지털 타이머, `timeLimit = 75`), `inPool = false` 줄 삭제(랜덤 풀 합류), 아트("아침 햇살 드는 주방, 막 뚜껑을 연 업소용 밥솥") 렌더 반복 4회, 테스트 18개.

@@ -519,9 +519,11 @@ local function start(ctx: MapTypes.RoundContext)
 	end
 
 	ctx.cleanup:add(task.spawn(function()
-		waitUntil(Logic.BURST_SCHEDULE[1].from)
+		local first = Logic.BURST_SCHEDULE[1].from
+		waitUntil(first)
 		while ctx.isActive() do
-			local wave = Logic.burstWave(elapsed())
+			-- task.wait가 os.clock 기준보다 아주 조금 일찍 깨도 첫 차례를 놓치지 않게 (m5-36 QA B1)
+			local wave = Logic.burstWave(math.max(elapsed(), first))
 			if wave == nil then
 				break
 			end

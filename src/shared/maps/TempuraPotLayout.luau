@@ -63,7 +63,7 @@ Layout.SHISO_LENGTH = 10
 Layout.SHISO_WIDTH = 8
 
 -- 안전 구역 (위 세 층)
-Layout.SAFE_TIERS = { 5, 6, 7 } -- TIER_TOPS 인덱스 (23·27·31)
+Layout.SAFE_TIERS = { 5, 6, 7 } -- TIER_TOPS 인덱스 (23·27·31) — 60초까지 안전. m5-40 서든데스에 23층은 약 63.5초에 잠겨요
 Layout.TIER5_DIAMETER = 7
 Layout.TIER6_DIAMETER = 6
 Layout.TOP_DIAMETER = 5

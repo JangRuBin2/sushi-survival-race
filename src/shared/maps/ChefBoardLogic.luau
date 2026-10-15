@@ -56,8 +56,13 @@ ChefBoardLogic.KNOCK_UP = 25
 ChefBoardLogic.KNOCKDOWN_TIME = 1
 ChefBoardLogic.CUT_SHAKE_TIME = 0.5
 
+-- 시간 제한 (m5-40): 맵 timeLimit 75초 (Config.TimeLimit.Survival 60은 그대로). 60초부터 서든데스 —
+-- 칼 주기 3 → 2.5초, 60·70초에 기울기 한 번씩 더.
+ChefBoardLogic.TIME_LIMIT = 75
+ChefBoardLogic.SUDDEN_DEATH_AT = 60
+
 -- 기울기
-ChefBoardLogic.TILT_TIMES = { 10, 20, 30, 40, 50 }
+ChefBoardLogic.TILT_TIMES = { 10, 20, 30, 40, 50, 60, 70 }
 ChefBoardLogic.TILT_DURATION = 3
 ChefBoardLogic.TILT_RAMP = 0.5 -- 기울어지고 돌아오는 데 걸리는 시간
 ChefBoardLogic.TILT_MAX_DEG = 8
@@ -146,8 +151,10 @@ function ChefBoardLogic.knifeInterval(t: number): number
 		return 6
 	elseif t < 40 then
 		return 4.5
+	elseif t < ChefBoardLogic.SUDDEN_DEATH_AT then
+		return 3
 	end
-	return 3
+	return 2.5 -- 서든데스 (m5-40)
 end
 
 function ChefBoardLogic.warnTime(t: number): number

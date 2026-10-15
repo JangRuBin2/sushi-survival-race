@@ -46,7 +46,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(map), nil)
 		t.eq(map.kind, "Survival")
 		t.eq(map.displayName, "튀김 냄비 탈출")
-		t.eq(map.timeLimit, nil) -- Config.TimeLimit.Survival
+		t.eq(map.timeLimit, 75) -- m5-40: 맵 timeLimit 75 (Config.TimeLimit.Survival 60은 그대로)
 		t.ok(map.inPool ~= false, "inPool = false 줄이 지워졌어야 해요")
 		local inPool = false
 		for _, info in Maps.infos() do
@@ -143,12 +143,12 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC2
-	t.test("AC2: oilHeight 0·6초 0, 16초 4, 60초 21.6, 100초 22", function()
+	t.test("AC2: oilHeight 0·6초 0, 16초 4, 60초 21.6, 100초 25 (m5-40)", function()
 		t.eq(Logic.oilHeight(0), 0)
 		t.eq(Logic.oilHeight(6), 0)
 		t.ok(near(Logic.oilHeight(16), 4), `16s: {Logic.oilHeight(16)}`)
 		t.ok(near(Logic.oilHeight(60), 21.6), `60s: {Logic.oilHeight(60)}`)
-		t.eq(Logic.oilHeight(100), 22)
+		t.eq(Logic.oilHeight(100), 25) -- m5-40 서든데스 상한
 	end)
 
 	t.test("AC2: oilHeight는 0~100초 0.1초 간격으로 줄어들지 않아요", function()
@@ -269,8 +269,8 @@ return function(t: Test.Test)
 		for _, tier in Layout.SAFE_TIERS do
 			t.ok(Layout.TIER_TOPS[tier] - oil60 >= 1, `tier {Layout.TIER_TOPS[tier]}`)
 		end
-		-- 기름은 22에서 멈춰서 23층은 끝까지 안 잠겨요
-		t.ok(Logic.oilHeight(1e6) < Layout.TIER_TOPS[5], "oil cap below tier 23")
+		-- m5-40: 기름은 25에서 멈춰서 27·31층은 끝까지 안 잠겨요 (23층은 약 63.5초에 잠김)
+		t.ok(Logic.oilHeight(1e6) < Layout.TIER_TOPS[6], "oil cap below tier 27")
 	end)
 
 	t.test("AC5: 꼭대기 가장자리 → 벽 수평 6 이상, 벽 높이 − 꼭대기 윗면 > 7", function()
@@ -298,7 +298,7 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC7
-	t.test("AC7: splashInterval 9.9 → nil, 10 → 3, 30 → 2, 45 → 1.5", function()
+	t.test("AC7: splashInterval 9.9 → nil, 10 → 3, 30 → 2, 45 → 1.5, 60 → 1.2 (m5-40)", function()
 		t.eq(Logic.splashInterval(0), nil)
 		t.eq(Logic.splashInterval(9.9), nil)
 		t.eq(Logic.splashInterval(10), 3)
@@ -306,7 +306,7 @@ return function(t: Test.Test)
 		t.eq(Logic.splashInterval(30), 2)
 		t.eq(Logic.splashInterval(44.9), 2)
 		t.eq(Logic.splashInterval(45), 1.5)
-		t.eq(Logic.splashInterval(60), 1.5)
+		t.eq(Logic.splashInterval(60), 1.2) -- m5-40 서든데스
 		t.eq(Logic.SPLASH_WARN_TIME, 1.2)
 		t.eq(Logic.SPLASH_RADIUS, 5)
 		t.eq(Logic.SPLASH_COOLDOWN, 0.5)

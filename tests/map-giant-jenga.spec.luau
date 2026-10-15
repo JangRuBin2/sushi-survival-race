@@ -73,7 +73,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(map), nil)
 		t.eq(map.kind, "Survival")
 		t.eq(map.displayName, "와르르 나무 블록")
-		t.eq(map.timeLimit, nil) -- Config.TimeLimit.Survival(60)
+		t.eq(map.timeLimit, 75) -- m5-40: 맵 timeLimit 75 (Config.TimeLimit.Survival 60은 그대로)
 	end)
 
 	t.test("AC1: 칸 25개(i, j ∈ -2..2), 서로 겹치지 않음", function()

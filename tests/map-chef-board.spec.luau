@@ -66,7 +66,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(map), nil)
 		t.eq(map.kind, "Survival")
 		t.eq(map.displayName, "셰프의 도마")
-		t.eq(map.timeLimit, nil) -- Config.TimeLimit.Survival(60)
+		t.eq(map.timeLimit, 75) -- m5-40: 맵 timeLimit 75 (Config.TimeLimit.Survival 60은 그대로)
 	end)
 
 	t.test("AC1: 칸 61개, 중심이 반지름 36 안, 서로 겹치지 않음", function()
@@ -223,11 +223,11 @@ return function(t: Test.Test)
 	end)
 
 	---------------------------------------------------------------- AC5
-	t.test("AC5: 기울기는 10·20·30·40·50초에 시작해 3초, 최대 8도", function()
+	t.test("AC5: 기울기는 10·20·30·40·50·60·70초에 시작해 3초, 최대 8도", function()
 		local plan = Logic.tiltPlan(fakeRng(5))
-		t.eq(#plan, 5)
+		t.eq(#plan, 7) -- m5-40: 60·70초 추가
 		local maxAngle = 0
-		for k, startAt in { 10, 20, 30, 40, 50 } do
+		for k, startAt in { 10, 20, 30, 40, 50, 60, 70 } do
 			t.eq(plan[k].startAt, startAt)
 			t.eq(Logic.tiltCFrameParams(startAt - 0.01, plan), nil, `before {startAt}`)
 			t.ok(Logic.tiltCFrameParams(startAt + 0.1, plan) ~= nil, `just after {startAt}`)

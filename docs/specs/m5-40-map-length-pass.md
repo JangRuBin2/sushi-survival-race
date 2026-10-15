@@ -134,6 +134,27 @@ status: ready
 - 2026-10-14 · D2 공용 `Config.TimeLimit.Survival`을 75로 바꾸지 않는 이유 · 공용 파일이라 병렬 작업 중 한 명만 고쳐야 하고, 맵마다 서든데스 단계를 같이 넣어야 의미가 있음 → 맵 `timeLimit` 필드(새 Survival 2개도 같음). 배치가 끝난 뒤 모든 Survival이 75면 Config로 옮기는 정리는 후보 · planner
 - 2026-10-14 · **Q1 답: 한 판 4~5분 유지 (A안, 이 스펙대로)** · 사용자
 - 2026-10-14 · D3 GDD 한 판 목표 · 바꾼 뒤 추정이 3.9~5.1분이라 "4~5분" 그대로 둔다(Q1에서 사용자가 더 길게를 고르면 수정) · planner
+- 2026-10-15 · L4-D1 철판 타일 재생 · 코드에 재생 규칙 없음(m2-03: 한 번 사라지면 끝). 서든데스 1.2초는 **60초 뒤 처음 밟힌 타일만**(이미 달아오르던 타일은 1.5초 유지 — 색이 갑자기 튀지 않게). 바닥 시뮬레이션(`HotPlateLogic.simulateFloor`)은 "조심스러운 걸음"(타일이 사라지기 직전까지 서 있다 옮김) 모델, 기준 인원은 3라운드 판(5~8명)에서 75초까지 가는 최소 인원의 최댓값 = 4명 → 75초에 31칸 남음. 9명 이상 판에서 5명 이상이 끝까지 조심스럽게 버티면 약 70초에 바닥이 바닥나는데, 그건 60초 때도 7명 이상이면 생기던 일(탈락으로 라운드가 끝남)이라 그대로 둠 · developer (맵 판단 위임)
+- 2026-10-15 · L4-D2 나무 블록 "기울기" · 기울기는 시간 단계가 아니라 보드 상태(빠진 블록)에서 나와서 따로 빠르게 할 값이 없음 → 뽑는 간격만 1.5 → 1.2초(× 0.8), 개수 2 그대로. 테두리 48개는 약 69초에 다 빠지고 마지막 몇 초는 가운데 3×3(보호, 안 기욺)에서 자리싸움 · developer (맵 판단 위임)
+- 2026-10-15 · L4-D3 고양이 공 주기 · 60초에 주기를 바꿔도 공이 순간 이동하지 않게 위상을 이어 붙임(`CatCafeShelvesLogic.ballCycles`) · developer
+- 2026-10-15 · L4-D4 튀김 냄비 `SAFE_TIERS` · {5,6,7} 그대로 둠(60초까지의 안전 구역 정의·치수 테스트용). 23층은 약 63.5초에 잠기는 것을 주석·테스트에 적음 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### L1 …). 바뀐 파일, 바꾼 기존 단언 목록, 실측 클리어 시간, 전/후 PNG, 휴대폰 메모, 남은 이슈 -->
+
+### L4 (Survival 5개, 브랜치 `m5-len-d`)
+- **바뀐 파일**: `HotPlate`·`HotPlateLogic`·`HotPlateArt`(isGlowing에 타일 시간 인자), `ChefBoard`·`ChefBoardLogic`, `TempuraPot`·`TempuraPotLogic`·`TempuraPotLayout`(주석), `GiantJenga`·`GiantJengaLogic`, `CatCafeShelves`·`CatCafeShelvesLogic`, 새 `tests/m5-40-l4.spec.luau`(16개). 각 맵 `timeLimit = Logic.TIME_LIMIT`(75), `SUDDEN_DEATH_AT = 60`. 칼·블록 일정은 `Config.TimeLimit.Survival` 대신 `Logic.TIME_LIMIT`.
+- **서든데스(60초~)**: 철판 달아오름 1.5 → 1.2초(60초 뒤 처음 밟힌 타일) · 도마 칼 주기 3 → 2.5초, 기울기 60·70초 추가(7번) · 튀김 냄비 기름 상한 22 → 25(68.5초 도달, 23층 63.5초에 잠김, 27·31층 안전), 튀는 기름 1.5 → 1.2초 · 나무 블록 뽑기 1.5 → 1.2초(2개) · 캣타워 공 4.5 → 3.8초(위상 연속), 고양이 발 2 → 1.6초. 60초까지는 전부 예전과 같음.
+- **바꾼 기존 단언**(전부 이 스펙이 의도한 시간·기름 값):
+  - `tests/map-hot-plate*.spec`·`map-art-arena`·`m4-03-qa`: 변경 없음(`HEAT_DURATION` 1.5 그대로).
+  - `tests/map-chef-board.spec.luau` 69 `timeLimit nil → 75` · 226·228·230 기울기 5번 `{10..50}` → 7번 `{10..70}`.
+  - `tests/m4-05-qa.spec.luau` 150·155 마지막 기울기 ≤ `Config.TimeLimit.Survival` → `≤ Logic.TIME_LIMIT` · 274·275 소스 문자열 `Logic.strikeTimes(Config.TimeLimit.Survival)` → `Logic.strikeTimes(Logic.TIME_LIMIT)`.
+  - `tests/map-tempura-pot.spec.luau` 49 `timeLimit nil → 75` · 146·151 `oilHeight(100) 22 → 25` · 272·273 "상한 < 23층" → "상한 < 27층" · 301·309 `splashInterval(60) 1.5 → 1.2`.
+  - `tests/m5-05-qa.spec.luau` 579·584 `oilHeight(1000) 22 → 25` · 588·589 "23층 > OIL_MAX" → "27층 > OIL_MAX + 1" · 592·596·597 `splashInterval(60·1000) 1.5 → 1.2`.
+  - `tests/map-giant-jenga.spec.luau` 76 `timeLimit nil → 75` (60초 일정 단언은 그대로 통과).
+  - `tests/map-cat-cafe-shelves.spec.luau` 34 `timeLimit nil → 75` · 194 `pawInterval(60) 2 → 1.6`.
+  - `tests/m5-17-qa.spec.luau` 287·295 pawInterval 하한 2 → `PAW_INTERVAL_SUDDEN`(1.6).
+- **AC4**: Final 4개 파일·테스트 diff 0. **AC5**: 장식·판정 지오메트리·카메라 변경 없음(기존 예산·카메라 테스트 그대로 통과).
+- **AC8 렌더**: 5개 맵 `--view all --quality high` 1회 → 비평 ① 장식·지오메트리를 안 바꿔 overview·eye가 m5-24 `after-*.png`와 **바이트 단위로 같음** ② 서든데스는 시간에 따른 동작이라 정지 렌더에 안 보임 → Studio AC10으로 확인. `docs/renders/<id>/after-length-overview.png` 5장(같은 내용 — git이 같은 blob으로 저장). `void%` 전부 0%(캣타워 overview 2%). 휴대폰: tris 변화 없음(가장 무거운 tempura-pot 113k, giant-jenga 90k, cat-cafe 79k, hot-plate 54k, chef-board 50k).
+- **검증**: rojo build · stylua --check src tests tools · selene src(0/0/0) · `lune run tests` 2194 passed, 0 failed · luau-lsp analyze 끝 코드 0.
+- **Studio 확인(AC10)**: `forceMapPlan = { "<id>" }`로 한 맵씩 → 라운드 타이머 75초, 60초에 철판이 더 빨리 빨개짐/칼 간격 짧아짐+60·70초 기울기/기름이 23층을 덮음·튀는 기름 잦아짐/블록이 1.2초마다 2개/공이 빨라지고 고양이 발이 잦아짐. 확인 뒤 `forceMapPlan = nil`.

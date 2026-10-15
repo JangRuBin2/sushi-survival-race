@@ -28,6 +28,11 @@ export type TiltParams = {
 }
 type Rng = { NextInteger: (self: any, min: number, max: number) -> number }
 
+-- 시간 제한 (m5-40): 맵 timeLimit 75초 (Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
+GiantJengaLogic.TIME_LIMIT = 75
+GiantJengaLogic.SUDDEN_DEATH_AT = 60
+GiantJengaLogic.SUDDEN_DEATH_INTERVAL = 1.2 -- 마지막 단계(1.5초) × 0.8
+
 -- 제거 일정
 GiantJengaLogic.FIRST_REMOVAL_AT = 6 -- 출발 여유 (초)
 GiantJengaLogic.CREAK_TIME = 0.8 -- 뽑히는 경고(그 기둥만 흔들림)
@@ -76,8 +81,11 @@ function GiantJengaLogic.removalWave(elapsed: number): Wave?
 		return { interval = 3.5, count = 1 }
 	elseif elapsed < 48 then
 		return { interval = 2.5, count = 2 }
+	elseif elapsed < GiantJengaLogic.SUDDEN_DEATH_AT then
+		return { interval = 1.5, count = 2 }
 	end
-	return { interval = 1.5, count = 2 }
+	-- 서든데스 (m5-40): 마지막 단계 간격 × 0.8. 테두리 블록(48)은 약 69초에 다 빠지고, 그 뒤는 가운데 3×3만 남아요.
+	return { interval = GiantJengaLogic.SUDDEN_DEATH_INTERVAL, count = 2 }
 end
 
 -- 제거가 일어나는 시각들 (duration 전까지). 다음 시각 = 이번 시각 + 이번 시각의 간격.

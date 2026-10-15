@@ -393,6 +393,7 @@ type Ring = {
 	startAt: number, -- 출발 기준 초
 	prevRadius: number,
 	hit: { [Player]: boolean },
+	lastDist: { [Player]: number }, -- 직전 틱의 사람 거리 (고리를 향해 걸어 들어와도 놓치지 않게, QA P2-1)
 	visual: Model?,
 }
 
@@ -651,6 +652,7 @@ local function start(ctx: MapTypes.RoundContext)
 					startAt = slam.at + (r - 1) * Logic.RING_GAP,
 					prevRadius = Logic.RING_START,
 					hit = {},
+					lastDist = {},
 					visual = nil,
 				})
 			end
@@ -710,7 +712,10 @@ local function start(ctx: MapTypes.RoundContext)
 				local rel = origin:PointToObjectSpace(root.CFrame.Position)
 				local dx, dz = rel.X - Layout.CENTER_X, rel.Z - Layout.CENTER_Z
 				local dist = math.sqrt(dx * dx + dz * dz)
-				if not (dist > ring.prevRadius and dist <= radius) then
+				local prevDist = ring.lastDist[player] or dist
+				ring.lastDist[player] = dist
+				-- 직전엔 고리 바깥, 지금은 안쪽 (고리가 지나갔거나 사람이 고리를 가로질렀음)
+				if not (prevDist > ring.prevRadius and dist <= radius) then
 					continue
 				end
 				local hit = workspace:Raycast(root.CFrame.Position, down, probeParams)
@@ -719,7 +724,7 @@ local function start(ctx: MapTypes.RoundContext)
 					continue -- 공중이거나 데크 밖
 				end
 				local footY = rel.Y - Layout.FOOT_OFFSET
-				if Logic.waveHit(dist, ring.prevRadius, radius, footY, Layout.tierTop(tier)) then
+				if Logic.waveHit(dist, ring.prevRadius, radius, footY, Layout.tierTop(tier), prevDist) then
 					ring.hit[player] = true
 					local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 					knock(player, root, humanoid, rel, dist, tier)

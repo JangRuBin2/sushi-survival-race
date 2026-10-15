@@ -123,6 +123,9 @@ status: qa-passed
 - 2026-10-15 · D14 `Logic.waveKnockback(dist, tier)` 반환형 · `{ horizontal, up }`(방향은 `Logic.outward(dx, dz)`) — 스펙의 "Velocity"를 크기 두 개로 · developer
 - 2026-10-15 · D15 "물 위 초밥 쟁반·나무통 Bob(탕 바깥 고정 위치)" · 탕 물은 서버가 올리니 그 위에 고정 장식을 띄울 수 없음 → 탕 남쪽 **돌 수반**(정적인 물, 윗면 7.8) 위에 쟁반 3·통 1을 Bob · developer
 - 2026-10-15 · D16 경고 거품 파티클 수 · 데크 4개마다 하나(1단 12개 동시 경고 때 3개) — 장식 파티클 9 + 최대 3 ≤ Extended 16 · developer
+- 2026-10-15 · D17 (QA P2-1) 고리 쪽으로 걸어 들어가면 통과하던 문제 · 고리마다 사람별 직전 거리(`ring.lastDist`, start 지역 변수인 고리 표 안)를 기억해 "직전엔 고리 바깥(직전 거리 > 직전 반지름), 지금은 안쪽(거리 ≤ 반지름)"이면 맞음. `Logic.waveHit(..., prevDist?)` — 없으면 지금 거리(기존 호출 그대로). 고리가 사람을 지나가는 경우도 같은 조건으로 잡힘. 속도 8·16·20, 60·30Hz 회귀 테스트 · developer
+- 2026-10-15 · D18 (QA P3-2) 발 높이 `FOOT_OFFSET = 3` 유지 · `SushiBody.GROUND_OFFSET`(2.25)은 **초밥 몸 중심**이 발바닥에서 얼마나 위인지(인형 세울 때)이고, 판정 기준인 **HumanoidRootPart 중심 → 땅** 거리는 아바타 리그가 정해요: `AppearanceService.groundBelowRoot` = R15 `HipHeight + root.Size.Y/2`(기본 약 2 + 1 = 3), R6 `root.Size.Y/2 + 2` = 3. 그래서 3이 실제 루트 기준이고 `TempuraPot` 관례와도 같음 · developer
+- 2026-10-15 · D19 (QA P3-1) 기계 앞 조작판 · 판정 파츠는 그대로, 장식 조작판을 몸체 면에 붙은 76° 가파른 판(0.15만 튀어나옴)으로, 버튼은 앞면 원판으로 — 올라설 선반처럼 안 보이게 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->

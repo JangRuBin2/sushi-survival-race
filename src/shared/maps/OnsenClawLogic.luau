@@ -177,10 +177,20 @@ function Logic.ringRadius(slamAt: number, t: number): number
 	return Logic.RING_START + Logic.RING_SPEED * math.max(0, t - slamAt)
 end
 
--- 고리 앞면이 이번 틱(prevRadius → radius)에 그 거리를 지나고, 발이 그 데크 위(윗면 − 1.5 ~ 윗면 + 1.2)면 맞아요.
--- 점프 중(발이 윗면 + 1.2보다 높음)이거나 이미 지나간 거리면 안 맞아요.
-function Logic.waveHit(dist: number, prevRadius: number, radius: number, footY: number, deckTop: number): boolean
-	if not (dist > prevRadius and dist <= radius) then
+-- 고리 앞면이 이번 틱에 그 사람을 지나가고(직전엔 고리 바깥: prevDist > prevRadius, 지금은 안쪽: dist ≤ radius),
+-- 발이 그 데크 위(윗면 − 1.5 ~ 윗면 + 1.2)면 맞아요. 고리가 사람을 지나가든, 사람이 고리 쪽으로 걸어 들어와
+-- 가로지르든 같아요 (m5-39 QA P2-1: 현재 거리만 보면 안쪽으로 걷는 사람이 구간을 건너뛰었어요).
+-- prevDist가 없으면(처음 본 틱) 지금 거리를 써요. 점프 중이거나 이미 안쪽에 있던 사람은 안 맞아요.
+function Logic.waveHit(
+	dist: number,
+	prevRadius: number,
+	radius: number,
+	footY: number,
+	deckTop: number,
+	prevDist: number?
+): boolean
+	local before = prevDist or dist
+	if not (before > prevRadius and dist <= radius) then
 		return false
 	end
 	if footY > deckTop + Logic.GROUND_TOLERANCE then

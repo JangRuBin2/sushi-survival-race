@@ -368,29 +368,16 @@ local function clawMachine(list: { DecorSpec })
 			P(0, 3.4, 0)
 		)
 	)
-	-- 앞(남쪽, +Z) 조작판: 기울어진 판 + 조이스틱 + 큰 버튼 + 동전 구멍 + 상품 문
-	add(
-		list,
-		"ControlPanel",
-		"Wedge",
-		v(7, 1.2, 1.4),
-		PINK_LIGHT,
-		"SmoothPlastic",
-		P(0, 9.3, H + 0.2),
-		{ rotation = v(0, 180, 0) }
-	)
-	post(list, "Joystick", -1.8, 9.6, H - 0.1, 1.6, 0.25, c(60, 60, 70), "Metal")
-	add(list, "JoystickKnob", "Ball", v(0.8, 0.8, 0.8), c(255, 90, 110), "SmoothPlastic", P(-1.8, 11.3, H - 0.1))
-	add(
-		list,
-		"PushButton",
-		"Cylinder",
-		v(0.35, 1.2, 1.2),
-		c(255, 230, 90),
-		"Neon",
-		P(1.6, 10.1, H + 0.1),
-		{ rotation = v(0, 0, 70) }
-	)
+	-- 앞(남쪽, +Z) 조작판: 몸체 면에 붙은 가파른 판(76°, 0.15만 튀어나옴 — 올라설 선반처럼 안 보이게, QA P3-1)
+	-- + 조이스틱 + 앞면 큰 버튼 + 동전 구멍 + 상품 문. 전부 충돌 없음, 충돌 몸체(±H) 밖으로 0.3 이하
+	add(list, "ControlPanel", "Wedge", v(7, 2.4, 0.6), PINK_LIGHT, "SmoothPlastic", P(0, 9.3, H - 0.15), {
+		rotation = v(0, 180, 0),
+	})
+	post(list, "Joystick", -1.8, 9.6, H - 0.3, 1.6, 0.25, c(60, 60, 70), "Metal")
+	add(list, "JoystickKnob", "Ball", v(0.8, 0.8, 0.8), c(255, 90, 110), "SmoothPlastic", P(-1.8, 11.3, H - 0.3))
+	add(list, "PushButton", "Cylinder", v(0.3, 1.2, 1.2), c(255, 230, 90), "Neon", P(1.6, 9.4, H + 0.1), {
+		rotation = v(0, 90, 0),
+	})
 	add(list, "CoinSlot", "Block", v(1.4, 2, 0.2), c(60, 58, 64), "Metal", P(2.6, 7.4, H + 0.05), { reflectance = 0.2 })
 	add(list, "PrizeDoor", "Block", v(3.6, 3, 0.2), PINK_DARK, "SmoothPlastic", P(-1.6, 6.9, H + 0.05))
 	add(list, "PrizeDoorTrim", "Block", v(3.9, 0.3, 0.25), GOLD, "Metal", P(-1.6, 8.5, H + 0.05))

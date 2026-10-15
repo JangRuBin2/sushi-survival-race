@@ -235,6 +235,29 @@ local function hasLaunch(r: any): boolean
 	return r.root:FindFirstChild("ShockwaveLaunch") ~= nil
 end
 
+-- 가짜 Raycast: 루트 아래 4.5 안에 그 자리 단 윗면이 있으면 그 단 조각에 맞음
+local function deckRaycast(origin: any): (any, any) -> any
+	return function(from: any, direction: any): any
+		local rel = origin:PointToObjectSpace(from)
+		local dx, dz = rel.X - Layout.CENTER_X, rel.Z - Layout.CENTER_Z
+		local tier = Layout.tierAt(math.sqrt(dx * dx + dz * dz))
+		if tier == nil then
+			return nil
+		end
+		local top = Layout.TIERS[tier].top
+		if rel.Y >= top and rel.Y + direction.Y <= top then
+			return {
+				Instance = {
+					GetAttribute = function(_self: any, name: string): any
+						return if name == "Tier" then tier else nil
+					end,
+				},
+			}
+		end
+		return nil
+	end
+end
+
 return function(t: Test.Test)
 	---------------------------------------------------------------- AC1
 	t.test(
@@ -875,6 +898,84 @@ return function(t: Test.Test)
 					t.ok(p.pos.y >= Layout.TIERS[tier].top + 2, `intro {i} above tier {tier}`)
 				end
 			end
+		end
+	)
+	---------------------------------------------------------------- QA P2-1 회귀
+	t.test(
+		"P2-1: 고리 쪽으로 걸어 들어와도(속도 8·16·20, 60Hz·30Hz) 시작 위치 200가지 모두 맞아요",
+		function()
+			local top = Layout.TIERS[3].top
+			for _, speed in { 8, 16, 20 } do
+				for _, hz in { 60, 30 } do
+					local dt = 1 / hz
+					local missed = 0
+					for k = 0, 199 do
+						-- 3단 바깥쪽(24.x)에서 쿵과 동시에 가운데로 걸어요
+						local dist = 24 + k * (Logic.RING_SPEED + speed) * dt / 200
+						local prevDist: number? = nil
+						local prevRadius = Logic.RING_START
+						local hit = false
+						local s = 0
+						while prevRadius < Logic.RING_END and not hit do
+							s += dt
+							dist -= speed * dt
+							local radius = Logic.ringRadius(0, s)
+							hit = Logic.waveHit(dist, prevRadius, radius, top, top, prevDist or dist)
+							prevDist = dist
+							prevRadius = radius
+						end
+						if not hit then
+							missed += 1
+						end
+					end
+					t.eq(missed, 0, `speed {speed} at {hz}Hz missed {missed}/200`)
+				end
+			end
+			-- 이미 고리 안쪽에 있던 사람(직전 거리 ≤ 직전 반지름)은 안 맞고, 점프 중이면 가로질러도 안 맞아요
+			t.ok(not Logic.waveHit(19.8, 20, 20.4, top, top, 19.9), "already inside")
+			t.ok(Logic.waveHit(19.8, 19.9, 20.3, top, top, 20.1), "walked across the front")
+			t.ok(not Logic.waveHit(19.8, 19.9, 20.3, top + 2, top, 20.1), "jumped across the front")
+			t.ok(Logic.waveHit(20, 19.5, 20.2, top, top), "prevDist 없으면 지금 거리 (기존 호출 그대로)")
+		end
+	)
+
+	t.test(
+		"P2-1: start 모의 실행 — 3단에서 고리 쪽으로 속도 16으로 걸어도 넉백돼요",
+		function()
+			local origin = RCF.new(0, 300, 0)
+			local dt = 1 / 60
+			local walkers = {}
+			local sim: Sim = { now = 0, queue = {}, heartbeat = {}, waits = 0 }
+			local map = loadMap(sim, deckRaycast(origin))
+			local model = map.build(origin)
+			model.Parent = Shims.globals.workspace
+			for k = 0, 9 do
+				-- 틱 안 위상을 10가지로 (상대 속도 40 × dt 안에서)
+				table.insert(walkers, racer(`Walker{k}`, origin, k * 36, 24 + k * 40 * dt / 10, 4))
+			end
+			local ctx = newCtx(model, origin, walkers)
+			map.start(ctx)
+			while sim.now < 8.9 do
+				sim.now += dt
+				if sim.now >= 8 then
+					for k, w in walkers do
+						if not hasLaunch(w) then
+							local rel = origin:PointToObjectSpace(w.root.CFrame.Position)
+							local dx, dz = rel.X - Layout.CENTER_X, rel.Z - Layout.CENTER_Z
+							local d = math.sqrt(dx * dx + dz * dz)
+							local x, z = Layout.polar((k - 1) * 36, math.max(d - 16 * dt, 17.5))
+							w.root.CFrame = origin * RCF.new(x, rel.Y, z)
+						end
+					end
+				end
+				for _, fn in sim.heartbeat do
+					fn(dt)
+				end
+			end
+			for _, w in walkers do
+				t.ok(hasLaunch(w), `{w.Name} walked through the ring`)
+			end
+			model:Destroy()
 		end
 	)
 end

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-38 — 새 결승 맵: 찻잎 정원 (`tea-garden`)
@@ -86,18 +86,18 @@ status: in-qa
 
 ## 수용 기준
 ### 순수 로직 (lune 테스트, `tests/map-tea-garden.spec.luau`)
-- [ ] AC1: `MapTypes.validate` 통과(Final, `overtime` 함수), 단 5개 × 조각 12개(속성 `Ring`), 반지름·윗면이 표와 같고 이웃 단 높이 차 1.5, 스폰 24개가 3·4단 위 서로 3 이상, `lighting = Art.LIGHTING`.
-- [ ] AC2: 찻사발 심 윗면(20) − 1단 윗면(6) > 점프 높이(6.4) + 5. 정원 밖(반지름 47 밖)에 충돌 있는 파츠가 없다.
-- [ ] AC3: `Logic.collapseAt`: 5단 15, 4단 30, 3단 45, 2단 overtimeAt + 10, 1단 overtimeAt + 20(overtimeAt 없으면 2·1단 nil). `isCollapsing(5, 12)` = Warn, `(5, 15)` = Gone, `(4, 26.9)` = Solid.
-- [ ] AC4: `Logic.cupWave`: 2.9 → 0, 3 → (1, 13), 30 → (2, 13), 60 → (3, 16), 연장전 → (3, 18).
-- [ ] AC5: `Logic.pickCupRing`: 무너진 단·4초 안에 무너질 단은 고르지 않는다. 찻잔 수 ≤ 남은 단 수면 같은 단 중복 없음. 1,000번 시뮬레이션(45~90초, 단 1·2만 남음)에서 늘 1 또는 2.
-- [ ] AC6: `Logic.cupHit`: 수평 3.5 안 · 발 < 단 윗면 + 6 → true, 발 ≥ 윗면 + 6 → false, 3.5 밖 → false. 넉백 상수 26·12·18, 면제 1.5, 쿨다운 1.
-- [ ] AC7: `Logic.overtimeCollapse(20, {2, 1})` = `{ {ring 2, warn 7, drop 10}, {ring 1, warn 17, drop 20} }`, `overtimeCollapse(20, {5, 4, 3, 2, 1})`은 4초 간격이고 마지막 `dropAt == 20`, 바깥 단이 먼저. 연장전 +20초 뒤(모의 실행)에 충돌 있는 파츠가 0개다(조각·심 모두 꺼짐).
-- [ ] AC8: 장식 `validate`·`checkBudget(..., "Extended")` 통과, 밟는 면 시야 상자와 안 겹침, 배경 바닥 ≤ −35, 차밭 조각 하위·찻잔 하위 장식에 `anim` 없음, `inPool` 없음 또는 true.
-- [ ] AC9: 검증 5단계 통과 + 기존 `maps`·`round-logic`·`movement-guard`·`m5-23-qa`·`m5-33-batch3` 테스트 통과.
+- [x] AC1: `MapTypes.validate` 통과(Final, `overtime` 함수), 단 5개 × 조각 12개(속성 `Ring`), 반지름·윗면이 표와 같고 이웃 단 높이 차 1.5, 스폰 24개가 3·4단 위 서로 3 이상, `lighting = Art.LIGHTING`.
+- [x] AC2: 찻사발 심 윗면(20) − 1단 윗면(6) > 점프 높이(6.4) + 5. 정원 밖(반지름 47 밖)에 충돌 있는 파츠가 없다.
+- [x] AC3: `Logic.collapseAt`: 5단 15, 4단 30, 3단 45, 2단 overtimeAt + 10, 1단 overtimeAt + 20(overtimeAt 없으면 2·1단 nil). `isCollapsing(5, 12)` = Warn, `(5, 15)` = Gone, `(4, 26.9)` = Solid.
+- [x] AC4: `Logic.cupWave`: 2.9 → 0, 3 → (1, 13), 30 → (2, 13), 60 → (3, 16), 연장전 → (3, 18).
+- [x] AC5: `Logic.pickCupRing`: 무너진 단·4초 안에 무너질 단은 고르지 않는다. 찻잔 수 ≤ 남은 단 수면 같은 단 중복 없음. 1,000번 시뮬레이션(45~90초, 단 1·2만 남음)에서 늘 1 또는 2.
+- [x] AC6: `Logic.cupHit`: 수평 3.5 안 · 발 < 단 윗면 + 6 → true, 발 ≥ 윗면 + 6 → false, 3.5 밖 → false. 넉백 상수 26·12·18, 면제 1.5, 쿨다운 1.
+- [x] AC7: `Logic.overtimeCollapse(20, {2, 1})` = `{ {ring 2, warn 7, drop 10}, {ring 1, warn 17, drop 20} }`, `overtimeCollapse(20, {5, 4, 3, 2, 1})`은 4초 간격이고 마지막 `dropAt == 20`, 바깥 단이 먼저. 연장전 +20초 뒤(모의 실행)에 충돌 있는 파츠가 0개다(조각·심 모두 꺼짐).
+- [x] AC8: 장식 `validate`·`checkBudget(..., "Extended")` 통과, 밟는 면 시야 상자와 안 겹침, 배경 바닥 ≤ −35, 차밭 조각 하위·찻잔 하위 장식에 `anim` 없음, `inPool` 없음 또는 true.
+- [x] AC9: 검증 5단계 통과 + 기존 `maps`·`round-logic`·`movement-guard`·`m5-23-qa`·`m5-33-batch3` 테스트 통과.
 
 ### 렌더 반복 (아트 가이드 12절)
-- [ ] AC10: before → 체크리스트 18개 비평 3회 이상(`docs/developer/m5-38-map-tea-garden.md`) → 마지막 18개 "예" → after, `void%` 10% 이하, 시트 비교 표, 휴대폰 성능 메모 한 줄(벚꽃 수관 파츠 수·꽃잎 Rate).
+- [x] AC10: before → 체크리스트 18개 비평 3회 이상(`docs/developer/m5-38-map-tea-garden.md`) → 마지막 18개 "예" → after, `void%` 10% 이하, 시트 비교 표, 휴대폰 성능 메모 한 줄(벚꽃 수관 파츠 수·꽃잎 Rate).
 
 ### Studio 확인 (`forceMapPlan = { "rotating-belt", "hot-plate", "tea-garden" }`, 빠른 연장전 `DEBUG.overtimeAt = 50`, **확인 뒤 둘 다 nil**)
 - [ ] AC11: 3초에 찻사발에서 찻잔이 굴러 나와 1단을 돈다. 6초마다 노랗게 빛나며 옆 단으로 옮겨 간다. 같은 단에 있으면 맞아 날아가고, 단을 올라가거나 내려가면 피한다.

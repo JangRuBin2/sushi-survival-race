@@ -8,20 +8,22 @@
 ## 현재 상태
 - 기획서 **v0.7**(무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - **M5 (운영 업데이트) 진행 중**
-  - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), m5-41 터치 버튼 위치·크기 편집.
-  - m5-23 맵 비주얼 키트·미리보기 렌더러: **main에 있음, `in-qa`**(QA 수정 B1~B6 반영, 재QA 전 — m5-24 QA가 키트 테스트를 같이 돌렸지만 m5-23 재QA 리포트는 아직 없음).
-  - `ready`(기획만, 개발 전): **m5-33~m5-39 맵 3차 배치 6개**(m5-33 기반이 먼저 — 껍데기 6개·`maps/init` 등록·SfxCues·파티클 프리셋, 그 뒤 m5-34~39 맵마다 worktree), **m5-40 맵 길이 늘리기**, m5-26 현지화(작업 브랜치 `m5-26-i18n-p2` 등은 main 미병합), m5-12 콘솔 UI.
-- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-12), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함), 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
-- **다음 단계**: m5-33 맵 3차 기반(main) → m5-34~39 맵 worktree 병렬 → m5-40 맵 길이 → m5-26 현지화 병합 → m5-12 콘솔 UI. 그사이 m5-23 재QA, 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개.
-- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 15개(아트 패스 v2), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령).
+  - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), **m5-33~39 맵 3차 배치 6개**(기반 + 새 맵, 풀 21개), **m5-40 맵 길이**(Race 6개 코스 연장, Survival 75초 + 60초 서든데스), m5-41 터치 버튼 위치·크기 편집.
+  - m5-23 맵 비주얼 키트·미리보기 렌더러: **main에 있음, `in-qa`**(QA 수정 B1~B6 반영, 재QA 진행 중 — worktree).
+  - `ready`(기획만): m5-26 현지화(작업 브랜치 `m5-26-i18n-p2` 등 main 미병합 — 병합 때 새 맵 6개 `name|rule` 수집 필요), m5-12 콘솔 UI.
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-13), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함), 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
+- **다음 단계**: m5-26 현지화 병합 → m5-12 콘솔 UI. 그사이 m5-23 재QA, 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드) → 비공개 테스트 → 공개.
+- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 21개(기존 12개 아트 패스 v2, Race 45~55초 길이), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령).
 - 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
-## 맵 풀 (15개, 전부 랜덤 판 풀)
+## 맵 풀 (21개, 전부 랜덤 판 풀)
 | 종류 | id |
 |---|---|
-| Race (6) | `rotating-belt` 회전 벨트 · `soy-swamp` 간장 늪 & 와사비 산 · `ramen-rapids` 라멘 국물 급류 · `dessert-fridge` 디저트 냉장고 · `bouncy-castle-maze` 방방 미로 · `lantern-bridge` 등불 다리 건너기 |
-| Survival (5) | `hot-plate` 뜨거운 철판 · `chef-board` 셰프의 도마 · `tempura-pot` 튀김 냄비 탈출 · `giant-jenga` 와르르 나무 블록 · `cat-cafe-shelves` 고양이 카페 캣타워 |
-| Final (4) | `skewer-showdown` 회전 꼬치 쇼다운 · `ikura-bombs` 연어알 폭탄 접시 · `tug-of-war-platform` 줄다리기 발판 · `claw-machine-prize` 인형뽑기 기계 속 |
+| Race (8) | `rotating-belt` 회전 벨트 · `soy-swamp` 간장 늪 & 와사비 산 · `ramen-rapids` 라멘 국물 급류 · `dessert-fridge` 디저트 냉장고 · `bouncy-castle-maze` 방방 미로 · `lantern-bridge` 등불 다리 건너기 · `dish-sink` 깨끗하게! 설거지통 · `space-conveyor` 우주 회전초밥 |
+| Survival (7) | `hot-plate` 뜨거운 철판 · `chef-board` 셰프의 도마 · `tempura-pot` 튀김 냄비 탈출 · `giant-jenga` 와르르 나무 블록 · `cat-cafe-shelves` 고양이 카페 캣타워 · `rice-cooker` 초대형 밥솥 · `fish-market` 수산시장 |
+| Final (6) | `skewer-showdown` 회전 꼬치 쇼다운 · `ikura-bombs` 연어알 폭탄 접시 · `tug-of-war-platform` 줄다리기 발판 · `claw-machine-prize` 인형뽑기 기계 속 · `tea-garden` 찻잎 정원 · `onsen-claw` 온천탕 인형뽑기 |
+
+- 시간 제한(m5-40): Race 90초·Final 90초(+연장전)는 `Config.TimeLimit` 그대로. **Survival 7개는 맵 모듈의 `timeLimit = 75`**(보통 `Logic.TIME_LIMIT`, 수산시장은 숫자 그대로. 기존 5개는 `Logic.SUDDEN_DEATH_AT = 60`부터 서든데스, 새 2개는 자기 일정) — `Config.TimeLimit.Survival` 60은 바꾸지 않았고 지금 그 값을 쓰는 Survival 맵은 없다. 새 Survival 맵도 `timeLimit`을 직접 둔다. Race는 빠른 사람 45~55초 목표(코스 약 240~470 studs, 맵별 `Logic.estimateClearTime`).
 
 ## 스킨 · 상점 규칙
 - 스킨은 **겉모습만** 바꾼다. 크기·히트박스·속도는 모두 같다(히트박스·발바닥 `SushiBody.GROUND_OFFSET` 하나). 능력치 판매 없음. 초밥이 아닌 음식·캐릭터도 세계관에 맞으면 된다(v0.6).
@@ -59,7 +61,7 @@
 - **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~24명 → 4라운드. 한 판 4~5분.
 - **통과 인원**: `clamp(round(시작 × 비율), 2, 시작 - 1)`. 비율 3라운드 [0.60, 0.50, 결승], 4라운드 [0.65, 0.55, 0.50, 결승]. 결승 전 남은 인원 ≤ 2면 바로 결승. 코드(`Rules.qualifyCount`)는 "시작"을 **그 라운드를 시작할 때 살아 있는 인원**으로 계산한다.
 - **맵**: 라운드마다 맵이 바뀐다. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
-- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람(리셋·퇴장이 섞이면 그쪽이 더 나쁜 등수). **연장전**(결승 = 마지막 라운드에서만): 90초에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 안전 상한 150초(+`HardCapMargin` 40)에 가장 높이 있는 1명 우승. **Survival** 시간 종료면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
+- **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람(리셋·퇴장이 섞이면 그쪽이 더 나쁜 등수). **연장전**(결승 = 마지막 라운드에서만): 90초에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 안전 상한 150초(+`HardCapMargin` 40)에 가장 높이 있는 1명 우승. **Survival** 시간 종료(75초)면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
 - **결승 진출 2명 보장**: 결승 전 라운드에서 낙하로 살아남을 사람이 2명 아래가 되면 더 멀리/높이 간 사람부터 구제. 리셋·퇴장은 구제 없음. 혼자 남으면 바로 부전승. 우승자는 항상 `Won`을 받은 사람이다.
 - **보상**: 라운드 통과 +10, 결승 출발 +30, 우승 +100 + 🎫 뽑기권 1장(`Config.Draw`), 하루 첫 판 +50(UTC). 이벤트 기간에는 재화도(`Config.Events.Tokens`). 칭호 1승 "탈출 초밥", 10승 "전설의 참치", 100승 "바다의 왕".
 - **판정은 전부 서버**(결승선, 탈락, 순위, 코인, 구매, 코드, 이동 감시). 클라이언트는 입력·UI·연출만(얼음 관성 이동처럼 판정 없는 이동 보정 포함).
@@ -110,8 +112,8 @@ src/
     maps/
       init.luau  MapTypes.luau                     # 맵 풀(ALL), 공통 인터페이스 + validate
       MapKit  MapKitLogic  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
-      <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 15개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
-tests/               # 순수 로직·가짜 Roblox 테스트 (134개 파일 1992개, 2026-10-14 main 4229e9a). init.luau 실행기, lib/, fixtures/
+      <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 21개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
+tests/               # 순수 로직·가짜 Roblox 테스트 (156개 파일 2282개, 2026-10-15 main 8750ee6). init.luau 실행기, lib/, fixtures/
 docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md  REFERENCE-*.md
   specs/  qa/  proposals/  renders/<mapId>/·renders/characters/(커밋한 before/after PNG)
@@ -128,7 +130,7 @@ export type MapModule = {
   start: (ctx: RoundContext) -> (),          -- 장애물 가동, 판정 → ctx.pass / ctx.eliminate
   cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만
   overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?,  -- 결승 연장전. kind == "Final"이면 필수
-  inPool: boolean?,                          -- false면 랜덤 판에서 빠짐(강제 플랜·Maps.get만). 지금 15개 모두 풀
+  inPool: boolean?,                          -- false면 랜덤 판에서 빠짐(강제 플랜·Maps.get만). 지금 21개 모두 풀
   lighting: MapLighting.MapLighting?,        -- 맵 조명 분위기 (m5-23). 보통 Art.LIGHTING
 }
 export type OvertimeInfo = { collapseDuration: number }
@@ -142,7 +144,7 @@ export type RoundContext = {
 - `Spawns` 폴더에 24개 BasePart, **24개 모두 판정 바닥 위**(테스트로 확인). 코스는 `origin`의 앞쪽(로컬 -Z)으로 — 시간 종료 때 Race 순위 축.
 - 라운드 종료 판정은 `RoundLogic`(순수). 맵은 `ctx.pass`/`ctx.eliminate`만 부르고, 한 판정 틱의 탈락은 한 묶음. 결승 여부는 "마지막 라운드인가"로 정한다. 점수: Race 진행도(로컬 -Z), Survival·Final 높이.
 - 맵 상태는 모듈이 아니라 `ctx`/`start` 지역 변수(또는 `ctx` 키 표)에 둔다 — 한 서버에서 여러 방이 같은 맵을 동시에 돌린다. 장애물은 `CollectionService` 태그로, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그 이름은 각 맵 모듈 상단(예: `Conveyor`, `HotTile`, `IkuraTile`, `Ice`·`Jelly`·`ColdFan`, `BounceFloor`, `TugOfWarPlatform` …).
-- **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비·젤리·방방 바닥 튕김, 폭탄·기름·고양이 넉백, 젓가락 집기·놓기) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기·바람(송풍구) 같은 **연속 밀기에는 달지 않는다**.
+- **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비·젤리·방방 바닥 튕김, 폭탄·기름·고양이·수세미·운석·밥솥 끓어오름·증기·얼음 블록·생선·찻잔·충격파 넉백, 젓가락 집기·놓기) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기·바람(송풍구)·접시 회전·우주 레일 같은 **연속 밀기에는 달지 않는다**.
 - **연장전 훅**: 결승에서 시간 제한이 되면 `RoundService`가 별도 스레드로 **한 번** 부른다. 맵은 `collapseDuration`초 안에 **어떤 레이서도 안전하게 설 수 없게**(바닥 제거·충돌 끄기 — 매달리기·턱·높은 곳 버티기 자리도 없게, m5-18 B1 교훈) 만든다. 훅 안에서 `task.wait` 금지, 일정은 `task.delay`/`task.spawn`을 `ctx.cleanup`에. 훅이 실패해도 안전 상한이 마무리한다.
 - GDD 11절의 인터페이스 표기는 개요이고, 실제 계약은 `MapTypes.luau`다.
 

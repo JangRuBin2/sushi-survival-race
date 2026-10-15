@@ -99,7 +99,7 @@ lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gamep
 Explorer 창에서:
 - [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`(🎫 `DrawTicket` 포함), `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`, `AdminCommands`, `OfferService`, `CodeService`, `CodeConfig`, `CodeList.example`(로컬에 `CodeList.luau`를 만들었으면 그것도)
 - [ ] `ServerStorage` → `MapArt` 폴더 (비어 있어도 정상, `assets/map-art`)
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `SushiConceptSample`, `ConceptMackerel`, `SushiPose`, `PartMath`, `CharacterAnimLogic`, `Skins`, `ShopLogic`, `DrawLogic`, `DrawScreenLayout`, `TouchLayoutLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `Seasons`, `Offers`, `OfferLogic`, `FxCatalog`, `CodeLogic`, `IceLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapKitShapes`, `MapFxPresets`, `MapDecorAnimLogic`, `MapDecorTags`, `MapLighting`, `MapLightingLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 15개 — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `SushiConceptSample`, `ConceptMackerel`, `SushiPose`, `PartMath`, `CharacterAnimLogic`, `Skins`, `ShopLogic`, `DrawLogic`, `DrawScreenLayout`, `TouchLayoutLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `Seasons`, `Offers`, `OfferLogic`, `FxCatalog`, `CodeLogic`, `IceLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapKitShapes`, `MapFxPresets`, `MapDecorAnimLogic`, `MapDecorTags`, `MapLighting`, `MapLightingLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 21개 — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
 - [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `PriceCache`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `DrawScreen`, `Offer*`, `Code*`, `Admin*`, `ChatTagController`, `UiScaleController`, `SettingsButton`, `TouchLayoutEditor`, `fx` 폴더: `CharacterFxController`, `FishRig`, `DollAnimator`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `MapLightingController`, `MapDecorFxController`, `input` 폴더: `Dive*`, `Grab*`, `IceController`, `TouchLayoutController`)
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
@@ -890,6 +890,41 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
 
+### 3-13. M5 확인 3 (새 맵 6개 · 맵 길이 늘리기)
+출처: 아래 QA 리포트의 "사용자 Studio 확인 체크리스트". 단계별 순서는 리포트를 따라 하면 되고, 여기에는 준비물과 꼭 볼 것만 모았어요. 결과(특히 완주 시간·이상한 점)는 메인 세션에 알려 주세요. 전부 [바로](Studio만, 혼자 가능 — 결승 2명 확인만 Clients and Servers 2명).
+
+**준비 (공통)**
+- `src/shared/Config.luau`의 `DEBUG.forceMapPlan`에 맵 id **3개 또는 4개**(첫 번째 = 1라운드, 마지막 = 결승)를 넣어요. 1개·2개는 거절돼요(Output 경고 뒤 랜덤 판). 결승 맵이 아닌 맵을 마지막에 두면 연장전 없이 끝나니 Survival은 가운데에 둬요. 여러 판을 이어서 보려면 `forceMapPlans = { {…}, {…} }`.
+- 결승 연장전을 빨리 보려면 `DEBUG.overtimeAt = 50`(찻잎 정원) / `65`(온천).
+- **확인이 끝나면 `forceMapPlan = nil`, `forceMapPlans = nil`, `overtimeAt = nil`로 되돌려요**(커밋 값을 테스트가 고정해요 — 그대로 커밋하면 `lune run tests`가 실패).
+- 모든 맵 공통: Output에 빨간 에러·`[MovementGuard]` 경고가 없는지, 라운드 소개 카메라 5컷이 물체를 뚫지 않는지, 맵에 들어가면 1~2초 안에 맵 조명으로 바뀌고 로비로 오면 돌아오는지, 휴대폰 에뮬레이터(Test → Device)에서 경고 표시가 보이는지. 소리는 id가 없어 무음이 정상(USER-TODO A2).
+
+**A. 새 맵 6개 (m5-33~m5-39)**
+| 맵 | 플랜 예 | 리포트 | 꼭 볼 것 |
+|---|---|---|---|
+| 설거지통 (Race) | `{ "dish-sink", "hot-plate", "skewer-showdown" }` | [`m5-34`](qa/m5-34-map-dish-sink.md) 1~8 | 접시 위에 가만히 서면 물로 쓸리고 이웃 접시는 반대로 미는지, 수세미가 양 끝에서 멈출 때 지나가기, 움직이는 수세미 **뒤에서** 닿으면 어느 쪽으로 날아가는지(P3-2), **E 큰 접시 → 둘째 다리**에서 몇 번 만에 지나갔는지(P3-3), F 복도 수세미 둘이 같은 시각에 멈추는 게 괜찮은지 "엇갈림"이 나을지(P3-1), 완주 시간 |
+| 우주 회전초밥 (Race) | `{ "space-conveyor", "hot-plate", "skewer-showdown" }` | [`m5-35`](qa/m5-35-map-space-conveyor.md) 1~6 | 청록 레일에서 평소보다 확실히 빠른지(**안 빨라지면 바로 알려 주기** — D6), 주황이면 뒤로 밀림, 굽은 곳 원판에서 좌우 흔들림(P3-2), 저중력 점프로 틈 9.7을 건너고 문을 나오면·다음 라운드에서 점프가 원래대로인지, 오르막 원판 턱에 걸리는지(P3-3), 운석 원·바위, 완주 시간 |
+| 초대형 밥솥 (Survival) | `{ "rotating-belt", "rice-cooker", "skewer-showdown" }` | [`m5-36`](qa/m5-36-map-rice-cooker.md) 1~8 | 높이 1 단을 **점프 없이** 걸어 오르내리는지(작은 아바타도, AC11), 5초쯤 주황 원 → 끓어오름(판 내내 원이 한 번도 안 뜨면 알려 주기 — B1은 고침), 증기 띠는 점프로 못 피함, 타이머 01:15 → 00:00에 전원 통과, 테두리·주걱·밸브에 못 올라섬, 걸린 등 아래 단 그림자·단 경계 밝기(B2·B3 고침) |
+| 수산시장 (Survival) | `{ "rotating-belt", "fish-market", "skewer-showdown" }` | [`m5-37`](qa/m5-37-map-fish-market.md) 1~8 | 간판 "수산시장" 글씨가 똑바로인지(뒤집히거나 거울 글씨면 알려 주기, D13), 상자 위에서 **미끄러지지 않는지**, 얼음 블록이 줄을 밀고 점프로 못 넘음·옆 줄로 피함, 생선 ⚠ → 철퍼덕(두 상자 크게·옆 상자 작게), 상자가 하나도 안 없어짐, 생선 몸에 끼어 튀는지(P3-2), 75초 전원 통과 |
+| 찻잎 정원 (Final) | `{ "rotating-belt", "hot-plate", "tea-garden" }` + `overtimeAt = 50` | [`m5-38`](qa/m5-38-map-tea-garden.md) 1~8 | 찻잔이 6초마다 노란 점선 뒤 옆 단으로, 같은 단이면 맞고 옆 단이면 안 맞음, 15·30·45초 바깥 단부터 무너짐, 무너진 단으로 찻잔이 안 감, 연장전 +10 2단·+20 1단 → 설 곳 0, **찻사발·찻주전자·정자·벚꽃에 올라서거나 매달릴 수 없는지**, 연장전 1단에 찻잔 3개가 너무 가혹한지, 먼 산이 떠 보이는지 |
+| 온천탕 인형뽑기 (Final) | `{ "rotating-belt", "hot-plate", "onsen-claw" }` + `overtimeAt = 65` | [`m5-39`](qa/m5-39-onsen-claw.md) 1~7 | 8초 "쿵" 고리를 점프로 넘고 서 있으면 튕김, **고리 쪽으로 걸어 들어가도 맞는지**(P2-1 고침 — 재확인), 물이 10초마다 오르고 20·40·60초 바깥 단부터 가라앉음, 연장전 데크가 하나씩 → +20초 설 곳 0, **기계(조작판 포함)·간판·바위·울타리·마당 돌바닥에 올라설 수 없는지** |
+- 기반(m5-33, [`m5-33`](qa/m5-33-map-batch-3-foundation.md) 1~4): 리포트의 "새 6개가 랜덤 판에 안 나옴"(3번)은 옛 동작이에요 — 지금은 21개가 모두 랜덤 판에 나와요. `forceMapPlan = nil`로 몇 판 돌려 새 맵이 섞여 나오는지만 봐요.
+
+**B. 맵 길이 늘리기 (m5-40)** — 옛 구간은 그대로, 뒤에 새 구간
+| 그룹 | 플랜 예 | 리포트 | 꼭 볼 것 |
+|---|---|---|---|
+| L1 회전 벨트·간장 늪 | `{ "rotating-belt", "soy-swamp", "skewer-showdown" }` | [`m5-40-l1`](qa/m5-40-l1.md) 1~12 | 옆 벨트가 좌우로 밀고 칸막이 틈이 미는 반대쪽, **접시 탑 슬라롬에서 비벼 지나갈 때 걸리거나 튀는지**(P3-2), 벨트 C 젓가락 3개, 김 징검다리(틈 3.5) — 강에 빠지면 느려지고 오른쪽 구석 경사로로 나옴, 와사비 산 2 패드 착지, 날치알 2줄, 간장 강 색 |
+| L2 라멘 급류·디저트 냉장고 | `{ "ramen-rapids", "hot-plate", "skewer-showdown" }` / `{ "dessert-fridge", "hot-plate", "skewer-showdown" }` | [`m5-40-l2`](qa/m5-40-l2.md) 1~4 | 각진 젓가락(폭 1.6) 위에 서고 X자 가운데서 갈아타기, X자 끝 → 렌게 1 점프가 어색한지(B1), 렌게 계단 → 두 번째 급류, **소개 ③ 국자 손잡이가 화면을 너무 가리는지**(B2), 냉동실 얼음이 B·D와 같이 미끄러움·구멍 3개·송풍구 +X 밀기(안에 있을 때만 바람 소리), 스쿱 계단·젤리 → y 24 결승 |
+| L3 방방 미로·등불 다리 | `forceMapPlans = { { "bouncy-castle-maze", "giant-jenga", "claw-machine-prize" }, { "lantern-bridge", "cat-cafe-shelves", "tug-of-war-platform" } }` | [`m5-40-l3`](qa/m5-40-l3.md) 1~4 | 두 번째 미로 S자(오른쪽 입구 → 가운데 → 왼쪽 출구), 풍선 기둥 숲 지그재그, **기둥·칸막이 바로 옆에서 튕기며 정점 다이브 10번 이상 — 기둥 위에 올라서거나 넘어가면 B1(P2)이 실제로 일어나는 것**(알려 주면 벽 높이를 올려요), 다리 5~7 흔들림 차이·**새 다리 등불이 어두워 발판이 안 보이는지**(B3), 개울 징검돌 10개(작은 돌 `Stone07`) |
+| L4 Survival 5개 75초 | `forceMapPlans = { { "rotating-belt", "hot-plate", "skewer-showdown" }, { "soy-swamp", "chef-board", "ikura-bombs" }, { "ramen-rapids", "tempura-pot", "tug-of-war-platform" }, { "dessert-fridge", "giant-jenga", "claw-machine-prize" }, { "lantern-bridge", "cat-cafe-shelves", "skewer-showdown" } }` | [`m5-40-l4`](qa/m5-40-l4.md) 1~7 | 타이머가 75초에서 시작, 60초 뒤: 철판 새로 밟은 타일이 약 1.2초에 사라짐(60초 직전 밟은 타일은 색이 튀지 않음), 도마 칼 2.5초·60·70초 기울기·가운데 3×3 남음, 튀김 냄비 기름이 약 63.5초에 23층을 덮고 27·31층은 안전, 나무 블록 1.2초마다 2개·70초쯤 테두리 다 빠짐, 캣타워 공이 순간 이동 없이 조금 빨라짐·고양이 발 1.6초 |
+- 리포트 L4의 `forceMapPlan = { "<맵 id>" }`(한 개)는 거절돼요 — 위 표처럼 3개로. L2 리포트의 `{ "ramen-rapids", … }`도 나머지 두 칸을 채워야 해요.
+
+**C. 시간 재기 (m5-40 AC9·AC12, USER-TODO B3)**
+- **Race 8개 완주 시간**(AC9): 길을 아는 사람 혼자 출발 → 결승 초(목표 45~55초), 처음 하는 사람(목표 60~75초). 맵마다 숫자로 적어 주세요. 추정은 벨트 47·간장 44·라멘 43.5·디저트 43.7·방방 49·등불 46·설거지통 49·우주 45초(코드 계산).
+- **한 판 전체 시간**(AC12, 친구 테스트): 3라운드 판·4라운드 판을 각각 2판 이상, 목표 3라운드 약 3.5~4분 · 4라운드 약 4.5~5분. 4라운드 판에서는 철판·튀김 냄비 통과 인원이 목표보다 많이 모자라지 않는지도(L4 P3-1·P3-2). 결과는 `docs/playtest/`에.
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -907,7 +942,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10·3-11·3-12)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10~3-13)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

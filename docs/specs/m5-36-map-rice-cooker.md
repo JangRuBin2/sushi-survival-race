@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-36 — 새 Survival 맵: 초대형 밥솥 (`rice-cooker`)

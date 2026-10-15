@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-33 — 맵 3차 배치 기반: 새 맵 6개 껍데기 + 등록 + 소리·파티클 이름 + 풀 개수 테스트 정리
@@ -73,14 +73,14 @@ status: ready
 
 ## 수용 기준
 ### 순수 로직 (lune 테스트, `tests/m5-33-batch3.spec.luau`)
-- [ ] AC1: 새 6개가 `MapTypes.validate`를 통과한다. `tea-garden`·`onsen-claw`는 `type(map.overtime) == "function"`. id·kind·displayName·rule이 위 표와 똑같다.
-- [ ] AC2: `#Maps.allInfos() == 21`. 껍데기 상태에서 `#Maps.infos() == 15`이고 새 6개 id가 `Maps.infos()`에 없다. 6개 모두 `Maps.get(id)`로 조회된다(중복 id 없음).
-- [ ] AC3: `Rules.resolveForcedPlan({ "dish-sink", "rice-cooker", "tea-garden" }, Maps.allInfos())`와 `{ "space-conveyor", "fish-market", "onsen-claw" }`가 그 순서의 플랜을 돌려준다.
-- [ ] AC4: `Rules.buildRoundPlan`을 `Maps.infos()`로 1,000번 돌려도 껍데기 상태(inPool = false)인 배치 3 id가 하나도 안 나온다. **배치 3 맵이 풀에 들어간 뒤에도** 이 테스트가 깨지지 않게, 기대는 "inPool = false인 배치 3 맵은 안 나옴"으로 쓴다(풀에 든 것은 나와도 됨).
-- [ ] AC5: 껍데기 6개의 `build(CFrame.new())`가 `Spawns` 24개(전부 판정 바닥 위, 서로 3 이상)를 만들고, Race 2개는 `FinishLine`이 스폰보다 −Z 쪽이다.
-- [ ] AC6: `SfxCues.isEffect`가 위 cue 14개에 true, `SfxLibrary`에 14개 항목이 있고 id가 nil(무음). `MapFxPresets.PRESETS`에 `SoapFoam`·`Stardust`·`TeaLeaves`가 있고 기존 프리셋 검사(있다면)를 통과한다.
-- [ ] AC7: "목록 기준"으로 바꾼 풀 개수 테스트가 **배치 3 중 아무거나 `inPool = false`를 지워도** 통과한다 — 테스트 안에서 껍데기 하나를 풀에 넣은 가짜 목록으로 계산 함수를 한 번 확인(예: 기대 개수 함수가 15 + 1을 돌려줌).
-- [ ] AC8: 검증 5단계 통과(rojo build, stylua, selene, lune run tests — 마지막 줄 `0 failed`, luau-lsp 타입 검사). 못 돌린 단계는 보고에 적는다.
+- [x] AC1: 새 6개가 `MapTypes.validate`를 통과한다. `tea-garden`·`onsen-claw`는 `type(map.overtime) == "function"`. id·kind·displayName·rule이 위 표와 똑같다.
+- [x] AC2: `#Maps.allInfos() == 21`. 껍데기 상태에서 `#Maps.infos() == 15`이고 새 6개 id가 `Maps.infos()`에 없다. 6개 모두 `Maps.get(id)`로 조회된다(중복 id 없음).
+- [x] AC3: `Rules.resolveForcedPlan({ "dish-sink", "rice-cooker", "tea-garden" }, Maps.allInfos())`와 `{ "space-conveyor", "fish-market", "onsen-claw" }`가 그 순서의 플랜을 돌려준다.
+- [x] AC4: `Rules.buildRoundPlan`을 `Maps.infos()`로 1,000번 돌려도 껍데기 상태(inPool = false)인 배치 3 id가 하나도 안 나온다. **배치 3 맵이 풀에 들어간 뒤에도** 이 테스트가 깨지지 않게, 기대는 "inPool = false인 배치 3 맵은 안 나옴"으로 쓴다(풀에 든 것은 나와도 됨).
+- [x] AC5: 껍데기 6개의 `build(CFrame.new())`가 `Spawns` 24개(전부 판정 바닥 위, 서로 3 이상)를 만들고, Race 2개는 `FinishLine`이 스폰보다 −Z 쪽이다.
+- [x] AC6: `SfxCues.isEffect`가 위 cue 14개에 true, `SfxLibrary`에 14개 항목이 있고 id가 nil(무음). `MapFxPresets.PRESETS`에 `SoapFoam`·`Stardust`·`TeaLeaves`가 있고 기존 프리셋 검사(있다면)를 통과한다.
+- [x] AC7: "목록 기준"으로 바꾼 풀 개수 테스트가 **배치 3 중 아무거나 `inPool = false`를 지워도** 통과한다 — 테스트 안에서 껍데기 하나를 풀에 넣은 가짜 목록으로 계산 함수를 한 번 확인(예: 기대 개수 함수가 15 + 1을 돌려줌).
+- [x] AC8: 검증 5단계 통과(rojo build, stylua, selene, lune run tests — 마지막 줄 `0 failed`, luau-lsp 타입 검사). 못 돌린 단계는 보고에 적는다.
 
 ### Studio 확인 (사용자 확인 필요)
 - [ ] AC9: `Config.DEBUG.forceMapPlan = { "dish-sink", "rice-cooker", "tea-garden" }`로 혼자 한 판이 끝까지 돈다(Race 결승선 통과 → Survival 60초 버티면 통과 → Final 90초 연장전 → 20초 뒤 바닥 사라짐 → 우승). `{ "space-conveyor", "fish-market", "onsen-claw" }`도 같다. Output 에러 없음. **확인 뒤 `forceMapPlan = nil`.**
@@ -108,7 +108,40 @@ status: ready
 - 2026-10-14 · D1 시트 이름에서 "레이스/생존/결승"을 뺄지 · 뺀다. 기존 맵 표시 이름(`회전 벨트`, `인형뽑기 기계 속`)에 종류 낱말이 없고, 라운드 소개가 종류를 따로 보여 준다. 시트 콘셉트 낱말(깨끗하게!·우주 회전초밥·초대형·온천탕 인형뽑기)은 그대로 살림 · planner (메인 세션 위임)
 - 2026-10-14 · D2 `Config`·`MapTypes`를 바꿔야 하나 · 아니요. 시간 제한은 `Config.TimeLimit` 기본(Race 90·Survival 60·Final 90 + 연장전), 저중력(우주)·타이머 표시(밥솥)·충격파(온천)는 전부 맵 모듈 안에서 끝난다. 밥솥 시트의 "00:45"는 예시 숫자로 보고 Survival 60초를 유지 · planner (메인 세션 위임)
 - 2026-10-14 · D3 공용 테스트 숫자 문제 · m5-13~19 때 맵이 풀에 들어갈 때마다 공용 테스트 5개를 맵 담당이 고쳤다. 6개 병렬이면 같은 줄 충돌이 6번 난다 → 기반에서 "목록 기준"으로 바꿔 한 번에 끝낸다 · planner
+- 2026-10-15 · D5 (developer) 범위 7 현지화 CSV · `m5-26`이 아직 `main`에 없어서(`src/shared/Localization` 없음) 할 일 없음 — m5-26 병합 때 21개 전부를 수집 · developer
+- 2026-10-15 · D6 (developer) 껍데기 Race 바닥 · m5-13 껍데기 패턴 그대로면 스폰 4번째 줄(z = 15)이 바닥 뒤 가장자리(z = +10) 밖이라 AC5 "전부 판정 바닥 위"를 못 지켜요. 새 껍데기 2개는 바닥을 뒤로 10 늘림(뒤 가장자리 z = +20). 기존 맵 파일은 안 건드림 · developer
 - 2026-10-14 · D4 cue·파티클 프리셋을 기반에서 · 같은 이유(공용 목록 밖이지만 6개가 같은 파일 끝에 줄을 더함). 맵 스펙에서 새 cue·프리셋이 더 필요해지면 결정 기록에 적고 이 스펙 담당이 main에서 추가 · planner
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+2026-10-15 · developer · `main` 커밋 55e578c (push 안 함 — 메인 세션 판단)
+
+**바뀐 파일**
+- 새 맵 껍데기 6개 + Art 껍데기 6개 (`src/shared/maps/`): `DishSink`·`SpaceConveyor`(Race: 회색 바닥 + 스폰 24 + `FinishLine` z = −160), `RiceCooker`·`FishMarket`(Survival: 60×60 접시 + 스폰 24), `TeaGarden`·`OnsenClaw`(Final: 접시 + `overtime` — `collapseDuration`초 뒤 접시 `CanCollide = false`·`Transparency = 1`, `task.delay`를 `ctx.cleanup`에). 모두 `inPool = false`, `lighting = Art.LIGHTING`, 낙하 Y < −25 탈락, build 끝에서 `MapKit.introCamera`·`attachStudioArt`. `<Map>Art.luau`는 `BUDGET = "Extended"`, 로비(14시)와 다른 `ClockTime`의 `LIGHTING`(10 / 0 / 16 / 7 / 17.5 / 20), 빈 `decor()`, 소개 카메라 점 2개(아레나 상자 + 40 안). **둘 다 각 맵 스펙이 덮어씀.**
+- 공용 `src/shared/maps/init.luau`: `ALL` 끝에 6개 `require` (주석 "m5-33 껍데기 → m5-3X").
+- `src/shared/SfxCues.luau`·`SfxLibrary.luau`: 표의 cue 14개를 "맵 3차 배치 (m5-33)" 묶음으로 끝에 추가, 전부 `sfx(nil, 볼륨)` 무음. m5-32 `FishFlop`·`FishSplash`는 그대로.
+- `src/shared/maps/MapFxPresets.luau`: `SoapFoam`·`Stardust`·`TeaLeaves` (TeaLeaves = Petals 움직임 + 연두·초록).
+- 새 테스트: `tests/lib/Batch3.luau`(배치 3 id·종류 **한 곳**, `expectedPoolCount(get)` = 15 + 풀에 든 배치 3, `pooledOfKind`, `isBatch3`), `tests/m5-33-batch3.spec.luau`(AC1~AC7, 7개). AC5는 껍데기 파츠 이름(Floor·Plate)에 기대지 않고 "스폰 아래 충돌 파츠 윗면"으로 검사해서 맵 스펙이 덮어써도 그대로 쓸 수 있어요.
+
+**"목록 기준"으로 바꾼 기존 테스트 (원래 의도 유지, 숫자·목록만)**
+| 파일 | 전 | 후 |
+|---|---|---|
+| `tests/maps.spec.luau` ("맵 풀 15개 validate") | `t.eq(count, 15)` | `t.eq(count, Batch3.expectedPoolCount(Maps.get))` |
+| `tests/m5-03-foundation.spec.luau` AC1 | `#Maps.allInfos() == 15`, 모든 비-expected 맵 `inPool ~= false` | `== 21`, 배치 3은 `inPool` 검사에서 제외(`Batch3.isBatch3`) |
+| `tests/m5-03-foundation.spec.luau` AC2 | `#Maps.infos() == 15` | `Batch3.expectedPoolCount(Maps.get)` |
+| `tests/m5-13-qa.spec.luau` | `#Maps.allInfos() == 15` | `== 21` |
+| `tests/m4-foundation.spec.luau` AC6 | 종류별 풀 id 목록 고정 | 같은 목록 + `Batch3.pooledOfKind(Maps.get, kind)` |
+| `tests/m2-01-qa.spec.luau` "결승은 등록된 Final 중 하나" | Final 4개 고정 | + 풀에 든 배치 3 Final |
+| `tests/m4-12-hardening.spec.luau` "연속 플랜이 풀의 맵을 모두 씀" | 풀 전체 | 배치 3은 제외(각 맵 테스트가 강제 플랜을 봄) |
+| `tests/camera-priority.spec.luau` AC3 (cue 확정 목록) | 51개 | + 새 cue 14개 |
+- **AC7 실제 확인**: 껍데기 2개(`rice-cooker`·`tea-garden`), 그다음 6개 전부의 `inPool = false`를 임시로 지우고 `lune run tests` → 둘 다 **1999 passed, 0 failed** (그 뒤 원래대로 되돌림). 맵 스펙이 `inPool = false` 줄만 지워도 공용 테스트는 안 깨져요.
+
+**검증 5단계** (2026-10-15, Windows): `rojo build` 성공 · `stylua --check src tests tools` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` **1999 passed, 0 failed**(이전 1992 → +7) · `luau-lsp analyze` 끝 코드 0.
+
+**Studio 확인 (사용자, AC9·AC10)**
+1. `src/shared/Config.luau`의 `DEBUG.forceMapPlan = { "dish-sink", "rice-cooker", "tea-garden" }` → Play Solo(`minPlayersToStart = 1`)로 시작 → 회색 바닥을 달려 노란 결승선 통과 → 회색 접시에서 60초 버티면 통과 → 결승 접시에서 90초에 연장전 경적 → 20초 뒤 접시가 사라지고 떨어져 마무리(혼자면 우승). Output에 빨간 에러 없음. 라운드마다 조명 분위기가 바뀌는지(설거지통 오전·밥솥 오후·찻잎 저녁)도 보면 좋아요.
+2. `{ "space-conveyor", "fish-market", "onsen-claw" }`로 한 번 더(우주 = 밤 조명).
+3. **확인 뒤 `forceMapPlan = nil`로 되돌리기.**
+4. (선택) 강제 플랜 없이 몇 판 — 기존 15개만 나와야 해요.
+
+**남은 이슈**: 없음. 맵 스펙(m5-34~39)에서 cue·프리셋이 더 필요하면 결정 기록에 적고 m5-33 담당이 main에서 추가(D4).

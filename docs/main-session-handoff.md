@@ -2,6 +2,57 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-10-15 — 맵 3차 배치·맵 길이·현지화·콘솔 UI 병합, M5 개발 스펙 전부 완료
+
+main `7bf280c` 기준(push 됨). 마지막 병합 뒤 5단계: rojo OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **2381 passed, 0 failed (163개 파일)** · luau-lsp 끝 코드 0. **`ready`·개발 중 스펙 없음** — 모든 M5 스펙 `done`. 다음은 사용자 Studio 확인·플레이테스트 결과 반영.
+
+### 흐름
+스펙마다 developer(worktree) → qa(같은 worktree) → 메인 세션이 main에 `--no-ff` 병합 → 병합마다 5단계 재실행 → push → docs-writer 문서 반영·`done`. P2 이상은 병합 전에 developer가 같은 브랜치에서 고친 뒤 병합.
+
+### 오늘 main에 들어온 것
+| 스펙 | 브랜치 | 병합 커밋 | QA 리포트 |
+|---|---|---|---|
+| m5-33 맵 3차 기반(껍데기 6개·등록·cue 14·파티클 3) | main 직접 | `55e578c`·`b2769b8` | `docs/qa/m5-33-map-batch-3-foundation.md` (+ P3-1·2 처리 `7ad7792`: 풀 21 숫자 고정, 연속 플랜에 배치 3) |
+| m5-39 온천탕 인형뽑기 (Final) | `m5-map-onsen` | `ef281db` | `docs/qa/m5-39-onsen-claw.md` — **P2-1 충격파 고리로 걸어 들어가면 통과 → 병합 전 수정**(`ring.lastDist`) |
+| m5-34 설거지통 (Race) | `m5-map-sink` | `052c08f` | `docs/qa/m5-34-map-dish-sink.md` |
+| m5-35 우주 회전초밥 (Race) | `m5-map-space` | `7657320` | `docs/qa/m5-35-map-space-conveyor.md` (레일 파츠 `AssemblyLinearVelocity` 방식 D6) |
+| m5-37 수산시장 (Survival) | `m5-map-fish` | `c0b23d3` | `docs/qa/m5-37-map-fish-market.md` |
+| m5-36 초대형 밥솥 (Survival) | `m5-map-rice` | `0706502` | `docs/qa/m5-36-map-rice-cooker.md` — **P2 B1 끓어오름이 한 판 내내 안 나올 수 있음 → 병합 전 수정**(`math.max(elapsed(), first)`) |
+| m5-38 찻잎 정원 (Final) | `m5-map-tea` | `c121dda` | `docs/qa/m5-38-map-tea-garden.md` |
+| m5-40 L4 Survival 5개 75초 + 60초 서든데스 | `m5-len-d` | `773b3bd` | `docs/qa/m5-40-l4.md` |
+| m5-40 L3 방방 미로·등불 다리 | `m5-len-c` | `a0e9a25` | `docs/qa/m5-40-l3.md` |
+| m5-40 L1 회전 벨트·간장 늪 | `m5-len-a` | `15f2cf3` | `docs/qa/m5-40-l1.md` |
+| m5-40 L2 라멘·디저트 | `m5-len-b` | `8750ee6` | `docs/qa/m5-40-l2.md` |
+| m5-23 맵 비주얼 키트 재QA | `m5-23-reqa` | `3f2678c` | `docs/qa/m5-23-map-visual-kit-reqa.md` |
+| m5-26 현지화(ko/en, 새 키 91 — 맵 3차·특 스킨·뽑기·버튼 편집) | `m5-26-i18n-p3` | `3893c8a` | `docs/qa/m5-26-localization-reqa.md` |
+| m5-12 콘솔·게임패드 UI | `m5-12-console` | `6b50f8d` | `docs/qa/m5-12-console-ui.md` |
+
+문서: docs-writer `c1db69c`(m5-33~40)·`e252681`(m5-26)·`ad2bec9`(m5-12 + GDD 상태 문구), planner GDD·스펙 본문 정합 `59e881f`(Survival 75초, 맵 21개, m5-34·35·15·40 본문), `fb99247` MapTypes 주석 21개, `7bf280c` GDD 뽑기 연출 1.2초(`DrawScreen.SUSPENSE_TIME`).
+
+### 메인 세션이 정한 것
+- m5-33 QA "P3 2건은 6개 병합 뒤" → 병합 뒤 테스트 고정으로 처리.
+- m5-36 D7(창 햇살 대신 Lighting 해 + 걸린 등 그림자 Spot) 승인(맵 디자인 위임 범위).
+- m5-40 스펙 개발 메모·결정 기록은 그룹마다 같은 자리에 덧붙여 병합 충돌이 3번 남 — 전부 양쪽 유지로 해결(코드 충돌 없음).
+- m5-12는 스펙상 "main 순차"였지만 문서 작업과 겹치지 않게 worktree로 진행(다른 src 작업 없음).
+
+### 남은 것 (막지 않음 — 플레이테스트로 판단)
+- 플레이테스트 판단 4개는 `docs/planner/2026-10-15-doc-sync.md` 표 하나에: 설거지통 F 수세미 엇갈림(offset 2.75), 찻잎 정원 연장전 찻잔 3개·속도 18, 튀김 냄비 23층 동시 탈락, **방방 미로 바운스 최고점이 벽보다 0.25 높음(m5-40 L3 B1, P2 — 기둥 위에 올라서면 `WALL_HEIGHT` 14 → 16)**.
+- 회전 벨트 접시 탑 0.25 턱(걸리면 작은 접시 충돌 끄기), 라멘 소개 ③ 국자 가림·X자 젓가락 끝 → 렌게 1 모서리, 수산시장 생선·얼음 넉백 겹침, 우주 회전초밥 굽은 원판 흔들림·운석 바위 겹침.
+- 예산이 거의 참: 튀김 냄비 장식 1495/1500, 회전 벨트 1492/1500, 등불 다리 조명 24/24, 그림자 조명 2/2 맵 4개(dish-sink·space-conveyor·onsen-claw·dessert-fridge). 아트 더 넣을 때 먼 소품부터 덜기.
+- 현지화 B7: 영어 뽑기 등급 이름이 상점 등급과 같은 단어(Rare·Epic) — 사용자 결정(USER-TODO A1). 서버 한국어 폴백 값(`ProfileView.title`, MatchPhase `mapName`·`rule`) 정리는 선택.
+- 게임패드 P3: 대기실 진입 때 자동 선택 없음, 마우스로 🛠·탈의실 둘 다 연 뒤 패드로 바꾸면 가려진 🛠가 맨 위, ⓘ 확률 상세 스크롤 불가, 음소거 버튼 도달 보장 없음, 10피트 여백으로 소개 배너 아래 요소가 내려감.
+- QA 리포트 일부 Studio 체크리스트의 `forceMapPlan = { "<id>" }`(1~2개)는 `Rules.resolveForcedPlan`이 거절 → 랜덤 판. 3~4개를 넣어야 함(DEV-SETUP 3-13은 고쳐 둠).
+
+### 다음 세션 첫 단계
+1. **사용자 Studio 확인 결과 받기**: `docs/DEV-SETUP.md` 3-13(새 맵·맵 길이), 3-14(영어), 3-15(게임패드). Race 완주 45~55초·한 판 4~5분 실측(m5-40 AC9·AC12). 결과가 오면 planner가 수치·스펙, developer가 코드.
+2. 사용자 결정·작업: 새 맵 소리 cue 14개 id, B7 영어 뽑기 등급 이름, Roblox 현지화 표 CSV 업로드(USER-TODO C5), 그 밖에 USER-TODO 전체.
+3. 그 뒤 비공개 테스트 → 공개.
+
+### worktree 정리 (`git worktree list`, 직접 지우지 않음)
+- `.claude/worktrees/` 아래 63개 중 62개는 HEAD가 main에 들어가 있고 미커밋 변경이 없음 — 오늘 것(`m5-map-*` 6, `m5-len-a~d`, `m5-23-reqa`, `m5-26-i18n-p3`, `m5-12-console`)과 예전 것 모두 지워도 됨. 예: `git worktree remove .claude/worktrees/agent-aa677ba625334f9d2`.
+- `agent-a7f8f95e5a59abaa6`(`reqa`)만 main에 없는 커밋 1개(`4a3f140`, origin/main을 합친 병합 커밋 — 새 내용 없음, m5-26은 p3로 main에 들어감). 지워도 잃는 것 없음.
+- 사용자 콘셉트 이미지 `docs/귀여운 초밥 서바이벌 런 콘셉트 시트.png`는 추적 안 되는 파일 그대로(커밋하지 않음).
+
 ## 2026-10-14 — 콘셉트 스킨 2차·토핑·뽑기·고등어·버튼 편집 병합, 문서 반영
 
 main `4229e9a` 기준. 문서 반영(docs-writer) 뒤 5단계: rojo OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **1992 passed, 0 failed (134개 파일)** · luau-lsp 끝 코드 0. 스펙 m5-24·25·28·29·30·31·32·41 → `done`(문서 반영 끝). m5-23은 `in-qa` 그대로(재QA 리포트 없음).

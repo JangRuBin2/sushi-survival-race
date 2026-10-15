@@ -61,7 +61,7 @@ local BARK = c(98, 72, 58)
 local BARK_DARK = c(80, 58, 48)
 local GLAZE = c(52, 122, 82) -- 찻사발 초록 유약
 local GLAZE_LIGHT = c(118, 172, 108)
-local GLAZE_DARK = c(34, 92, 68)
+local GLAZE_DARK = c(44, 104, 76)
 local POT = c(52, 112, 84) -- 찻주전자 짙은 초록 도자기
 local POT_LIGHT = c(104, 162, 120)
 local POT_DARK = c(30, 74, 58)
@@ -322,15 +322,7 @@ function TeaGardenArt.cupDecor(): { DecorSpec }
 			reflectance = 0.08,
 		})
 	end
-	add(
-		list,
-		"CupRim",
-		"Cylinder",
-		v(0.25, d + 0.12, d + 0.12),
-		shade(navy, 1.3),
-		"SmoothPlastic",
-		v(w / 2 - 0.1, 0, 0)
-	)
+	add(list, "CupRim", "Cylinder", v(0.25, d + 0.12, d + 0.12), navy, "SmoothPlastic", v(w / 2 - 0.1, 0, 0))
 	add(list, "CupTea", "Cylinder", v(0.06, d - 0.9, d - 0.9), MATCHA, "SmoothPlastic", v(w / 2 + 0.02, 0, 0))
 	add(
 		list,
@@ -366,11 +358,11 @@ local function bowl(list: { DecorSpec })
 	-- 아래가 좁고 위가 넓은 찻사발 몸통 (원기둥 5단)
 	type Row = { d: number, h: number, color: RGB }
 	local rows: { Row } = {
-		{ d = 9.0, h = 0.9, color = GLAZE_DARK },
-		{ d = 10.8, h = 1.3, color = GLAZE_DARK },
-		{ d = 12.0, h = 2.0, color = GLAZE },
-		{ d = 12.7, h = 2.4, color = GLAZE },
-		{ d = 13.0, h = 2.3, color = GLAZE_LIGHT },
+		{ d = 8.0, h = 0.8, color = GLAZE_DARK },
+		{ d = 10.2, h = 1.2, color = GLAZE_DARK },
+		{ d = 11.8, h = 1.8, color = GLAZE },
+		{ d = 12.7, h = 2.6, color = GLAZE },
+		{ d = 13.0, h = 2.8, color = GLAZE_LIGHT },
 	}
 	local y = y0 + 1
 	for _, row in rows do
@@ -534,20 +526,22 @@ local function cherry(list: { DecorSpec }, base: Vec3, height: number, lean: num
 			"SmoothPlastic",
 			v(tip.x + rng:range(-4, 4), tip.y - 2, tip.z + rng:range(-4, 4))
 		)
-		-- 흔들리는 가지 끝 꽃송이
+		-- 흔들리는 가지 끝 잔가지 + 꽃송이 (잔가지만 Sway, 꽃은 그대로)
+		local twigTip = v(tip.x + math.cos(ba) * 5, tip.y - 1.5, tip.z + math.sin(ba) * 5)
 		add(
 			list,
 			"BlossomTwig",
-			"Block",
-			v(5, 2.2, 2.2),
-			SAKURA_DEEP,
-			"SmoothPlastic",
-			v(tip.x + math.cos(ba) * 6, tip.y - 1, tip.z + math.sin(ba) * 6),
+			"Cylinder",
+			v(5, 0.6, 0.6),
+			BARK_DARK,
+			"Wood",
+			v((tip.x + twigTip.x) / 2, (tip.y + twigTip.y) / 2, (tip.z + twigTip.z) / 2),
 			{
-				rotation = v(0, -math.deg(ba), -20),
-				anim = { kind = "Sway", period = 4.5 + k, amount = 6, axis = "X" },
+				rotation = v(0, -math.deg(ba), -17),
+				anim = { kind = "Sway", period = 4.5 + k, amount = 6, axis = "Y" },
 			}
 		)
+		ball(list, "Blossom", 3.6, SAKURA_DEEP, "SmoothPlastic", twigTip)
 	end
 	ball(list, "Blossom", 14, SAKURA, "SmoothPlastic", v(topP.x, topP.y + 5, topP.z), {
 		particle = if seed % 2 == 1 then "Petals" else nil,
@@ -595,25 +589,30 @@ local function pavilion(list: { DecorSpec })
 	end
 	-- 보 (가로)
 	for _, sz in { -1, 1 } do
-		add(
+		append(
 			list,
-			"PavilionBeam",
-			"Block",
-			v(23, 1.4, 1.4),
-			SHRINE_RED_DARK,
-			"SmoothPlastic",
-			v(cx, floorY + 16.6, cz + sz * 9.5)
+			MapKitShapes.capsule(
+				"PavilionBeam",
+				23,
+				1.4,
+				SHRINE_RED_DARK,
+				"SmoothPlastic",
+				v(cx, floorY + 16.6, cz + sz * 9.5)
+			)
 		)
 	end
 	for _, sx in { -1, 1 } do
-		add(
+		append(
 			list,
-			"PavilionBeam",
-			"Block",
-			v(1.4, 1.4, 23),
-			SHRINE_RED_DARK,
-			"SmoothPlastic",
-			v(cx + sx * 9.5, floorY + 16.6, cz)
+			MapKitShapes.capsule(
+				"PavilionBeam",
+				23,
+				1.4,
+				SHRINE_RED_DARK,
+				"SmoothPlastic",
+				v(cx + sx * 9.5, floorY + 16.6, cz),
+				v(0, 90, 0)
+			)
 		)
 	end
 	-- 지붕: 쐐기 4장 + 용마루
@@ -655,16 +654,36 @@ local function pavilion(list: { DecorSpec })
 	for _, sx in { -1, 1 } do
 		column(list, "GatePillar", 2.4, 44, SHRINE_RED, "SmoothPlastic", sx * 9, TeaGardenArt.GROUND_Y, gz)
 	end
-	add(
+	-- 위 보는 양 끝이 살짝 들린 모양 (가운데 캡슐 + 끝 쐐기), 아래 보는 캡슐
+	append(
 		list,
-		"GateBeam",
-		"Block",
-		v(26, 1.8, 2.4),
-		SHRINE_RED_DARK,
-		"SmoothPlastic",
-		v(0, TeaGardenArt.GROUND_Y + 44.5, gz)
+		MapKitShapes.capsule(
+			"GateBeam",
+			24,
+			2.2,
+			SHRINE_RED_DARK,
+			"SmoothPlastic",
+			v(0, TeaGardenArt.GROUND_Y + 44.5, gz)
+		)
 	)
-	add(list, "GateBeam", "Block", v(22, 1.2, 1.6), SHRINE_RED, "SmoothPlastic", v(0, TeaGardenArt.GROUND_Y + 40, gz))
+	for _, sx in { -1, 1 } do
+		add(
+			list,
+			"GateBeamTip",
+			"Wedge",
+			v(2.4, 1.6, 3.6),
+			SHRINE_RED_DARK,
+			"SmoothPlastic",
+			v(sx * 13.2, TeaGardenArt.GROUND_Y + 45.6, gz),
+			{
+				rotation = v(0, sx * 90, 0),
+			}
+		)
+	end
+	append(
+		list,
+		MapKitShapes.capsule("GateBeam", 20, 1.4, SHRINE_RED, "SmoothPlastic", v(0, TeaGardenArt.GROUND_Y + 40, gz))
+	)
 end
 
 -- 석등 (높이 약 14)
@@ -876,7 +895,7 @@ local function ground(list: { DecorSpec })
 			return out
 		end)
 	)
-	-- 먼 산 실루엣 (노을 안개에 묻힌 둥근 산, 차가운 보랏빛)
+	-- 먼 산 실루엣 (노을 안개에 묻힌 둥근 산, 차가운 보랏빛). 큰 공을 땅에 묻어 둥근 능선만 보여요.
 	for k = 0, 11 do
 		local a = k * 30 + 8
 		local r = 430 + (k % 3) * 70
@@ -967,7 +986,7 @@ end
 -- ① 찻주전자 너머 정원 + 노을 → ② 찻사발과 굴러 나오는 찻잔 → ③ 벚꽃 아래에서 계단 올려다보기 → ④ 바깥 5단 → ⑤ 출발 자리
 function TeaGardenArt.introCamera(): { IntroPoint }
 	return {
-		{ pos = v(-76, 27, 34), lookAt = v(0, 3, -6) },
+		{ pos = v(-72, 30, 40), lookAt = v(0, 3, -6) },
 		{ pos = v(16, 14, 20), lookAt = v(0, 8, 0) },
 		{ pos = v(50, 5, 56), lookAt = v(0, 12, 0) },
 		{ pos = v(-8, 12, -72), lookAt = v(-20, 0, -40) },

@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -32,7 +32,7 @@ status: qa-passed
 ### 2. 키 규칙
 - 형식: 점으로 나눈 영어 id, 정규식 `^[a-z][a-z0-9]*(\.[A-Za-z0-9][A-Za-z0-9_-]*)+$`. 첫 마디는 영역: `common`, `lobby`, `room`, `hud`, `spectate`, `shop`, `offer`, `code`, `coin`, `reward`, `notice`, `place`, `intro`, `cutscene`, `input`, `sfx`, `date`, `map`, `skin`, `tier`, `fx`, `season`, `title`.
 - 오류 이유 enum은 그대로 붙인다: `shop.err.NotOwned`, `offer.err.AlreadyVip`, `receipt.err.OffSale`, `code.err.Expired`, `room.err.Full`.
-- 데이터에서 나오는 키(동적 키)는 정해진 모양만: `map.<mapId>.name|rule`, `skin.<skinId>.name`, `skin.<skinId>.speech.<n>`(1부터), `tier.<Tier>`, `offer.<offerId>.name|blurb|perk.<n>`, `fx.<fxId>.name`, `season.<eventId>.name|token`, `title.w<wins>`, `reward.reason.<RewardReason>`, `date.month.<1~12>`, `cutscene.line.<group>.<n>`. 동적 키는 `Loc`의 이름 붙은 도우미(`Loc.mapName(id)` 등)만 만든다.
+- 데이터에서 나오는 키(동적 키)는 정해진 모양만: `map.<mapId>.name|rule`, `skin.<skinId>.name`, `skin.<skinId>.speech.<n>`(1부터), `tier.<Tier>`, `shop.drawGrade.<Grade>`(뽑기 등급, p3에서 추가 — `LocalizeLogic.drawGradeKey`·`Loc.drawGradeName`), `offer.<offerId>.name|blurb|perk.<n>`, `fx.<fxId>.name`, `season.<eventId>.name|token`, `title.w<wins>`, `reward.reason.<RewardReason>`, `date.month.<1~12>`, `cutscene.line.<group>.<n>`. 동적 키는 `Loc`의 이름 붙은 도우미(`Loc.mapName(id)` 등)만 만든다.
 - 키는 **바꾸지 않는다**(클라우드 번역이 키에 붙는다). 문구를 고치면 같은 키의 `Source`/`en`만 고친다. 다른 뜻이 되면 새 키.
 - 자리표시자 이름 `{[A-Za-z][A-Za-z0-9]*}`. 서식 지정자(`{n:int}` 등)는 쓰지 않는다 — 숫자는 코드가 문자열로 만들어 넘긴다.
 

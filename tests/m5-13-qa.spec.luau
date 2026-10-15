@@ -67,7 +67,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"m5-13 QA: allInfos는 맵 모듈과 1:1(15개, 중복 없음), infos는 inPool ~= false인 것만",
+		"m5-13 QA: allInfos는 맵 모듈과 1:1(21개 — m5-33 배치 3 껍데기 6개 포함, 중복 없음), infos는 inPool ~= false인 것만",
 		function()
 			local seen: { [string]: boolean } = {}
 			for _, info in Maps.allInfos() do
@@ -75,7 +75,7 @@ return function(t: Test.Test)
 				seen[info.id] = true
 				t.eq(Maps.get(info.id).kind, info.kind, `{info.id} kind matches module`)
 			end
-			t.eq(#Maps.allInfos(), 15)
+			t.eq(#Maps.allInfos(), 21) -- m5-33: 기존 15 + 맵 3차 배치 6 (배치 3 동안 안 바뀜)
 			local pooled: { [string]: boolean } = {}
 			for _, info in Maps.infos() do
 				pooled[info.id] = true

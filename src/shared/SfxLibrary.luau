@@ -104,6 +104,21 @@ SfxLibrary.Entries = {
 	CatPawWarn = sfx(nil, 0.7), -- 고양이 발 경고 (m5-17)
 	CatPawSwipe = sfx(nil, 0.8), -- 고양이 발에 밀림 (m5-17)
 	ClawLift = sfx(nil, 0.8), -- 집게가 구역을 들어 올림 (m5-19)
+	-- 맵 3차 배치 (m5-33): id는 사용자가 고를 때까지 무음 (USER-TODO A2). 맵 스펙 m5-34~39는 이 표를 고치지 않아요
+	SpongeSquish = sfx(nil, 0.7), -- 수세미에 밀림 (m5-34)
+	RailSwitch = sfx(nil, 0.6), -- 레일 방향 전환 경고 (m5-35)
+	MeteorWarn = sfx(nil, 0.6), -- 운석 경고 원 (m5-35)
+	MeteorImpact = sfx(nil, 0.8), -- 운석 착지 (m5-35)
+	RiceBubble = sfx(nil, 0.7), -- 밥알 끓어 터짐 (m5-36)
+	SteamWhistle = sfx(nil, 0.6), -- 증기 경고 휘파람 (m5-36)
+	SteamBlast = sfx(nil, 0.8), -- 증기 분사 (m5-36)
+	MarketFishWarn = sfx(nil, 0.6), -- 생선 낙하 경고 (m5-37)
+	MarketFishSlam = sfx(nil, 0.8), -- 생선 착지·팔딱 (m5-37)
+	IceBlockSlide = sfx(nil, 0.6), -- 얼음 블록 출발 (m5-37)
+	TeaCupRoll = sfx(nil, 0.6), -- 찻잔 이동 경고 (m5-38)
+	TeaFieldCrumble = sfx(nil, 0.8), -- 차밭 단 무너짐 (m5-38)
+	ClawSlam = sfx(nil, 0.9), -- 인형뽑기 내리찍기 (m5-39)
+	OnsenRise = sfx(nil, 0.6), -- 온천물 상승 경고 (m5-39)
 	-- 배경음 (Sfx.setMusic) — 기본 무음
 	Lobby = music(nil, 0.6),
 	Round = music(nil, 0.6),

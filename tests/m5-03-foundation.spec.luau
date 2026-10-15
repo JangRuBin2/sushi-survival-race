@@ -4,6 +4,7 @@
 
 local fs = require("@lune/fs")
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -86,45 +87,49 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 없음 — 모든 맵이 풀에 있어요", function()
-		local expected: { [string]: { string } } = {
-			-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
-			-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
-			-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
-		}
-		t.eq(#Maps.allInfos(), 15)
-		for _, info in Maps.allInfos() do
-			local map = Maps.get(info.id)
-			t.eq(MapTypes.validate(map), nil, info.id)
-			local row = expected[info.id]
-			if row then
-				t.eq(map.kind, row[1], `{info.id} kind`)
-				t.eq(map.displayName, row[2], `{info.id} name`)
-				t.eq(map.rule, row[3], `{info.id} rule`)
-				t.eq(map.inPool, false, `{info.id} inPool`)
-			else
-				t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+	t.test(
+		"AC1: 맵 21개 전부 validate 통과, 배치 3(m5-33) 밖에는 껍데기 없음 — 그 맵들은 모두 풀에 있어요",
+		function()
+			local expected: { [string]: { string } } = {
+				-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
+				-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
+				-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
+			}
+			t.eq(#Maps.allInfos(), 21) -- m5-33: 기존 15 + 맵 3차 배치 6
+			for _, info in Maps.allInfos() do
+				local map = Maps.get(info.id)
+				t.eq(MapTypes.validate(map), nil, info.id)
+				local row = expected[info.id]
+				if row then
+					t.eq(map.kind, row[1], `{info.id} kind`)
+					t.eq(map.displayName, row[2], `{info.id} name`)
+					t.eq(map.rule, row[3], `{info.id} rule`)
+					t.eq(map.inPool, false, `{info.id} inPool`)
+				elseif not Batch3.isBatch3(info.id) then
+					-- 배치 3(m5-34~39)은 껍데기 동안 inPool = false — tests/m5-33-batch3.spec.luau가 따로 봐요
+					t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+				end
 			end
+			-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
+			local ikura = Maps.get("ikura-bombs")
+			t.eq(ikura.kind, "Final")
+			t.eq(ikura.displayName, "연어알 폭탄 접시")
+			t.eq(ikura.rule, "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
+			t.eq(type(ikura.overtime), "function")
+			t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
+			t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
 		end
-		-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
-		local ikura = Maps.get("ikura-bombs")
-		t.eq(ikura.kind, "Final")
-		t.eq(ikura.displayName, "연어알 폭탄 접시")
-		t.eq(ikura.rule, "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
-		t.eq(type(ikura.overtime), "function")
-		t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
-		t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
-	end)
+	)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 15개(껍데기 3개 모두 합류 — m5-04·m5-05·m5-06, 신규 맵 6개 m5-14~19), allInfos()도 15개",
+		"AC2: infos()는 15개 + 배치 3 중 풀에 든 것(껍데기 3개 모두 합류 — m5-04·m5-05·m5-06, 신규 맵 6개 m5-14~19), allInfos()는 21개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 15)
+			t.eq(#Maps.infos(), Batch3.expectedPoolCount(Maps.get)) -- m5-33: 목록 기준
 			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
 			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")
 			t.ok(ids["tempura-pot"], "tempura-pot joined the random pool (m5-05)")

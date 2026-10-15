@@ -1,6 +1,7 @@
 --!strict
 -- Shared.maps: 맵 모듈 공통 인터페이스 검사와 맵 풀, Config 값의 일관성
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -85,7 +86,8 @@ return function(t: Test.Test)
 				t.eq(MapTypes.validate(Maps.get(info.id)), nil, info.id)
 				count += 1
 			end
-			t.eq(count, 15)
+			-- m5-33: 기존 15개 + 맵 3차 배치 중 풀에 든 것 (배치 3 id는 tests/lib/Batch3 한 곳에)
+			t.eq(count, Batch3.expectedPoolCount(Maps.get))
 		end
 	)
 

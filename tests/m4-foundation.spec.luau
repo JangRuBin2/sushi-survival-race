@@ -4,6 +4,7 @@
 
 local fs = require("@lune/fs")
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -328,16 +329,34 @@ return function(t: Test.Test)
 			for _, list in byKind do
 				table.sort(list)
 			end
-			t.eq(byKind.Race, {
-				"bouncy-castle-maze",
-				"dessert-fridge",
-				"lantern-bridge",
-				"ramen-rapids",
-				"rotating-belt",
-				"soy-swamp",
-			})
-			t.eq(byKind.Survival, { "cat-cafe-shelves", "chef-board", "giant-jenga", "hot-plate", "tempura-pot" })
-			t.eq(byKind.Final, { "claw-machine-prize", "ikura-bombs", "skewer-showdown", "tug-of-war-platform" })
+			-- m5-33: 기존 15개 목록 + 맵 3차 배치 중 풀에 든 것 (배치 3 id는 tests/lib/Batch3 한 곳에)
+			local function withBatch3(kind: string, base: { string }): { string }
+				local list = table.clone(base)
+				for _, id in Batch3.pooledOfKind(Maps.get, kind) do
+					table.insert(list, id)
+				end
+				table.sort(list)
+				return list
+			end
+			t.eq(
+				byKind.Race,
+				withBatch3("Race", {
+					"bouncy-castle-maze",
+					"dessert-fridge",
+					"lantern-bridge",
+					"ramen-rapids",
+					"rotating-belt",
+					"soy-swamp",
+				})
+			)
+			t.eq(
+				byKind.Survival,
+				withBatch3("Survival", { "cat-cafe-shelves", "chef-board", "giant-jenga", "hot-plate", "tempura-pot" })
+			)
+			t.eq(
+				byKind.Final,
+				withBatch3("Final", { "claw-machine-prize", "ikura-bombs", "skewer-showdown", "tug-of-war-platform" })
+			)
 
 			local ramen = Maps.get("ramen-rapids")
 			t.eq(MapTypes.validate(ramen), nil)

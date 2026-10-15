@@ -5,6 +5,7 @@
 
 local fs = require("@lune/fs")
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -274,7 +275,10 @@ return function(t: Test.Test)
 			end
 		end
 		for _, info in Maps.infos() do
-			t.ok(seen[info.id], `map {info.id} in the forced plan set`)
+			-- m5-33: 맵 3차 배치(m5-34~39)는 풀에 들어가도 이 연속 플랜 목록을 안 고쳐요 (각 맵 테스트가 강제 플랜을 봐요)
+			if not Batch3.isBatch3(info.id) then
+				t.ok(seen[info.id], `map {info.id} in the forced plan set`)
+			end
 		end
 	end)
 

@@ -144,6 +144,21 @@ return function(t: Test.Test)
 			"DrawWin", -- m5-31
 			"FishFlop", -- m5-32
 			"FishSplash", -- m5-32
+			-- m5-33 맵 3차 배치 (무음)
+			"SpongeSquish",
+			"RailSwitch",
+			"MeteorWarn",
+			"MeteorImpact",
+			"RiceBubble",
+			"SteamWhistle",
+			"SteamBlast",
+			"MarketFishWarn",
+			"MarketFishSlam",
+			"IceBlockSlide",
+			"TeaCupRoll",
+			"TeaFieldCrumble",
+			"ClawSlam",
+			"OnsenRise",
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

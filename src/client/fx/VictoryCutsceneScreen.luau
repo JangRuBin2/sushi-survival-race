@@ -29,6 +29,7 @@ function VictoryCutsceneScreen.new(playerGui: Instance): VictoryCutsceneScreen
 	screenGui.Parent = playerGui
 
 	local label = Instance.new("TextLabel")
+	label.AutoLocalize = false -- 우승자 이름이 들어가요 (m5-26)
 	label.Name = "Title"
 	label.AnchorPoint = Vector2.new(0.5, 0.5)
 	label.Position = UDim2.fromScale(0.5, 0.22)

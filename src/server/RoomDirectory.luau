@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local RoomDirectoryLogic = require(ReplicatedStorage.Shared.RoomDirectoryLogic)
+local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local PlaceBackend = require(script.Parent.PlaceBackend)
@@ -128,26 +129,24 @@ function RoomDirectory.decorate(localListings: { Types.RoomListing }): { Types.R
 end
 
 -- 다른 서버 방을 저장소에서 다시 읽어 들어갈 수 있는지 확인해요 (yield). 못 들어가면 (nil, 이유)
-function RoomDirectory.findRemote(id: string): (RoomDirectoryLogic.Entry?, string?)
+function RoomDirectory.findRemote(id: string): (RoomDirectoryLogic.Entry?, Types.LocText?)
 	local b = backend
 	local remoteJobId = RoomDirectoryLogic.parseKey(id)
 	if b == nil or remoteJobId == nil or remoteJobId == jobId then
-		return nil, "방을 찾을 수 없어요"
+		return nil, RoomLogic.message("NotFound")
 	end
 	local ok, raw = pcall(b.sortedGet, DIRECTORY_MAP, id)
 	if not ok then
 		warnOnce("find", raw)
-		return nil, "지금은 다른 서버 방에 들어갈 수 없어요"
+		return nil, RoomLogic.message("RemoteUnavailable")
 	end
 	local entry = RoomDirectoryLogic.readEntry(raw)
 	if entry == nil or RoomDirectoryLogic.key(entry.jobId, entry.roomId) ~= id then
-		return nil, "방을 찾을 수 없어요"
+		return nil, RoomLogic.message("NotFound")
 	end
 	if not RoomDirectoryLogic.canJoin(entry, os.time(), ttl()) then
 		return nil,
-			if entry.memberCount >= entry.maxPlayers
-				then "방이 꽉 찼어요"
-				else "이미 게임 중인 방이에요"
+			if entry.memberCount >= entry.maxPlayers then RoomLogic.message("Full") else RoomLogic.message("InMatch")
 	end
 	return entry, nil
 end

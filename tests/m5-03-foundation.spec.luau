@@ -6,6 +6,7 @@ local fs = require("@lune/fs")
 
 local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -438,12 +439,12 @@ return function(t: Test.Test)
 				local state = ShopLogic.cardState(Skins.get(id), view, { fake = true })
 				t.eq(state.kind, want[1], id)
 				t.eq(state.enabled, false, id)
-				t.eq(ShopLogic.cardButtonText(state), want[2], id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), want[2], id)
 				t.eq(ShopLogic.robuxButtonText(state), nil, id)
 			end
 			for _, skin in Skins.LIST do
 				local state = ShopLogic.cardState(skin, view)
-				t.ok(type(ShopLogic.cardButtonText(state)) == "string", skin.id)
+				t.ok(LocTest.ko(ShopLogic.cardButtonText(state)) ~= "", skin.id)
 			end
 			-- 시즌 스킨은 코인으로 못 사요
 			local wallet = { coins = 99999, ownedSkins = { tamago = true }, equippedSkin = "tamago" }
@@ -471,8 +472,8 @@ return function(t: Test.Test)
 			t.eq(ok, false, id)
 			t.eq(reason, "NotRobux", id)
 		end
-		t.eq(ReceiptLogic.message("OffSale"), "판매 기간이 아니에요")
-		t.eq(ReceiptLogic.message("NotRobux"), "로벅스로 살 수 없는 스킨이에요")
+		t.eq(LocTest.ko(ReceiptLogic.message("OffSale")), "판매 기간이 아니에요")
+		t.eq(LocTest.ko(ReceiptLogic.message("NotRobux")), "로벅스로 살 수 없는 스킨이에요")
 		-- now가 없으면 기간을 보지 않아요 (기존 호출)
 		t.eq(ReceiptLogic.canRequest("pumpkin-sushi", owned, { canSave = true, fake = true }), true)
 		-- 시즌 없는 스킨은 now와 상관없이
@@ -504,9 +505,9 @@ return function(t: Test.Test)
 	end)
 
 	t.test("AC9: 토스트 문구 Code·MatchPlayed", function()
-		t.eq(RewardLogic.REASON_TEXT.Code, "코드 보상")
-		t.eq(RewardLogic.REASON_TEXT.MatchPlayed, "판 참가")
-		t.eq(RewardLogic.toastText("Code", 200), "+200 🍚 코드 보상")
+		t.eq(LocTest.ko({ key = "reward.reason.Code" }), "코드 보상")
+		t.eq(LocTest.ko({ key = "reward.reason.MatchPlayed" }), "판 참가")
+		t.eq(LocTest.ko(RewardLogic.toastText("Code", 200)), "+200 🍚 코드 보상")
 	end)
 
 	---------------------------------------------------------------- 공용 파일 계약
@@ -580,7 +581,7 @@ return function(t: Test.Test)
 			t.eq(AdminLogic.canRun("StudioOnly", false), false)
 			t.eq(AdminLogic.canRun("StudioOnly", true, false), true)
 			t.eq(select(2, AdminLogic.canRun("StudioOnly", true, true)), "PersistOn")
-			t.eq(AdminLogic.message("StudioOnly"), "Studio에서만 쓸 수 있는 명령이에요")
+			t.eq(LocTest.ko(AdminLogic.message("StudioOnly")), "Studio에서만 쓸 수 있는 명령이에요")
 		end
 	)
 

@@ -8,9 +8,15 @@ local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
+-- m5-26: 문구 모듈은 공유 캐시 그대로 써요
+local LOC_DEPS = {
+	LocalizeLogic = RobloxRequire.require(Shared.LocalizeLogic),
+	Types = RobloxRequire.require(Shared.Types),
+}
 local Config = RobloxRequire.require(Shared.Config)
 local ProfileLogic = RobloxRequire.require(Shared.ProfileLogic)
 local ProfileSchema = RobloxRequire.require(Shared.ProfileSchema)
@@ -36,7 +42,7 @@ local function loadSharedFresh(name: string, deps: { [string]: any }): any
 		environment = {
 			script = { Parent = parent },
 			require = function(target: any)
-				return assert(deps[target.__dep], `missing dep {target.__dep}`)
+				return assert(deps[target.__dep] or LOC_DEPS[target.__dep], `missing dep {target.__dep}`)
 			end,
 		},
 	})()
@@ -354,7 +360,7 @@ local function loadServer(opts: Options?): any
 	})
 	local function req(target: any): any
 		if target.__shared then
-			return assert((sharedMods :: any)[target.__shared], target.__shared)
+			return assert((sharedMods :: any)[target.__shared] or LOC_DEPS[target.__shared], target.__shared)
 		end
 		return assert(serverMods[target.__server], target.__server)
 	end
@@ -805,7 +811,7 @@ return function(t: Test.Test)
 			env.clock += 1.1
 			local ok, err = env.request(p, bad)
 			t.eq(ok, false, `rejects {tostring(bad)}`)
-			t.ok(type(err) == "string" and err ~= "", "reason text")
+			t.ok(type(err) == "table" and LocTest.ko(err) ~= "", "reason text")
 		end
 		t.eq(#env.prompts, 0)
 	end)
@@ -822,7 +828,7 @@ return function(t: Test.Test)
 		t.eq(env.DataService.get(p).ownedSkins.uni, nil, "request never grants")
 		local ok2, err2 = env.request(p, "eel")
 		t.eq(ok2, false)
-		t.eq(err2, "잠시 뒤에 다시 해 주세요")
+		t.eq(LocTest.ko(err2), "잠시 뒤에 다시 해 주세요")
 		env.clock += 1.01
 		t.eq((env.request(p, "eel")), true)
 		t.eq(#env.prompts, 2)
@@ -838,7 +844,7 @@ return function(t: Test.Test)
 			env.clock += 2
 			local ok, err = env.request(p, "eel")
 			t.eq(ok, false)
-			t.eq(err, "준비 중이에요")
+			t.eq(LocTest.ko(err), "준비 중이에요")
 			env.profiles.data.u_1.lock = { jobId = "other-job", at = 1000, session = "other" }
 			local save = env.call(function()
 				return env.DataService.saveNow(p)
@@ -848,7 +854,7 @@ return function(t: Test.Test)
 			env.clock += 2
 			local ok2, err2 = env.request(p, "uni")
 			t.eq(ok2, false)
-			t.eq(err2, "저장이 안 되는 상태라 지금은 살 수 없어요")
+			t.eq(LocTest.ko(err2), "저장이 안 되는 상태라 지금은 살 수 없어요")
 			t.eq(#env.prompts, 0)
 		end
 	)
@@ -863,7 +869,7 @@ return function(t: Test.Test)
 		env.clock += 2
 		local ok, err = env.request(p, "eel")
 		t.eq(ok, false)
-		t.eq(err, "준비 중이에요")
+		t.eq(LocTest.ko(err), "준비 중이에요")
 		env.clock += 2
 		t.eq((env.request(p, "uni")), true)
 		env.run(20)
@@ -880,7 +886,7 @@ return function(t: Test.Test)
 		env.clock += 2
 		local ok, err = env.request(p, "uni")
 		t.eq(ok, false)
-		t.eq(err, "저장이 안 되는 상태라 지금은 살 수 없어요")
+		t.eq(LocTest.ko(err), "저장이 안 되는 상태라 지금은 살 수 없어요")
 		t.eq(env.receipt(1, env.productOf("uni"), "pid-1"), NOT_YET, "memory profile never completes a real receipt")
 	end)
 

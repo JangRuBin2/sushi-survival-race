@@ -20,8 +20,10 @@
 --                                              다 가졌으면 가장 높은 등급의 첫 스킨
 --   pool(ownedSkins, list?) / totalSkins(list?) / ownedCount(ownedSkins, list?)   보유 목록 n/총수
 --   message(reason) · resultText(result, skinName?) · ticketText(n)
+-- 화면 문구는 LocText (m5-26): 클라이언트가 Loc.text로 풀어요. 퍼센트 글씨("5.0%")는 언어와 무관한 문자열 그대로
 
 local Config = require(script.Parent.Config)
+local LocalizeLogic = require(script.Parent.LocalizeLogic)
 local Skins = require(script.Parent.Skins)
 local Types = require(script.Parent.Types)
 
@@ -56,8 +58,8 @@ export type Rng = {
 
 local DrawLogic = {}
 
-DrawLogic.EMPTY_TEXT = "준비 중" -- 스킨이 없는 등급 줄
-DrawLogic.ROUNDING_NOTE = "확률은 반올림한 값이라 합이 100%와 조금 다를 수 있어요."
+DrawLogic.EMPTY_TEXT = LocalizeLogic.text("shop.draw.empty") -- 스킨이 없는 등급 줄 "준비 중"
+DrawLogic.ROUNDING_NOTE = LocalizeLogic.text("shop.draw.roundingNote")
 
 local function validCount(value: unknown): number
 	if type(value) ~= "number" or value ~= value or value < 0 or value == math.huge then
@@ -190,7 +192,7 @@ end
 
 -- 등급 줄 퍼센트: 0.1% 단위 정수로 내린 뒤, 남은 0.1%들을 나머지가 큰 등급부터 하나씩 (최대 나머지 방식).
 -- 스킨이 있는 등급의 표시 합 = 정확히 100.0%. 빈 등급은 "준비 중"
-function DrawLogic.displayPercents(grades: { GradeRow }): { [string]: string }
+function DrawLogic.displayPercents(grades: { GradeRow }): { [string]: string | Types.LocText }
 	local units: { [string]: number } = {}
 	type Entry = { grade: string, rest: number, index: number }
 	local order: { Entry } = {}
@@ -220,7 +222,7 @@ function DrawLogic.displayPercents(grades: { GradeRow }): { [string]: string }
 			i += 1
 		end
 	end
-	local out: { [string]: string } = {}
+	local out: { [string]: string | Types.LocText } = {}
 	for _, row in grades do
 		local unit = units[row.grade]
 		out[row.grade] = if unit == nil then DrawLogic.EMPTY_TEXT else `{unit // 10}.{unit % 10}%`
@@ -279,27 +281,30 @@ function DrawLogic.ownedCount(ownedSkins: { [string]: boolean }, list: { Skins.S
 	return DrawLogic.totalSkins(list) - #DrawLogic.pool(ownedSkins, list)
 end
 
-local MESSAGES: { [Reason]: string } = {
-	NoTickets = "우승하면 🎫 뽑기권을 받아요",
-	Locked = "매치가 끝나면 뽑을 수 있어요",
-	CannotSave = "저장이 안 되는 상태예요",
-	TooFast = "잠시 뒤에 다시 해 주세요",
-	NoProfile = "프로필을 불러오는 중이에요",
-	NoPool = "뽑을 스킨이 없어요",
+local MESSAGES: { [Reason]: Types.LocText } = {
+	NoTickets = { key = "shop.drawErr.NoTickets" },
+	Locked = { key = "shop.drawErr.Locked" },
+	CannotSave = { key = "shop.drawErr.CannotSave" },
+	TooFast = { key = "shop.drawErr.TooFast" },
+	NoProfile = { key = "shop.drawErr.NoProfile" },
+	NoPool = { key = "shop.drawErr.NoPool" },
 }
 
-function DrawLogic.message(reason: Reason?): string
+-- 거절 이유 → LocText shop.drawErr.<Reason> (m5-26). nil이면 nil, 모르는 이유는 common.err.retry
+function DrawLogic.message(reason: Reason?): Types.LocText?
 	if reason == nil then
-		return ""
+		return nil
 	end
-	return MESSAGES[reason] or "다시 해 주세요"
+	return MESSAGES[reason] or LocalizeLogic.text("common.err.retry")
 end
 
-function DrawLogic.resultText(result: Types.DrawResult, skinName: string?): string
+-- 결과 한 줄 (m5-26: LocText). skinName은 이미 그 언어로 푼 이름 (없으면 스킨 이름 키)
+function DrawLogic.resultText(result: Types.DrawResult, skinName: string?): Types.LocText
 	if result.kind == "Skin" then
-		return `🎉 {skinName or result.skinId} 획득!`
+		local name: string | Types.LocText = skinName or LocalizeLogic.text(LocalizeLogic.skinNameKey(result.skinId))
+		return LocalizeLogic.text("shop.draw.resultSkin", { name = name })
 	end
-	return `이미 가진 스킨이에요 → 🍚 +{result.coins}`
+	return LocalizeLogic.text("shop.draw.resultDuplicate", { coins = result.coins })
 end
 
 -- 뽑기권 수 글씨 ("×3")

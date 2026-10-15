@@ -19,6 +19,7 @@ local Offers = require(ReplicatedStorage.Shared.Offers)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Loc = require(script.Parent.Parent.Loc)
 local PriceCache = require(script.Parent.Parent.PriceCache)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
 local OfferScreen = require(script.Parent.OfferScreen)
@@ -26,7 +27,23 @@ local UiScaleController = require(script.Parent.UiScaleController)
 
 local OfferController = {}
 
-local SLOT_NAMES = { Elimination = "탈락 연출", Victory = "우승 연출" } :: { [string]: string }
+local SLOT_NAMES = {
+	Elimination = { key = "offer.slot.Elimination" },
+	Victory = { key = "offer.slot.Victory" },
+} :: { [string]: Types.LocText }
+
+-- 카드 "주는 것" 줄: 조각을 " · "로 이어요 (m5-26)
+local function lineTexts(lines: { { Types.LocText } }): { string }
+	local result: { string } = {}
+	for _, parts in lines do
+		local texts: { string } = {}
+		for _, part in parts do
+			table.insert(texts, Loc.text(part))
+		end
+		table.insert(result, table.concat(texts, " · "))
+	end
+	return result
+end
 
 local function priceOf(offer: Offers.Offer): number
 	if offer.kind == "Pass" then
@@ -65,10 +82,10 @@ function OfferController.start(_gui: Instance)
 			local offer = entry.offer
 			table.insert(cards, {
 				id = offer.id,
-				name = offer.displayName,
-				lines = OfferLogic.contentLines(offer),
-				value = OfferLogic.valueText(offer),
-				buttonText = OfferLogic.buttonText(entry.state, priceOf(offer)),
+				name = Loc.offerName(offer.id),
+				lines = lineTexts(OfferLogic.contentLines(offer)),
+				value = (if OfferLogic.valueText(offer) then Loc.text(OfferLogic.valueText(offer)) else nil) :: string?,
+				buttonText = Loc.text(OfferLogic.buttonText(entry.state, priceOf(offer))),
 				enabled = entry.state.enabled,
 				bought = entry.state.kind == "Bought",
 				order = offer.order,
@@ -83,7 +100,10 @@ function OfferController.start(_gui: Instance)
 			table.insert(fx, {
 				id = item.id,
 				slot = item.slot,
-				name = `{item.displayName} ({SLOT_NAMES[item.slot] or item.slot})`,
+				name = Loc.t("offer.fxRow", {
+					name = Loc.fxName(item.id),
+					slot = SLOT_NAMES[item.slot] or item.slot,
+				}),
 				equipped = equipped,
 			})
 		end
@@ -117,9 +137,10 @@ function OfferController.start(_gui: Instance)
 		local remote = Remotes.fn(name)
 		local called, ok, err = pcall(remote.InvokeServer, remote, ...)
 		if not called then
-			return false, "서버와 연결이 불안정해요"
+			return false, Loc.t("common.err.connection")
 		end
-		return ok == true, if type(err) == "string" then err else nil
+		local message = if err ~= nil then Loc.text(err) else ""
+		return ok == true, if message ~= "" then message else nil
 	end
 
 	local function buy(offerId: string)
@@ -139,12 +160,9 @@ function OfferController.start(_gui: Instance)
 		if ok then
 			pending[offerId] = true
 			local fake = if offer.kind == "Pass" then options.fakeVip else options.fake
-			screen:showResult(
-				if fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
-				false
-			)
+			screen:showResult(if fake then Loc.t("shop.fakePaying") else Loc.t("shop.checkPrompt"), false)
 		else
-			screen:showResult(err or "다시 해 주세요", true)
+			screen:showResult(err or Loc.t("common.err.retry"), true)
 		end
 	end
 
@@ -159,9 +177,12 @@ function OfferController.start(_gui: Instance)
 		screen:setBusy(false)
 		if ok then
 			local fx = if fxId then FxCatalog.get(fxId) else nil
-			screen:showResult(if fx then `{fx.displayName} 입었어요!` else "연출을 벗었어요", false)
+			screen:showResult(
+				if fx then Loc.t("offer.fxWorn", { name = Loc.fxName(fx.id) }) else Loc.t("offer.fxRemoved"),
+				false
+			)
 		else
-			screen:showResult(err or "다시 해 주세요", true)
+			screen:showResult(err or Loc.t("common.err.retry"), true)
 		end
 	end
 
@@ -210,8 +231,8 @@ function OfferController.start(_gui: Instance)
 			if offer and OfferLogic.delivered(offer, newView) then
 				pending[offerId] = nil
 				got = if offer.kind == "Bundle"
-					then `🎉 {offer.displayName} 획득! 탈의실에서 새 스킨을 입어 보세요`
-					else `🎉 {offer.displayName} 획득!`
+					then Loc.t("offer.gotBundle", { name = Loc.offerName(offer.id) })
+					else Loc.t("offer.notice.got", { name = Loc.offerName(offer.id) })
 			end
 		end
 		render()

@@ -2,6 +2,7 @@
 -- m5-08 특별 상품: 카탈로그(Shared.Offers)와 판단(Shared.OfferLogic)
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -297,10 +298,10 @@ return function(t: Test.Test)
 	)
 
 	t.test("AC3: message", function()
-		t.eq(OfferLogic.message("AlreadyBought"), "이미 샀어요")
-		t.eq(OfferLogic.message("OwnsSome"), "이미 가진 스킨이 있어서 따로 사야 해요")
-		t.eq(OfferLogic.message("NotForSale"), "준비 중이에요")
-		t.eq(OfferLogic.message(nil), "")
+		t.eq(LocTest.ko(OfferLogic.message("AlreadyBought")), "이미 샀어요")
+		t.eq(LocTest.ko(OfferLogic.message("OwnsSome")), "이미 가진 스킨이 있어서 따로 사야 해요")
+		t.eq(LocTest.ko(OfferLogic.message("NotForSale")), "준비 중이에요")
+		t.eq(OfferLogic.message(nil), nil)
 		for _, reason in
 			{
 				"Unknown",
@@ -322,9 +323,9 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC4 valueText
 	t.test("AC4: valueText", function()
-		t.eq(OfferLogic.valueText(offer("starter-pack")), "따로 사면 R$ 146")
-		t.eq(OfferLogic.valueText(offer("epic-set")), "따로 사면 R$ 297")
-		t.eq(OfferLogic.valueText(offer("legendary-set")), "따로 사면 R$ 597")
+		t.eq(LocTest.ko(OfferLogic.valueText(offer("starter-pack"))), "따로 사면 R$ 146")
+		t.eq(LocTest.ko(OfferLogic.valueText(offer("epic-set"))), "따로 사면 R$ 297")
+		t.eq(LocTest.ko(OfferLogic.valueText(offer("legendary-set"))), "따로 사면 R$ 597")
 		t.eq(OfferLogic.valueText(offer("fx-fireworks")), nil)
 		t.eq(OfferLogic.valueText(offer("vip")), nil)
 	end)
@@ -393,10 +394,10 @@ return function(t: Test.Test)
 			t.eq(#fresh, 6)
 			t.eq(fresh[1].offer.id, "starter-pack")
 			t.eq(fresh[1].state, { kind = "Soon", enabled = false }, "no product id yet")
-			t.eq(OfferLogic.buttonText(fresh[1].state, 79), "곧 열려요")
+			t.eq(LocTest.ko(OfferLogic.buttonText(fresh[1].state, 79)), "곧 열려요")
 			local fake = OfferLogic.screenList(view(), { fake = true })
 			t.eq(fake[1].state, { kind = "Buy", enabled = true })
-			t.eq(OfferLogic.buttonText(fake[1].state, 79), "R$ 79로 사기")
+			t.eq(LocTest.ko(OfferLogic.buttonText(fake[1].state, 79)), "R$ 79 · 사기")
 			t.eq(fake[6].offer.id, "vip")
 			t.eq(fake[6].state.kind, "Soon", "fake robux does not open the pass")
 			t.eq(OfferLogic.screenList(view(), { fakeVip = true })[6].state.kind, "Buy")
@@ -421,12 +422,16 @@ return function(t: Test.Test)
 				"fx-fireworks:Bought",
 				"vip:Bought",
 			}, "epic-set hidden (owns one), bought ones last")
-			t.eq(OfferLogic.buttonText({ kind = "Bought", enabled = false }, 79), "산 상품")
+			t.eq(LocTest.ko(OfferLogic.buttonText({ kind = "Bought", enabled = false }, 79)), "산 상품")
 		end
 	)
 
 	t.test("contentLines", function()
-		t.eq(OfferLogic.contentLines(offer("starter-pack")), { "연어 · 참치 · 새우 · 장어" })
+		local parts = {}
+		for _, part in OfferLogic.contentLines(offer("starter-pack"))[1] do
+			table.insert(parts, LocTest.ko(part))
+		end
+		t.eq(table.concat(parts, " · "), "연어 · 참치 · 새우 · 장어")
 		t.eq(#OfferLogic.contentLines(offer("vip")), 3)
 		t.eq(#OfferLogic.contentLines(offer("fx-cat-customer")), 1)
 	end)
@@ -477,12 +482,15 @@ return function(t: Test.Test)
 
 	t.test("QA B2: 획득 안내는 success 종류, 로비는 종류를 보고 오류색을 정해요", function()
 		local fs = require("@lune/fs")
+		local function pack(message: any, kind: string): any
+			return table.pack(LocTest.ko(message), kind)
+		end
 		t.eq(
-			table.pack(OfferLogic.grantNotice(offer("starter-pack"))),
+			pack(OfferLogic.grantNotice(offer("starter-pack"))),
 			table.pack("탈의실에서 새 스킨을 입어 보세요", "success")
 		)
 		t.eq(
-			table.pack(OfferLogic.grantNotice(offer("fx-cat-customer"))),
+			pack(OfferLogic.grantNotice(offer("fx-cat-customer"))),
 			table.pack("🎉 탈락 연출: 고양이 손님 획득!", "success")
 		)
 		local offerSrc = fs.readFile("src/server/OfferService.luau")

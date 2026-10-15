@@ -6,6 +6,7 @@
 local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local LayoutCheck = require("../tools/render/LayoutCheck")
@@ -177,13 +178,13 @@ return function(t: Test.Test)
 			local view = freshView()
 			local state = ShopLogic.cardState(Skins.get(ID), view)
 			t.eq(state.kind, "Draw")
-			t.eq(ShopLogic.cardButtonText(state), "🎫 뽑기로 얻기")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "🎫 뽑기로 얻기")
 			local ownedView = freshView()
 			ownedView.ownedSkins = { ID, "tamago" }
 			local owned = ShopLogic.cardState(Skins.get(ID), ownedView)
 			t.eq(owned.kind, "Equip")
 			t.eq(owned.enabled, true)
-			t.eq(ShopLogic.cardButtonText(owned), "입기")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(owned)), "입기")
 			local shown = false
 			for _, tab in ShopLogic.tabs() do
 				if tab.id == "all" then

@@ -93,9 +93,16 @@ local function runStart(player: Player): (boolean, string?)
 	if roomId == nil then
 		return fail("NotInRoom")
 	end
-	local ok, err = RoomService.forceStart(roomId)
+	local ok, reason = RoomService.forceStart(roomId)
 	if not ok then
-		return false, err
+		-- 관리자 도구라 한국어 문구 그대로 (m5-26 제외 범위). RoomService는 이유 이름만 돌려줘요.
+		local text = if reason == "MatchServer"
+			then "매치 서버에서는 할 수 없어요"
+			elseif reason == "NoRoom" then "방이 없어요"
+			elseif reason == "InMatch" then "이미 게임 중이에요"
+			elseif reason == "AutoStarting" then "곧 자동으로 시작해요"
+			else "다시 해 주세요"
+		return false, text
 	end
 	return true, `방 {roomId} 시작!`
 end

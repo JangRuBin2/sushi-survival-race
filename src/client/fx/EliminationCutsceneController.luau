@@ -25,6 +25,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local DollAnimator = require(script.Parent.DollAnimator)
 local Props = require(script.Parent.CutsceneProps)
@@ -368,7 +369,7 @@ function EliminationCutsceneController.start(gui: Instance)
 		local animation: Animation? = nil
 		local beats = Logic.timeline(variant, duration, fxSkin)
 		local nextBeat = 1
-		local line = Logic.pickLine(appearanceId, variant, rng, fxSkin)
+		local line = Loc.text(Logic.pickLineText(appearanceId, variant, rng, fxSkin))
 		if world and position then
 			local model = cleanup:add(Instance.new("Model"))
 			model.Name = `EliminationCutscene_{result.userId}`

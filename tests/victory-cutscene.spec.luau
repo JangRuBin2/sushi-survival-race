@@ -2,6 +2,7 @@
 -- m3-05 우승 연출: 박자 타임라인, 효과음, 큰 글씨, 인형·카메라 위치 (VictoryCutsceneLogic)
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local Shared = RobloxRequire.root("src/shared")
@@ -62,15 +63,15 @@ return function(t: Test.Test)
 	end)
 
 	t.test("AC4: titleText", function()
-		t.eq(Logic.titleText("민수", false), "민수 탈출 성공!")
-		t.eq(Logic.titleText("민수", true), "탈출 성공! 🏆")
+		t.eq(LocTest.ko(Logic.titleText("민수", false)), "민수 탈출 성공!")
+		t.eq(LocTest.ko(Logic.titleText("민수", true)), "탈출 성공! 🏆")
 	end)
 
 	t.test("AC4: winnerName은 standings 이름을 먼저 써요", function()
 		local standings = { { userId = 1, name = "민수", place = 1 }, { userId = 2, name = "지아", place = 2 } }
-		t.eq(Logic.winnerName(standings, 1, "#1"), "민수")
+		t.eq(LocTest.ko(Logic.winnerName(standings, 1, "#1")), "민수")
 		t.eq(Logic.winnerName(standings, 3, "#3"), "#3")
-		t.eq(Logic.winnerName(nil, 1, "민수2"), "민수2")
+		t.eq(LocTest.ko(Logic.winnerName(nil, 1, "민수2")), "민수2")
 	end)
 
 	t.test("AC5: 연출 길이 < 우승 단계 길이, 효과음 이름", function()

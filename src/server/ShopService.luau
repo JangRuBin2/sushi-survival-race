@@ -1,6 +1,6 @@
 --!strict
 -- 탈의실 (m4-13): 스킨 장착과 밥알 코인 해금. 소유·장착·코인은 서버 프로필(DataService)에만 있어요.
--- 리모트 (RemoteFunction, 반환 ok: boolean, err: string?):
+-- 리모트 (RemoteFunction, 반환 ok: boolean, err: LocText?):
 --   EquipSkin(skinId)     카탈로그에 있고 보유 중이어야 해요. 라운드 레이서(소개 포함)이거나 탈락·우승 연출 중이면 거절.
 --                         로비·방 대기실·관전·대기석에서는 돼요. 성공하면 equippedSkin 저장 + 캐릭터에 바로 다시 입혀요.
 --   BuyWithCoins(skinId)  일반·레어 스킨만, 미보유, 코인 ≥ 가격 → 한 번의 DataService.update 안에서 차감 + 보유 + 장착.
@@ -45,6 +45,7 @@ local AdminLogic = require(ReplicatedStorage.Shared.AdminLogic)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
+local LocalizeLogic = require(ReplicatedStorage.Shared.LocalizeLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
@@ -156,7 +157,7 @@ local function allowRequest(player: Player): boolean
 	return true
 end
 
-local function fail(reason: ShopLogic.Reason, missing: number?): (boolean, string?)
+local function fail(reason: ShopLogic.Reason, missing: number?): (boolean, Types.LocText?)
 	return false, ShopLogic.message(reason, missing)
 end
 
@@ -167,7 +168,7 @@ local function tokenIcon(skinId: string): string?
 	return if event then event.token.icon else nil
 end
 
-local function onEquip(player: Player, skinId: unknown): (boolean, string?)
+local function onEquip(player: Player, skinId: unknown): (boolean, Types.LocText?)
 	if not allowRequest(player) then
 		return fail("TooFast")
 	end
@@ -192,7 +193,7 @@ local function onEquip(player: Player, skinId: unknown): (boolean, string?)
 	return true, nil
 end
 
-local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, string?)
+local function onBuyWithCoins(player: Player, skinId: unknown): (boolean, Types.LocText?)
 	if not allowRequest(player) then
 		return fail("TooFast")
 	end
@@ -234,7 +235,7 @@ end
 
 -- 이벤트 재화로 무료 한정 스킨 받기 (m5-07). 순서는 ShopLogic.canBuyWithTokens: 카탈로그 → 이벤트 진행 중 →
 -- 미보유 → 잠금 → 저장 가능 → 재화 ≥ 가격. 성공하면 한 번의 update 안에서 재화 차감 + 보유 + 장착.
-local function onBuyWithTokens(player: Player, skinId: unknown): (boolean, string?)
+local function onBuyWithTokens(player: Player, skinId: unknown): (boolean, Types.LocText?)
 	if not allowRequest(player) then
 		return fail("TooFast")
 	end
@@ -270,12 +271,12 @@ local function onBuyWithTokens(player: Player, skinId: unknown): (boolean, strin
 end
 
 -- 🎫 뽑기 (m5-31). 확률·결과는 서버만 정해요. 판단은 DrawLogic (순수)
-local function drawFail(player: Player, reason: DrawLogic.Reason): (boolean, string?, Types.DrawResult?)
+local function drawFail(player: Player, reason: DrawLogic.Reason): (boolean, Types.LocText?, Types.DrawResult?)
 	print(`[Draw] {player.Name}({player.UserId}) -> rejected {reason}`)
 	return false, DrawLogic.message(reason), nil
 end
 
-local function onDraw(player: Player): (boolean, string?, Types.DrawResult?)
+local function onDraw(player: Player): (boolean, Types.LocText?, Types.DrawResult?)
 	local now = os.clock()
 	local last = lastDrawAt[player]
 	if last and now - last < Config.Draw.RequestCooldown then
@@ -358,12 +359,12 @@ local function onResult(_roomId: string, result: Types.PlayerResult)
 	end
 end
 
-local function bind(name: string, handler: (Player, unknown) -> (boolean, string?))
-	Remotes.fn(name).OnServerInvoke = function(player: Player, skinId: unknown): (boolean, string?)
+local function bind(name: string, handler: (Player, unknown) -> (boolean, Types.LocText?))
+	Remotes.fn(name).OnServerInvoke = function(player: Player, skinId: unknown): (boolean, Types.LocText?)
 		local ok, success, err = pcall(handler, player, skinId)
 		if not ok then
 			warn(`[ShopService] {name} failed for {player.Name}: {success}`)
-			return false, "다시 해 주세요"
+			return false, LocalizeLogic.text("common.err.retry")
 		end
 		return success, err
 	end
@@ -388,11 +389,11 @@ function ShopService.init()
 	bind("BuyWithCoins", onBuyWithCoins)
 	bind("BuyWithTokens", onBuyWithTokens)
 	-- DrawTicket은 인자를 받지 않고 결과 표를 하나 더 돌려줘요 (m5-31)
-	Remotes.fn("DrawTicket").OnServerInvoke = function(player: Player): (boolean, string?, Types.DrawResult?)
+	Remotes.fn("DrawTicket").OnServerInvoke = function(player: Player): (boolean, Types.LocText?, Types.DrawResult?)
 		local ok, success, err, result = pcall(onDraw, player)
 		if not ok then
 			warn(`[ShopService] DrawTicket failed for {player.Name}: {success}`)
-			return false, "다시 해 주세요", nil
+			return false, LocalizeLogic.text("common.err.retry"), nil
 		end
 		return success, err, result
 	end

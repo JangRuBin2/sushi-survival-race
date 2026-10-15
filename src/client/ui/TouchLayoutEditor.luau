@@ -18,6 +18,7 @@ local TouchLayoutLogic = require(ReplicatedStorage.Shared.TouchLayoutLogic)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
+local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
 local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 
@@ -25,11 +26,17 @@ local Color = Kit.Color
 
 local TouchLayoutEditor = {}
 
-local LABELS = { jump = "⬆ 점프", dive = "🤸 다이브", grab = "✊ 잡기" }
+-- 버튼 이름 (m5-26: 편집 화면을 열 때 그 사람 언어로)
+local function labelOf(name: string): string
+	if name == "jump" then
+		return Loc.t("input.jump.btn")
+	elseif name == "dive" then
+		return Loc.t("input.dive.btn")
+	end
+	return Loc.t("input.grab.btn")
+end
 local SELECTED_COLOR = Color3.fromRGB(255, 255, 255)
 local OVERLAP_COLOR = Color3.fromRGB(235, 60, 60)
-local INFO_TEXT = "버튼을 끌어 옮기고, 눌러서 고른 뒤 크기를 바꿔요"
-local OVERLAP_TEXT = "버튼이 겹쳐요 — 떨어뜨려야 저장돼요"
 
 type Session = {
 	gui: ScreenGui,
@@ -115,7 +122,7 @@ function TouchLayoutEditor.open()
 	})
 	local joystickLabel = Kit.label({
 		Parent = joystickZone,
-		Text = "이동 조이스틱 자리",
+		Text = Loc.t("input.layout.joystick"),
 		TextColor3 = Color.White,
 		TextTransparency = 0.3,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -148,7 +155,8 @@ function TouchLayoutEditor.open()
 			Name = name,
 			Parent = copyLayer,
 			AutoButtonColor = false,
-			Text = (LABELS :: any)[name] :: string,
+			Text = labelOf(name),
+			AutoLocalize = false, -- 이미 Loc으로 푼 글씨 (m5-26)
 			TextScaled = true,
 			Font = Kit.Font,
 			TextColor3 = Color.White,
@@ -190,7 +198,7 @@ function TouchLayoutEditor.open()
 		Name = "Info",
 		Parent = panel,
 		LayoutOrder = 1,
-		Text = INFO_TEXT,
+		Text = Loc.t("input.layout.info"),
 		TextColor3 = Color.White,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
@@ -215,16 +223,16 @@ function TouchLayoutEditor.open()
 		local button = Kit.button(text, color, { Parent = grid, LayoutOrder = order, ZIndex = 4, TextWrapped = true })
 		return button
 	end
-	local smaller = tool(1, "작게 −", Color.Nori)
-	local bigger = tool(2, "크게 +", Color.Nori)
-	local presetDefault = tool(3, "기본", Color.Egg)
-	local presetLarge = tool(4, "크게", Color.Egg)
-	local presetCompact = tool(5, "엄지 가까이", Color.Egg)
-	local resetButton = tool(6, "기본값으로", Color.Neutral)
+	local smaller = tool(1, Loc.t("input.layout.smaller.btn"), Color.Nori)
+	local bigger = tool(2, Loc.t("input.layout.bigger.btn"), Color.Nori)
+	local presetDefault = tool(3, Loc.t("input.layout.presetDefault.btn"), Color.Egg)
+	local presetLarge = tool(4, Loc.t("input.layout.presetLarge.btn"), Color.Egg)
+	local presetCompact = tool(5, Loc.t("input.layout.presetCompact.btn"), Color.Egg)
+	local resetButton = tool(6, Loc.t("input.layout.reset.btn"), Color.Neutral)
 	resetButton.TextColor3 = Color.Text
-	local cancelButton = tool(7, "취소", Color.Neutral)
+	local cancelButton = tool(7, Loc.t("common.cancel.btn"), Color.Neutral)
 	cancelButton.TextColor3 = Color.Text
-	local saveButton = tool(8, "저장", Color.Salmon)
+	local saveButton = tool(8, Loc.t("input.layout.save.btn"), Color.Salmon)
 	local toolButtons =
 		{ smaller, bigger, presetDefault, presetLarge, presetCompact, resetButton, cancelButton, saveButton }
 
@@ -261,7 +269,7 @@ function TouchLayoutEditor.open()
 			end
 		end
 		local hasOverlap = next(overlapping) ~= nil
-		info.Text = if hasOverlap then OVERLAP_TEXT else INFO_TEXT
+		info.Text = if hasOverlap then Loc.t("input.layout.overlap") else Loc.t("input.layout.info")
 		info.TextColor3 = if hasOverlap then Color3.fromRGB(255, 140, 140) else Color.White
 		Kit.setEnabled(saveButton, not hasOverlap)
 		Kit.setEnabled(smaller, selected ~= nil)

@@ -17,6 +17,7 @@ export type Entry = {
 	jobId: string,
 	roomId: string,
 	name: string,
+	nameIsDefault: boolean?, -- m5-26: name은 방장 DisplayName (기본 이름)
 	maxPlayers: number,
 	memberCount: number,
 	state: Types.RoomState,
@@ -80,6 +81,7 @@ function RoomDirectoryLogic.readEntry(raw: any): Entry?
 		jobId = raw.jobId,
 		roomId = raw.roomId,
 		name = raw.name,
+		nameIsDefault = if raw.nameIsDefault == true then true else nil,
 		maxPlayers = raw.maxPlayers,
 		memberCount = raw.memberCount,
 		state = raw.state,
@@ -117,6 +119,7 @@ function RoomDirectoryLogic.entryFor(room: RoomLogic.Room, jobId: string, now: n
 		jobId = jobId,
 		roomId = room.id,
 		name = room.name,
+		nameIsDefault = if room.nameIsDefault then true else nil,
 		maxPlayers = room.maxPlayers,
 		memberCount = #room.members,
 		state = room.state,
@@ -194,6 +197,7 @@ function RoomDirectoryLogic.merge(
 		table.insert(result, {
 			id = id,
 			name = entry.name,
+			nameIsDefault = entry.nameIsDefault,
 			maxPlayers = entry.maxPlayers,
 			memberCount = entry.memberCount,
 			state = entry.state,

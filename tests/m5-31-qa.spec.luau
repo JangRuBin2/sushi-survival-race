@@ -6,6 +6,7 @@
 
 local fs = require("@lune/fs")
 
+local LocTest = require("./lib/LocTest")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -447,8 +448,8 @@ return function(t: Test.Test)
 					true
 				) ~= nil
 			)
-			t.eq(RewardLogic.ticketToastText(0, true), "🎫 뽑기권이 가득 찼어요 (99장)")
-			t.eq(RewardLogic.ticketToastText(1, false), "+1 🎫 우승 뽑기권")
+			t.eq(LocTest.ko(RewardLogic.ticketToastText(0, true)), "🎫 뽑기권이 가득 찼어요 (99장)")
+			t.eq(LocTest.ko(RewardLogic.ticketToastText(1, false)), "+1 🎫 우승 뽑기권")
 			t.eq(RewardLogic.ticketToastText(nil, nil), nil)
 		end
 	)

@@ -6,12 +6,17 @@
 -- 카메라가 로비에서 멀면(아레나 관전 등) 옮기지 않아요.
 -- 우승자 단상 인형도 여기서 세워요: 서버가 Lobby.Podium 폴더에 단 속성(LobbyLayout.WINNER_ATTRS)이 바뀌면
 -- SushiBody.build(appearanceId)로 1.5배 인형(앵커·충돌 없음)을 가운데 단 위에 세워요 (가장 최근 1명).
+-- 단상 이름표 글씨도 여기서 채워요 (m5-26): 서버가 단 Attributes.WinnerName·WinnerWins → PodiumLogic.view → Loc.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Loc = require(script.Parent.Parent.Loc)
+local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local LobbyLayout = require(ReplicatedStorage.Shared.LobbyLayout)
+local PodiumLogic = require(ReplicatedStorage.Shared.PodiumLogic)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
+local Types = require(ReplicatedStorage.Shared.Types)
 local DollAnimator = require(script.Parent.DollAnimator)
 
 local LobbyFxController = {}
@@ -86,6 +91,41 @@ local function placeDoll(podiumFolder: Instance)
 	DollAnimator.attach(model, "Victory", { sound = "World" })
 end
 
+type PodiumLabels = { name: TextLabel, title: TextLabel, wins: TextLabel }
+
+local function findLabels(podiumFolder: Instance): PodiumLabels?
+	local anchor = podiumFolder:WaitForChild(LobbyLayout.PODIUM_ANCHOR, CHILD_WAIT)
+	local billboard = anchor and anchor:WaitForChild(LobbyLayout.PODIUM_BILLBOARD, CHILD_WAIT)
+	if billboard == nil then
+		return nil
+	end
+	local names = LobbyLayout.PODIUM_LABELS
+	local name = billboard:WaitForChild(names.name, CHILD_WAIT)
+	local title = billboard:WaitForChild(names.title, CHILD_WAIT)
+	local wins = billboard:WaitForChild(names.wins, CHILD_WAIT)
+	if not (name and name:IsA("TextLabel") and title and title:IsA("TextLabel") and wins and wins:IsA("TextLabel")) then
+		return nil
+	end
+	return { name = name, title = title, wins = wins }
+end
+
+local function setLine(label: TextLabel, text: Types.LocText?)
+	label.AutoLocalize = false -- 우승자 이름을 번역하지 않게 (문구는 이미 Loc으로 풀었어요)
+	label.Text = if text then Loc.text(text) else ""
+	label.Visible = text ~= nil
+end
+
+-- 서버가 단 이름·승수로 이름표를 이 플레이어 언어로 채워요 (m5-26 2단계)
+local function renderLabels(podiumFolder: Instance, labels: PodiumLabels)
+	local view = PodiumLogic.view(
+		podiumFolder:GetAttribute(Attributes.WinnerName),
+		podiumFolder:GetAttribute(Attributes.WinnerWins)
+	)
+	setLine(labels.name, view.name)
+	setLine(labels.title, view.title)
+	setLine(labels.wins, view.wins)
+end
+
 local function watchPodium(lobby: Instance)
 	local podiumFolder = lobby:WaitForChild("Podium", CHILD_WAIT)
 	if podiumFolder == nil then
@@ -95,6 +135,20 @@ local function watchPodium(lobby: Instance)
 		placeDoll(podiumFolder)
 	end)
 	placeDoll(podiumFolder)
+
+	local labels = findLabels(podiumFolder)
+	if labels == nil then
+		return
+	end
+	for _, attr in { Attributes.WinnerName, Attributes.WinnerWins } do
+		podiumFolder:GetAttributeChangedSignal(attr):Connect(function()
+			renderLabels(podiumFolder, labels)
+		end)
+	end
+	Loc.onChanged(function() -- 번역기가 늦게 오면 다시 (QA B4)
+		renderLabels(podiumFolder, labels)
+	end)
+	renderLabels(podiumFolder, labels)
 end
 
 local function run()

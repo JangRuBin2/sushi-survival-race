@@ -9,7 +9,8 @@ local Attributes = {
 	-- boolean: 캐릭터 아래에 붙이는 보이는 파츠·Decal(또는 그 조상)에 true로 달면 외형 숨김에서 빠져요 (m3-09).
 	-- AppearanceService는 SushiBody 밖의 BasePart·Decal을 전부 숨겨요 — 보여야 하는 걸 붙일 때 이걸 달아요.
 	KeepVisible = "KeepVisible",
-	Title = "Title", -- string: 머리 위 이름표에 붙는 우승 칭호 (서버가 달아요, m4-08)
+	Title = "Title", -- number: 머리 위 이름표에 붙는 우승 칭호의 기준 승수 (1/10/100, Config.Titles. 서버가 달아요, m4-08).
+	-- m5-26: 서버는 칭호 문장 대신 숫자만 달고 클라이언트가 Loc.titleName으로 그 사람 언어로 써요 (옛 서버의 한국어 이름 문자열도 읽어요)
 	-- number (workspace:GetServerTimeNow() 기준): 서버가 캐릭터를 옮기거나 튕긴 뒤 이동 감시(m4-10)가
 	-- 검사하지 않는 시각. MoveExempt.mark로만 달아요 (m4-01).
 	MoveExemptUntil = "MoveExemptUntil",
@@ -29,6 +30,14 @@ local Attributes = {
 	Vip = "Vip", -- boolean: VIP 게임 패스가 있으면 true (아니면 없음). 이름표 👑·채팅 태그 (m5-08)
 	EliminationFx = "EliminationFx", -- string: 입은 탈락 연출 id (없으면 기본). 모든 클라이언트가 연출을 고를 때 읽어요 (m5-09)
 	VictoryFx = "VictoryFx", -- string: 입은 우승 연출 id (없으면 기본) (m5-09)
+
+	-- Workspace.Lobby.Podium 폴더 (서버 LobbyService가 달아요, m5-26 2단계). 서버는 문장을 만들지 않고 값만 둬요 —
+	-- 클라이언트 LobbyFxController가 PodiumLogic.view → Loc으로 이름표를 채워요. (인형 속성은 LobbyLayout.WINNER_ATTRS)
+	WinnerName = "WinnerName", -- string: 가장 최근 우승자 DisplayName (아직 없으면 없음)
+	WinnerWins = "WinnerWins", -- number: 그 사람 승수 (프로필을 못 읽었으면 없음 — 이름만 보여요)
+
+	-- 서버가 만든 월드 글씨 TextLabel (WorldText.mark, m5-26 2단계)
+	LocKey = "LocKey", -- string: Strings.csv 키. 클라이언트 WorldTextController가 Loc.t(키)로 채워요
 
 	-- 라운드 맵 Model (RoundService.prepareRound가 Workspace에 넣기 전에 달아요)
 	RoomId = "RoomId", -- string: 이 맵을 쓰는 방

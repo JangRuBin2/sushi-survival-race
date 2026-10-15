@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -211,6 +211,113 @@ status: ready
 - 2026-10-13 · 관리자 패널 · **제외(한국어 유지, `AutoLocalize = false`)**. 개발자 전용 도구라 영어 플레이어가 볼 일이 없고 문구가 약 60개라 1단계 크기를 줄인다. 영어가 필요하면 후속으로. · planner (사용자가 바꿀 수 있음)
 - 2026-10-13 · 복수형·서수 · 복수형 엔진 없이 문장으로 피하고, 서수는 영어만 코드로. 근거: Roblox 자리표시자 서식에 복수형 규칙이 없다(서식 지정자는 int·fixed·num·datetime 등만). · planner
 - 2026-10-13 · 이번 결정은 가격·난이도 같은 체감 수치가 아니라 기술 방향이라 비슷한 로블록스 게임 비교 표는 만들지 않았다. 출처(확인 2026-10-13): Roblox 문서 [Localize with scripting](https://create.roblox.com/docs/production/localization/localize-with-scripting)(번역기 비동기·실패 가능·pcall, 이름 인자 테이블), [Translate dynamic content](https://create.roblox.com/docs/production/localization/translate-dynamic-content)(자리표시자·서식 지정자 목록), [Add translations](https://create.roblox.com/docs/production/localization/add-translations)(CSV 업로드, 빈 언어는 자동 번역 대상, 고친 번역은 수동으로 잠김), [LocalizationTable](https://create.roblox.com/docs/en-us/reference/engine/classes/LocalizationTable.md)(키 조회 때 번역이 없으면 Source 사용), [LocalizationService](https://create.roblox.com/docs/reference/engine/classes/LocalizationService)("Not Replicated" 표기), [Rojo sync details](https://rojo.space/docs/v7/sync-details/)(`.csv` → LocalizationTable, Roblox 내보내기 형식). 확인 못 함: 배경 절 마지막 줄의 네 가지. · planner
+- 2026-10-13 · 기획 질문 3개 (메인 세션 기본값, 사용자 위임) · (1) 관리자 "🛠" 패널은 한국어 유지, `AutoLocalize = false`(이번 범위에서 제외). (2) 영어 용어는 7절 용어집 그대로("Wardrobe", "Rice Coins", 맵 이름 7절). (3) 원어민 검토는 지금 안 함(나중에 CSV로 가능). · 메인 세션 기본값
+
+- 2026-10-13 · 구현 중 정한 세부 (developer, 스펙 범위 안) · (1) `choose`: `en`도 번역기 결과가 한국어 원문과 같으면 "정상"으로 보지 않고 카탈로그 `en`을 써요(클라우드 표에 영어가 빠졌을 때 한국어가 보이지 않게, 표의 다른 줄은 그대로). (2) 숫자 인자는 한국어 화면에서도 천 단위 쉼표(`1,234`) — 코인 배지·정산 줄이 예전 `1234`와 달라요. (3) `.tab` 10자 제한 때문에 이벤트 탭 영어는 "🎃 Spooky"·"🎄 Holiday". (4) `RoomUiKit` label·button·textBox 기본 `AutoLocalize = false`라 관리자 패널(Kit 사용)도 자동으로 꺼져요. (5) m5-25가 main에 머지돼서 2단계 중 `CharacterFxController` 칭호·이름표는 1단계에 같이 했어요(메인 세션 허락). (6) `RoomService.forceStart`(관리자 명령 전용) 문구는 한국어 문자열 그대로 — AC11 허용 목록. · developer
+- 2026-10-13 · QA 결과 · **반려(in-dev)**: P1 B1 — 확인 안 된 로비 복귀 티켓(TeleportData)의 `nameIsDefault = true`를 믿고 `RoomService.restoreRoom`이 방 이름 필터를 건너뜀(필터 안 된 이름이 로비 목록에). P3 B2~B5(영어 문구, 다른 언어 서수, 늦은 번역기, 2단계 범위). 자세한 건 `docs/qa/m5-26-localization.md`. · qa
+- 2026-10-13 · 숫자 + 단위 문구 규칙 (사용자) · **보이는 문구는 단위 말까지 숫자 자리표시자를 가진 한 키**: "{wins}승" / "Wins: {wins}", "{n}명", "{n}초", "{rank}등"도 같게. 서버는 숫자만 보내고 코드·서버 데이터에서 한국어 단위를 붙이지 않는다. 그래서 AC25의 승수 영어는 "{wins} wins"가 아니라 **"Wins: {wins}"**(1승도 문법이 맞음). 테스트가 막음(`m5-26-phase2` "규칙" 2개). · 사용자
+- 2026-10-13 · 2단계 방식 (developer) · (1) 단상: 서버는 `Attributes.WinnerName`(DisplayName)·`WinnerWins`(숫자)만 Podium 폴더에 달고, 클라이언트 `LobbyFxController`가 `PodiumLogic.view` → `Loc`으로 이름표 3줄(`lobby.podium.empty`·`lobby.podium.winner`·`lobby.podium.wins` + 칭호 `title.w*`)을 채운다. 이름표 TextLabel은 서버·클라이언트 모두 `AutoLocalize = false`. (2) 간장 늪 "매워!!": "🌶️!!"로 바꾸지 않고 **키로 클라이언트에서**(`map.soy-swamp.spicy` "So spicy!!"). 서버는 `WorldText.mark(label, key)`(빈 글씨 + `Attributes.LocKey` + 태그 `LocalizedWorldText`), 클라이언트 `WorldTextController`가 `Loc.t(키)`. 다른 서버 월드 글씨도 같은 방법(인자가 있는 문구는 단상처럼 숫자 속성 따로). (3) 칭호: 서버 `Attributes.Title`을 한국어 이름 대신 **기준 승수(1/10/100) 숫자**로(`ProfileSchema.titleWinsFor`), 클라이언트가 `Loc.titleName`. 옛 서버의 한국어 문자열도 `Loc.titleFromName`으로 계속 읽음. · developer
+- 2026-10-13 · QA B4 (늦은 번역기) 처리 · **고침(작게)**: 화면마다 다시 그리기를 넣지 않고, ko·en 밖 언어에서 번역기가 오기 전 `Loc`이 만든 글씨(맨 바깥 문구)를 기록해 두었다가 번역기가 늦게 오면 PlayerGui의 TextLabel·TextButton 중 **글씨가 기록과 똑같은 것**만 새 번역으로 바꾸고 `Loc.onChanged` 구독자(단상·와사비 글씨)에 알린다. 한계: 두 문구를 이어 붙인 글씨·폴백 영어와 우연히 같은 플레이어 입력 글씨는 예외(앞은 다음에 다시 그릴 때 바뀜, 뒤는 극히 드묾). ko·en은 바뀌는 게 없어 기록하지 않는다. · developer
+- 2026-10-13 · QA B3 (서수) · 영어만 서수("5th"), 한국어·그 밖은 숫자. 그 밖 언어가 번역기 없이 카탈로그 영어로 폴백하면 그때만 영어 서수(`choose`의 `englishArgs`) — "(5 place)" 같은 어색한 폴백이 없게. 등수 문구는 `Loc.tPlace(key, n)`. · developer
+- 2026-10-13 · 관리자 명령 `start` 문구 · `RoomService.forceStart`는 이유 이름("MatchServer"·"NoRoom"·"InMatch"·"AutoStarting")만 돌려주고 한국어는 `AdminCommands`(관리자 파일)로 옮겼다. AC11 허용 목록은 Studio 전용 "Studio 매치" 1줄만 남음. AC11 검사 범위를 `src` 전체(관리자 파일 제외)로 넓히고, CSV와 같은 데이터 원문(스킨·상품·시즌·연출·칭호·손님 대사·맵 이름/규칙)은 이유와 함께 따로 허용. · developer
+
+- 2026-10-15 · main 병합(p3) 중 정한 세부 (developer, 스펙 범위 안 — QA가 볼 것) · (1) 🎫 뽑기 등급 이름(전설·영웅·희귀·고급·일반, 상점 등급과 다른 말)은 **동적 키 `shop.drawGrade.<Grade>`** — `LocalizeLogic.drawGradeKey`·`Loc.drawGradeName`, `DYNAMIC_KEY_PATTERNS`에 추가, AC5가 `Skins.DRAW_GRADE_INFO.displayName`과 동기화 확인(2절 동적 키 목록에 한 줄 늘어남). 영역은 새로 만들지 않고 `shop`. (2) 뽑기 화면 상세 "R$ {price}로 사기"는 조사 규칙(6절) 때문에 탈의실과 같은 `shop.btn.robuxBuy` "R$ {price} · 사기". (3) 뽑기 화면 부제·안내·말풍선의 강제 줄바꿈(`\n`)은 CSV 한 줄로 바꾸고 `TextWrapped`에 맡김(CSV 칸 안 줄바꿈을 피함). (4) 확률표 "전설 (Legendary)" 괄호 영어는 한국어 넓은 화면에서만, 영어·다른 언어·휴대폰은 이름만. (5) `DrawTicket` 반환 `err`도 `LocText`(다른 리모트와 같음, `Remotes` 주석). `DrawLogic.displayPercents`의 빈 등급 값 = `LocText`(`shop.draw.empty`), 나머지 퍼센트는 문자열 그대로. (6) 수산시장 간판 "수산시장"은 `WorldText.mark(label, "map.fish-market.sign")`, 밥솥 숫자 타이머는 `AutoLocalize = false`. (7) 우승 정산 줄은 숫자 + 단위 한 키 규칙대로 조합마다 키(`reward.summaryTickets`·`reward.summaryTokensTickets`). · developer
+- 2026-10-15 · 재QA (p3, main 3f2678c 병합 뒤) · **통과(qa-passed)**: B1 고침·회귀 테스트 확인, main 병합 충돌 해결이 main 기능(🎫 뽑기·터치 편집·맵 3차·맵 길이)을 깨지 않음, 키 누락 없음, developer p3 판단 7개 스펙·GDD와 맞음(1번 동적 키는 2절 목록에 한 줄 추가 필요). P3 B7(영어에서 뽑기 등급·상점 등급 이름이 같은 단어)은 기획 선택. 자세한 건 `docs/qa/m5-26-localization-reqa.md`. · qa
+
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-15 · main 병합 p3 (developer, 브랜치 `m5-26-i18n-p3`)
+- `origin/m5-26-i18n-p2`(64b8ed8) 위에 `origin/main`(8750ee6, 90커밋: 맵 3차 6개, m5-40 맵 길이, m5-29~32 스킨·🎫 뽑기, m5-41 터치 버튼 편집) 병합. 충돌 13개 파일 — 양쪽 살림: `Remotes`(DrawTicket 주석 + LocText 계약), `RewardLogic`(티켓 정산·토스트를 LocText로), `ShopLogic`(🎫 특 탭·"입기 (Studio)"·"🎫 뽑기로 얻기"·`drawHint`를 키로), `ShopService`(DrawTicket 오류 LocText), `ShopScreen`·`CoinController`·`LobbyFxController`·`DiveButton`·`GrabButton`(require 둘 다), 테스트 5개(main 기대값 + `LocTest.ko`).
+- 현지화: `DrawScreen`·`DrawLogic`(오류·결과·빈 등급·반올림 안내), `ShopController` 뽑기 흐름, `SettingsButton`·`TouchLayoutEditor`(m5-41), `FishMarket` 간판, `RiceCooker` 타이머 AutoLocalize. `src` 한국어 리터럴 0(AC11 허용 목록 그대로 1줄).
+- `Strings.csv` **새 키 91개 + Source/en 고침 5개**(416 → 507행): 맵 3차 이름·규칙 12 + 간판 1, 스킨 23(특 4종 이름·대사 12, 고등어 3, 특 이름 고침 5는 별도), 뽑기 등급 5, 탈의실·뽑기 화면 49(`shop.tab.draw`, `shop.btn.draw|wearStudio|openDraw|openDrawCount`, `shop.drawTierLine|drawBadge|drawHint`, `shop.drawErr.*` 6, `shop.draw.*` 33), 보상 4(`reward.summaryTickets`·`summaryTokensTickets`·`ticketToast`·`ticketFull`), 터치 편집 13(`input.jump.btn`, `input.layout.*` 12). 고친 5: `skin.concept-{salmon,tuna,shrimp,tamago,ikura}.name`("콘셉트 … (테스트)" → "… (특)" / "… (Special)").
+- B1(P1): p2에서 이미 고쳐져 있음 확인 — `m5-26-qa` "QA B1 (P1)"·"정상 기본 이름 방은 복귀해도…" 통과.
+- 테스트: `localization.spec` AC5에 뽑기 등급 동기화·동적 키 데이터 확인 추가, main 쪽 `m5-29`·`m5-31`(2)·`m5-32` 기대값을 `LocTest.ko`로, m5-31의 ShopScreen 소스 고정 줄을 새 배지 코드로.
+- 검증 5단계 (2026-10-15, 로컬 Windows): `rojo build` 성공 · `stylua --check src tests tools` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` **2343 passed, 0 failed** · `luau-lsp analyze` 끝 코드 0.
+- **Studio 확인**(Locale English): 🎫 뽑기 화면(제목 "Skin Draw", 탭 "🎫 Draw/📊 Odds/📦 Skins"(휴대폰), 확률표 "Legendary … Coming Soon", 결과 "👑 You Got a Skin!", 0장이면 "Win a match to get a 🎫 draw ticket"), 탈의실 🎫 특 탭 "🎫 Special"·카드 배지·고등어 상세 "Legendary · 🎫 Also in Legendary draws", 우승 뒤 토스트 "+1 🎫 Winner Draw Ticket"·정산 줄, ⚙ 메뉴 "✋ Edit Button Layout"·편집 화면 버튼 8개(휴대폰 폭에서 넘침 확인), 새 맵 6개 소개 이름·규칙, 수산시장 간판 "FISH MARKET". 한국어에서는 예전 글씨 그대로(부제·안내·말풍선 줄바꿈만 자동 줄바꿈으로 바뀜).
+
+### 2026-10-14 · main 병합 (developer, 브랜치 `m5-26-i18n-p2`)
+- `origin/main`(6b12976: m5-24 맵 아트 v2, m5-27/m5-28 콘셉트 스킨) 병합. git 충돌 없음. m5-24 아트 파일에 새 화면·월드 글씨(`.Text`/Gui) 없음.
+- `Strings.csv`: 콘셉트 스킨 5종 키 15개 추가 — `skin.concept-{salmon,tuna,shrimp,tamago,ikura}.name` + `.speech.1`·`.speech.2` (ko 원문 = `Skins.luau`, en 번역).
+- `tests/m5-27-concept-skin.spec.luau`·`tests/m5-28-concept-skins.spec.luau`: 카드 버튼 글씨가 키(`shop.btn.wear`)가 되어 `LocTest.ko(...)`로 비교.
+- 검증 5단계 통과, 테스트 1903 passed, 0 failed.
+
+### 2026-10-13 · QA 수정 (developer, 브랜치 `m5-26-i18n-p2`)
+
+**B1 (P1) 복귀 티켓 방 이름**: `RoomService.restoreRoom`이 `filterWith`가 있으면(로비 복귀) 티켓의 `nameIsDefault`·`name`을 믿지 않아요.
+- 기본 이름 표시 + 방장이 이 서버에 있음 → 방장 DisplayName으로 다시 만듦(`nameIsDefault` 유지).
+- 기본 이름 표시 + 방장 없음 → 티켓 이름을 필터해서 **하나도 안 바뀌었을 때만** 기본 이름으로 둠. 걸리거나 필터 실패 → 돌아온 사람 DisplayName 기본 이름.
+- 쓴 이름 → 항상 필터(실패하면 돌아온 사람 기본 이름). 매치 서버(`filterWith` 없음, MemoryStore 매니페스트)는 그대로.
+- QA 재현 테스트 `m5-26-qa` "QA B1 (P1)"과 "정상 기본 이름 방은 복귀해도…" 둘 다 통과, 개발 테스트 6개 추가.
+
+**B2 영어 문구**: QA 표 10줄을 `en`에 그대로 반영(키 그대로). `shop.btn.needCoins` "Need {count} more 🍚"는 코인 최대 900 기준 15자(.btn 16자 안).
+
+**B3 서수**: `LocalizeLogic.placeValue`(영어만 서수), `choose`의 `englishArgs`(카탈로그 영어 폴백일 때만 서수), `Loc.tPlace(key, n)` — HUD 결과 2줄·순위표·탈락 연출 등수 4곳.
+
+**B4 늦은 번역기**: `LocalizeLogic.needsLateRefresh`·`newLateMap`·`recordLate`·`lateEntryFor`(순수) + `Loc`이 ko·en 밖 언어에서 번역기 전 글씨를 기록 → 번역기가 늦게 오면 PlayerGui의 같은 글씨를 다시 쓰고 `Loc.onChanged`로 알림. 한계는 결정 기록.
+
+**B5**: 아래 2단계.
+
+### 2026-10-13 · 2단계 (developer, 브랜치 `m5-26-i18n-p2`)
+
+**결과**: AC25·AC26 구현(자동 테스트 + Studio 확인 필요). 사용자 규칙(숫자 + 단위 = 한 키, 서버는 숫자만)을 테스트로 고정.
+
+**바뀐 파일**
+- 새 파일: `src/shared/PodiumLogic.luau`(순수, 단상 이름표 LocText), `src/shared/WorldText.luau`(서버 월드 글씨 표시: 키 속성 + 태그), `src/client/fx/WorldTextController.luau`, `tests/m5-26-phase2.spec.luau`(20개), `tests/lib/RoomServiceHarness.luau`(QA의 RoomService 가짜 환경을 같이 쓰려고 옮겨 둔 복사본 — QA 파일은 그대로).
+- 공용(이 스펙 담당): `shared/Attributes.luau`(`WinnerName`·`WinnerWins`·`LocKey`, `Title`은 숫자로 설명 변경), `src/client/init.client.luau`(`WorldTextController`).
+- 서버: `LobbyService`(단상 글씨를 만들지 않고 속성만, 이름표 AutoLocalize false), `RewardService`(`Attributes.Title` = 기준 승수), `RoomService`(B1, `forceStart`는 이유 이름만), `AdminCommands`(관리자 `start` 한국어 문구).
+- 공유: `LobbyLayout`(`emptyText` 삭제, 이름표 이름 상수), `ProfileSchema.titleWinsFor`, `maps/SoySwampHazards`("매워!!" → `WorldText.mark`), `LocalizeLogic`(B3·B4).
+- 클라이언트: `Loc`(`tPlace`, `onChanged`, 늦은 번역기 다시 쓰기, `place` = 영어만 서수), `LobbyFxController`(단상 이름표), `CharacterFxController`(칭호 숫자 → `Loc.titleName`), `HudController`·`HudScreen`·`EliminationCutsceneScreen`(`Loc.tPlace`).
+- CSV: 새 키 4개 — `lobby.podium.empty` "Who's the next winner?", `lobby.podium.winner` "🏆 {name}", `lobby.podium.wins` "{wins}승" / "Wins: {wins}", `map.soy-swamp.spicy` "매워!!" / "So spicy!!". (401행)
+- 테스트 수정: `localization.spec` AC4(`Loc.tPlace`·`WorldText.mark` 키도 사용으로 셈), AC11(검사 범위 `src` 전체 + 데이터 원문 허용 목록, 허용 줄 5 → 1), `camera-priority.spec` Attributes 개수 16 → 19.
+
+**한국어 리터럴 남은 곳** (`src`, 주석 제외)
+- 관리자 파일(`Admin*` — 패널·명령·`AdminLogic` 문구): m5-26 제외 범위.
+- Studio 전용: `PlaceService` "Studio 매치"(simulateMatchServer 방 이름) — AC11 허용 목록 1줄.
+- 데이터 원문(CSV Source와 같아야 함, AC5가 확인, 화면은 id → 키): `Skins`(이름·대사), `Offers`, `Seasons`, `FxCatalog`, `Config.Titles`, `EliminationCutsceneLogic`(손님 대사), 맵 모듈 `displayName`·`rule`(MatchPhase `mapName`·`rule` 한국어 폴백으로 서버가 보냄 — 클라이언트는 `mapId`로 Loc).
+- 서버가 아직 한국어로 보내지만 화면에 안 쓰는 값: `ProfileView.title`(ProfileUpdated, 클라이언트 사용 없음), MatchPhase `mapName`·`rule`(폴백).
+- `warn`/`print`/`error`/`assert` 안의 개발 로그(플레이어에게 안 보임).
+
+**검증 (2026-10-13, 로컬 Windows, main 3ed86cb 기준)**: `rojo build` 성공 · `stylua --check` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` **1828 passed, 0 failed**(m5-26-qa 21/21, m5-26-phase2 20/20) · `luau-lsp analyze` 끝 코드 0.
+
+**Studio 확인 방법** (QA 체크리스트 1~9에 더해)
+1. 단상(AC25): Locale English → Play → 로비 가운데 단상 이름표가 "Who's the next winner?". 혼자 한 판 이겨서 돌아오면 "🏆 <내 이름>", 칭호 "Escaped Sushi", "Wins: 1". 기본(한국어)에서는 "다음 우승자는 누구?" / "🏆 <이름>" / "탈출 초밥" / "1승". 이름이 번역되지 않는지(Deutsch에서도 그대로).
+2. 이름표 칭호: English에서 1승 이상이면 머리 위 "Escaped Sushi"(10승 "Legendary Tuna").
+3. 와사비(AC26): `Config.DEBUG.forceMapPlan = { "soy-swamp", "hot-plate", "skewer-showdown" }`(커밋 전 nil로) → English에서 와사비 패드를 밟으면 머리 위 "So spicy!!", 한국어 "매워!!". 2명(Clients and Servers)이면 다른 사람 머리 위 글씨도 내 언어로.
+4. 등수(B3): English 탈락 "🥢 You're out! (5th place)", 통과 "✅ Qualified! (3rd place)", 순위표 "1st". 한국어 "(5등)", "3번째로 통과했어요!", "1등". Deutsch(업로드 전)도 영어 폴백이라 "5th".
+5. B4는 클라우드 업로드 뒤 다른 언어 + 느린 번역기에서만 생겨 Studio에서 재현이 어려워요 — 코드 읽기·순수 테스트로 확인.
+
+**남은 이슈**
+- AC17~AC26 Studio·실서버 확인(사용자). docs-writer: CLAUDE.md 규칙(숫자 + 단위 한 키, 서버 월드 글씨는 `WorldText.mark`), DEV-SETUP, USER-TODO(CSV 업로드).
+- B4 한계(결정 기록). `ProfileView.title`·MatchPhase `mapName`·`rule`의 한국어는 화면에 안 쓰지만 서버가 보냄 — 지우려면 `Types` 변경 + 옛 테스트 정리(후속 선택).
+
+### 2026-10-13 · 1단계 구현 (developer, 브랜치 `m5-26-i18n`)
+
+**결과**: 1단계 수용 기준 AC1~AC16 구현·자동 테스트, 검증 5단계 통과(아래). AC17~AC24는 Studio·실서버 확인 필요(사용자). 2단계 중 `CharacterFxController` 칭호·이름표(AC25 일부)는 m5-25가 main에 머지돼서 같이 했어요. 로비 단상·간장 늪 "매워!!"(AC25 나머지·AC26)는 남았어요.
+
+**카탈로그**: `src/shared/Localization/Strings.csv` 397행 (UI·서버 문구 223 + 날짜 12 + 데이터 162: 맵 15×2, 등급 5, 스킨 31 이름 + 대사 62, 상품 이름·설명·혜택 15, 연출 2, 시즌 4, 칭호 3, 탈락 대사 10). Rojo가 `ReplicatedStorage.Shared.Localization.Strings`(LocalizationTable, 397 entries)로 만드는 것을 build.rbxl에서 확인했어요(`SourceLocaleId`는 Rojo 기본값 en-us — 이 표는 폴백 카탈로그로만 읽어서 상관없음). 머리줄 `Key,Source,Context,Example,en`.
+
+**바뀐 파일**
+- 새 파일: `src/shared/LocalizeLogic.luau`(순수), `src/client/Loc.luau`, `src/server/ServerLoc.luau`(Kick 문구만), `src/shared/Localization/Strings.csv`, `tests/localization.spec.luau`, `tests/lib/LocTest.luau`(CSV로 LocText를 한국어·영어로 풀기), `tests/lib/LuauStrings.luau`(문자열 리터럴 토크나이저, AC11).
+- 공용(이 스펙 담당): `shared/Types.luau`(LocText, NoticeKind, RoomSnapshot·RoomListing.nameIsDefault), `shared/Remotes.luau`(주석 계약만, 21개 그대로), `src/client/init.client.luau`(맨 먼저 `Loc.init()`).
+- 순수 로직 → LocText: `ShopLogic`(message·cardButtonText·robuxButtonText·탭 label·EVENT_NOTE·eventHeader·lastDayText, REASONS), `OfferLogic`(message·valueText·contentLines는 `{ { LocText } }`·buttonText·grantNotice, REASONS), `ReceiptLogic`·`CodeLogic`(message·successMessage, REASONS), `RoomLogic`(새 `Reason`·`MESSAGES`·`message(reason, args)`·REASONS, `defaultName`은 DisplayName만, `nameIsDefault`), `RewardLogic`(toastText·summaryText, `REASON_TEXT` → `REASONS`), `VictoryCutsceneLogic.titleText`, `EliminationCutsceneLogic`(+`lineTextsFor`·`pickLineText`, 기존 linesFor·pickLine은 그대로).
+- 서버: `RoomService`(오류 전부 `RoomLogic.message`, 기본 이름 = `nameIsDefault`, 복원 때 기본 이름은 다시 필터하지 않음), `RoomDirectory`, `PlaceService`(notice = LocText + kind 항상, Kick 2곳은 `ServerLoc.render`), `ShopService`·`OfferService`·`RobuxShopService`·`CodeService`(반환 타입 LocText). `PlacePayload.Settings`·`RoomDirectoryLogic.Entry`에 `nameIsDefault`(서버 이동·다른 서버 목록에서도 유지).
+- 클라이언트: `ui/*`(관리자 파일 제외), `input/*`, `Sfx`, `fx/`의 Intro·Elimination·Victory 화면·컨트롤러·VictoryProps 간판, `CharacterFxController`(칭호 `Loc.titleFromName`, 이름표 AutoLocalize false). `RoomUiKit`의 label·button·textBox는 `AutoLocalize = false`가 기본(관리자 패널도 Kit이라 함께 꺼짐).
+- 테스트 수정(AC14): 문구를 비교하던 기존 테스트는 `LocTest.ko(...)`로 풀어 비교하거나 키로 비교(`code.err.Expired`, `room.err.Full`), 가짜 환경(`FakeSfxEnv`, m4-14·m5-08 하네스)에 Loc/LocalizeLogic 의존 추가. 조사 규칙으로 바뀐 기대값만 고쳤어요("🍚 300 · 해금", "R$ 29 · 사기", "🍬 80 · 받기", "(총 1,234)").
+
+**검증 (2026-10-13, 로컬 Windows, main c65266a 머지 뒤)**: `rojo build` 성공 · `stylua --check` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` 1787 passed 0 failed (localization.spec 20개 포함) · `luau-lsp analyze` 끝 코드 0, 오류 없음.
+
+**Studio 확인 방법** (AC17~AC23, `DEV-SETUP`에 옮길 내용)
+1. 한국어(AC17): 그냥 Play. 로비·방·HUD·탈락·관전·우승·코인·탈의실·상점·코드 화면이 예전과 같은지. 의도한 차이: "🍚 300 · 해금", "R$ 29 · 사기", "🍬 80 · 받기", 탭 이름 그대로, 천 단위 쉼표(코인 1,234), 등수는 "{n}등" 그대로.
+2. 영어(AC18): Test 탭 → Player Emulator 켜기 → Locale **English** → Play, `DEBUG.minPlayersToStart = 1`로 혼자 한 판. 맵 소개 이름·규칙, "GO!", HUD, "EATEN!" + "5th", 관전 바, 연장전 배너, "ESCAPED!", 순위표("1st"), 코인 토스트·정산에 한글이 없는지(플레이어 이름 제외). 출력 창에 `[Loc]` 경고는 번역기 없음 한 줄 정도만.
+3. 서버 오류(AC19): English에서 없는 방 코드, 꽉 찬 방, 방장 아닌 사람 시작(Clients and Servers 2명), 코인 모자란 스킨, 없는 코드·이미 받은 코드.
+4. 다른 언어(AC20): Locale Deutsch/日本語 → 키 문구가 영어, 한글·키 이름(`shop.err.…`)이 안 보이는지.
+5. 번역기 실패(AC21): 퍼블리시 안 한 플레이스면 번역기가 키를 몰라 폴백 — English 영어, 기본 한국어.
+6. 휴대폰(AC22): English + Device Emulator 667×375·844×390에서 로비·방 만들기 창·대기실·HUD·탈의실·상점·코드 창·관전 바·Dive/Grab·음소거 버튼이 잘리거나 겹치지 않는지. 특히 "Join with Code", "Private (Code)", 탈의실 탭(이벤트 탭 "🎃 Spooky").
+7. 이름(AC23): 방 이름 칸에 "Shop"이라고 쓰고 만들기 → 다른 언어 화면에서도 "Shop".
+
+**남은 이슈 / 2단계**
+- 로비 우승자 단상(`LobbyService`·`LobbyLayout` SurfaceGui의 "다음 우승자는 누구?", "{wins}승", 칭호)과 간장 늪 "매워!!"(`SoySwampHazards`) — 2단계. 단상은 `Attributes.luau` 속성 추가가 필요(이 스펙 담당).
+- 관리자 "🛠" 패널·관리자 명령·`RoomService.forceStart` 문구는 한국어 그대로(제외, AC11 허용 목록 4줄 + PlaceService "Studio 매치" 1줄).
+- 영어 원어민 검토 안 함(메인 세션 기본값). 바꾸려면 CSV `en` 열만 고치면 돼요(키는 그대로).
+- 사용자 할 일(docs-writer가 USER-TODO에): Creator Dashboard 현지화에서 원본 언어 한국어 확인·자동 수집·자동 번역 켜기, 업데이트마다 `Strings.csv` Upload CSV(처음엔 Download CSV로 백업), AC24.

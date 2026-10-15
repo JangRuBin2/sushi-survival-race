@@ -1,5 +1,7 @@
 --!strict
 -- 로비·방 대기실 화면에서 같이 쓰는 UI 도우미. 화면은 스튜디오 에셋 없이 코드로 만들어요.
+-- label·button·textBox는 AutoLocalize = false가 기본이에요 (m5-26): 글씨는 이미 Loc으로 번역했고, 자동 수집이
+-- 번역된 글씨·이름·입력값을 새 원문으로 모으지 않게. Kit을 거치지 않은 객체는 기본(true) — 자동 번역 안전망.
 
 local Kit = {}
 
@@ -72,6 +74,7 @@ function Kit.label(props: { [string]: any }?): TextLabel
 	return Kit.new(
 		"TextLabel",
 		merge({
+			AutoLocalize = false,
 			BackgroundTransparency = 1,
 			Font = Kit.Font,
 			TextColor3 = Kit.Color.Text,
@@ -87,6 +90,7 @@ function Kit.textBox(props: { [string]: any }?): TextBox
 	return Kit.new(
 		"TextBox",
 		merge({
+			AutoLocalize = false,
 			BackgroundColor3 = Kit.Color.White,
 			Font = Kit.Font,
 			TextColor3 = Kit.Color.Text,
@@ -105,6 +109,7 @@ function Kit.button(text: string, color: Color3, props: { [string]: any }?): Tex
 	local button = Kit.new(
 		"TextButton",
 		merge({
+			AutoLocalize = false,
 			Text = text,
 			BackgroundColor3 = color,
 			Font = Kit.Font,

@@ -6,6 +6,7 @@
 local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
+local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
 
 local LayoutCheck = require("../tools/render/LayoutCheck")
@@ -188,10 +189,10 @@ return function(t: Test.Test)
 				)
 				local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 				local state = ShopLogic.cardState(Skins.get(id), view)
-				t.eq(ShopLogic.cardButtonText(state), "🎫 뽑기로 얻기", id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "🎫 뽑기로 얻기", id)
 				local ownedView =
 					{ coins = 0, equippedSkin = "tamago", ownedSkins = { id, "tamago" }, eventTokens = {} }
-				t.eq(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView)), "입기", id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView))), "입기", id)
 
 				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not owned in a new profile`)
 				local raw = ProfileSchema.new() :: any

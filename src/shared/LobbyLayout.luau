@@ -311,7 +311,16 @@ LobbyLayout.PODIUM = {
 	scale = 1.5, -- 인형 크기
 	facingYawDeg = 90, -- 인형 앞(-Z)이 스폰 쪽(-X)을 보게
 	labelHeight = 15, -- 이름표(BillboardGui) 높이. 아래 끝(12.75)이 인형 머리(12.05) 위라 줄이 가리지 않아요 (m4-06 QA L1)
-	emptyText = "다음 우승자는 누구?",
+}
+
+-- 단상 이름표 구조: Podium.ShowcaseLabel(Part).Showcase(BillboardGui).<아래 TextLabel 이름>.
+-- 서버가 빈 글씨로 만들고, 클라이언트 LobbyFxController가 PodiumLogic.view → Loc으로 채워요 (m5-26).
+LobbyLayout.PODIUM_ANCHOR = "ShowcaseLabel"
+LobbyLayout.PODIUM_BILLBOARD = "Showcase"
+LobbyLayout.PODIUM_LABELS = {
+	name = "Name",
+	title = "Title",
+	wins = "Wins",
 }
 
 -- 서버가 Workspace.Lobby.Podium 폴더에 다는 우승자 속성 (클라이언트가 이걸 보고 인형을 세워요).

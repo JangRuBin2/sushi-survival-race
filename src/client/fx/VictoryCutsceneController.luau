@@ -23,6 +23,7 @@ local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VictoryCutsceneLogic = require(ReplicatedStorage.Shared.VictoryCutsceneLogic)
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
+local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local DollAnimator = require(script.Parent.DollAnimator)
 local VictoryCutsceneScreen = require(script.Parent.VictoryCutsceneScreen)
@@ -119,9 +120,11 @@ function VictoryCutsceneController.start(gui: Instance)
 		local timeline = VictoryCutsceneLogic.timeline(duration)
 		local cues = VictoryCutsceneLogic.cues(duration)
 		local splashAt = VictoryCutsceneLogic.splashTime(duration)
-		local title = VictoryCutsceneLogic.titleText(
-			VictoryCutsceneLogic.winnerName(info.standings, winnerUserId, nameOf(winnerUserId)),
-			winnerUserId == player.UserId
+		local title = Loc.text(
+			VictoryCutsceneLogic.titleText(
+				VictoryCutsceneLogic.winnerName(info.standings, winnerUserId, nameOf(winnerUserId)),
+				winnerUserId == player.UserId
+			)
 		)
 
 		local o = VictoryCutsceneLogic.SCENE_ORIGIN

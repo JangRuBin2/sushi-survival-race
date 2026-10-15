@@ -21,6 +21,7 @@ local RewardLogic = require(ReplicatedStorage.Shared.RewardLogic)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoinScreen = require(script.Parent.CoinScreen)
+local Loc = require(script.Parent.Parent.Loc)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
 local Sfx = require(script.Parent.Parent.Sfx)
 local UiScaleController = require(script.Parent.UiScaleController)
@@ -69,7 +70,7 @@ function CoinController.start(_gui: Instance)
 			end
 			local tickets = RewardLogic.matchTicketTotal(matchGrants)
 			screen:showSummary(
-				RewardLogic.summaryText(RewardLogic.matchTotal(matchGrants), coins, tokens, icon, tickets)
+				Loc.text(RewardLogic.summaryText(RewardLogic.matchTotal(matchGrants), coins, tokens, icon, tickets))
 			)
 		end
 	end
@@ -120,7 +121,7 @@ function CoinController.start(_gui: Instance)
 			eventTokens[eventId] = math.max(eventTokens[eventId] or 0, info.tokenTotal)
 			refreshTokens()
 		end
-		screen:toast(RewardLogic.toastText(info.reason, info.amount, tokens, iconOf(eventId)))
+		screen:toast(Loc.text(RewardLogic.toastText(info.reason, info.amount, tokens, iconOf(eventId))))
 		if tokens then
 			Sfx.play("TokenGet")
 		end
@@ -129,7 +130,7 @@ function CoinController.start(_gui: Instance)
 			info.ticketsFull == true
 		)
 		if ticketText then
-			screen:toast(ticketText)
+			screen:toast(Loc.text(ticketText))
 		end
 		refreshSummary()
 	end)

@@ -27,6 +27,7 @@ local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Loc = require(script.Parent.Parent.Loc)
 local PriceCache = require(script.Parent.Parent.PriceCache)
 local ProfileStore = require(script.Parent.Parent.ProfileStore)
 local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
@@ -87,7 +88,7 @@ function ShopController.start(_gui: Instance)
 		local header: string? = nil
 		local event = if tab.eventId then Seasons.get(tab.eventId) else nil
 		if event then
-			header = ShopLogic.eventHeader(event, now, ShopLogic.tokensOf(current, event.id))
+			header = Loc.text(ShopLogic.eventHeader(event, now, ShopLogic.tokensOf(current, event.id)))
 		end
 		screen:render({
 			view = current,
@@ -106,7 +107,7 @@ function ShopController.start(_gui: Instance)
 				ownedSkins = current.ownedSkins,
 				equippedSkin = current.equippedSkin,
 				studioUnlockAll = current.studioUnlockAll == true,
-				disabledReason = if tickets <= 0 then DrawLogic.message("NoTickets") else nil,
+				disabledReason = if tickets <= 0 then Loc.text(DrawLogic.message("NoTickets")) else nil,
 			})
 		end
 	end
@@ -144,9 +145,10 @@ function ShopController.start(_gui: Instance)
 		local remote = Remotes.fn(name)
 		local called, ok, err = pcall(remote.InvokeServer, remote, skinId)
 		if not called then
-			return false, "서버와 연결이 불안정해요"
+			return false, Loc.t("common.err.connection")
 		end
-		return ok == true, if type(err) == "string" then err else nil
+		local message = if err ~= nil then Loc.text(err) else ""
+		return ok == true, if message ~= "" then message else nil
 	end
 
 	local function buyRobux(skinId: string)
@@ -165,12 +167,9 @@ function ShopController.start(_gui: Instance)
 		screen:setBusy(false)
 		if ok then
 			pending[skinId] = true
-			screen:showResult(
-				if robux.fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
-				false
-			)
+			screen:showResult(if robux.fake then Loc.t("shop.fakePaying") else Loc.t("shop.checkPrompt"), false)
 		else
-			screen:showResult(err or "다시 해 주세요", true)
+			screen:showResult(err or Loc.t("common.err.retry"), true)
 		end
 	end
 
@@ -204,9 +203,9 @@ function ShopController.start(_gui: Instance)
 			drawScreen:reveal(drawResult)
 		else
 			local message = if not called
-				then "서버와 연결이 불안정해요"
-				elseif type(err) == "string" then err
-				else "다시 해 주세요"
+				then Loc.t("common.err.connection")
+				elseif err ~= nil then Loc.text(err)
+				else Loc.t("common.err.retry")
 			drawScreen:showMessage(message, true)
 		end
 		render()
@@ -243,13 +242,14 @@ function ShopController.start(_gui: Instance)
 		busy = false
 		screen:setBusy(false)
 		if ok then
+			local skinName = Loc.skinName(skin.id)
 			local done = if owned
-				then `{skin.displayName} 입었어요!`
-				elseif name == "BuyWithTokens" then `🎉 {skin.displayName} 받았어요!`
-				else `{skin.displayName} 해금!`
+				then Loc.t("shop.result.worn", { name = skinName })
+				elseif name == "BuyWithTokens" then Loc.t("shop.result.gotTokens", { name = skinName })
+				else Loc.t("shop.result.unlocked", { name = skinName })
 			screen:showResult(done, false)
 		else
-			screen:showResult(err or "다시 해 주세요", true)
+			screen:showResult(err or Loc.t("common.err.retry"), true)
 		end
 	end
 
@@ -293,19 +293,17 @@ function ShopController.start(_gui: Instance)
 				local ok, err = request("EquipSkin", skinId)
 				if ok then
 					local skin = Skins.get(skinId)
-					drawScreen:showMessage(`{if skin then skin.displayName else skinId} 입었어요!`, false)
+					local skinName = if skin then Loc.skinName(skin.id) else skinId
+					drawScreen:showMessage(Loc.t("shop.result.worn", { name = skinName }), false)
 				else
-					drawScreen:showMessage(err or "다시 해 주세요", true)
+					drawScreen:showMessage(err or Loc.t("common.err.retry"), true)
 				end
 			end)
 		end,
 		-- m5-32: 뽑기 + 판매 스킨(고등어 [신선]) 상세의 로벅스 구매 — 탈의실과 같은 흐름(RequestRobuxPurchase)
 		buyRobux = function(skinId: string)
 			task.spawn(buyRobux, skinId)
-			drawScreen:showMessage(
-				if robux.fake then "가짜 결제 처리 중…" else "결제 창을 확인해 주세요",
-				false
-			)
+			drawScreen:showMessage(if robux.fake then Loc.t("shop.fakePaying") else Loc.t("shop.checkPrompt"), false)
 		end,
 		robuxOpen = function(skinId: string): boolean
 			local skin = Skins.get(skinId)
@@ -342,7 +340,7 @@ function ShopController.start(_gui: Instance)
 				local skin = Skins.get(skinId)
 				if skin then
 					selected = skinId
-					got = `🎉 {skin.displayName} 획득!`
+					got = Loc.t("shop.result.got", { name = Loc.skinName(skin.id) })
 				end
 			end
 		end

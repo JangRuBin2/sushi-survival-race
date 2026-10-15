@@ -48,7 +48,8 @@ local function applyTitle(player: Player, wins: number?)
 	if character == nil then
 		return
 	end
-	local title = if wins then ProfileSchema.titleFor(wins) else nil
+	-- 칭호 문장이 아니라 기준 승수(1/10/100)만 달아요 — 클라이언트가 Loc.titleName으로 (m5-26)
+	local title = if wins then ProfileSchema.titleWinsFor(wins) else nil
 	if character:GetAttribute(Attributes.Title) ~= title then
 		character:SetAttribute(Attributes.Title, title)
 	end

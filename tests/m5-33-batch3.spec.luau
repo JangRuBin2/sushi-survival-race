@@ -146,7 +146,16 @@ return function(t: Test.Test)
 		"AC2: allInfos 21개, infos는 15 + 풀에 든 배치 3, 껍데기는 infos에 없음, get으로 모두 조회",
 		function()
 			t.eq(#Maps.allInfos(), 21)
-			t.eq(#Maps.infos(), Batch3.expectedPoolCount(Maps.get))
+			-- m5-33 QA P3-1: 배치 3 6개 모두 졸업 — 풀 개수를 숫자로 고정해요
+			t.eq(#Maps.infos(), 21)
+			local kindCount: { [string]: number } = { Race = 0, Survival = 0, Final = 0 }
+			for _, info in Maps.infos() do
+				kindCount[info.kind] += 1
+			end
+			t.eq(kindCount.Race, 8, "Race in pool")
+			t.eq(kindCount.Survival, 7, "Survival in pool")
+			t.eq(kindCount.Final, 6, "Final in pool")
+			t.eq(kindCount, Batch3.POOL_BY_KIND)
 			local seen: { [string]: boolean } = {}
 			for _, info in Maps.allInfos() do
 				t.ok(not seen[info.id], `duplicate {info.id}`)
@@ -159,11 +168,8 @@ return function(t: Test.Test)
 			for _, id in Batch3.IDS do
 				t.ok(seen[id], `{id} in allInfos`)
 				t.eq(Maps.get(id).id, id)
-				if Maps.get(id).inPool == false then
-					t.ok(not pooled[id], `{id} shell must not be in the random pool`)
-				else
-					t.ok(pooled[id], `{id} joined the pool`)
-				end
+				t.ok(Maps.get(id).inPool ~= false, `{id} inPool must not be false (graduated)`)
+				t.ok(pooled[id], `{id} joined the pool`)
 			end
 		end
 	)
@@ -301,8 +307,8 @@ return function(t: Test.Test)
 			t.eq(Batch3.pooledOfKind(fakeGet({ "rice-cooker" }), "Final"), {})
 			t.eq(Batch3.expectedPoolCount(fakeGet(Batch3.IDS)), 21)
 			t.eq(Batch3.pooledOfKind(fakeGet(Batch3.IDS), "Final"), { "tea-garden", "onsen-claw" })
-			-- 실제 계산과 실제 풀이 맞아요 (지금은 껍데기 6개 모두 inPool = false → 15)
-			t.eq(#Maps.infos(), Batch3.expectedPoolCount(Maps.get))
+			-- 실제 풀은 졸업 뒤 고정값 (m5-33 QA P3-1)
+			t.eq(#Maps.infos(), Batch3.POOL_COUNT)
 			t.ok(Batch3.isBatch3("tea-garden") and not Batch3.isBatch3("rotating-belt"))
 		end
 	)

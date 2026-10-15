@@ -69,8 +69,8 @@ return function(t: Test.Test)
 				["claw-machine-prize"] = true,
 				["ikura-bombs"] = true,
 			}
-			-- m5-33: 맵 3차 배치 Final 중 풀에 든 것도 (tea-garden m5-38·onsen-claw m5-39)
-			for _, id in Batch3.pooledOfKind(Maps.get, "Final") do
+			-- m5-33: 맵 3차 배치 Final도 (tea-garden m5-38·onsen-claw m5-39, 졸업 뒤 고정)
+			for _, id in Batch3.idsOfKind("Final") do
 				finals[id] = true
 			end
 			for seed = 1, 100 do

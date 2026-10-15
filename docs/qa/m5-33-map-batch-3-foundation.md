@@ -93,3 +93,9 @@ P0/P1/P2 없음.
 - **남은 것**: 사용자 Studio AC9·AC10(위 체크리스트). P3-1·P3-2는 6개 맵이 모두 병합된 뒤 메인 세션/개발이 처리.
 - **다음 첫 단계**: 메인 세션이 `main` push → m5-34~39 worktree 생성. docs-writer가 문서 반영 후 `done`.
 - **막힌 점**: 없음.
+
+## P3-1·P3-2 처리 기록 (2026-10-15, qa, 배치 3 6개 모두 main 병합 뒤)
+- **P3-1**: 실제 풀 검사를 고정값으로 바꿈. `tests/lib/Batch3.luau`에 `POOL_COUNT = 21`·`POOL_BY_KIND`(Race 8·Survival 7·Final 6)·`idsOfKind` 추가. `m5-33-batch3` AC2는 `#Maps.infos() == 21`과 종류별 8/7/6을 숫자로 확인하고 배치 3 6개가 모두 `inPool ~= false`인지 봄. AC7은 실제 풀을 `POOL_COUNT`와 비교(가짜 목록 검사는 그대로). `m5-03-foundation` AC1의 배치 3 예외 분기를 지우고 AC2를 `21`로 고정. `m4-foundation`·`m2-01-qa`는 `pooledOfKind(Maps.get, …)` 대신 고정 목록 `idsOfKind`.
+- **P3-2**: `m4-12-hardening` 연속 플랜에 `{ dish-sink, rice-cooker, tea-garden }`·`{ space-conveyor, fish-market, onsen-claw }`를 넣고(13개) 배치 3 제외 분기를 지움.
+- **돌연변이 확인**: 복사본에서 `RiceCooker.luau`에 `inPool = false`를 넣으니 `m4-12-hardening`·`m4-foundation`·`m5-03-foundation`·`m5-33-batch3`·`m5-33-qa`·`map-rice-cooker`가 실패(전에는 통과).
+- **검증 5단계**: rojo build 성공, stylua 통과, selene 0 errors / 0 warnings, `lune run tests` **2178 passed, 0 failed**, luau-lsp 끝 코드 0. `src/` 변경 없음.

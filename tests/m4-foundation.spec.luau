@@ -329,10 +329,10 @@ return function(t: Test.Test)
 			for _, list in byKind do
 				table.sort(list)
 			end
-			-- m5-33: 기존 15개 목록 + 맵 3차 배치 중 풀에 든 것 (배치 3 id는 tests/lib/Batch3 한 곳에)
+			-- m5-33: 기존 15개 목록 + 맵 3차 배치 전부 (졸업 뒤 고정, m5-33 QA P3-1 — 배치 3 id는 tests/lib/Batch3 한 곳에)
 			local function withBatch3(kind: string, base: { string }): { string }
 				local list = table.clone(base)
-				for _, id in Batch3.pooledOfKind(Maps.get, kind) do
+				for _, id in Batch3.idsOfKind(kind) do
 					table.insert(list, id)
 				end
 				table.sort(list)

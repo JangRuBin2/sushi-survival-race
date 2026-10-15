@@ -105,8 +105,8 @@ return function(t: Test.Test)
 					t.eq(map.displayName, row[2], `{info.id} name`)
 					t.eq(map.rule, row[3], `{info.id} rule`)
 					t.eq(map.inPool, false, `{info.id} inPool`)
-				elseif not Batch3.isBatch3(info.id) then
-					-- 배치 3(m5-34~39)은 껍데기 동안 inPool = false — tests/m5-33-batch3.spec.luau가 따로 봐요
+				else
+					-- 배치 3(m5-34~39)도 모두 졸업했어요 (m5-33 QA P3-1)
 					t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
 				end
 			end
@@ -129,7 +129,8 @@ return function(t: Test.Test)
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), Batch3.expectedPoolCount(Maps.get)) -- m5-33: 목록 기준
+			t.eq(#Maps.infos(), 21) -- m5-33 QA P3-1: 배치 3 졸업 뒤 고정
+			t.eq(Batch3.POOL_COUNT, 21)
 			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
 			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")
 			t.ok(ids["tempura-pot"], "tempura-pot joined the random pool (m5-05)")

@@ -38,6 +38,7 @@ local CONTROLLERS = {
 	require(script.fx.MapDecorFxController), -- m5-20 맵 장식 로컬 애니메이션
 	require(script.fx.MapLightingController), -- m5-23 맵 조명 분위기
 	require(script.ui.SettingsButton), -- m5-41 ⚙ (터치 기기만) → 버튼 위치 편집
+	require(script.ui.GamepadNav), -- m5-12 게임패드 UI 내비게이션 (화면들이 만들 때 등록해 둔 창을 다뤄요)
 }
 
 for _, controller in CONTROLLERS do

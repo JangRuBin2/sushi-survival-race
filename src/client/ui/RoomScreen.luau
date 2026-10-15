@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -95,6 +96,14 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 
 	local showMessage, messageLabel = Kit.messageLabel(panel, 7)
 	local metrics = UiScaleController.metrics()
+
+	-- 게임패드 (m5-12): 기본 화면. 첫 버튼 = 시작(방장) 또는 나가기. 방 코드는 위 큰 글씨 그대로 (복사 버튼 없음)
+	GamepadNav.page({
+		root = root,
+		first = function(): GuiObject?
+			return if startButton.Visible then startButton else leaveButton
+		end,
+	})
 
 	Kit.onClick(leaveButton, actions.leave)
 	Kit.onClick(startButton, actions.start)

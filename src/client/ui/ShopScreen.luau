@@ -11,6 +11,8 @@
 --   보이는 카드는 ShopLogic.visibleSkins (기간 끝 + 미보유 한정 스킨은 숨김), 보유한 한정 스킨 카드 구석에 "한정".
 -- 🎫 뽑기 (m5-31): 머리줄 "🎫 뽑기 N" 버튼 → 뽑기 화면(DrawScreen, ShopController가 열어요). "🎫 특" 탭(전체 다음), 특 스킨 카드 테두리는
 --   Skins.DRAW_INFO 색 + 구석 "🎫 특" 표시, 미리보기 등급 줄도 "🎫 특". 티켓이 있으면 "🍣 스킨" 버튼에 빨간 숫자 배지.
+-- 게임패드 (m5-12): 창이 열리면 첫 카드가 선택되고, 카드에 선택이 오면 그 스킨을 미리보기 (actions.select).
+--   LB/RB = 탭 이동(끝에서 멈춤, GamepadNavLogic.nextTab), A = 누르기, B = 닫기 → "🍣 스킨" 버튼으로 돌아가요.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,6 +22,8 @@ local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
+local GamepadNavLogic = require(ReplicatedStorage.Shared.GamepadNavLogic)
 local Kit = require(script.Parent.RoomUiKit)
 local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
@@ -437,11 +441,18 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Kit.onClick(button, function()
 			actions.select(id)
 		end)
+		-- 게임패드로 카드에 오면 미리보기를 바꿔요 (m5-12). 마우스에서는 안 와요
+		button.SelectionGained:Connect(function()
+			if GamepadNav.isGamepad() then
+				actions.select(id)
+			end
+		end)
 		cards[skin.id] =
 			{ button = button, stroke = stroke, name = name, status = status, limited = limited, special = special }
 	end
 
 	local selectedId = Skins.DEFAULT_ID
+	local currentTabId: string? = nil -- 마지막으로 그린 탭 (LB/RB, m5-12)
 	Kit.onClick(actionButton, function()
 		actions.act(selectedId)
 	end)
@@ -520,6 +531,40 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end
 	end
 
+	-- 게임패드 (m5-12): 탭은 LB/RB, 첫 선택 = 보이는 카드 중 맨 앞
+	local sortedSkins = table.clone(Skins.LIST)
+	table.sort(sortedSkins, function(a: Skins.Skin, b: Skins.Skin): boolean
+		return a.order < b.order
+	end)
+	GamepadNav.anchor(openButton)
+	GamepadNav.window({
+		root = backdrop,
+		close = actions.close,
+		first = function(): GuiObject?
+			for _, skin in sortedSkins do
+				local card = cards[skin.id]
+				if card.button.Visible then
+					return card.button
+				end
+			end
+			return actionButton
+		end,
+		tabs = function(dir: number)
+			local current = currentTabId
+			if current == nil or #tabButtons == 0 then
+				return
+			end
+			local ids = {}
+			for _, tab in tabButtons do
+				table.insert(ids, tab.id)
+			end
+			local nextId = GamepadNavLogic.nextTab(ids, current, dir)
+			if nextId ~= current then
+				actions.tab(nextId)
+			end
+		end,
+	})
+
 	local screen = {} :: ShopScreen
 	screen.gui = gui
 
@@ -564,6 +609,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		local now = state.now
 		coinLabel.Text = `🍚 {Loc.number(view.coins)}`
 		buildTabs(state.tabs)
+		currentTabId = state.tab.id
 		for _, tab in tabButtons do
 			Kit.setSelected(tab.button, tab.id == state.tab.id)
 		end

@@ -10,6 +10,7 @@ local Test = require("./lib/Test")
 local Shared = RobloxRequire.root("src/shared")
 local UiLayout = RobloxRequire.require(Shared.UiLayout)
 local Config = RobloxRequire.require(Shared.Config)
+local GamepadNavLogic = RobloxRequire.require(Shared.GamepadNavLogic)
 
 local EPS = 1e-9
 
@@ -102,7 +103,13 @@ local function loadUiScaleController(width: number, height: number): Env
 			return { __shared = name }
 		end,
 	})
-	local services = { ReplicatedStorage = { Shared = sharedFolder } }
+	-- m5-12: 10피트 여백 판단에 GuiService (PC 화면 = false)
+	local fakeGuiService = {
+		IsTenFootInterface = function(_self: any): boolean
+			return false
+		end,
+	}
+	local services = { ReplicatedStorage = { Shared = sharedFolder }, GuiService = fakeGuiService }
 	local controller = luau.load(fs.readFile("src/client/ui/UiScaleController.luau"), {
 		debugName = "UiScaleController",
 		environment = {
@@ -113,7 +120,11 @@ local function loadUiScaleController(width: number, height: number): Env
 			},
 			workspace = fakeWorkspace,
 			require = function(target: any)
-				assert(type(target) == "table" and target.__shared == "UiLayout", "fake require")
+				assert(type(target) == "table", "fake require")
+				if target.__shared == "GamepadNavLogic" then
+					return GamepadNavLogic -- m5-12
+				end
+				assert(target.__shared == "UiLayout", "fake require")
 				return UiLayout
 			end,
 			Instance = { new = newInstance },

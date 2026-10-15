@@ -52,6 +52,12 @@ date.month.9,9월,month name in a short date,,Sep
 date.monthDay,{month} {day}일,short date (month name + day),month=11월/Nov; day=5,{month} {day}
 fx.cat-customer.name,고양이 손님,effect name,,Cat Customer
 fx.fireworks.name,불꽃놀이,effect name,,Fireworks
+gamepad.hint.page,Ⓐ 선택 · Ⓑ 선택 끄기,gamepad hint line at the bottom of the lobby / room screen while a button is selected,,Ⓐ Select · Ⓑ Stop selecting
+gamepad.hint.pageIdle,방향키로 메뉴 고르기,gamepad hint line at the bottom of the lobby / room screen when nothing is selected,,D-pad to pick a menu
+gamepad.hint.spectate,LB ◀ 관전 대상 ▶ RB · Ⓨ {action},gamepad hint under the spectate bar (action = the action button text),action=로비로,LB ◀ Spectate ▶ RB · Ⓨ {action}
+gamepad.hint.spectateIdle,Ⓨ {action},gamepad hint under the spectate bar when you can't switch targets,action=관전하기,Ⓨ {action}
+gamepad.hint.withTabs,LB/RB 탭 · Ⓐ 선택 · Ⓑ 닫기,gamepad hint line at the bottom of a window with tabs,,LB/RB Tabs · Ⓐ Select · Ⓑ Close
+gamepad.hint.window,Ⓐ 선택 · Ⓑ 닫기,gamepad hint line at the bottom of an open window,,Ⓐ Select · Ⓑ Close
 hud.banner.overtime,⚡ 연장전!,HUD banner title (final overtime),,⚡ Overtime!
 hud.banner.overtimeSub,접시가 무너져요! 끝까지 버텨요,HUD banner subtitle (final overtime),,The plate is falling apart! Hang on!
 hud.banner.roundOver,라운드 종료!,HUD banner title,,Round Over!

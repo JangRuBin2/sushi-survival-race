@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -301,6 +302,17 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 			order += 1
 		end
 	end
+
+	-- 게임패드 (m5-12): 첫 선택 = 맨 위 칸의 버튼, B = 닫기. 다시 그리면 같은 이름 자리로 돌아가요 (GamepadNav)
+	GamepadNav.anchor(openButton)
+	GamepadNav.window({
+		root = backdrop,
+		close = actions.close,
+		first = function(): GuiObject?
+			local top = actionButtons[1]
+			return if top then top.button else closeButton
+		end,
+	})
 
 	local screen = {} :: OfferScreen
 	screen.gui = gui

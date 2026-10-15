@@ -9,12 +9,17 @@
 -- 배율 계산은 Shared.UiLayout(순수). UIScale 안에서 Offset v는 v × scale 실제 픽셀이라,
 -- AbsolutePosition/AbsoluteSize(실제 픽셀)를 Offset에 넣을 때는 scale로 나눠야 해요 (IntroScreen 참고).
 -- 터치 버튼(DiveGui·GrabGui)은 점프 버튼 픽셀 위치에 맞춰야 해서 붙이지 않아요.
+-- 10피트(TV, 콘솔) 화면이면 (m5-12) attach가 UIPadding(이름 "TvSafePadding")으로 각 변 5% 안전 여백을 더해요
+-- (GamepadNavLogic.insetsFor, Roblox 안전 영역 ScreenInsets 위에). 위쪽 바 gui는 그대로.
 
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GamepadNavLogic = require(ReplicatedStorage.Shared.GamepadNavLogic)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
 local SCALE_NAME = "UiScale"
+local TV_PADDING_NAME = "TvSafePadding"
 
 local UiScaleController = {}
 
@@ -104,6 +109,18 @@ function UiScaleController.attach(screenGui: ScreenGui, options: AttachOptions?)
 	local wantScale = if options and options.scale ~= nil then options.scale else not topbar
 	if not topbar then
 		screenGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+		-- 10피트 화면: TV 가장자리 5% 안쪽으로 (m5-12). 비율 여백이라 UIScale과 상관없어요
+		local insets = GamepadNavLogic.insetsFor(GuiService:IsTenFootInterface(), current.width, current.height)
+		if insets.fraction > 0 and screenGui:FindFirstChild(TV_PADDING_NAME) == nil then
+			local edge = UDim.new(insets.fraction, 0)
+			local padding = Instance.new("UIPadding")
+			padding.Name = TV_PADDING_NAME
+			padding.PaddingTop = edge
+			padding.PaddingBottom = edge
+			padding.PaddingLeft = edge
+			padding.PaddingRight = edge
+			padding.Parent = screenGui
+		end
 	end
 	if not wantScale then
 		return

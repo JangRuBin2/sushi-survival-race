@@ -3,6 +3,7 @@
 -- 터치 컨트롤이 보일 때만 보여요 (UserInputService.TouchEnabled이고 PlayerGui.TouchGui가 켜져 있을 때) — PC·게임패드는 없음.
 -- 누르면 작은 메뉴: "버튼 위치 편집"(TouchLayoutEditor). 라운드에 배치된 동안은 회색 "라운드 중에는 편집할 수 없어요".
 -- 다른 설정 항목은 아직 없어요 (메뉴 틀만).
+-- 게임패드 모드(m5-12)에서는 ⚙·메뉴·편집 화면을 숨겨요 — 버튼 위치 편집은 터치 전용 (GamepadNav.isGamepad).
 --   SettingsButton.start(gui)   init.client.luau가 불러요
 
 local Players = game:GetService("Players")
@@ -12,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 local TouchLayoutEditor = require(script.Parent.TouchLayoutEditor)
@@ -165,7 +167,10 @@ function SettingsButton.start(_gui: Instance)
 	local touchConnection: RBXScriptConnection? = nil
 	local function refreshVisible()
 		local touchGui = playerGui:FindFirstChild("TouchGui")
-		local visible = touchGui ~= nil and touchGui:IsA("ScreenGui") and touchGui.Enabled
+		local visible = touchGui ~= nil
+			and touchGui:IsA("ScreenGui")
+			and touchGui.Enabled
+			and not GamepadNav.isGamepad()
 		screen.Enabled = visible
 		if not visible then
 			setMenu(false)
@@ -196,6 +201,9 @@ function SettingsButton.start(_gui: Instance)
 		if child.Name == "TouchGui" then
 			task.defer(watchTouchGui)
 		end
+	end)
+	GamepadNav.onModeChanged(function()
+		refreshVisible()
 	end)
 	watchTouchGui()
 	watchMute()

@@ -3,7 +3,9 @@
 -- 금색 "[VIP] "를 붙여요 (기존 접두어 앞). 화면 표시만 — 권한·판정과 무관해요.
 -- TextChatService.ChatVersion이 TextChatService(새 채팅)일 때만 동작해요. 예전 채팅(LegacyChatService)이면 아무것도 안 해요.
 -- TextChatService.OnIncomingMessage는 콜백 하나뿐이라 여기 한 곳에서만 정해요.
+-- 콘솔(10피트) 화면에서는 채팅 창을 꺼요 (m5-12, Roblox 콘솔 가이드라인 — REFERENCE-console-ui 1절).
 
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
@@ -15,6 +17,17 @@ local ChatTagController = {}
 local VIP_TAG = `<font color="#FFD24A">[VIP]</font> `
 
 function ChatTagController.start(_gui: Instance)
+	if GuiService:IsTenFootInterface() then
+		local ok, err = pcall(function()
+			local window = TextChatService:FindFirstChildOfClass("ChatWindowConfiguration")
+			if window then
+				window.Enabled = false
+			end
+		end)
+		if not ok then
+			warn(`[ChatTagController] could not hide the chat window: {err}`)
+		end
+	end
 	if TextChatService.ChatVersion ~= Enum.ChatVersion.TextChatService then
 		return
 	end

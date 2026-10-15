@@ -145,6 +145,22 @@ function Kit.onClick(button: TextButton, handler: () -> ()): RBXScriptConnection
 	end)
 end
 
+-- 게임패드 선택 테두리 (m5-12): 굵은 흰 테두리. GamepadNav가 PlayerGui.SelectionImageObject로 써요
+function Kit.selectionImage(): Frame
+	return Kit.new("Frame", {
+		Name = "GamepadSelection",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+	}, {
+		Kit.corner(10),
+		Kit.new("UIStroke", {
+			Color = Kit.Color.White,
+			Thickness = 4,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		}),
+	})
+end
+
 export type ShowMessage = (text: string, isError: boolean?) -> ()
 
 -- 터치 스크롤 목록 (세로만, 내용만큼 캔버스가 늘어나요). 두께는 화면 배율에 맞춰 바꿔요 (m4-09).
@@ -159,6 +175,7 @@ function Kit.scrollList(props: { [string]: any }?, gap: number): ScrollingFrame
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			ScrollBarThickness = 8,
 			ScrollBarImageColor3 = Kit.Color.SubText,
+			Selectable = false, -- 게임패드는 안의 버튼을 골라요 (스크롤은 선택을 따라가요, m5-12)
 		}, props),
 		{ Kit.list(Enum.FillDirection.Vertical, gap) }
 	)

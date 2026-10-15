@@ -14,6 +14,8 @@
 --   휴대폰(compact): 위에 탭 "🎫 뽑기 / 📊 확률 / 📦 목록"으로 한 번에 한 칸씩 (겹치지 않게). 목록 탭에서 카드를
 --       누르면 상세가 목록 위에 겹치는 창으로 떠요(✕로 닫기). 버튼 높이는 DrawScreenLayout.heights(44px 이상, QA B1).
 --   두근두근 ~ 결과 공개 사이에 온 프로필 변화는 결과를 보여 준 뒤에 그려요 (QA B2).
+-- 게임패드 (m5-12): 창이 열리면 "뽑기 시작하기"가 선택되고 B = 닫기 (탈의실 "🎫 뽑기" 버튼으로 돌아가요).
+--   결과 창·ⓘ 상세는 그 위의 창 (B = 확인/닫기). 휴대폰 탭이 보이면 LB/RB로 탭.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -26,6 +28,8 @@ local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
+local GamepadNavLogic = require(ReplicatedStorage.Shared.GamepadNavLogic)
 local Kit = require(script.Parent.RoomUiKit)
 local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
@@ -1151,6 +1155,49 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 			hideResult()
 		end
 	end)
+
+	-- 게임패드 (m5-12)
+	GamepadNav.window({
+		root = gui,
+		group = backdrop,
+		close = actions.close,
+		first = function(): GuiObject?
+			return if startButton.Visible then startButton else nil
+		end,
+		tabs = function(dir: number)
+			if not tabBar.Visible then
+				return
+			end
+			local ids = {}
+			for _, tab in TABS do
+				table.insert(ids, tab.id)
+			end
+			setTab(GamepadNavLogic.nextTab(ids, currentTab, dir))
+		end,
+		hasTabs = function(): boolean
+			return tabBar.Visible
+		end,
+	})
+	GamepadNav.window({
+		root = resultLayer,
+		close = function()
+			if okButton.Visible then -- 두근두근 중에는 닫지 않아요
+				hideResult()
+			end
+		end,
+		first = function(): GuiObject?
+			return okButton
+		end,
+	})
+	GamepadNav.window({
+		root = infoLayer,
+		close = function()
+			infoLayer.Visible = false
+		end,
+		first = function(): GuiObject?
+			return infoClose
+		end,
+	})
 
 	local screen = {} :: DrawScreen
 	screen.gui = gui

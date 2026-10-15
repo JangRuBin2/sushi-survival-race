@@ -221,9 +221,20 @@ status: in-qa
 - 2026-10-13 · QA B3 (서수) · 영어만 서수("5th"), 한국어·그 밖은 숫자. 그 밖 언어가 번역기 없이 카탈로그 영어로 폴백하면 그때만 영어 서수(`choose`의 `englishArgs`) — "(5 place)" 같은 어색한 폴백이 없게. 등수 문구는 `Loc.tPlace(key, n)`. · developer
 - 2026-10-13 · 관리자 명령 `start` 문구 · `RoomService.forceStart`는 이유 이름("MatchServer"·"NoRoom"·"InMatch"·"AutoStarting")만 돌려주고 한국어는 `AdminCommands`(관리자 파일)로 옮겼다. AC11 허용 목록은 Studio 전용 "Studio 매치" 1줄만 남음. AC11 검사 범위를 `src` 전체(관리자 파일 제외)로 넓히고, CSV와 같은 데이터 원문(스킨·상품·시즌·연출·칭호·손님 대사·맵 이름/규칙)은 이유와 함께 따로 허용. · developer
 
+- 2026-10-15 · main 병합(p3) 중 정한 세부 (developer, 스펙 범위 안 — QA가 볼 것) · (1) 🎫 뽑기 등급 이름(전설·영웅·희귀·고급·일반, 상점 등급과 다른 말)은 **동적 키 `shop.drawGrade.<Grade>`** — `LocalizeLogic.drawGradeKey`·`Loc.drawGradeName`, `DYNAMIC_KEY_PATTERNS`에 추가, AC5가 `Skins.DRAW_GRADE_INFO.displayName`과 동기화 확인(2절 동적 키 목록에 한 줄 늘어남). 영역은 새로 만들지 않고 `shop`. (2) 뽑기 화면 상세 "R$ {price}로 사기"는 조사 규칙(6절) 때문에 탈의실과 같은 `shop.btn.robuxBuy` "R$ {price} · 사기". (3) 뽑기 화면 부제·안내·말풍선의 강제 줄바꿈(`\n`)은 CSV 한 줄로 바꾸고 `TextWrapped`에 맡김(CSV 칸 안 줄바꿈을 피함). (4) 확률표 "전설 (Legendary)" 괄호 영어는 한국어 넓은 화면에서만, 영어·다른 언어·휴대폰은 이름만. (5) `DrawTicket` 반환 `err`도 `LocText`(다른 리모트와 같음, `Remotes` 주석). `DrawLogic.displayPercents`의 빈 등급 값 = `LocText`(`shop.draw.empty`), 나머지 퍼센트는 문자열 그대로. (6) 수산시장 간판 "수산시장"은 `WorldText.mark(label, "map.fish-market.sign")`, 밥솥 숫자 타이머는 `AutoLocalize = false`. (7) 우승 정산 줄은 숫자 + 단위 한 키 규칙대로 조합마다 키(`reward.summaryTickets`·`reward.summaryTokensTickets`). · developer
+
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-15 · main 병합 p3 (developer, 브랜치 `m5-26-i18n-p3`)
+- `origin/m5-26-i18n-p2`(64b8ed8) 위에 `origin/main`(8750ee6, 90커밋: 맵 3차 6개, m5-40 맵 길이, m5-29~32 스킨·🎫 뽑기, m5-41 터치 버튼 편집) 병합. 충돌 13개 파일 — 양쪽 살림: `Remotes`(DrawTicket 주석 + LocText 계약), `RewardLogic`(티켓 정산·토스트를 LocText로), `ShopLogic`(🎫 특 탭·"입기 (Studio)"·"🎫 뽑기로 얻기"·`drawHint`를 키로), `ShopService`(DrawTicket 오류 LocText), `ShopScreen`·`CoinController`·`LobbyFxController`·`DiveButton`·`GrabButton`(require 둘 다), 테스트 5개(main 기대값 + `LocTest.ko`).
+- 현지화: `DrawScreen`·`DrawLogic`(오류·결과·빈 등급·반올림 안내), `ShopController` 뽑기 흐름, `SettingsButton`·`TouchLayoutEditor`(m5-41), `FishMarket` 간판, `RiceCooker` 타이머 AutoLocalize. `src` 한국어 리터럴 0(AC11 허용 목록 그대로 1줄).
+- `Strings.csv` **새 키 91개 + Source/en 고침 5개**(416 → 507행): 맵 3차 이름·규칙 12 + 간판 1, 스킨 23(특 4종 이름·대사 12, 고등어 3, 특 이름 고침 5는 별도), 뽑기 등급 5, 탈의실·뽑기 화면 49(`shop.tab.draw`, `shop.btn.draw|wearStudio|openDraw|openDrawCount`, `shop.drawTierLine|drawBadge|drawHint`, `shop.drawErr.*` 6, `shop.draw.*` 33), 보상 4(`reward.summaryTickets`·`summaryTokensTickets`·`ticketToast`·`ticketFull`), 터치 편집 13(`input.jump.btn`, `input.layout.*` 12). 고친 5: `skin.concept-{salmon,tuna,shrimp,tamago,ikura}.name`("콘셉트 … (테스트)" → "… (특)" / "… (Special)").
+- B1(P1): p2에서 이미 고쳐져 있음 확인 — `m5-26-qa` "QA B1 (P1)"·"정상 기본 이름 방은 복귀해도…" 통과.
+- 테스트: `localization.spec` AC5에 뽑기 등급 동기화·동적 키 데이터 확인 추가, main 쪽 `m5-29`·`m5-31`(2)·`m5-32` 기대값을 `LocTest.ko`로, m5-31의 ShopScreen 소스 고정 줄을 새 배지 코드로.
+- 검증 5단계 (2026-10-15, 로컬 Windows): `rojo build` 성공 · `stylua --check src tests tools` 통과 · `selene src` 0 errors 0 warnings · `lune run tests` **2343 passed, 0 failed** · `luau-lsp analyze` 끝 코드 0.
+- **Studio 확인**(Locale English): 🎫 뽑기 화면(제목 "Skin Draw", 탭 "🎫 Draw/📊 Odds/📦 Skins"(휴대폰), 확률표 "Legendary … Coming Soon", 결과 "👑 You Got a Skin!", 0장이면 "Win a match to get a 🎫 draw ticket"), 탈의실 🎫 특 탭 "🎫 Special"·카드 배지·고등어 상세 "Legendary · 🎫 Also in Legendary draws", 우승 뒤 토스트 "+1 🎫 Winner Draw Ticket"·정산 줄, ⚙ 메뉴 "✋ Edit Button Layout"·편집 화면 버튼 8개(휴대폰 폭에서 넘침 확인), 새 맵 6개 소개 이름·규칙, 수산시장 간판 "FISH MARKET". 한국어에서는 예전 글씨 그대로(부제·안내·말풍선 줄바꿈만 자동 줄바꿈으로 바뀜).
+
 ### 2026-10-14 · main 병합 (developer, 브랜치 `m5-26-i18n-p2`)
 - `origin/main`(6b12976: m5-24 맵 아트 v2, m5-27/m5-28 콘셉트 스킨) 병합. git 충돌 없음. m5-24 아트 파일에 새 화면·월드 글씨(`.Text`/Gui) 없음.
 - `Strings.csv`: 콘셉트 스킨 5종 키 15개 추가 — `skin.concept-{salmon,tuna,shrimp,tamago,ikura}.name` + `.speech.1`·`.speech.2` (ko 원문 = `Skins.luau`, en 번역).

@@ -48,6 +48,10 @@
 - 우승하면 🎫 뽑기권 1장을 받아 무료로 뽑는다. 꽝은 없고 등급 확률(전설 1% ~ 일반 49%)은 뽑기 화면에 공개한다. 뽑기권은 우승으로만 얻고 로벅스나 재화로 팔지 않는다(유료 뽑기 없음). 특 스킨 9종은 뽑기로만 나오고, 전설 고등어 초밥 [신선]은 뽑기와 판매 둘 다 된다.
 - 그 밖에 시즌 이벤트(이벤트 재화로 한정 스킨 교환), 스킨 묶음과 탈락·우승 연출 팩, VIP 패스(겉모습 혜택만), 보상 코드가 있다.
 
+### 언어
+
+게임 글씨는 한국어(원본)와 영어로 나온다. 그 밖의 언어는 Roblox 자동 번역을 쓰고, 번역이 없으면 영어로 보인다. 문구는 모두 `src/shared/Localization/Strings.csv`에 키로 들어 있다(관리자 도구는 한국어만).
+
 ## 개발
 
 Roblox Studio + [Rojo](https://rojo.space/), 언어는 Luau(`--!strict`). 도구 버전은 `rokit.toml`에 고정돼 있다(Rojo, StyLua, Selene, Lune, luau-lsp).
@@ -67,7 +71,7 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 2282개(156개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
+lune run tests     # 2357개(161개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```
@@ -83,6 +87,7 @@ src/server/   서버 서비스: 방, 매치, 라운드, 판정, 저장, 보상, 
 src/client/   UI, 카메라, 효과음, 연출, 입력
 src/shared/   설정, 리모트, Roblox API를 쓰지 않는 순수 로직
   maps/       맵 모듈 21개와 장식 키트
+  Localization/Strings.csv   문구 카탈로그(한국어·영어)
 tests/        Lune 테스트
 tools/        맵·캐릭터 미리보기 렌더러
 docs/         기획서, 스펙, QA 리포트, 변경 기록

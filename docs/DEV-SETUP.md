@@ -853,7 +853,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 7. **Surface 조명**: SurfaceLight는 range 16까지만 비춰요(Roblox 상한, 검사·렌더러도 16에서 자름). 간판·창 빛이 렌더 PNG와 Studio에서 비슷한 넓이인지 봐요.
 8. 소개 첫 컷부터 맵 조명인지(giant-jenga 포함, QA 뒤 고침 — 소개 카메라 점을 아레나 상자에 넣음). 서버 효과와 겹쳐 `Atmosphere`·`Bloom`이 `Lighting`에 두 개씩 생기지 않는지.
 
-> m5-23은 QA 수정 뒤 재QA 전(`in-qa`)이에요. 결과가 이상하면 메인 세션에 알려 주세요.
+> m5-23은 재QA를 통과했어요(2026-10-15, `done`). 결과가 이상하면 메인 세션에 알려 주세요.
 
 ### 3-12. M5 확인 2 (아트 패스 v2 · 캐릭터 · 콘셉트 스킨 · 🎫 뽑기 · 고등어 · 버튼 편집)
 출처: 아래 QA 리포트의 "사용자 Studio 확인 체크리스트"(재QA 절 포함). 단계별 순서는 **리포트를 그대로 따라 하면 돼요** — 여기에는 준비물, 리포트를 쓴 뒤 바뀐 점, 꼭 볼 것만 모았어요. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주세요. 전부 [바로](Studio만). 디버그 설정은 3-10 표, 끝나면 3-10 "되돌리기".
@@ -925,6 +925,37 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
 
+### 3-14. M5 현지화 확인 (m5-26: 한국어 · 영어 · 자동 번역 폴백)
+출처: [`docs/qa/m5-26-localization-reqa.md`](qa/m5-26-localization-reqa.md) "사용자 Studio 확인 체크리스트" 1~6(p3, 아래 B), 그 전 리포트 [`docs/qa/m5-26-localization.md`](qa/m5-26-localization.md) 체크리스트 1~9와 스펙 [`docs/specs/m5-26-localization.md`](specs/m5-26-localization.md) 개발 메모 "2단계" Studio 확인 1~5(아래 A). 전부 [바로](Studio만, 혼자 가능 — 방장 아닌 사람 시작·다른 사람 머리 위 글씨만 Clients and Servers 2명). 결과(특히 한글이 섞인 화면·잘린 글씨)는 메인 세션에 알려 주세요.
+
+**언어 바꾸는 법**
+- Studio **Test** 탭 → **Player Emulator** 켜기 → **Locale**을 고르고 Play. 영어는 **English (United States)**, 다른 언어 폴백은 **Deutsch**·**日本語**, 기본(한국어)은 그대로 Play.
+- 휴대폰은 같은 Locale에서 Test → **Device** 에뮬레이터 가로 667×375(iPhone SE급)·844×390.
+- 실서버는 Roblox 설정 → 언어. 클라우드 업로드(USER-TODO C5) 전에는 다른 언어가 영어로 보이는 게 정상이에요.
+
+**A. 기본 흐름 (AC17~AC23, 2단계 AC25·AC26)**
+1. **한국어(AC17)**: 로비·방·HUD·탈락·관전·우승·코인·탈의실·상점·코드 화면이 예전과 같은지. 의도한 차이만: "🍚 300 · 해금", "R$ 29 · 사기", "🍬 80 · 받기", 천 단위 쉼표(1,234), 등수 "{n}등".
+2. **영어(AC18)**: 혼자 한 판(`minPlayersToStart = 1`, 커밋 값). 로비 "Quick Join"·"Create Room"·"Join with Code", 맵 이름·규칙, "GO!", "Players left: N", "EATEN!" + "5th", 관전 "👀 Watching: …", "⚡ Overtime!", "ESCAPED! 🏆", 순위표 "1st", 코인 토스트·정산 줄 — **플레이어 이름 말고 한글이 하나도 없어야** 해요. Output `[Loc]` 경고는 한 줄 정도만.
+3. **영어 서버 메시지(AC19)**: 틀린·없는 방 코드, 꽉 찬 방, 방장 아닌 사람 시작(2명), 코인 모자란 스킨 해금, 없는 코드·이미 받은 코드 — 오류 줄이 영어.
+4. **다른 언어(AC20)·번역기 실패(AC21)**: Deutsch·日本語에서 키 문구가 영어로, 한글·키 이름(`shop.err.…`)이 안 보이는지. 퍼블리시 안 한 플레이스에서 English → 영어, 기본 → 한국어, `[Loc]` 경고 한 번만.
+5. **이름 번역 안 함(AC23)**: 방 이름 칸에 "Shop"이라고 써서 만들기 → 다른 언어에서도 "Shop". 이름 없이 만든 방은 "<내 이름>'s Sushi Bar". 이름표·관전 대상·우승 배너 이름 그대로.
+6. **단상·칭호(AC25)**: English 로비 단상 "Who's the next winner?" → 혼자 이기고 오면 "🏆 <내 이름>", "Escaped Sushi", "Wins: 1"(한국어 "다음 우승자는 누구?"·"탈출 초밥"·"1승"), 머리 위 칭호도 영어.
+7. **와사비(AC26)**: `forceMapPlan = { "soy-swamp", "hot-plate", "skewer-showdown" }` → English에서 와사비 패드를 밟으면 머리 위 "So spicy!!"(한국어 "매워!!"). 2명이면 다른 사람 머리 위 글씨도 내 언어로.
+8. **등수**: English 탈락 "🥢 You're out! (5th place)", 통과 "✅ Qualified! (3rd place)", Deutsch(업로드 전)도 영어 폴백이라 "5th". 한국어 "(5등)".
+
+**B. main 병합 뒤 새 화면 (p3 재QA 체크리스트 1~6)**
+1. **🎫 뽑기 화면 영어**: `Config.DEBUG.unlockAllSkinsInStudio = false`로 바꾸고(**커밋 전에 꼭 `true`로 되돌리기** — 테스트가 커밋 값을 고정해요), 🛠 명령 `tickets 30`. 탈의실 "🎫 Draw 30" → 제목 "Skin Draw", "Your Draw Tickets ×30", "🎫 Start Draw >", 확률표 "Odds by Grade" 5줄(이름만, 괄호 영어 없음), ⓘ 상세 "… : 5.05% each"·"Duplicate: +20 🍚"·반올림 안내, 결과 "👑 You Got a Skin!" 또는 "Already owned → +80 🍚", 0장이면 "Win a match to get a 🎫 draw ticket". 스킨 이름까지 **한글이 없어야** 해요.
+2. **뽑기 화면 한국어**: 넓은 화면 확률표가 "전설 (Legendary)" 모양, 부제·안내·말풍선 글씨가 예전과 같은지(줄 나뉘는 위치만 달라질 수 있음 — 강제 줄바꿈 대신 자동 줄바꿈).
+3. **휴대폰 넘침(AC22)**: English + Device 667×375·844×390. 뽑기 화면 탭 "🎫 Draw / 📊 Odds / 📦 Skins", 📊 등급 5줄·"Coming Soon", 아래 안내 줄, ⓘ 긴 반올림 안내가 스크롤 안에서 줄바꿈되는지. ⚙ "✋ Edit Button Layout" → 편집 버튼 8개("Smaller −", "Bigger +", "Default", "Large", "Near Thumb", "Reset", "Cancel", "Save")·위쪽 안내·겹침 경고·"Move joystick area"·"⬆ Jump". 라운드 중 ⚙ 메뉴 "Can't edit during a round"가 메뉴 폭(240) 안에. 예전 화면(로비 "Join with Code", 방 만들기 "Private (Code)", 대기실 가장 긴 상태 줄, 탈의실 카드·탭 "🎃 Spooky", 상점 카드, 관전 "Back to Lobby", Dive·Grab, "🔊 Sound On")도 같이.
+4. **탈의실 🎫 특(English)**: 탭 "🎫 Special", 특 카드 배지 "🎫 Rare" 등, 안 가진 카드 "🎫 From Draws", 고등어 상세 "Legendary · 🎫 Also in Legendary draws", 전부 입기 켠 상태 "Wear (Studio)". **상점 등급 탭 "Rare"와 같은 단어인 게 거슬리는지**도 봐 주세요(B7 → USER-TODO A1).
+5. **우승 정산·토스트**: English 우승 → "+1 🎫 Winner Draw Ticket", 정산 "This match: +… 🍚 🎫 +1 (Total: …)", 🛠 `tickets 99` 뒤 우승 → "🎫 Draw tickets are full (99)". 한국어 "이번 판 +… 🍚 🎫 +1 (총 …)", "+1 🎫 우승 뽑기권".
+6. **새 맵 6개 소개**: `forceMapPlan`에 3개씩(예: `{ "dish-sink", "fish-market", "tea-garden" }`, `{ "space-conveyor", "rice-cooker", "onsen-claw" }`)으로 English 라운드 소개 이름·규칙이 영어인지("Fish Market", "Hot Spring Claw Machine"), 수산시장 간판 "FISH MARKET"(한국어 "수산시장"), 밥솥 숫자 타이머 그대로. **끝나면 `forceMapPlan = nil`**.
+
+**되돌리기**: `unlockAllSkinsInStudio = true`, `forceMapPlan = nil`(`forceMapPlans`·`overtimeAt`도 썼으면 `nil`). Player Emulator는 Studio 설정이라 커밋과 무관해요.
+- 실서버 확인(AC24 — 업로드 다음 날 독일어 계정에서 자동 번역이 보이고 `{name}`이 그대로 노출되지 않는지)은 퍼블리시 + CSV 업로드 뒤(USER-TODO C5).
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 현지화 줄.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -942,7 +973,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10~3-13)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10~3-14)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

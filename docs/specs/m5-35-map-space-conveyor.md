@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-35 — 새 Race 맵: 우주 회전초밥 (`space-conveyor`)
@@ -130,5 +130,41 @@ status: ready
 - 2026-10-14 · D4 레일을 실제로 돌릴지 · 안 돌린다(판정 조각 고정, 밀기는 속도, 화살표로 표시) — m4-04 움직이는 발판 문제 · planner
 - 2026-10-14 · D5 길이 · (처음 초안 300 studs → 사용자 요청으로 늘림) 사용자: **"맵들이 전반적으로 좀 짧다는 느낌이 들던데 길이가 좀 있었으면 좋겠어."** → 약 470 studs·구간 7개, 빠른 사람 45~55초 목표. 늘린 구간은 같은 소재 안에서 손맛을 바꿈(E 운석 들판 = 열린 곳 피하기, F 두 갈래 레일 = 줄 고르기) · planner (사용자 요청 반영, 수치는 기본값)
 
+- 2026-10-15 · D6 레일 밀기 방식 · 스펙 "회전 벨트 밀기 방식(레이서 수평 속도를 목표 속도까지 가속)"으로는 걷는 사람(16)이 앞으로 +9를 받지 못해(이미 목표보다 빠름) "걷기 16과 합쳐 빠르게"(25)·AC12 "청록일 때 빨리 실려 감"이 안 됨 → **레일 파츠의 `AssemblyLinearVelocity`(고정 파츠 컨베이어)**를 위상마다 `LookVector × push`로 바꿈. 물리가 발밑 속도를 더해 줘서 앞 25 / 뒤 9(걸을 때)가 스펙 수치 그대로 나옴. 여전히 연속 밀기라 `MoveExempt` 없음, 이동 감시 상한(80) 안. 원판(SpaceRailHub)은 속도 0 · developer
+- 2026-10-15 · D7 소행성 배치 · "8개, 두 갈래가 끝에서 합침, 틈 6~11, 지름 9~13"을 z 70 안에 3+3+합류 2로 넣으면 뜀이 6번이라 들어가지 않음(틈 6 × 6 + 지름 9 × 5 > 70) → **갈래마다 4개(L1~L4·R1~R4), D 첫 원판에서 합침**. 갈래마다 두 번째 뜀이 틈 9.73(보통 중력으로 못 건넘), 나머지 6.0~6.7 · developer
+- 2026-10-15 · D8 운석 간격 "레일 따라 10" · 코스가 z로만 줄어서 **|Δz| ≥ 10**으로 셈(F 나란한 두 줄도 같은 z에는 하나만 — 더 엄격). E 들판 바위는 레일 중심선이 없어 **충돌 자리에 그대로** 남고, 고를 때 "다른 바위·운석과 8 이상 + 어느 z에서도 빈 폭 ≥ 10"을 만족하는 자리만 받음(아니면 5번 다시, 안 되면 건너뜀) · developer
+- 2026-10-15 · D9 장식 움직임 · `anim` 위상이 파츠 자리로 정해져(`MapDecorAnimLogic.phaseOf`) 여러 파츠 로켓에 Bob을 주면 조각이 따로 움직임 → 로켓은 **불꽃(한 파츠) Pulse**, 고리 행성은 가운데를 지나는 **줄무늬 막대 하나만 Spin**(원판·고리는 대칭이라 돌아도 안 보임), 장식 레일 접시·초밥은 각각 한 파츠 · developer
+- 2026-10-15 · D10 고리 행성 색·자리 · 시트는 주황 행성이지만 주황은 화살표 Back·운석 전용 위험 색이라 **분홍·라일락 줄무늬**. 왼쪽에 두면 overview(왼쪽 뒤에서 봄)에서 코스를 가려서 **오른쪽(+X) 뒤**, 로켓은 왼쪽 · developer
+- 2026-10-15 · D11 D 낙하선 · "구간 바닥 − 25"를 D(0 → 10)에서는 원판 높이를 보간한 바닥 − 25(−25 → −15). 다른 구간은 표 그대로(C −27, E·F·G −15) · developer
+- 2026-10-15 · D12 이음매 원판 높이 · 원판 윗면을 레일보다 0.05 낮게(겹친 면 깜빡임 방지, 레일 위에서는 레일만 밟힘). D 오르막은 원판 가장자리에서 들어오는 레일보다 원판이 최대 0.69 높음(경사 5.8° × 반지름 7) — 캐릭터가 걸어 오르는 높이 · developer
+
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+### 2026-10-15 developer (브랜치 `m5-map-space`)
+**바뀐 파일**
+- `src/shared/maps/SpaceConveyor.luau` — 껍데기 덮어씀. build(발사대·레일 13조각·이음매 원판 13·소행성 8·저중력 구역·E 들판·G 착륙장·FinishLine·화살표 152 쐐기), start(레일 위상 → 레일 `AssemblyLinearVelocity`·화살표 색/방향·`RailSwitch`, 저중력 `SpaceLowGravity` 붙이기/지우기, 낙하·결승, 운석 시간표 2개·경고·충돌·바위). `inPool = false` 줄 삭제.
+- `src/shared/maps/SpaceConveyorLayout.luau` (새) — 구간 표, 레일·원판·소행성 좌표, 저중력 상자, 스폰, 경로 길이.
+- `src/shared/maps/SpaceConveyorLogic.luau` (새) — `railPhase`·`blinkOn`·`floorAt`/`fallLineAt`·`lowGravityForce`·`crossable`·`meteorWave`/`fieldMeteorWave`·`pickMeteorTargets`/`pickFieldTargets`·`rockOffset`·`fieldFreeWidth`·`knockback`·`estimateClearTime`(45.1초).
+- `src/shared/maps/SpaceConveyorArt.luau` — 껍데기 덮어씀. 장식 1290(Extended), 조명 13(그림자 2), 파티클 6, anim 26, `LIGHTING`(한밤 우주), IntroCamera 5점, `courseVolumes()`.
+- `tests/map-space-conveyor.spec.luau` (새, 26개).
+- `docs/renders/space-conveyor/before-*.png`·`after-*.png`, `docs/developer/m5-35-map-space-conveyor.md`(렌더 반복 3회 비평·시트 비교·휴대폰 메모).
+- 공용 파일 변경 없음.
+
+**검증**: rojo build 성공 · `stylua --check src tests tools` 통과 · `selene src` 0/0/0 · `lune run tests` **2030 passed, 0 failed** · luau-lsp analyze 끝 코드 0.
+
+**최종 렌더**: `docs/renders/space-conveyor/after-overview.png`, `after-eye.png`, `after-intro-01.png`~`after-intro-05.png`, `after-mobile.png`, `after-top.png` (void 전부 0%).
+
+**Studio 확인 (AC12~AC17)** — `src/shared/Config.luau`에서 `DEBUG.forceMapPlan = { "space-conveyor", "hot-plate", "skewer-showdown" }`, 혼자 Play(F5) → 방 만들기 → 시작. **확인 뒤 `forceMapPlan = nil`로 되돌린다.**
+1. AC12 레일: 출발하면 레일 1 화살표가 청록(앞) — 걸으면 아주 빠름(약 25). 2.6초쯤 주황으로 깜빡 → 주황(뒤): 서 있으면 뒤로 밀리고 걸으면 느리게(약 9) 전진. 레일 2(소행성 뒤 오르막)는 반대로 바뀌는지. F 두 갈래는 왼쪽·오른쪽이 반대.
+2. AC13 저중력: 보라 고리 문을 지나 소행성에서 점프하면 높고(약 12.7) 멀리(약 16) — 갈래마다 넓은 틈(두 번째 뜀)을 건넘. 나오는 문을 지나면 원래 점프. 결승 뒤 대기석·탈락 연출·다음 라운드(뜨거운 철판)에서 점프가 원래대로인지. Explorer에서 캐릭터 HumanoidRootPart 아래 `SpaceLowGravity`가 구역 안에서만 있는지.
+3. AC14 운석: 6초에 레일 위 빨간 원 3개(흰 테두리) → 1.6초 뒤 불꼬리 운석이 떨어져 원 안이면 튕겨 나감(레일 밖이면 낙하 탈락) → 원 옆에 바위가 6초 남았다 부서짐. 레일 폭 반대쪽으로는 지나갈 수 있는지. E 들판에는 10초부터 5초마다 2개. F(좁은 두 줄)에는 바위가 안 남는지.
+4. AC15: 서버 Output에 `[MovementGuard]` 경고가 레일·저중력·운석 때문에 안 찍히는지. 혼자 기록(빠르게 45~55초, 처음 60~75초)을 재서 이 메모에 적기.
+5. AC16: 휴대폰 에뮬레이터에서 화살표 색, 빨간 경고 원, 레일 가장자리 네온이 보이는지. 라운드 시작 때 조명이 보라 밤하늘로 바뀌고 끝나면 로비로. 소개 카메라 5컷이 물체를 뚫지 않는지.
+6. AC17(재미): 레일 리듬이 읽히는지, 저중력이 재밌는지(너무 둥실이면 `SpaceConveyorLogic.LOW_GRAVITY = 0.6`), 운석이 너무 잦지 않은지(`METEOR_INTERVAL`·`FIELD_INTERVAL`).
+
+**남은 이슈 / 알아 둘 것**
+- D6 컨베이어 방식은 Studio에서 처음 확인(렌더러·테스트는 속도 값만 봄). 걷기와 안 더해지면 QA에 알려 주세요.
+- 레일 두 조각이 원판 가운데에서 조금 겹침(같은 색이라 안 보임) — 겹친 자리에서는 둘 중 한 조각의 밀기를 받음.
+- 운석 넉백은 연어알과 같은 `LinearVelocity` 0.12초 방식. 저중력 구역(C)에는 운석이 떨어지지 않음(레일 B·D·F·들판 E만).
+- 렌더러 근사: 하늘·블룸이 Studio보다 어두움. 최종 분위기는 Studio.
+

@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-12 — 콘솔(게임패드) UI: 방향키로 모든 창 다루기

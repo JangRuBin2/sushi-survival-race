@@ -86,6 +86,33 @@ function Logic.bridgeAt(z: number): Layout.Bridge?
 	return nil
 end
 
+-- m5-40: 빠른 사람 완주 시간 추정(초) = (스폰 앞줄 → 결승선 + 개울 지그재그) ÷ 걷기 + 다리 지연 + 돌 점프 지연.
+function Logic.estimateClearTime(): number
+	local spawnFrontZ = Layout.spawnPositions()[1].z
+	local walk = (spawnFrontZ - Layout.finishLineZ()) + Layout.STREAM_ZIGZAG_EXTRA
+	local delay = #Layout.STONES * Layout.STONE_DELAY + #Layout.RESTS * Layout.REST_DELAY
+	for _, bridge in Layout.BRIDGES do
+		delay += Layout.BRIDGE_DELAY[bridge.index] or 0
+	end
+	return walk / Layout.WALK_SPEED + delay
+end
+
+-- m5-40: 개울 발판 두 개(사각 둑·섬 또는 원 돌) 가장자리 사이 수평 틈. 사각은 축 정렬 상자, 돌은 원이에요.
+function Logic.padGap(a: Layout.Pad, b: Layout.Pad): number
+	if a.kind == "Stone" and b.kind == "Stone" then
+		return math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2) - a.halfX - b.halfX
+	end
+	if a.kind == "Rect" and b.kind == "Rect" then
+		local dx = math.max(math.abs(a.x - b.x) - a.halfX - b.halfX, 0)
+		local dz = math.max(math.abs(a.z - b.z) - a.halfZ - b.halfZ, 0)
+		return math.sqrt(dx * dx + dz * dz)
+	end
+	local rect, stone = if a.kind == "Rect" then a else b, if a.kind == "Rect" then b else a
+	local nx = math.clamp(stone.x, rect.x - rect.halfX, rect.x + rect.halfX)
+	local nz = math.clamp(stone.z, rect.z - rect.halfZ, rect.z + rect.halfZ)
+	return math.sqrt((stone.x - nx) ^ 2 + (stone.z - nz) ^ 2) - stone.halfX
+end
+
 -- 위험도: 흔들림 진폭을 다리 반폭으로 나눈 값. 폭이 좁을수록(halfWidth가 작을수록) 같은 흔들림이라도
 -- 위험도가 커져요 — "좁을수록 덜 흔들려도 더 쉽게 떨어진다"의 수치 표현.
 function Logic.fallRisk(amplitudeDeg: number, halfWidth: number): number

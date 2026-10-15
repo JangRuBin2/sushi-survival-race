@@ -1,5 +1,6 @@
 --!strict
--- Race 맵 "등불 다리 건너기" (m5-15, GDD §5.3 v0.6). 일본 축제 분위기의 흔들리는 외나무다리 4개를 건너요.
+-- Race 맵 "등불 다리 건너기" (m5-15, GDD §5.3 v0.6). 일본 축제 분위기의 흔들리는 외나무다리 7개와
+-- 개울 징검돌을 건너요 (m5-40에서 다리 3개·쉼터 2곳·징검돌 개울을 더했어요).
 -- 다른 Race 맵은 "개인 대 지형" 싸움이지만, 이 맵은 다리 위에 몰린 사람이 많을수록 그 다리가 더 심하게
 -- 흔들리는 유일한 맵이에요(군중 압박감). 치수는 LanternBridgeLayout, 흔들림·미는 속도·낙하선 계산은
 -- LanternBridgeLogic, 장식은 LanternBridgeArt.
@@ -28,6 +29,7 @@ local function palette()
 		plank = Color3.fromRGB(168, 124, 78),
 		finish = Color3.fromRGB(214, 188, 150),
 		finishLine = Color3.fromRGB(255, 196, 40),
+		stone = Color3.fromRGB(212, 200, 176), -- m5-40 징검돌 (따뜻한 밝은 돌 — 남색 밤 강물 위에서 발판이 보이게)
 	}
 end
 
@@ -93,7 +95,7 @@ local function build(origin: CFrame): Model
 		})
 	end
 
-	-- 다리 4개: 흔들리는 외나무다리(태그, start에서 CFrame 갱신)
+	-- 다리 7개(m5-40: 4 → 7): 흔들리는 외나무다리(태그, start에서 CFrame 갱신)
 	for _, bridge in Layout.BRIDGES do
 		local center = (bridge.front + bridge.back) / 2
 		local plank = makePart({
@@ -107,9 +109,25 @@ local function build(origin: CFrame): Model
 		CollectionService:AddTag(plank, TAG_PLANK)
 	end
 
-	-- 쉼터 3곳 (안전 평지, 흔들리지 않아요)
+	-- 쉼터 5곳(m5-40: 3 → 5) (안전 평지, 흔들리지 않아요)
 	for _, rest in Layout.RESTS do
 		flatFloor(rest.name .. "Floor", rest.front, rest.back, rest.width, COLORS.rest)
+	end
+
+	-- m5-40 개울: 둑 2곳 + 가운데 섬(고정 평지) + 징검돌 10개(고정 원기둥, 윗면 y = 0, 태그 없음)
+	for _, zone in { Layout.STREAM_BANK_FRONT, Layout.STREAM_ISLAND, Layout.STREAM_BANK_BACK } do
+		flatFloor("Stream" .. zone.name, zone.front, zone.back, zone.width, COLORS.rest)
+	end
+	for _, stone in Layout.STONES do
+		makePart({
+			Name = stone.name,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(Layout.STONE_HEIGHT, stone.radius * 2, stone.radius * 2),
+			CFrame = at(stone.x, -Layout.STONE_HEIGHT / 2, stone.z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = COLORS.stone,
+			Material = Enum.Material.Slate,
+			Parent = model,
+		})
 	end
 
 	-- 결승 평지 + FinishLine

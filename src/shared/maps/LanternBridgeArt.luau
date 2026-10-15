@@ -69,6 +69,7 @@ end
 
 -- 다리 하나의 난간 밧줄 + 종이 등불(좌우, 사분위 3곳). 왼쪽만 조명(LANTERN), 오른쪽은 장식만(LanternPlain)
 -- — 다리 4개 x 왼쪽 3개 = 12개로 MapKitLogic.LIGHT_BUDGET(12)을 꽉 채워요.
+-- m5-40: 새 다리(5~7)는 조명 예산(Extended 24)이 차서 양쪽 다 LanternPlain(빛 없는 네온)이에요.
 local function addBridgeDecor(list: { DecorSpec }, bridge: Layout.Bridge, order: number)
 	local center = (bridge.front + bridge.back) / 2
 	local length = bridge.front - bridge.back
@@ -86,7 +87,7 @@ local function addBridgeDecor(list: { DecorSpec }, bridge: Layout.Bridge, order:
 		for k = 1, 3 do
 			local z = bridge.front - length * (k / 4)
 			local colorIndex = ((order + k - 1) % #LANTERN_COLORS) + 1
-			local isLit = side < 0
+			local isLit = side < 0 and bridge.index <= 4
 			add(list, {
 				name = if isLit then Art.LANTERN else "LanternPlain",
 				shape = "Ball",
@@ -104,14 +105,16 @@ local function addBridgeDecor(list: { DecorSpec }, bridge: Layout.Bridge, order:
 				offset = v(x, 2.0, z),
 				rotation = v(0, 0, 90),
 			})
-			add(list, {
-				name = "LanternCord",
-				shape = "Block",
-				size = v(0.15, 0.6, 0.15),
-				color = PALETTE.Nori,
-				material = "SmoothPlastic",
-				offset = v(x, 2.5, z),
-			})
+			if bridge.index <= 4 then -- m5-40: 새 다리는 끈 없이 (0.15 굵기라 안 보여요, 예산)
+				add(list, {
+					name = "LanternCord",
+					shape = "Block",
+					size = v(0.15, 0.6, 0.15),
+					color = PALETTE.Nori,
+					material = "SmoothPlastic",
+					offset = v(x, 2.5, z),
+				})
+			end
 		end
 	end
 end
@@ -224,7 +227,9 @@ local WATER_Y = -Layout.FALL_MARGIN - 15
 local STREET_Y = 14
 local CLIFF_X = 56 -- 계곡 안쪽 절벽면
 local BACK_Z = 22 -- 출발 뒤 절벽면
-local FAR_Z = -186 -- 결승 너머 신사 언덕 앞면
+local FAR_Z = Layout.FINISH.back - 34 -- 결승 너머 신사 언덕 앞면 (m5-40: -186 고정 → 결승 뒤 34, 지금 -416)
+local SHIFT_Z = FAR_Z + 186 -- m5-40: 결승 쪽 먼 배경(불꽃·달)을 코스가 늘어난 만큼 뒤로 (-230)
+local MID_Z = (Layout.START.front + Layout.FINISH.back) / 2 -- 코스 가운데 (강·땅·산 고리 중심, 지금 -191)
 
 local ROCK = MapKitLogic.shades({ r = 66, g = 70, b = 92 })
 local WATER = { r = 26, g = 48, b = 86 }
@@ -301,12 +306,12 @@ end
 
 -- 강: 불투명한 큰 수면(반사) + 물결 띠 + 등불 빛 반영 줄
 local function addRiver(list: { DecorSpec })
-	put(list, "RiverWater", "Block", v(1500, 2, 1500), WATER, "SmoothPlastic", v(0, WATER_Y - 1, -80), nil, {
+	put(list, "RiverWater", "Block", v(1500, 2, 1600), WATER, "SmoothPlastic", v(0, WATER_Y - 1, MID_Z), nil, {
 		reflectance = 0.25,
 	})
 	local rng = MapKitShapes.rng(91)
-	for k = 1, 14 do
-		local z = 10 - k * 14 + rng:range(-4, 4)
+	for k = 1, 22 do -- m5-40: 14 → 22, 코스 끝(-400)까지
+		local z = 10 - k * 19 + rng:range(-4, 4)
 		local w = rng:range(20, 60)
 		put(
 			list,
@@ -339,7 +344,7 @@ local function rockRow(list: { DecorSpec }, seed: number, side: number, z0: numb
 	local z = z0
 	local k = 0
 	while z > z1 do
-		local depth = rng:range(20, 32)
+		local depth = rng:range(30, 42) -- m5-40: 20~32 → 30~42 (계곡이 두 배 길어져도 바위 수는 조금만 늘게)
 		local h = STREET_Y - WATER_Y + rng:range(-3, 6)
 		local w = rng:range(26, 40)
 		local color = if k % 3 == 0 then ROCK.base elseif k % 3 == 1 then ROCK.dark else ROCK.light
@@ -412,33 +417,37 @@ local function addValley(list: { DecorSpec })
 	end
 	-- 절벽 위 땅 (축제 거리) 양옆 + 뒤
 	local ground = { r = 92, g = 82, b = 76 }
+	-- m5-40: 계곡이 결승(-382) 너머 신사 언덕까지 길어져서 거리 땅·난간도 같이 늘려요
+	local railFront, railBack = BACK_Z + 12, FAR_Z
+	local railLen = railFront - railBack
 	for _, side in { -1, 1 } do
 		put(
 			list,
 			"StreetGround",
 			"Block",
-			v(640, 2, 900),
+			v(640, 2, 1100),
 			ground,
 			"Cobblestone",
-			v(side * (CLIFF_X + 12 + 320), STREET_Y - 1, -80)
+			v(side * (CLIFF_X + 12 + 320), STREET_Y - 1, MID_Z)
 		)
 		-- 거리 가장자리 나무 난간 (절벽 끝)
 		put(
 			list,
 			"StreetRail",
 			"Block",
-			v(0.8, 2.4, 230),
+			v(0.8, 2.4, railLen),
 			DARK_WOOD,
 			"Wood",
-			v(side * (CLIFF_X + 10), STREET_Y + 2.2, -82)
+			v(side * (CLIFF_X + 10), STREET_Y + 2.2, (railFront + railBack) / 2)
 		)
-		for k = 0, 11 do
+		local posts = math.floor(railLen / 30)
+		for k = 0, posts do
 			column(
 				list,
 				"StreetRailPost",
 				side * (CLIFF_X + 10),
 				STREET_Y,
-				BACK_Z + 10 - k * 20,
+				railFront - 2 - k * 30,
 				3.6,
 				1,
 				DARK_WOOD,
@@ -495,7 +504,7 @@ local function addSupports(list: { DecorSpec })
 				rest.width / 2 - 0.2,
 				0.8,
 				1.2,
-				12,
+				8, -- m5-40: 12 → 8 (쉼터가 5곳이 되면서 예산 맞춤)
 				DARK_WOOD,
 				"Wood",
 				v(0, top - 1.2, cz)
@@ -516,6 +525,10 @@ local function addSupports(list: { DecorSpec })
 		{
 			{ Layout.START.front, Layout.START.back, Layout.START_WIDTH },
 			{ Layout.FINISH.front, Layout.FINISH.back, Layout.FINISH_WIDTH },
+			-- m5-40 개울 둑·섬도 같은 바위 받침
+			{ Layout.STREAM_BANK_FRONT.front, Layout.STREAM_BANK_FRONT.back, Layout.STREAM_BANK_FRONT.width },
+			{ Layout.STREAM_ISLAND.front, Layout.STREAM_ISLAND.back, Layout.STREAM_ISLAND.width },
+			{ Layout.STREAM_BANK_BACK.front, Layout.STREAM_BANK_BACK.back, Layout.STREAM_BANK_BACK.width },
 		}
 	do
 		local depth = span[1] - span[2]
@@ -560,16 +573,29 @@ local function addBridgePosts(list: { DecorSpec })
 end
 
 -- 강 위를 가로지르는 등불 줄 (높이 20, 양쪽 절벽 기둥에 묶음). 줄마다 가운데 등 하나에만 빛.
+-- m5-40: 줄 4개(-40~-136, 등 13개) → 7개(코스 끝까지, 등 9개). 개울 위 줄 셋(-258·-286·-316)이 "등불 아래
+-- 징검돌"이고, 섬 위 줄(-286)의 가운데 등 하나에만 빛(PointLight)을 달아요(조명 예산 24 꽉 참).
+-- 흔들림(Sway)은 줄마다 3개(k = -3, 0, 3) — anim 예산(80) 안.
+Art.STREAM_LIGHT_Z = -286
 local function addLanternStrings(list: { DecorSpec })
 	local colors = { LANTERN_GLOW, TORII, PAPER }
-	for s, z in { -40, -72, -104, -136 } do
+	for s, z in { -40, -90, -140, -190, -258, Art.STREAM_LIGHT_Z, -316 } do
 		local y = 22 + (s % 2) * 2
 		put(list, "StringWire", "Block", v(2 * CLIFF_X + 20, 0.2, 0.2), DARK_WOOD, "Fabric", v(0, y + 1, z))
 		for _, side in { -1, 1 } do
 			column(list, "StringPole", side * (CLIFF_X + 10), STREET_Y, z, y + 3 - STREET_Y, 1.2, DARK_WOOD, "Wood")
 		end
-		for k = -6, 6 do
-			local x = k * 9
+		for k = -4, 4 do
+			local x = k * 11
+			local extra: Extra? = nil
+			if z == Art.STREAM_LIGHT_Z and k == 0 then
+				-- 흔들리는 파츠에 빛을 달면 빛도 같이 흔들려요 — 이 등 하나는 흔들림 없이 빛만
+				extra = { light = { kind = "Point", color = LANTERN_GLOW, brightness = 1.8, range = 34 } } :: Extra
+			elseif k % 3 == 0 then
+				extra = {
+					anim = { kind = "Sway", period = 3 + ((k + s) % 4) * 0.4, amount = 6, axis = "X" },
+				} :: Extra
+			end
 			put(
 				list,
 				"StringLantern",
@@ -579,20 +605,20 @@ local function addLanternStrings(list: { DecorSpec })
 				"Neon",
 				v(x, y - 0.6, z),
 				nil,
-				if k % 2 == 0
-					then { anim = { kind = "Sway", period = 3 + ((k + s) % 4) * 0.4, amount = 6, axis = "X" } }
-					else nil
+				extra
 			)
-			put(
-				list,
-				"StringLanternCap",
-				"Cylinder",
-				v(0.3, 1.4, 1.4),
-				MapKitLogic.PALETTE.Nori,
-				"SmoothPlastic",
-				v(x, y + 1.1, z),
-				UP
-			)
+			if k % 2 == 0 then -- m5-40: 뚜껑은 하나 걸러 (멀리서 보는 줄이라)
+				put(
+					list,
+					"StringLanternCap",
+					"Cylinder",
+					v(0.3, 1.4, 1.4),
+					MapKitLogic.PALETTE.Nori,
+					"SmoothPlastic",
+					v(x, y + 1.1, z),
+					UP
+				)
+			end
 		end
 	end
 end
@@ -600,9 +626,9 @@ end
 -- 떠내려가는 등롱 (Bob) + 물에 비친 빛 줄
 local function addFloatingLanterns(list: { DecorSpec })
 	local rng = MapKitShapes.rng(57)
-	for k = 1, 14 do
+	for k = 1, 16 do -- m5-40: 14 → 16, 간격 14 → 26 (코스 끝까지 흘러가게)
 		local x = rng:range(-44, 44)
-		local z = 30 - k * 14 + rng:range(-4, 4)
+		local z = 30 - k * 26 + rng:range(-4, 4)
 		local bob = { anim = { kind = "Bob", period = 3 + rng:range(0, 2.5), amount = 0.5 } } :: Extra
 		put(
 			list,
@@ -643,42 +669,34 @@ end
 -- 절벽 위 노점 (야타이): 판매대 + 줄무늬 차양 + 노렌 + 등 (노점마다 빛 하나)
 local function addStall(list: { DecorSpec }, x: number, z: number, side: number, colorA: RGB)
 	local parts: { DecorSpec } = {}
-	append(
-		parts,
-		MapKitShapes.roundedBox(
-			"StallCounter",
-			v(14, 7, 6),
-			DARK_WOOD,
-			"Wood",
-			v(0, STREET_Y + 3.5, 0),
-			{ radius = 0.8, style = "vertical" }
-		)
-	)
+	-- m5-40: 둥근 상자(6) → 상자 하나 (위 판 StallTop이 모서리를 덮어요 — 예산을 새 구간에)
+	put(parts, "StallCounter", "Block", v(14, 7, 6), DARK_WOOD, "Wood", v(0, STREET_Y + 3.5, 0))
 	put(parts, "StallTop", "Block", v(15, 0.6, 7), MapKitLogic.PALETTE.WoodLight, "Wood", v(0, STREET_Y + 7.3, 0))
 	for _, sx in { -1, 1 } do
 		column(parts, "StallPost", sx * 6.8, STREET_Y, 3, 16, 0.8, DARK_WOOD, "Wood")
 	end
-	for k = 0, 6 do
+	-- m5-40: 차양 줄무늬 7 → 5, 노렌 5 → 3 (노점은 멀리서 보는 배경이라 예산을 새 구간에)
+	for k = 0, 4 do
 		put(
 			parts,
 			"StallAwning",
 			"Wedge",
-			v(2.2, 2.6, 7),
+			v(3.08, 2.6, 7),
 			if k % 2 == 0 then colorA else PAPER,
 			"Fabric",
-			v(-6.6 + k * 2.2, STREET_Y + 17.3, -0.5),
+			v(-6.16 + k * 3.08, STREET_Y + 17.3, -0.5),
 			v(0, 180, 0)
 		)
 	end
-	for k = -2, 2 do
+	for k = -1, 1 do
 		put(
 			parts,
 			"StallNoren",
 			"Block",
-			v(2.6, 4, 0.3),
+			v(3.6, 4, 0.3),
 			MapKitLogic.PALETTE.Noren,
 			"Fabric",
-			v(k * 2.8, STREET_Y + 14, -3.6)
+			v(k * 4, STREET_Y + 14, -3.6)
 		)
 	end
 	put(parts, "StallLantern", "Ball", v(3, 3.8, 3), LANTERN_GLOW, "Neon", v(-4, STREET_Y + 11.5, -4.2), nil, {
@@ -731,17 +749,18 @@ local function addStreet(list: { DecorSpec })
 		{ r = 90, g = 160, b = 90 },
 		{ r = 210, g = 90, b = 150 },
 	}
+	-- m5-40: 노점 간격 40 → 76 (같은 10곳이 코스 끝 근처까지 늘어서요, 빛 10개 그대로)
 	for k = 0, 4 do
-		local z = 10 - k * 40
+		local z = 10 - k * 76
 		addStall(list, -(CLIFF_X + 22), z, -1, colors[k % 5 + 1])
-		addStall(list, CLIFF_X + 22, z - 20, 1, colors[(k + 2) % 5 + 1])
+		addStall(list, CLIFF_X + 22, z - 38, 1, colors[(k + 2) % 5 + 1])
 	end
-	-- 노점 뒤 소나무 (원뿔 3단)
+	-- 노점 뒤 소나무 (원뿔 3단) — m5-40: 간격 16 → 28
 	local rng = MapKitShapes.rng(71)
 	for k = 1, 14 do
 		local side = if k % 2 == 0 then -1 else 1
 		local x = side * (CLIFF_X + 46 + rng:range(0, 40))
-		local z = 40 - k * 16 + rng:range(-5, 5)
+		local z = 40 - k * 28 + rng:range(-5, 5)
 		local s = rng:range(0.8, 1.3)
 		column(list, "PineTrunk", x, STREET_Y, z, 14 * s, 2.6 * s, DARK_WOOD, "Wood")
 		for t = 0, 2 do
@@ -828,10 +847,11 @@ local function addShrine(list: { DecorSpec })
 	local fx, fz = 120, FAR_Z - 160
 	column(list, "FireworkTower", fx, baseY, fz, 70, 5, DARK_WOOD, "Wood")
 	put(list, "FireworkTowerTop", "Block", v(14, 3, 14), DARK_WOOD, "Wood", v(fx, baseY + 71, fz))
+	-- m5-40: 결승이 뒤로 간 만큼(SHIFT_Z) 불꽃도 뒤로, 불꽃 줄기 12 → 8
 	local bursts = {
-		{ x = 60, y = 150, z = -420, c = { r = 255, g = 120, b = 160 } },
-		{ x = -120, y = 175, z = -480, c = { r = 120, g = 220, b = 255 } },
-		{ x = 170, y = 190, z = -520, c = { r = 255, g = 210, b = 90 } },
+		{ x = 60, y = 150, z = -420 + SHIFT_Z, c = { r = 255, g = 120, b = 160 } },
+		{ x = -120, y = 175, z = -480 + SHIFT_Z, c = { r = 120, g = 220, b = 255 } },
+		{ x = 170, y = 190, z = -520 + SHIFT_Z, c = { r = 255, g = 210, b = 90 } },
 	}
 	for b, burst in bursts do
 		put(list, "FireworkCore", "Ball", v(8, 8, 8), burst.c, "Neon", v(burst.x, burst.y, burst.z), nil, {
@@ -839,18 +859,18 @@ local function addShrine(list: { DecorSpec })
 			particleRate = 10,
 			anim = { kind = "Pulse", period = 2 + b * 0.5, amount = 0.15 },
 		})
-		for k = 0, 11 do
-			local a = math.rad(k * 30)
+		for k = 0, 7 do
+			local a = math.rad(k * 45)
 			local r = 28
 			put(
 				list,
 				"FireworkStreak",
 				"Block",
-				v(r, 1.4, 1.4),
+				v(r, 1.6, 1.6),
 				burst.c,
 				"Neon",
 				v(burst.x + math.cos(a) * r * 0.75, burst.y + math.sin(a) * r * 0.75, burst.z),
-				v(0, 0, k * 30)
+				v(0, 0, k * 45)
 			)
 		end
 	end
@@ -870,10 +890,10 @@ local function addSky(list: { DecorSpec })
 			v(d, d, d),
 			c,
 			"Rock",
-			v(math.cos(a) * 760, STREET_Y - d * 0.2, -80 + math.sin(a) * 760)
+			v(math.cos(a) * 760, STREET_Y - d * 0.2, MID_Z + math.sin(a) * 760) -- m5-40: 고리 중심 -80 → 코스 가운데
 		)
 	end
-	put(list, "Moon", "Ball", v(60, 60, 60), { r = 250, g = 244, b = 214 }, "Neon", v(-260, 320, -700))
+	put(list, "Moon", "Ball", v(60, 60, 60), { r = 250, g = 244, b = 214 }, "Neon", v(-260, 320, -700 + SHIFT_Z / 2))
 end
 
 -- 쉼터 석등 불씨 + 고정 SpotLight(그림자 1) + 반딧불
@@ -992,8 +1012,9 @@ local function addStreetLife(list: { DecorSpec })
 	local rng = MapKitShapes.rng(83)
 	for _, side in { -1, 1 } do
 		local x = side * (CLIFF_X + 34)
-		put(list, "StreetWire", "Block", v(0.2, 0.2, 230), DARK_WOOD, "Fabric", v(x, STREET_Y + 19, -80))
-		for k = 0, 22 do
+		-- m5-40: 줄 길이 230 → 코스 끝까지(30 → -400), 초롱 23개 간격 10 → 26개 간격 17
+		put(list, "StreetWire", "Block", v(0.2, 0.2, 440), DARK_WOOD, "Fabric", v(x, STREET_Y + 19, -185))
+		for k = 0, 25 do
 			put(
 				list,
 				"StreetChochin",
@@ -1001,12 +1022,12 @@ local function addStreetLife(list: { DecorSpec })
 				v(1.8, 2.3, 1.8),
 				if k % 3 == 0 then TORII elseif k % 3 == 1 then LANTERN_GLOW else PAPER,
 				"Neon",
-				v(x, STREET_Y + 17.6, 30 - k * 10)
+				v(x, STREET_Y + 17.6, 30 - k * 17)
 			)
 		end
-		-- 손님 무리 (캡슐 몸 + 공 머리, 유카타 색)
-		for g = 0, 5 do
-			local gz = 20 - g * 36 + rng:range(-6, 6)
+		-- 손님 무리 (캡슐 몸 + 공 머리, 유카타 색) — m5-40: 무리 6 → 5, 간격 36 → 78
+		for g = 0, 4 do
+			local gz = 20 - g * 78 + rng:range(-6, 6)
 			for m = 0, 2 do
 				local px = side * (CLIFF_X + 30 + rng:range(-4, 8))
 				local pz = gz + m * 2.6
@@ -1088,11 +1109,12 @@ local function addTown(list: { DecorSpec })
 	local rng = MapKitShapes.rng(97)
 	local roofs = MapKitLogic.shades({ r = 44, g = 48, b = 70 })
 	local walls = MapKitLogic.shades({ r = 150, g = 128, b = 104 })
+	-- m5-40: 3줄 x 7채(z 162 → -174) → 2줄 x 10채(z 162 → -360), 들보 띠를 빼서 집 하나 5 → 4 파츠
 	for _, side in { -1, 1 } do
-		for row = 0, 2 do
-			for k = 0, 6 do
-				local x = side * (CLIFF_X + 110 + row * 52 + rng:range(-8, 8))
-				local z = BACK_Z + 140 - k * 56 + rng:range(-10, 10)
+		for row = 0, 1 do
+			for k = 0, 9 do
+				local x = side * (CLIFF_X + 110 + row * 60 + rng:range(-8, 8))
+				local z = BACK_Z + 140 - k * 58 + rng:range(-10, 10)
 				local w, d, h = rng:range(26, 36), rng:range(20, 28), rng:range(12, 18)
 				local wall = if (row + k) % 3 == 0
 					then walls.base
@@ -1102,7 +1124,6 @@ local function addTown(list: { DecorSpec })
 				local yaw = rng:range(-6, 6)
 				local parts: { DecorSpec } = {}
 				put(parts, "TownHouse", "Block", v(w, h, d), wall, "Plaster", v(0, STREET_Y + h / 2, 0))
-				put(parts, "TownBeam", "Block", v(w + 0.6, 1, d + 0.6), DARK_WOOD, "Wood", v(0, STREET_Y + h * 0.55, 0))
 				put(
 					parts,
 					"TownRoof",
@@ -1137,6 +1158,56 @@ local function addTown(list: { DecorSpec })
 	end
 end
 
+-- m5-40 개울 징검돌: 돌마다 물까지 내려가는 바위 기둥(판정 돌 아래) + 이끼 띠, 둑·섬은 addSupports 받침.
+-- 섬에는 큰 석등(불씨 Embers) — 위 등불 줄(-286) 가운데 등의 빛과 같이 "등불 아래" 쉼 자리예요.
+-- 돌 옆 물에 비친 등불 띠(반투명, 작음). 돌 판정 파츠 위·옆으로 튀어나오는 장식은 없어요.
+local function addStream(list: { DecorSpec })
+	local under = -Layout.STONE_HEIGHT - 0.2
+	for i, stone in Layout.STONES do
+		local d = stone.radius * 2 - 0.3
+		column(list, "StoneColumn", stone.x, WATER_Y - 2, stone.z, under - (WATER_Y - 2), d, ROCK.base, "Slate")
+		column(list, "StoneMoss", stone.x, under - 1.6, stone.z, 1.2, d + 0.4, PINE.dark, "Grass")
+		if i % 2 == 0 then
+			put(
+				list,
+				"StoneGlint",
+				"Block",
+				v(1.4, 0.06, 6),
+				LANTERN_GLOW,
+				"Neon",
+				v(stone.x + (if stone.x > 0 then 3.5 else -3.5), WATER_Y + 0.08, stone.z),
+				nil,
+				{ transparency = 0.55 }
+			)
+		end
+	end
+	-- 섬 석등 (오른쪽 앞 모서리, 지나가는 길 바깥)
+	local island = Layout.STREAM_ISLAND
+	local lx, lz = island.width / 2 - 1.6, island.front - 1.8
+	put(list, "IslandLanternBase", "Cylinder", v(2.4, 2.4, 2.4), ROCK.light, "Slate", v(lx, 1.2, lz), UP)
+	put(list, "IslandLanternBox", "Block", v(2, 2, 2), PAPER, "Neon", v(lx, 3.4, lz), nil, {
+		particle = "Embers",
+		particleRate = 3,
+	})
+	put(list, "IslandLanternRoof", "Wedge", v(3, 1.2, 1.5), ROCK.dark, "Slate", v(lx, 5, lz - 0.75))
+	put(list, "IslandLanternRoof", "Wedge", v(3, 1.2, 1.5), ROCK.dark, "Slate", v(lx, 5, lz + 0.75), v(0, 180, 0))
+	-- 둑·섬 가장자리 낮은 대나무 울타리 (옆으로만, 가는 길은 열려 있어요)
+	for _, zone in { Layout.STREAM_BANK_FRONT, Layout.STREAM_ISLAND, Layout.STREAM_BANK_BACK } do
+		local depth = zone.front - zone.back
+		for _, side in { -1, 1 } do
+			put(
+				list,
+				"BankFence",
+				"Block",
+				v(0.5, 1.6, depth - 1),
+				{ r = 120, g = 150, b = 80 },
+				"Wood",
+				v(side * zone.width / 2, 0.8, (zone.front + zone.back) / 2)
+			)
+		end
+	end
+end
+
 function Art.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addTorii(list)
@@ -1163,18 +1234,20 @@ function Art.decor(): { DecorSpec }
 	addStreetLife(list)
 	addSando(list)
 	addTown(list)
+	addStream(list) -- m5-40
 	return list
 end
 
 export type IntroPoint = { pos: Vec3, lookAt: Vec3 }
 
--- ① 출발 뒤 절벽 위 넓은 샷(도리이·계곡·등불 줄) ② 다리 2 흔들림 클로즈업 ③ 결승에서 돌아보는 반전 샷
+-- ① 출발 뒤 절벽 위 넓은 샷(도리이·계곡·등불 줄이 멀리까지) ② 다리 2 흔들림 클로즈업
+-- ③ 개울 징검돌과 등불 줄(m5-40 새 구간 1컷 — 전: 결승에서 돌아보는 반전 샷)
 -- ④ 출발 자리 뒤에서 도리이 너머 코스 방향 (경유점은 판정 경계 +40 안)
 function Art.introCamera(): { IntroPoint }
 	return {
-		{ pos = v(-10, 32, 36), lookAt = v(0, 0, -50) },
+		{ pos = v(-10, 34, 36), lookAt = v(0, 0, -90) },
 		{ pos = v(12, 9, -46), lookAt = v(0, 0, -64) },
-		{ pos = v(0, 15, -172), lookAt = v(0, -2, -112) },
+		{ pos = v(9, 11, -248), lookAt = v(0, 0, -290) },
 		{ pos = v(0, 8, 12), lookAt = v(0, 3, -24) },
 	}
 end

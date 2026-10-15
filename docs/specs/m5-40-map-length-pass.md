@@ -137,3 +137,23 @@ status: ready
 
 ## 개발 메모
 <!-- developer가 작성: 그룹마다 절 하나 (### L1 …). 바뀐 파일, 바꾼 기존 단언 목록, 실측 클리어 시간, 전/후 PNG, 휴대폰 메모, 남은 이슈 -->
+
+### L3 (bouncy-castle-maze · lantern-bridge) — 브랜치 `m5-len-c`
+- **바뀐 파일**: `src/shared/maps/BouncyCastleMaze{,Layout,Logic,Art}.luau`, `src/shared/maps/LanternBridge{,Layout,Logic,Art}.luau`, 새 `tests/m5-40-l3.spec.luau`(17개), 기존 테스트 4개(아래), `docs/renders/<id>/after-length-*.png`·`before-length-{overview,top,stats}`.
+- **방방 미로**: 결승선 −134 → **−240**(코스 237.5, 걷는 길 약 680). 출구 통로 뒤에 F 두 번째 미로(−120~−176, BounceFloor, 레인 3개 — 오른쪽 입구 → 끝에서 가운데로 건너 되돌아옴 → 왼쪽 출구, 첫 미로와 반대 방향), G 쉼 통로(−176~−182, 일반 바닥), H 풍선 기둥 숲(−182~−226, BounceFloor, 기둥 줄 4개 — 줄마다 한쪽 끝 9만 열리고 좌/우 번갈아 지그재그, 기둥 높이 = 벽 14). 칸막이 두께·문 두께·벽 높이·바운스 수치·MoveExempt는 그대로. `estimateClearTime` **48.9초**.
+- **등불 다리**: 결승선 −148 → **−378**(코스 377). 쉼터 3 뒤에 다리 5(폭 10·길이 60·9도) → 쉼터 4 → 다리 6(폭 6·길이 16·7도) → 쉼터 5 → 다리 7(폭 5·길이 30·6.5도) → **개울 징검돌**(앞 둑 → 돌 5 → 섬 → 돌 5 → 뒤 둑, 틈 2.5~3.8, 좌우 지그재그, 섬 위 등불 줄 가운데 등에 빛) → 다리 4(피날레, 폭·길이·10도 그대로 자리만 −338~−368). 다리 index = 배열 자리(1~4 그대로, 5~7 새로). 3번이 여전히 가장 위험, 4번이 여전히 가장 많이 흔들림(테스트). `estimateClearTime` **45.6초**.
+- **결정**(위임 범위): 스펙 표의 "폭 10 긴 다리"는 기존 다리 폭 범위(4~8)를 넘지만 스펙이 명시해서 그대로. 등불 다리 조명 예산이 꽉 차서(24/24) 새 다리 등불은 빛 없는 네온, 개울 위 등 하나만 빛. 방방 미로 두 번째 미로도 BounceFloor(맵 정체성), 대신 레인 3개·넓은 레인·반대 방향·바닥 무늬(레인 색 띠)로 손맛을 다르게.
+- **바꾼 기존 단언 (전부 이 스펙이 의도한 길이·구간 값)**:
+  | 파일:줄 | 전 | 후 |
+  |---|---|---|
+  | `tests/m5-14-qa.spec.luau:78` | `t.eq(Layout.FINISH.front, Layout.EXIT.back)` | `t.eq(Layout.MAZE2.front, Layout.EXIT.back)` + `t.eq(Layout.FINISH.front, Layout.FOREST.back)` |
+  | `tests/m5-14-qa.spec.luau:96` | `countMatches(source, "COLORS%.%w+, true%)") == 1` | `== 2` (새 바운스 구간 반복 한 줄) |
+  | `tests/m5-24-qa.spec.luau:53~56` | 판정 지문 bouncy `n 37 …`, lantern `n 33 …` | bouncy `n 72·size 2469.80·x 555.10·y 282.40·z −8230.60·collide 48·tags 3`, lantern `n 51·size 727.80·x 106.50·y −24.60·z −5925.00·collide 27·tags 7` (전 값은 주석에) |
+  | `tests/map-bouncy-castle-maze.spec.luau:90·108` | 구간 순서 5개, `-finishLineZ() == 134` | 구간 순서 8개, `== 240` |
+  | `tests/map-lantern-bridge.spec.luau:68` | `#BRIDGES == 4` | `== 7` |
+  | `tests/map-lantern-bridge.spec.luau:178·186` | `#sections == 9`, `totalLength() == 152` | `== 15`, `== 382` |
+  | `tests/map-lantern-bridge.spec.luau:219~221` | `bridgeAt(-120).index == 4`, `bridgeAt(-145) == nil` | `bridgeAt(-350).index == 4`, `bridgeAt(-375) == nil` |
+- **렌더**(before = m5-24 `after-*` = `before-length-*`, 비평 2회 → `after-length-*`): void 최대 bouncy 7%(overview, 언덕 고리 키움 전 11%) · lantern 8%(overview). 장식 bouncy 1468 → 1479 · lantern 1412 → 1468 (Extended 1500 안 — 먼 배경 둥근 상자·노점 차양·마을 줄 수·관람차 곤돌라 등을 덜어 새 구간에). 조명 bouncy 7 → 9 · lantern 23 → 24/24. anim bouncy 47 → 69 · lantern 73 → 69.
+- **휴대폰 메모**: 가장 무거운 뷰 tris bouncy 127k → **149k**(+17%, 판정 파츠 38 → 73·기둥 28), lantern 112k → **129k**(+16%). 큰 반투명 판 새로 없음, 그림자 조명 맵당 1 그대로, 파티클 lantern 9 → 14(새 쉼터 불씨·반딧불 + 섬 석등).
+- **Studio 확인**: `Config.DEBUG.forceMapPlans = { { "bouncy-castle-maze", "giant-jenga", "claw-machine-prize" }, { "lantern-bridge", "cat-cafe-shelves", "tug-of-war-platform" } }` → Play → 방 시작. 방방 미로: 두 번째 미로 입구가 오른쪽만 열림·가운데 레인으로 되돌아옴·왼쪽 출구, 풍선 숲 기둥 사이로 못 빠져나가고 열린 쪽으로만 지그재그, 튕김 중 기둥에 걸려 끼지 않는지. 등불 다리: 새 다리 3개 흔들림 차이, 징검돌이 점프로 무난히 닿는지(작은 돌 Stone07), 섬 위 등불 빛. 둘 다 혼자 45~55초(AC9 실측을 여기에), 이동 감시 로그 없음, 소개 ③ 새 구간 컷이 물체를 안 뚫는지. 확인 뒤 `forceMapPlans = nil`.
+- **검증**: rojo build OK · stylua --check OK · selene 0/0/0 · `lune run tests` 2195 passed, 0 failed · luau-lsp analyze 끝 코드 0 (2026-10-15, 로컬 PC).

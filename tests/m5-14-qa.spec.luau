@@ -75,7 +75,8 @@ return function(t: Test.Test)
 			t.eq(Layout.ANTEROOM.front, Layout.START.back)
 			t.eq(Layout.MAZE.front, Layout.ANTEROOM.back)
 			t.eq(Layout.EXIT.front, Layout.MAZE.back)
-			t.eq(Layout.FINISH.front, Layout.EXIT.back)
+			t.eq(Layout.MAZE2.front, Layout.EXIT.back) -- m5-40: 출구 통로 뒤에 새 구간(F·G·H), 결승은 그 뒤
+			t.eq(Layout.FINISH.front, Layout.FOREST.back)
 			t.ok(Layout.FINISH_LINE_Z < Layout.FINISH.front and Layout.FINISH_LINE_Z > Layout.FINISH.back)
 			for i, pos in Layout.spawnPositions() do
 				t.ok(pos.z < Layout.START.front - 1 and pos.z > Layout.START.back + 1, `spawn {i} z {pos.z}`)
@@ -91,7 +92,8 @@ return function(t: Test.Test)
 				) ~= nil,
 				"bounce slab spans B+C only"
 			)
-			t.eq(countMatches(source, "COLORS%.%w+, true%)"), 1) -- 태그 붙은 바닥은 한 장
+			-- 태그 붙은 바닥 호출은 B+C 한 장 + m5-40 새 바운스 구간(두 번째 미로·풍선 숲) 반복 한 줄 (전: 1)
+			t.eq(countMatches(source, "COLORS%.%w+, true%)"), 2)
 		end
 	)
 

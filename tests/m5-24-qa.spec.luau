@@ -50,8 +50,10 @@ local MAIN_FINGERPRINT: { [string]: Fingerprint } = {
 	["ramen-rapids"] = { n = 57, size = 1353.67, x = 272.10, y = -721.56, z = -5197.64, collide = 33, tags = 10 },
 	["giant-jenga"] = { n = 49, size = 610.80, x = 600.00, y = -2.60, z = 0.00, collide = 25, tags = 25 },
 	["claw-machine-prize"] = { n = 88, size = 996.80, x = 912.00, y = -53.98, z = -3520.00, collide = 64, tags = 64 },
-	["bouncy-castle-maze"] = { n = 37, size = 1205.80, x = 286.50, y = 61.40, z = -1105.60, collide = 13, tags = 1 },
-	["lantern-bridge"] = { n = 33, size = 358.80, x = 84.00, y = -6.60, z = -820.00, collide = 9, tags = 4 },
+	-- m5-40 L3 길이 늘리기로 판정 지오메트리가 의도해서 바뀐 두 맵 (전: bouncy n 37·size 1205.80·x 286.50·y 61.40·
+	-- z -1105.60·collide 13·tags 1 / lantern n 33·size 358.80·x 84.00·y -6.60·z -820.00·collide 9·tags 4)
+	["bouncy-castle-maze"] = { n = 72, size = 2469.80, x = 555.10, y = 282.40, z = -8230.60, collide = 48, tags = 3 },
+	["lantern-bridge"] = { n = 51, size = 727.80, x = 106.50, y = -24.60, z = -5925.00, collide = 27, tags = 7 },
 	["cat-cafe-shelves"] = { n = 33, size = 430.80, x = 433.60, y = 155.40, z = -1320.00, collide = 9, tags = 9 },
 }
 

@@ -6,7 +6,10 @@
 --
 -- 코스: A 출발(0~-16, 일반) → B 대기실·관문(-16~-20, BounceFloor, 1번 레인만 열림) →
 --       C 미로(-20~-110, BounceFloor, 레인 4개를 칸막이 3개가 S자로 갈라놓음) →
---       D 출구 통로(-110~-120, 일반) → E 결승(-120~-140, 일반, FinishLine -134).
+--       D 출구 통로(-110~-120, 일반) →
+--       F 두 번째 미로(-120~-176, BounceFloor, 레인 3개 — 오른쪽으로 들어가 왼쪽으로 나가요, m5-40) →
+--       G 쉼 통로(-176~-182, 일반) → H 풍선 기둥 숲(-182~-226, BounceFloor, 기둥 줄 4개 지그재그, m5-40) →
+--       E 결승(-226~-246, 일반, FinishLine -240).
 
 export type Span = { front: number, back: number } -- front > back (z가 작을수록 결승 쪽)
 
@@ -42,8 +45,12 @@ Layout.START = { front = 0, back = -16 } :: Span -- A: 일반 바닥, 스폰 24�
 Layout.ANTEROOM = { front = -16, back = -20 } :: Span -- B: 대기실(관문), BounceFloor 시작
 Layout.MAZE = { front = -20, back = -110 } :: Span -- C: 미로, BounceFloor
 Layout.EXIT = { front = -110, back = -120 } :: Span -- D: 출구 통로, 일반 바닥(튕김 끝)
-Layout.FINISH = { front = -120, back = -140 } :: Span -- E: 결승
-Layout.FINISH_LINE_Z = -134
+-- m5-40 길이 늘리기: D 뒤에 F·G·H를 끼우고 결승(E)을 뒤로 밀었어요 (전: 결승 -120~-140, FinishLine -134)
+Layout.MAZE2 = { front = -120, back = -176 } :: Span -- F: 두 번째 미로, BounceFloor
+Layout.LANDING = { front = -176, back = -182 } :: Span -- G: 쉼 통로, 일반 바닥(튕김 잠깐 끝)
+Layout.FOREST = { front = -182, back = -226 } :: Span -- H: 풍선 기둥 숲, BounceFloor
+Layout.FINISH = { front = -226, back = -246 } :: Span -- E: 결승
+Layout.FINISH_LINE_Z = -240
 Layout.FINISH_LINE_INSET = Layout.FINISH.front - Layout.FINISH_LINE_Z -- 결승 구간 안, 넘은 뒤 서 있을 자리
 
 function Layout.totalLength(): number
@@ -86,6 +93,99 @@ Layout.EXIT_GATE = {
 } :: Gate
 
 Layout.BOUNDS = { xMin = -Layout.HALF_WIDTH, xMax = Layout.HALF_WIDTH } :: Bounds
+
+-- ── m5-40 F: 두 번째 미로 (레인 3개, 첫 미로와 반대 방향) ─────────────────────────────
+-- 첫 미로는 왼쪽(1번 레인)으로 들어가 오른쪽(4번)으로 나가요. 두 번째 미로는 오른쪽 레인(x 7~20)으로 들어가
+-- 끝에서 가운데 레인(x -7~7)으로 건너 입구 쪽으로 되돌아온 다음, 왼쪽 레인(x -20~-7)으로 건너 끝으로 나가요.
+-- 레인이 넓어서(13~14) 첫 미로보다 빨리 달리지만 되돌아오는 구간이 있어요. 벽 높이·두께는 첫 미로와 같아요.
+Layout.MAZE2_LANES = { 13.5, 0, -13.5 } -- 오른쪽 → 가운데 → 왼쪽 (진행 순서)
+Layout.MAZE2_PARTITIONS = {
+	-- 오른쪽·가운데 사이: 틈은 끝 쪽(z -164~-174)
+	{ x = 7, thickness = Layout.PARTITION_THICKNESS, blockedZHigh = -120, blockedZLow = -164 },
+	-- 가운데·왼쪽 사이: 틈은 입구 쪽(z -122~-132)
+	{ x = -7, thickness = Layout.PARTITION_THICKNESS, blockedZHigh = -132, blockedZLow = -176 },
+} :: { Partition }
+-- 입구 문: 출구 통로(D)에서 오른쪽 레인만 열려 있어요 (z -120~-122, 첫 미로 출구가 오른쪽이라 바로 이어져요)
+Layout.MAZE2_GATE = {
+	z = Layout.MAZE2.front - Layout.GATE_THICKNESS / 2, -- -121
+	thickness = Layout.GATE_THICKNESS,
+	openXMin = 7,
+	openXMax = Layout.HALF_WIDTH,
+} :: Gate
+-- 출구 문: 왼쪽 레인만 열려 있어요 (z -174~-176)
+Layout.MAZE2_EXIT_GATE = {
+	z = Layout.MAZE2.back + Layout.GATE_THICKNESS / 2, -- -175
+	thickness = Layout.GATE_THICKNESS,
+	openXMin = -Layout.HALF_WIDTH,
+	openXMax = -7,
+} :: Gate
+
+-- ── m5-40 H: 풍선 기둥 숲 (BounceFloor 위 고정 기둥 줄 4개) ───────────────────────────
+-- 줄마다 기둥이 거의 붙어 서 있고(틈 0.6 — 몸이 못 지나가요) 한쪽 끝만 9 studs 열려 있어요. 열린 쪽이
+-- 왼쪽 → 오른쪽 → 왼쪽 → 오른쪽으로 번갈아서 튕기면서 좌우로 지그재그해요. 기둥 높이는 벽과 같아
+-- 바운스(정점 ≈ 7.7)로 못 넘어요.
+export type Pillar = { x: number, z: number, radius: number }
+export type ForestRow = { z: number, open: "Left" | "Right" }
+Layout.PILLAR_DIAMETER = 4
+Layout.PILLAR_PITCH = 4.6 -- 기둥 중심 간격 (틈 0.6)
+Layout.FOREST_OPENING = 9 -- 줄마다 열린 폭
+Layout.FOREST_ROWS = {
+	{ z = -188, open = "Left" },
+	{ z = -198, open = "Right" },
+	{ z = -208, open = "Left" },
+	{ z = -218, open = "Right" },
+} :: { ForestRow }
+
+-- 기둥 목록: 줄마다 열린 쪽 벽에서 FOREST_OPENING 떨어진 곳부터 반대쪽 벽에 닿을 때까지 PITCH 간격
+function Layout.pillars(): { Pillar }
+	local list: { Pillar } = {}
+	local r = Layout.PILLAR_DIAMETER / 2
+	local count = math.ceil((Layout.WIDTH - Layout.FOREST_OPENING - 2 * r) / Layout.PILLAR_PITCH) + 1 -- 7
+	for _, row in Layout.FOREST_ROWS do
+		for k = 0, count - 1 do
+			local offset = Layout.FOREST_OPENING + r + k * Layout.PILLAR_PITCH
+			local x = if row.open == "Left" then -Layout.HALF_WIDTH + offset else Layout.HALF_WIDTH - offset
+			table.insert(list, { x = x, z = row.z, radius = r })
+		end
+	end
+	return list
+end
+
+-- ── m5-40 완주 시간 추정 (빠른 사람, 걷기 16) ────────────────────────────────────────────
+-- 구간마다 "실제로 걷는 길이"(미로·지그재그는 직선보다 길어요)와 지연(꺾기·관문·튕김 착지) 상수.
+-- 걷는 길이는 레인 중심선을 따라 잰 대략값이에요(tests/m5-40-l3가 격자 최단 경로와 크게 다르지 않은지 확인해요).
+Layout.WALK_SPEED = 16
+Layout.SECTION_WALK = {
+	Start = 14, -- 스폰 앞줄(-2.5) → 대기실
+	Anteroom = 4,
+	Maze = 330, -- 1번 레인 ↓ + 건너기 + 2번 ↑ + 건너기 + 3번 ↓ + 건너기 + 4번 → 출구
+	Exit = 10,
+	Maze2 = 165, -- 오른쪽 ↓ 48 + 건너기 13 + 가운데 ↑ 42 + 건너기 13 + 왼쪽 ↓ 49
+	Landing = 6,
+	Forest = 136, -- 기둥 줄 4개를 좌우로 지그재그 (줄마다 약 30 옆으로 + 10 앞으로)
+	Finish = 14,
+} :: { [string]: number }
+Layout.SECTION_DELAY = {
+	Anteroom = 0.5, -- 관문으로 몰림
+	Maze = 2.5, -- 꺾기 4번(되돌아 서기 2번 포함)
+	Maze2 = 1.5, -- 꺾기 3번(되돌아 서기 1번)
+	Forest = 2, -- 튕기는 중 좁은 틈 맞추기
+} :: { [string]: number }
+Layout.SECTION_ORDER = { "Start", "Anteroom", "Maze", "Exit", "Maze2", "Landing", "Forest", "Finish" }
+
+-- 출발 → 결승 순서의 구간 표 (z가 단조 감소하는지 테스트가 확인해요)
+function Layout.sections(): { Span }
+	return {
+		Layout.START,
+		Layout.ANTEROOM,
+		Layout.MAZE,
+		Layout.EXIT,
+		Layout.MAZE2,
+		Layout.LANDING,
+		Layout.FOREST,
+		Layout.FINISH,
+	}
+end
 
 -- 바운스: 위 속도만(수평 성분 없음). 서버가 BOUNCE_HOLD 동안 강제로 걸고 그다음은 포물선.
 Layout.BOUNCE_UP_SPEED = 55

@@ -1,7 +1,8 @@
 --!strict
 -- Race 맵 "방방 미로" (GDD §5.3 v0.6, 스펙 m5-14).
 -- 출발(일반 바닥) → 대기실·관문(BounceFloor, 1번 레인만 열림) → 미로(BounceFloor, 레인 4개를 칸막이
--- 3개가 S자로 갈라놓음) → 출구 통로(일반 바닥, 튕김 끝) → 결승.
+-- 3개가 S자로 갈라놓음) → 출구 통로(일반 바닥, 튕김 끝) → 두 번째 미로(BounceFloor, 레인 3개, 반대 방향) →
+-- 쉼 통로 → 풍선 기둥 숲(BounceFloor, 기둥 줄 지그재그) → 결승. (m5-40에서 두 번째 미로·숲을 넣었어요)
 -- BounceFloor 위에 있으면 쿨다운마다 자동으로 위로 튕겨서(세로 속도만 바꾸고 수평 속도는 유지) 멈춰 설 수 없어요.
 -- 치수·튜닝 값은 BouncyCastleMazeLayout, 포물선·격자 판정 계산은 BouncyCastleMazeLogic에 있어요.
 -- 코스는 origin의 LookVector(로컬 -Z)로 뻗어요. build/start 안에서만 Roblox API를 써서 Lune에서
@@ -83,6 +84,13 @@ local function build(origin: CFrame): Model
 	floorSlab("FloorBounce", Layout.ANTEROOM.front, Layout.MAZE.back, COLORS.bounceFloor, true)
 	-- D: 출구 통로 (일반 바닥, 튕김 끝)
 	floorSlab("FloorExit", Layout.EXIT.front, Layout.EXIT.back, COLORS.floor)
+	-- m5-40 F·G·H: 두 번째 미로(BounceFloor) → 쉼 통로(일반) → 풍선 기둥 숲(BounceFloor)
+	for _, entry in
+		{ { name = "FloorBounceMaze2", span = Layout.MAZE2 }, { name = "FloorBounceForest", span = Layout.FOREST } }
+	do
+		floorSlab(entry.name, entry.span.front, entry.span.back, COLORS.bounceFloor, true)
+	end
+	floorSlab("FloorLanding", Layout.LANDING.front, Layout.LANDING.back, COLORS.floor)
 	-- E: 결승 (일반 바닥)
 	floorSlab("FloorFinish", Layout.FINISH.front, Layout.FINISH.back, COLORS.floor)
 
@@ -147,6 +155,37 @@ local function build(origin: CFrame): Model
 	local exitGate = Layout.EXIT_GATE
 	gateDoor("ExitWallLeft", exitGate, Layout.BOUNDS.xMin, exitGate.openXMin)
 	gateDoor("ExitWallRight", exitGate, exitGate.openXMax, Layout.BOUNDS.xMax)
+
+	-- m5-40 F: 두 번째 미로 — 칸막이 2개 + 입구 문(오른쪽 레인만) + 출구 문(왼쪽 레인만)
+	for i, partition in Layout.MAZE2_PARTITIONS do
+		local depth = partition.blockedZHigh - partition.blockedZLow
+		makePart({
+			Name = string.format("Maze2Partition%d", i),
+			Size = Vector3.new(partition.thickness, Layout.WALL_HEIGHT, depth),
+			CFrame = at(partition.x, wallY, (partition.blockedZHigh + partition.blockedZLow) / 2),
+			Color = toColor3(COLORS[Art.MAZE2_PARTITION_COLOR_KEYS[i]]),
+			Parent = model,
+		})
+	end
+	local gate2 = Layout.MAZE2_GATE
+	gateDoor("Maze2GateLeft", gate2, Layout.BOUNDS.xMin, gate2.openXMin)
+	gateDoor("Maze2GateRight", gate2, gate2.openXMax, Layout.BOUNDS.xMax)
+	local exit2 = Layout.MAZE2_EXIT_GATE
+	gateDoor("Maze2ExitLeft", exit2, Layout.BOUNDS.xMin, exit2.openXMin)
+	gateDoor("Maze2ExitRight", exit2, exit2.openXMax, Layout.BOUNDS.xMax)
+
+	-- m5-40 H: 풍선 기둥 (세운 원기둥, 벽과 같은 높이 — 바운스로 못 넘어요)
+	for i, pillar in Layout.pillars() do
+		local p = makePart({
+			Name = string.format("BalloonPillar%02d", i),
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(Layout.WALL_HEIGHT, pillar.radius * 2, pillar.radius * 2),
+			CFrame = at(pillar.x, wallY, pillar.z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = toColor3(COLORS.pillar),
+			Parent = model,
+		})
+		p.CustomPhysicalProperties = SMOOTH
+	end
 
 	-- 스폰 24개 (6열 × 4줄, 이름순 배치)
 	local spawns = Instance.new("Folder")

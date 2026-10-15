@@ -4,6 +4,8 @@
 --   C 젤리 발판(Jelly 태그)은 서버가 위·앞으로 튕겨요 (와사비와 같은 방식, LinearVelocity 잠깐 + MoveExempt).
 --   D 송풍구(ColdFan 태그)는 4초 주기(0.5 경고 → 2 불기 → 1.5 쉼)로 구역 안 레이서를 옆으로 밀어요.
 --   송풍구 밀기는 연속 밀기라 MoveExempt를 달지 않아요 (CLAUDE.md 규칙, 스펙 결정 Q2 — 밀기 14는 상한 80보다 한참 낮음).
+--   m5-40: F 냉동실 칸(얼음 + 구멍 3 + 냉동 송풍구 FreezerFan 1)과 G 스쿱 계단(스쿱 기둥 4 + 지름길 젤리 ScoopJelly 1)을
+--   D와 E 사이에 끼웠어요. 새 송풍구·젤리는 D·C와 같은 수치·같은 처리(젤리만 MoveExempt)이고 태그만 따로예요.
 -- 치수는 DessertFridgeLayout, 계산은 DessertFridgeLogic, 장식은 DessertFridgeArt.
 -- 태그 파츠는 ctx.model 하위의 것만 쓰고, 상태는 전부 start 안 지역 변수에 둬요(여러 방 동시 진행).
 -- id·kind·displayName·rule은 m5-03에서 확정이에요 (바꾸지 않아요).
@@ -24,6 +26,8 @@ local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
 local TAG_ICE = IceLogic.TAG
 local TAG_JELLY = "Jelly"
 local TAG_FAN = "ColdFan"
+local TAG_FREEZER_FAN = "FreezerFan" -- m5-40 F
+local TAG_SCOOP_JELLY = "ScoopJelly" -- m5-40 G
 
 -- 판정 지오메트리 기본 색 (아트 단계에서 MapKit 장식으로 꾸며요). Color3는 build 안에서만 만들어요(Lune require 안전).
 local function palette()
@@ -39,6 +43,14 @@ local function palette()
 		cookie = Color3.fromRGB(196, 140, 84),
 		landing = Color3.fromRGB(250, 236, 214), -- 커스터드 크림 단
 		fan = Color3.fromRGB(150, 160, 172),
+		scoopFloor = Color3.fromRGB(246, 236, 222), -- m5-40 아이스크림 통 바닥 (바닐라)
+		scoopLanding = Color3.fromRGB(252, 222, 228), -- m5-40 딸기 아이스크림 케이크 단
+		scoops = { -- m5-40 스쿱 4개 (밝은 파스텔)
+			Color3.fromRGB(255, 196, 206),
+			Color3.fromRGB(196, 238, 214),
+			Color3.fromRGB(255, 236, 170),
+			Color3.fromRGB(214, 200, 246),
+		},
 		spawn = Color3.fromRGB(246, 196, 70),
 		finishLine = Color3.fromRGB(255, 196, 40),
 	}
@@ -191,12 +203,13 @@ local function build(origin: CFrame): Model
 	local shelf =
 		slab("FanShelf", -shelfHalf, shelfHalf, Layout.FAN_SHELF.front, Layout.FAN_SHELF.back, Layout.HIGH_Y, thickness)
 	makeIce(shelf)
-	for _, fan in Layout.FANS do
+	-- 송풍구 하나 (미는 쪽의 반대편 바깥에 붙은 환풍구, 충돌 없음) + 서리 입자. D·F(m5-40) 공통
+	local function vent(fan: Layout.Fan, name: string, tag: string, halfWidth: number)
 		local length = fan.front - fan.back
-		local vent = makePart({
-			Name = string.format("ColdFan%d", fan.index),
+		local part = makePart({
+			Name = name,
 			Size = Vector3.new(1, 6, length),
-			CFrame = at(-fan.dirX * (shelfHalf + 0.5), Layout.HIGH_Y + 3, (fan.front + fan.back) / 2),
+			CFrame = at(-fan.dirX * (halfWidth + 0.5), Layout.HIGH_Y + 3, (fan.front + fan.back) / 2),
 			Color = COLORS.fan,
 			Material = Enum.Material.DiamondPlate,
 			CanCollide = false,
@@ -204,8 +217,8 @@ local function build(origin: CFrame): Model
 			CanTouch = false,
 			Parent = model,
 		})
-		vent:SetAttribute("FanIndex", fan.index)
-		CollectionService:AddTag(vent, TAG_FAN)
+		part:SetAttribute("FanIndex", fan.index)
+		CollectionService:AddTag(part, tag)
 		-- 서리 입자 (경고·불기 동안 켜요). 바람 방향(+X면 오른쪽)으로 뿜어요.
 		local frost = Instance.new("ParticleEmitter")
 		frost.Name = "Frost"
@@ -220,16 +233,83 @@ local function build(origin: CFrame): Model
 		frost.Speed = NumberRange.new(14, 18)
 		frost.SpreadAngle = Vector2.new(10, 10)
 		frost.EmissionDirection = if fan.dirX > 0 then Enum.NormalId.Right else Enum.NormalId.Left
-		frost.Parent = vent
+		frost.Parent = part
 	end
+	for _, fan in Layout.FANS do
+		vent(fan, string.format("ColdFan%d", fan.index), TAG_FAN, shelfHalf)
+	end
+
+	-- F 냉동실 칸 (m5-40): 얼음 바닥 조각(구멍 3개를 뺀) + 냉동 송풍구
+	for i, rect in Layout.freezerRects() do
+		local piece = slab(
+			string.format("FreezerFloor%02d", i),
+			rect.minX,
+			rect.maxX,
+			rect.maxZ,
+			rect.minZ,
+			Layout.HIGH_Y,
+			thickness
+		)
+		makeIce(piece)
+	end
+	for _, fan in Layout.FREEZER_FANS do
+		vent(fan, string.format("FreezerFan%d", fan.index), TAG_FREEZER_FAN, Layout.FREEZER_WIDTH / 2)
+	end
+
+	-- G 스쿱 계단 (m5-40): 통 바닥(y 12) + 착지대(y 12 ~ 24 통짜) + 스쿱 기둥 4개 + 지름길 젤리
+	local scoopHalf = Layout.SCOOP_ZONE_WIDTH / 2
+	local scoopFloor = slab(
+		"ScoopFloor",
+		-scoopHalf,
+		scoopHalf,
+		Layout.SCOOP_ZONE.front,
+		Layout.SCOOP_LANDING.front,
+		Layout.HIGH_Y,
+		thickness
+	)
+	scoopFloor.Color = COLORS.scoopFloor
+	local scoopLanding = slab(
+		"ScoopLanding",
+		-scoopHalf,
+		scoopHalf,
+		Layout.SCOOP_LANDING.front,
+		Layout.SCOOP_LANDING.back,
+		Layout.TOP_Y,
+		Layout.TOP_Y - Layout.HIGH_Y + thickness
+	)
+	scoopLanding.Color = COLORS.scoopLanding
+	for i, scoop in Layout.SCOOPS do
+		local height = Layout.scoopTop(i) - Layout.HIGH_Y
+		makePart({
+			Name = string.format("Scoop%d", i),
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, Layout.SCOOP_DIAMETER, Layout.SCOOP_DIAMETER),
+			CFrame = at(scoop.x, Layout.HIGH_Y + height / 2, scoop.z) * CFrame.Angles(0, 0, math.pi / 2),
+			Color = COLORS.scoops[i] or COLORS.scoops[1],
+			Material = Enum.Material.Sand,
+			CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic),
+			Parent = model,
+		})
+	end
+	local scoopJelly = makePart({
+		Name = "ScoopJelly",
+		Size = Vector3.new(Layout.JELLY_SIZE, Layout.JELLY_TOP, Layout.JELLY_SIZE),
+		CFrame = at(Layout.SCOOP_JELLY.x, Layout.HIGH_Y + Layout.JELLY_TOP / 2, Layout.SCOOP_JELLY.z),
+		Color = COLORS.jellies[2],
+		Material = Enum.Material.Glass,
+		Transparency = 0.1,
+		CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic),
+		Parent = model,
+	})
+	CollectionService:AddTag(scoopJelly, TAG_SCOOP_JELLY)
 
 	-- E 결승 + FinishLine
 	local finishHalf = Layout.FINISH_WIDTH / 2
-	slab("FinishFloor", -finishHalf, finishHalf, Layout.FINISH.front, Layout.FINISH.back, Layout.HIGH_Y, thickness)
+	slab("FinishFloor", -finishHalf, finishHalf, Layout.FINISH.front, Layout.FINISH.back, Layout.TOP_Y, thickness)
 	makePart({
 		Name = "FinishLine",
 		Size = Vector3.new(Layout.FINISH_WIDTH, 0.4, 1),
-		CFrame = at(0, Layout.HIGH_Y + 0.2, Layout.FINISH_LINE_Z),
+		CFrame = at(0, Layout.TOP_Y + 0.2, Layout.FINISH_LINE_Z),
 		Color = COLORS.finishLine,
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -321,6 +401,20 @@ local function start(ctx: MapTypes.RoundContext)
 		end
 	end
 
+	local freezerFans: { [number]: { vent: BasePart, frost: ParticleEmitter?, last: Logic.FanState? } } = {}
+	for _, vent in taggedParts(ctx, TAG_FREEZER_FAN) do
+		local index = vent:GetAttribute("FanIndex")
+		if type(index) == "number" then
+			local frost = vent:FindFirstChild("Frost")
+			freezerFans[index] = {
+				vent = vent,
+				frost = if frost and frost:IsA("ParticleEmitter") then frost else nil,
+				last = nil,
+			}
+		end
+	end
+	local scoopJellyPad: BasePart? = taggedParts(ctx, TAG_SCOOP_JELLY)[1]
+
 	local jellyVelocity = Vector3.new(0, Layout.JELLY_UP, 0) + origin.LookVector * Layout.JELLY_FORWARD
 	local jellyReadyAt: { [Player]: number } = {}
 
@@ -362,6 +456,29 @@ local function start(ctx: MapTypes.RoundContext)
 			end
 			blowing[index] = state == "Blow"
 		end
+		-- F 냉동 송풍구 (m5-40): 소리는 누가 냉동실 안에 있을 때만 (먼 방 소리가 겹치지 않게)
+		local anyoneInFreezer = false
+		for _, player in ctx.getRacers() do
+			local root = rootOf(player)
+			if root and Logic.inFreezer(origin:PointToObjectSpace(root.Position).Z) then
+				anyoneInFreezer = true
+				break
+			end
+		end
+		local freezerBlowing: { [number]: boolean } = {}
+		for index, fan in freezerFans do
+			local state = Logic.freezerFanState(index, elapsed)
+			if state ~= fan.last then
+				if fan.frost then
+					fan.frost.Enabled = state ~= "Rest"
+				end
+				if state == "Blow" and anyoneInFreezer then
+					MapSfx.play(fan.vent, "FanGust")
+				end
+				fan.last = state
+			end
+			freezerBlowing[index] = state == "Blow"
+		end
 
 		-- 3. 남은 레이서: 젤리 튕김, 송풍구 밀기
 		for _, player in ctx.getRacers() do
@@ -373,13 +490,15 @@ local function start(ctx: MapTypes.RoundContext)
 			local rel = origin:PointToObjectSpace(root.Position)
 
 			local jelly = Logic.jellyAt(rel.X, rel.Y, rel.Z)
-			if jelly then
+			local onScoopJelly = jelly == nil and Logic.scoopJellyAt(rel.X, rel.Y, rel.Z)
+			if jelly or onScoopJelly then
 				local readyAt = jellyReadyAt[player]
 				if readyAt == nil or now >= readyAt then
 					jellyReadyAt[player] = now + Layout.JELLY_COOLDOWN
 					MoveExempt.mark(character, Layout.JELLY_EXEMPT)
 					launch(ctx, root, jellyVelocity)
-					MapSfx.play(jellyPads[jelly] or root, "JellyBoing")
+					local pad = if jelly then jellyPads[jelly] else scoopJellyPad
+					MapSfx.play(pad or root, "JellyBoing")
 				end
 				continue
 			end
@@ -387,6 +506,18 @@ local function start(ctx: MapTypes.RoundContext)
 			local fanIndex = Logic.fanAt(rel.X, rel.Y, rel.Z)
 			if fanIndex and blowing[fanIndex] then
 				local push = Logic.fanPush(fanIndex)
+				local target = push.x * Layout.FAN_PUSH_SPEED
+				local velocity = root.AssemblyLinearVelocity
+				local add = Logic.pushDelta(velocity:Dot(right), target, Layout.FAN_PUSH_ACCEL, dt)
+				if add ~= 0 then
+					root.AssemblyLinearVelocity = velocity + right * add
+				end
+				continue
+			end
+
+			local freezerIndex = Logic.freezerFanAt(rel.X, rel.Y, rel.Z)
+			if freezerIndex and freezerBlowing[freezerIndex] then
+				local push = Logic.freezerFanPush(freezerIndex)
 				local target = push.x * Layout.FAN_PUSH_SPEED
 				local velocity = root.AssemblyLinearVelocity
 				local add = Logic.pushDelta(velocity:Dot(right), target, Layout.FAN_PUSH_ACCEL, dt)

@@ -72,7 +72,7 @@ return function(t: Test.Test)
 		"AC2: 구간이 출발 → 결승으로 빈틈 없이 이어지고 진행도가 단조 증가해요",
 		function()
 			local sections = Layout.sections()
-			t.eq(#sections, 5)
+			t.eq(#sections, 7) -- m5-40 L2: 5 → 7 (F 냉동실 칸·G 스쿱 계단)
 			t.eq(sections[1].front, 0)
 			for i, span in sections do
 				t.ok(span.front > span.back, `section {i} has positive length`)
@@ -80,16 +80,16 @@ return function(t: Test.Test)
 					t.eq(span.front, sections[i - 1].back, `section {i} starts where {i - 1} ends`)
 				end
 			end
-			t.eq(sections[#sections].back, -260)
+			t.eq(sections[#sections].back, -432) -- m5-40 L2: -260 → -432
 			local previous = -math.huge
-			for z = 0, -260, -0.5 do
+			for z = 0, -432, -0.5 do
 				local p = Logic.progress(z)
 				t.ok(p > previous, `progress not increasing at z {z}`)
 				previous = p
 			end
-			-- 결승선은 E 안, 진행도 250
+			-- 결승선은 E 안, 진행도 422 (m5-40 L2: 250 → 422)
 			t.ok(Layout.FINISH_LINE_Z < Layout.FINISH.front and Layout.FINISH_LINE_Z > Layout.FINISH.back)
-			t.eq(Logic.finishProgress(), 250)
+			t.eq(Logic.finishProgress(), 422)
 		end
 	)
 
@@ -358,7 +358,7 @@ return function(t: Test.Test)
 		t.eq(Layout.START_WIDTH, 24)
 		t.eq(Layout.ICE_TRAY_WIDTH, 22)
 		t.eq(Layout.FAN_SHELF_WIDTH, 18)
-		t.eq(Layout.FINISH_LINE_Z, -250)
+		t.eq(Layout.FINISH_LINE_Z, -422) -- m5-40 L2: -250 → -422
 		t.eq(Layout.HIGH_Y, 12)
 		t.eq(Layout.CUBE_SIZE, 4)
 		t.eq(Layout.HOLE_SIZE, 6)

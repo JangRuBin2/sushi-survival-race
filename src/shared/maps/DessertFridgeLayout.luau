@@ -9,7 +9,12 @@
 --   C 젤리 계단   -96 ~ -136        0 → 12      일반 바닥 폭 30. 뒤쪽(z -124 ~ -136)은 위 칸 착지대(y 12, 통짜 블록).
 --                                               착지대 바로 앞에 젤리 발판 3개(위로 튕김), 오른쪽에 쿠키 계단(디딤 3)
 --   D 찬바람 선반 -136 ~ -216        12           얼음 폭 18, 송풍구 2개(옆으로 밂)
---   E 결승        -216 ~ -260        12           일반 바닥 폭 24, FinishLine z -250
+--   F 냉동실 칸   -216 ~ -336        12           (m5-40) 얼음 폭 16, 구멍 3개, 냉동 송풍구 1개 — B·D보다 좁게
+--   G 스쿱 계단   -336 ~ -388        12 → 24      (m5-40) 아이스크림 통 바닥 폭 26. 뒤쪽(z -376 ~ -388)은 위 칸
+--                                               착지대(y 24, 통짜 블록). 아이스크림 스쿱 기둥 4개(디딤 2.4씩, 점프),
+--                                               착지대 바로 앞 왼쪽에 젤리 1개(지름길)
+--   E 결승        -388 ~ -432        24           일반 바닥 폭 24, FinishLine z -422
+-- m5-40: 결승 구간을 맨 끝에 둔 채 D와 E 사이에 F·G를 끼웠어요. A~D의 치수·장애물 수치는 그대로예요.
 --
 -- 스펙 표의 C "바닥 높이 0 → 12"를 "앞쪽 바닥 y 0, 뒤쪽 착지대 y 12"로 나눴어요. 젤리(위 72, 앞 10)로
 -- 착지대 앞면을 넘으려면 발판이 착지대 바로 앞에 붙어 있어야 해서(위로 오르는 0.3초 동안 앞으로 몇 studs만 가요)
@@ -32,7 +37,8 @@ local Layout = {}
 Layout.FLOOR_THICKNESS = 2
 Layout.FALL_MARGIN = 25 -- 그 구간 바닥보다 이만큼 아래면 탈락
 Layout.LOW_Y = 0 -- A·B·C 앞쪽 바닥 윗면
-Layout.HIGH_Y = 12 -- C 착지대·D·E 바닥 윗면
+Layout.HIGH_Y = 12 -- C 착지대·D·F·G 바닥 윗면
+Layout.TOP_Y = 24 -- m5-40: G 착지대·E 바닥 윗면
 
 Layout.START = { front = 0, back = -16 } :: Span
 Layout.START_WIDTH = 24
@@ -48,9 +54,33 @@ Layout.LANDING = { front = -124, back = -136 } :: Span
 Layout.FAN_SHELF = { front = -136, back = -216 } :: Span
 Layout.FAN_SHELF_WIDTH = 18
 
-Layout.FINISH = { front = -216, back = -260 } :: Span
+-- F 냉동실 칸 (m5-40): 얼음(Ice 태그) 폭 16, 구멍 3개(6 x 6, 가장자리에 붙은 홈), 냉동 송풍구 1개
+Layout.FREEZER = { front = -216, back = -336 } :: Span
+Layout.FREEZER_WIDTH = 16
+Layout.FREEZER_HOLES = {
+	{ x = -5, z = -238 },
+	{ x = 5, z = -264 },
+	{ x = -5, z = -316 },
+} :: { Point }
+
+-- G 스쿱 계단 (m5-40): 아이스크림 통 바닥(y 12) + 위 칸 착지대(y 12 ~ 24 통짜) + 스쿱 기둥 4개 + 젤리 1개
+Layout.SCOOP_ZONE = { front = -336, back = -388 } :: Span
+Layout.SCOOP_ZONE_WIDTH = 26
+Layout.SCOOP_LANDING = { front = -376, back = -388 } :: Span
+Layout.SCOOP_DIAMETER = 7
+Layout.SCOOP_RISE = 2.4 -- 스쿱마다 이만큼 높아져요 (바닥 12 → 14.4 → … → 21.6 → 착지대 24)
+Layout.SCOOPS = {
+	{ x = 8, z = -344 },
+	{ x = 3, z = -352 },
+	{ x = 8, z = -360 },
+	{ x = 3, z = -368 },
+} :: { Point }
+-- 지름길 젤리: 착지대 앞면(z -376)에 붙은 왼쪽 발판 (C 젤리와 같은 크기·튕김, 윗면 = 바닥 + JELLY_TOP)
+Layout.SCOOP_JELLY = { x = -6, z = -372 } :: Point
+
+Layout.FINISH = { front = -388, back = -432 } :: Span
 Layout.FINISH_WIDTH = 24
-Layout.FINISH_LINE_Z = -250
+Layout.FINISH_LINE_Z = -422
 
 -- B 구간 장애물 (로컬 x, z 중심)
 Layout.CUBE_SIZE = 4 -- 얼음 큐브 4 x 4 x 4 (고정, 충돌 있음)
@@ -108,6 +138,20 @@ Layout.FANS = {
 	{ index = 1, front = -150, back = -166, dirX = 1, offset = 0 },
 	{ index = 2, front = -186, back = -202, dirX = -1, offset = 2 },
 } :: { Fan }
+-- F 냉동 송풍구 (m5-40): D 송풍구와 같은 주기·세기(밂 14), 구역은 구멍 2와 3 사이, +X(열린 가장자리)로 밀어요
+Layout.FREEZER_FANS = {
+	{ index = 1, front = -278, back = -294, dirX = 1, offset = 1 },
+} :: { Fan }
+
+-- 길이 추정 (m5-40 AC1): 1번 줄 스폰 → 결승선을 걷기 16으로 + 구간별 지연 (초, 빠른 사람 기준, Studio 실측으로 조정)
+Layout.WALK_SPEED = 16
+Layout.SECTION_DELAY = {
+	ICE_TRAY = 4.5, -- 얼음 관성(가속·멈춤) + 큐브 지그재그 + 구멍 피하기
+	JELLY_ZONE = 2.5, -- 젤리 튕김 줄 서기 / 쿠키 계단
+	FAN_SHELF = 3, -- 송풍구 두 번 버티기
+	FREEZER = 4.5, -- 더 좁은 얼음 + 구멍 3개 + 송풍구
+	SCOOP_ZONE = 3, -- 스쿱 점프 4번 또는 젤리
+} :: { [string]: number }
 
 -- 스폰 24개: 6열 x 4줄, 칸 사이 3.5 studs (출발 폭 24 안)
 Layout.SPAWN_COLUMNS = 6
@@ -139,6 +183,25 @@ function Layout.holeRects(): { Rect }
 	return list
 end
 
+-- F 냉동실 구멍 (m5-40)
+function Layout.freezerHoleRects(): { Rect }
+	local list = {}
+	for _, hole in Layout.FREEZER_HOLES do
+		table.insert(list, rectAround(hole, Layout.HOLE_SIZE))
+	end
+	return list
+end
+
+-- G 젤리 발판 (m5-40)
+function Layout.scoopJellyRect(): Rect
+	return rectAround(Layout.SCOOP_JELLY, Layout.JELLY_SIZE)
+end
+
+-- G 스쿱 i 윗면 높이
+function Layout.scoopTop(i: number): number
+	return Layout.HIGH_Y + i * Layout.SCOOP_RISE
+end
+
 function Layout.cubeRects(): { Rect }
 	local list = {}
 	for _, cube in Layout.CUBES do
@@ -155,11 +218,10 @@ function Layout.jellyRects(): { Rect }
 	return list
 end
 
--- B 얼음 쟁반 바닥 조각들 (구멍을 뺀 직사각형들). z 방향으로 띠를 나누고, 구멍이 걸친 띠는 x를 잘라요.
-function Layout.iceTrayRects(): { Rect }
-	local half = Layout.ICE_TRAY_WIDTH / 2
-	local holes = Layout.holeRects()
-	local cuts: { number } = { Layout.ICE_TRAY.front, Layout.ICE_TRAY.back }
+-- 구멍 난 바닥 조각들 (구멍을 뺀 직사각형들). z 방향으로 띠를 나누고, 구멍이 걸친 띠는 x를 잘라요.
+local function slabRects(span: Span, width: number, holes: { Rect }): { Rect }
+	local half = width / 2
+	local cuts: { number } = { span.front, span.back }
 	for _, hole in holes do
 		table.insert(cuts, hole.maxZ)
 		table.insert(cuts, hole.minZ)
@@ -198,9 +260,27 @@ function Layout.iceTrayRects(): { Rect }
 	return rects
 end
 
+-- B 얼음 쟁반 바닥 조각들 (구멍 2개를 뺀 직사각형들)
+function Layout.iceTrayRects(): { Rect }
+	return slabRects(Layout.ICE_TRAY, Layout.ICE_TRAY_WIDTH, Layout.holeRects())
+end
+
+-- F 냉동실 바닥 조각들 (m5-40, 구멍 3개를 뺀 직사각형들)
+function Layout.freezerRects(): { Rect }
+	return slabRects(Layout.FREEZER, Layout.FREEZER_WIDTH, Layout.freezerHoleRects())
+end
+
 -- 구간 전체를 z 순서(출발 → 결승)로
 function Layout.sections(): { Span }
-	return { Layout.START, Layout.ICE_TRAY, Layout.JELLY_ZONE, Layout.FAN_SHELF, Layout.FINISH }
+	return {
+		Layout.START,
+		Layout.ICE_TRAY,
+		Layout.JELLY_ZONE,
+		Layout.FAN_SHELF,
+		Layout.FREEZER,
+		Layout.SCOOP_ZONE,
+		Layout.FINISH,
+	}
 end
 
 return Layout

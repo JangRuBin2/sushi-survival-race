@@ -208,4 +208,106 @@ function Logic.crossingPath(t: number): { Platform }?
 	return nil
 end
 
+-- ── m5-40 길이 늘리기 ─────────────────────────────────────────────────
+export type Stick = { x0: number, z0: number, x1: number, z1: number } -- 젓가락 윗면 가운데 선 (앞 끝 → 뒤 끝)
+export type Rect = { minX: number, maxX: number, minZ: number, maxZ: number, top: number }
+export type Link = { from: string, to: string, gap: number, rise: number }
+
+-- F 젓가락 다리의 젓가락 4개 (첫 쌍 2 + X자 둘째 쌍 2)
+function Logic.chopsticks(): { Stick }
+	local list: { Stick } = {}
+	local p1 = Layout.CHOP_PAIR1
+	for _, x in p1.xs do
+		table.insert(list, { x0 = x, z0 = p1.front, x1 = x, z1 = p1.back })
+	end
+	local p2 = Layout.CHOP_PAIR2
+	for _, side in { -1, 1 } do
+		table.insert(list, { x0 = side * p2.spread, z0 = p2.front, x1 = -side * p2.spread, z1 = p2.back })
+	end
+	return list
+end
+
+-- 렌게 발판 i의 윗면 직사각형
+function Logic.rengeRect(i: number): Rect
+	local step = Layout.RENGE_STEPS[i]
+	assert(step, `unknown renge step {i}`)
+	return {
+		minX = step.x - step.width / 2,
+		maxX = step.x + step.width / 2,
+		minZ = step.back,
+		maxZ = step.front,
+		top = Layout.rengeStepTop(i),
+	}
+end
+
+-- 두 직사각형 사이 가로 빈틈 (겹치거나 닿으면 0)
+function Logic.rectGap(a: Rect, b: Rect): number
+	local dx = math.max(0, b.minX - a.maxX, a.minX - b.maxX)
+	local dz = math.max(0, b.minZ - a.maxZ, a.minZ - b.maxZ)
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+-- 젓가락 끝 점(윗면 반폭 포함)에서 직사각형까지 가로 빈틈
+local function stickEndGap(x: number, z: number, rect: Rect): number
+	local half = Layout.CHOPSTICK_WIDTH / 2
+	local endRect: Rect = { minX = x - half, maxX = x + half, minZ = z, maxZ = z, top = Layout.platformTop() }
+	return Logic.rectGap(endRect, rect)
+end
+
+-- 새 구간(F·G·H)을 지나는 길의 이음매 목록 (m5-40 AC1 길 약속): 마지막 회전 원판 → 유부 뗏목 → 젓가락 첫 쌍 →
+-- 받침 → X자 둘째 쌍 → 렌게 1~4 → 두 번째 급류 → 결승. gap: 가로 빈틈, rise: 다음 발판이 높은 만큼.
+function Logic.newSectionLinks(): { Link }
+	local top = Layout.platformTop()
+	local links: { Link } = {}
+	local function link(from: string, to: string, gap: number, rise: number)
+		table.insert(links, { from = from, to = to, gap = gap, rise = rise })
+	end
+	local raft = Layout.CHOP_RAFT
+	local raftRect: Rect =
+		{ minX = -raft.width / 2, maxX = raft.width / 2, minZ = raft.back, maxZ = raft.front, top = top }
+	-- 원판 뒤 끝(z - 반지름)이 뗏목 앞 끝보다 뒤면 겹쳐요
+	local last = Layout.SWEEPER_LIST[#Layout.SWEEPER_LIST]
+	local discBack = last.z - Layout.PLATFORM_DIAMETER / 2
+	link("SweeperPlatform", "ChopRaft", math.max(0, discBack - raft.front), 0)
+	local p1, rest = Layout.CHOP_PAIR1, Layout.CHOP_REST
+	local restRect: Rect =
+		{ minX = -rest.width / 2, maxX = rest.width / 2, minZ = rest.back, maxZ = rest.front, top = top }
+	local sticks = Logic.chopsticks()
+	for i = 1, #p1.xs do
+		local s = sticks[i]
+		link("ChopRaft", `Chopstick{i}`, stickEndGap(s.x0, s.z0, raftRect), 0)
+		link(`Chopstick{i}`, "ChopRest", stickEndGap(s.x1, s.z1, restRect), 0)
+	end
+	local first = Logic.rengeRect(1)
+	for i = #p1.xs + 1, #sticks do
+		local s = sticks[i]
+		link("ChopRest", `Chopstick{i}`, stickEndGap(s.x0, s.z0, restRect), 0)
+		link(`Chopstick{i}`, "Renge1", stickEndGap(s.x1, s.z1, first), first.top - top)
+	end
+	for i = 2, #Layout.RENGE_STEPS do
+		local a, b = Logic.rengeRect(i - 1), Logic.rengeRect(i)
+		link(`Renge{i - 1}`, `Renge{i}`, Logic.rectGap(a, b), b.top - a.top)
+	end
+	local lastStep = Logic.rengeRect(#Layout.RENGE_STEPS)
+	link(
+		`Renge{#Layout.RENGE_STEPS}`,
+		"Rapids2",
+		math.max(0, lastStep.minZ - Layout.RAPIDS2.front),
+		Layout.rapids2HeightAt(Layout.RAPIDS2.front) - lastStep.top
+	)
+	link("Rapids2", "Finish", math.max(0, Layout.FINISH.front - Layout.RAPIDS2.back), 0)
+	return links
+end
+
+-- 빠른 사람 클리어 추정 (초): 1번 줄 스폰 → 결승선 걷기 + 구간별 지연 합 (m5-40 AC1, 42~55초)
+function Logic.estimateClearTime(): number
+	local startZ = Layout.START.front - 2.5
+	local walk = (startZ - Layout.finishLineZ()) / Layout.WALK_SPEED
+	local delay = 0
+	for _, value in Layout.SECTION_DELAY do
+		delay += value
+	end
+	return walk + delay
+end
+
 return Logic

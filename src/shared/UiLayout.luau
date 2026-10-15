@@ -6,7 +6,8 @@
 --   px / touchSize / textSize   "배율 적용 뒤 실제 픽셀이 최소 몇"을 UIScale 안 좌표(가상 픽셀)로 바꿔요
 --   gridRows             버튼 n개를 폭에 맞춰 몇 줄로 놓을지 (방 만들기 인원 버튼)
 --   touchButtons(w, h)   점프·다이브·잡기 버튼 자리 (화면 픽셀, UIScale 없음)
---   spectateArrows(w, h) compact 관전 ◀ ▶ 자리 (화면 픽셀, 터치 버튼 위쪽)
+--   spectateArrows(w, h, buttons?) compact 관전 ◀ ▶ 자리 (화면 픽셀, 터치 버튼 위쪽).
+--                        buttons = 편집한 배치(m5-41, 전체 화면 픽셀). 없으면 기본 배치 (지금과 같음)
 -- UIScale이 붙은 ScreenGui 안에서 Offset 값 v는 실제로 v × scale 픽셀로 그려져요.
 
 local Config = require(script.Parent.Config)
@@ -20,6 +21,7 @@ UiLayout.TOUCH_GAP_RATIO = 0.15 -- 버튼 사이 간격 = 점프 버튼 × 이 �
 UiLayout.MIN_TOUCH_GAP = 8
 UiLayout.ARROW_SIZE = 52 -- compact 관전 ◀ ▶ 크기 (실제 픽셀)
 UiLayout.ARROW_MARGIN = 12
+UiLayout.TOUCH_TOP_FORBIDDEN = 0.2 -- 화면 높이의 위쪽 이만큼은 터치 버튼·화살표가 못 가요 (m5-41, 위쪽 바·채팅·HUD)
 
 -- Roblox 기본 점프 버튼 (PlayerModule TouchJump): 짧은 변 ≤ 500이면 작은 버튼
 UiLayout.JUMP_SMALL = { size = 70, right = 95, bottom = 90 }
@@ -121,15 +123,44 @@ function UiLayout.touchButtons(width: number, height: number, jump: Rect?): Touc
 	return { jump = j, dive = dive, grab = grab }
 end
 
--- compact 관전 ◀ ▶: 아래쪽 양 끝, 오른쪽 터치 버튼 묶음(잡기 버튼) 바로 위 높이 (화면 픽셀)
-function UiLayout.spectateArrows(width: number, height: number): Arrows
-	local buttons = UiLayout.touchButtons(width, height)
+-- compact 관전 ◀ ▶: 아래쪽 양 끝, 오른쪽 터치 버튼 묶음(가장 위 버튼) 바로 위 높이 (화면 픽셀)
+-- buttons(m5-41 편집한 배치)가 높아 위에 자리가 없으면 위쪽 금지 띠 바로 아래로, 거기서 버튼과 겹치면
+-- 오른쪽 화살표를 버튼 묶음 왼쪽으로 옮겨요.
+function UiLayout.spectateArrows(width: number, height: number, buttons: TouchButtons?): Arrows
 	local size = UiLayout.ARROW_SIZE
 	local margin = UiLayout.ARROW_MARGIN
-	local y = math.max(margin, buttons.grab.y - margin - size)
+	if buttons == nil then
+		local default = UiLayout.touchButtons(width, height)
+		local y = math.max(margin, default.grab.y - margin - size)
+		return {
+			left = { x = margin, y = y, size = size },
+			right = { x = width - margin - size, y = y, size = size },
+		}
+	end
+	local list = { buttons.jump, buttons.dive, buttons.grab }
+	local top, groupLeft = math.huge, math.huge
+	for _, r in list do
+		top = math.min(top, r.y)
+		groupLeft = math.min(groupLeft, r.x)
+	end
+	local band = math.max(margin, math.ceil(height * UiLayout.TOUCH_TOP_FORBIDDEN))
+	local y = top - margin - size
+	local right = { x = width - margin - size, y = y, size = size }
+	if y < band then
+		right.y = band
+		local hits = false
+		for _, r in list do
+			if UiLayout.gapBetween(right, r) < UiLayout.MIN_TOUCH_GAP then
+				hits = true
+			end
+		end
+		if hits then
+			right.x = math.max(margin, groupLeft - margin - size)
+		end
+	end
 	return {
-		left = { x = margin, y = y, size = size },
-		right = { x = width - margin - size, y = y, size = size },
+		left = { x = margin, y = right.y, size = size },
+		right = right,
 	}
 end
 
@@ -142,6 +173,12 @@ end
 
 function UiLayout.inside(r: Rect, width: number, height: number): boolean
 	return r.x >= 0 and r.y >= 0 and r.x + r.size <= width and r.y + r.size <= height
+end
+
+-- 3D 미리보기 인형 카메라 거리 (m5-32): 기본 10 studs. 도는 인형의 가로 반지름이 2.4보다 크면(고등어처럼 밥 양옆으로
+-- 길게 나온 스킨) 그만큼 뒤로 물러나 돌 때 머리·꼬리가 화면 밖으로 안 나가요. 다른 스킨(반지름 ≤ 2.4)은 그대로 10
+function UiLayout.previewDistance(radius: number): number
+	return math.max(10, 10 + (radius - 2.4) * 4)
 end
 
 return UiLayout

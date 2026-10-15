@@ -25,6 +25,7 @@ local VictoryCutsceneLogic = require(ReplicatedStorage.Shared.VictoryCutsceneLog
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
 local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
+local DollAnimator = require(script.Parent.DollAnimator)
 local VictoryCutsceneScreen = require(script.Parent.VictoryCutsceneScreen)
 local VictoryProps = require(script.Parent.VictoryProps)
 
@@ -133,6 +134,8 @@ function VictoryCutsceneController.start(gui: Instance)
 		local doll = buildDoll(appearanceOf(winnerUserId))
 		if doll then
 			doll.Parent = props.model
+			-- 고등어 관절이 있는 스킨이면 신나게 팔딱 (m5-32, 없으면 아무것도 안 해요)
+			cleanup:add(DollAnimator.attach(doll, "Victory", { sound = "World" }))
 		end
 		-- 불꽃놀이 (m5-09): 소품은 미리 지어 두고 박자에 맞춰 터뜨려요
 		local fireworks = if extraOf(winnerUserId) == "Fireworks" then VictoryProps.buildFireworks(props) else nil

@@ -143,6 +143,25 @@ return function(t: Test.Test)
 			"CatPawWarn", -- m5-17
 			"CatPawSwipe", -- m5-17
 			"ClawLift", -- m5-19
+			"DrawReveal", -- m5-31
+			"DrawWin", -- m5-31
+			"FishFlop", -- m5-32
+			"FishSplash", -- m5-32
+			-- m5-33 맵 3차 배치 (무음)
+			"SpongeSquish",
+			"RailSwitch",
+			"MeteorWarn",
+			"MeteorImpact",
+			"RiceBubble",
+			"SteamWhistle",
+			"SteamBlast",
+			"MarketFishWarn",
+			"MarketFishSlam",
+			"IceBlockSlide",
+			"TeaCupRoll",
+			"TeaFieldCrumble",
+			"ClawSlam",
+			"OnsenRise",
 		}
 		local music = { "Lobby", "Round", "Final", "Victory" }
 		for _, name in effects do

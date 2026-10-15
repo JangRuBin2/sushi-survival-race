@@ -9,6 +9,8 @@
 -- 시즌 이벤트 (m5-07): 탭은 ShopLogic.tabs(now) — 이벤트 중이면 "🎃 할로윈" 탭이 맨 앞. 이벤트 탭에서는 카드 위에
 --   머리줄 "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" + 작은 안내(ShopLogic.EVENT_NOTE). 날짜로만, 카운트다운 없음 (D4).
 --   보이는 카드는 ShopLogic.visibleSkins (기간 끝 + 미보유 한정 스킨은 숨김), 보유한 한정 스킨 카드 구석에 "한정".
+-- 🎫 뽑기 (m5-31): 머리줄 "🎫 뽑기 N" 버튼 → 뽑기 화면(DrawScreen, ShopController가 열어요). "🎫 특" 탭(전체 다음), 특 스킨 카드 테두리는
+--   Skins.DRAW_INFO 색 + 구석 "🎫 특" 표시, 미리보기 등급 줄도 "🎫 특". 티켓이 있으면 "🍣 스킨" 버튼에 빨간 숫자 배지.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -19,6 +21,7 @@ local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
 local Kit = require(script.Parent.RoomUiKit)
+local DollAnimator = require(script.Parent.Parent.fx.DollAnimator)
 
 local Color = Kit.Color
 
@@ -29,6 +32,7 @@ export type Actions = {
 	act: (skinId: string) -> (), -- 선택한 스킨의 행동 버튼 (입기 / 해금 / 재화로 받기 / 로벅스 레어 이상)
 	buyRobux: (skinId: string) -> (), -- 일반·레어 스킨의 두 번째 버튼 "R$ 29로 사기" (m4-14)
 	tab: (tabId: string) -> (), -- ShopLogic.Tab.id (m5-07)
+	openDraw: () -> (), -- 🎫 뽑기 화면 열기 (m5-31)
 }
 
 -- 한 번 그리기에 필요한 것 (m5-07)
@@ -51,6 +55,7 @@ export type ShopScreen = {
 	setBusy: (self: ShopScreen, busy: boolean) -> (),
 	showResult: (self: ShopScreen, text: string, isError: boolean) -> (),
 	setLayout: (self: ShopScreen, m: UiLayout.Metrics) -> (),
+	setTickets: (self: ShopScreen, tickets: number) -> (), -- m5-31: 배지·머리줄 버튼 숫자
 }
 
 local ShopScreen = {}
@@ -61,6 +66,7 @@ local CARD_HEIGHT = 70
 local SPIN_SPEED = 0.8 -- rad/s
 local EVENT_COLOR = Color3.fromRGB(150, 80, 200) -- 이벤트 탭·"한정" 표시 (m5-07)
 local EVENT_BAR_HEIGHT = 44 -- 이벤트 머리줄 두 줄 (기본 크기, setLayout이 바꿔요)
+local BADGE_COLOR = Color3.fromRGB(220, 40, 40) -- 🎫 티켓 배지 (m5-31)
 
 local function rgb(v: { number }): Color3
 	return Color3.fromRGB(v[1], v[2], v[3])
@@ -69,6 +75,21 @@ end
 local function tierColor(tier: Skins.Tier): Color3
 	return rgb(Skins.TIER_INFO[tier].color)
 end
+
+-- 카드·미리보기 등급 표시 (특 스킨은 등급 대신 "🎫 특", m5-31)
+local function skinInfo(skin: Skins.Skin): Skins.TierInfo
+	local grade = Skins.drawGradeOf(skin.id)
+	if grade ~= nil and Skins.isDrawOnly(skin.id) then
+		local info = Skins.DRAW_GRADE_INFO[grade]
+		return {
+			displayName = Loc.t("shop.drawTierLine", { grade = Loc.drawGradeName(grade) }),
+			color = info.color,
+		}
+	end
+	return { displayName = Loc.tierName(skin.tier), color = Skins.TIER_INFO[skin.tier].color }
+end
+
+local SPECIAL_COLOR = rgb(Skins.DRAW_INFO.color)
 
 function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	local gui = Kit.new("ScreenGui", {
@@ -87,6 +108,23 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Visible = false,
 	})
 	Kit.onClick(openButton, actions.open)
+	-- 🎫 티켓 배지 (m5-31): 티켓이 있으면 빨간 숫자
+	local badge = Kit.label({
+		Name = "TicketBadge",
+		Parent = openButton,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -4, 0, 4),
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundColor3 = BADGE_COLOR,
+		BackgroundTransparency = 0,
+		Text = "0",
+		TextSize = 14,
+		TextColor3 = Color.White,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Visible = false,
+		ZIndex = 3,
+	})
+	Kit.corner(12).Parent = badge
 
 	-- 창 뒤를 어둡게 가리고 클릭을 막아요
 	local backdrop = Kit.new("Frame", {
@@ -124,13 +162,23 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Parent = header,
 		Text = Loc.t("shop.title"),
 		TextSize = 24,
-		Size = UDim2.fromScale(0.5, 1),
+		Size = UDim2.fromScale(0.3, 1),
 	})
+	-- 🎫 뽑기 패널 열기 (m5-31)
+	local drawOpenButton = Kit.button("🎫 뽑기", SPECIAL_COLOR, {
+		Name = "OpenDraw",
+		Parent = header,
+		Position = UDim2.fromScale(0.3, 0),
+		Size = UDim2.fromScale(0.28, 1),
+		TextSize = 16,
+	})
+	Kit.new("UISizeConstraint", { Parent = drawOpenButton, MaxSize = Vector2.new(170, math.huge) })
+	Kit.onClick(drawOpenButton, actions.openDraw)
 	local coinLabel = Kit.label({
 		Parent = header,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -52, 0, 0),
-		Size = UDim2.fromScale(0.4, 1),
+		Size = UDim2.fromScale(0.22, 1),
 		Text = "🍚 0",
 		TextSize = 20,
 		TextXAlignment = Enum.TextXAlignment.Right,
@@ -170,7 +218,11 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end
 		table.clear(tabButtons)
 		for i, tab in tabs do
-			local color = if tab.eventId then EVENT_COLOR elseif tab.tier then tierColor(tab.tier) else Color.Salmon
+			local color = if tab.eventId
+				then EVENT_COLOR
+				elseif tab.draw then SPECIAL_COLOR
+				elseif tab.tier then tierColor(tab.tier)
+				else Color.Salmon
 			local button = Kit.button(Loc.text(tab.label), color, {
 				Parent = tabRow,
 				LayoutOrder = i,
@@ -303,7 +355,14 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	}) :: UIGridLayout
 	Kit.new("UIPadding", { Parent = grid, PaddingRight = UDim.new(0, 10), PaddingTop = UDim.new(0, 2) })
 
-	type Card = { button: TextButton, stroke: UIStroke, name: TextLabel, status: TextLabel, limited: TextLabel }
+	type Card = {
+		button: TextButton,
+		stroke: UIStroke,
+		name: TextLabel,
+		status: TextLabel,
+		limited: TextLabel,
+		special: TextLabel?,
+	}
 	local cards: { [string]: Card } = {}
 	for _, skin in Skins.LIST do
 		local button = Kit.new("TextButton", {
@@ -316,7 +375,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		}, { Kit.corner(10), Kit.padding(6) }) :: TextButton
 		local stroke = Kit.new("UIStroke", {
 			Parent = button,
-			Color = tierColor(skin.tier),
+			Color = rgb(skinInfo(skin).color),
 			Thickness = 3,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}) :: UIStroke
@@ -351,11 +410,35 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			ZIndex = 2,
 		})
 		Kit.corner(6).Parent = limited
+		-- 특 스킨 구석 표시 (m5-31)
+		local special: TextLabel? = nil
+		local drawGrade = Skins.drawGradeOf(skin.id)
+		if drawGrade ~= nil then
+			local gradeInfo = Skins.DRAW_GRADE_INFO[drawGrade]
+			local tag = Kit.label({
+				Name = "Special",
+				Parent = button,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, 2, 0, -2),
+				Size = UDim2.fromOffset(42, 16),
+				Text = Loc.t("shop.drawBadge", { grade = Loc.drawGradeName(drawGrade) }), -- 뽑기 등급 배지
+				TextSize = 11,
+				TextScaled = true, -- 영어 "Legendary"도 들어가게 (m5-26)
+				TextColor3 = Color.White,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				BackgroundColor3 = rgb(gradeInfo.color),
+				BackgroundTransparency = 0,
+				ZIndex = 2,
+			})
+			Kit.corner(6).Parent = tag
+			special = tag
+		end
 		local id = skin.id
 		Kit.onClick(button, function()
 			actions.select(id)
 		end)
-		cards[skin.id] = { button = button, stroke = stroke, name = name, status = status, limited = limited }
+		cards[skin.id] =
+			{ button = button, stroke = stroke, name = name, status = status, limited = limited, special = special }
 	end
 
 	local selectedId = Skins.DEFAULT_ID
@@ -390,6 +473,12 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		previewModel = model
 		model:PivotTo(CFrame.Angles(0, angle, 0))
 		model.Parent = viewport
+		-- 길게 나온 스킨은 카메라를 조금 뒤로 (m5-32, 다른 스킨은 그대로 z -10)
+		local extents = model:GetExtentsSize()
+		local distance = UiLayout.previewDistance(math.max(extents.X, extents.Z) / 2)
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, 1.2, -distance), Vector3.new(0, 0.1, 0))
+		-- 고등어 관절이 있으면 살랑 + 자주 팔딱 (m5-32, 탈의실이 닫히면 화면이 안 보여 멈춰요)
+		DollAnimator.attach(model, "Preview", { sound = "Ui" })
 	end
 
 	local function startSpin()
@@ -433,6 +522,12 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 
 	local screen = {} :: ShopScreen
 	screen.gui = gui
+
+	function screen.setTickets(_self: ShopScreen, tickets: number)
+		badge.Visible = tickets > 0
+		badge.Text = if tickets > 99 then "99" else tostring(tickets)
+		drawOpenButton.Text = if tickets > 0 then `🎫 뽑기 {tickets}` else "🎫 뽑기"
+	end
 
 	function screen.setButtonVisible(_self: ShopScreen, visible: boolean)
 		openButton.Visible = visible
@@ -498,8 +593,10 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end
 		selectedId = skin.id
 		nameLabel.Text = Loc.skinName(skin.id)
-		local info = Skins.TIER_INFO[skin.tier]
-		tierLabel.Text = Loc.tierName(skin.tier)
+		local info = skinInfo(skin)
+		-- 뽑기에서도 나오는 판매 스킨이면 안내를 붙여요 (m5-32)
+		local hint = ShopLogic.drawHint(skin)
+		tierLabel.Text = if hint then `{info.displayName} · {Loc.text(hint)}` else info.displayName
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
 		currentState = ShopLogic.cardState(skin, view, robux, now)
@@ -533,6 +630,9 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		closeButton.Size = UDim2.fromOffset(buttonHeight, buttonHeight)
 		header.Size = UDim2.new(1, 0, 0, buttonHeight)
 		titleLabel.TextSize = text(24)
+		drawOpenButton.TextSize = text(16)
+		badge.Size = UDim2.fromOffset(text(24), text(24))
+		badge.TextSize = text(14)
 		coinLabel.TextSize = text(20)
 		coinLabel.Position = UDim2.new(1, -(buttonHeight + 8), 0, 0)
 		local tabHeight = UiLayout.touchSize(36, m)

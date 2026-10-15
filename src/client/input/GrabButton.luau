@@ -1,6 +1,7 @@
 --!strict
 -- 모바일 "잡기" 버튼 (m3-07). 기본 점프 버튼 위쪽에 85% 크기로 둬요 (다이브 버튼은 왼쪽, m3-06).
 -- 자리는 Shared.UiLayout.touchButtons가 정해요 (m4-09). 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
+-- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 자리·크기를 쓰고, 편집 중에는 숨어요.
 --   GrabButton.create(onHold) -> { setActive(active), destroy() }?
 --     터치 기기가 아니면 nil. 누르면 onHold(true), 손을 떼면 onHold(false).
 --     기본 터치 컨트롤(PlayerGui.TouchGui.TouchControlFrame.JumpButton)이 나타날 때까지 기다렸다가 보여요.
@@ -12,6 +13,7 @@ local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attribute
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local TouchLayoutController = require(script.Parent.TouchLayoutController)
 local IDLE_COLOR = Color3.fromRGB(255, 255, 255)
 local ACTIVE_COLOR = Color3.fromRGB(255, 170, 60)
 
@@ -80,21 +82,36 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 		screen.IgnoreGuiInset = touchGui.IgnoreGuiInset
 		screen.ScreenInsets = touchGui.ScreenInsets
 		local size = jump.AbsoluteSize
-		-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 (인셋 차이 흡수)
-		local origin = jump.AbsolutePosition - screen.AbsolutePosition
-		local screenSize = screen.AbsoluteSize
-		local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
-			x = origin.X,
-			y = origin.Y,
-			size = math.min(size.X, size.Y),
-		}).grab
-		button.Size = UDim2.fromOffset(rect.size, rect.size)
-		button.Position = UDim2.fromOffset(rect.x, rect.y)
-		button.Visible = jump.Visible and size.X > 0
+		local custom = TouchLayoutController.current()
+		if custom then
+			-- 편집한 배치 (전체 화면 좌표 → 우리 ScreenGui 좌표)
+			local position, buttonSize = TouchLayoutController.place(screen, custom.grab)
+			button.Size = buttonSize
+			button.Position = position
+		else
+			-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 (인셋 차이 흡수)
+			local origin = jump.AbsolutePosition - screen.AbsolutePosition
+			local screenSize = screen.AbsoluteSize
+			local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
+				x = origin.X,
+				y = origin.Y,
+				size = math.min(size.X, size.Y),
+			}).grab
+			button.Size = UDim2.fromOffset(rect.size, rect.size)
+			button.Position = UDim2.fromOffset(rect.x, rect.y)
+		end
+		local editing = TouchLayoutController.isEditing()
+		button.Visible = jump.Visible and size.X > 0 and not editing
+		if editing then
+			release()
+		end
 	end
+
+	local placed: { touchGui: ScreenGui, jump: GuiObject }? = nil
 
 	local function attach(touchGui: ScreenGui, jump: GuiObject)
 		disconnectJump()
+		placed = { touchGui = touchGui, jump = jump }
 		local function update()
 			place(touchGui, jump)
 		end
@@ -133,10 +150,18 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 		end
 	end)
 
+	-- 배치를 저장·편집하면 다시 맞춰요 (m5-41)
+	local stopLayoutWatch = TouchLayoutController.changed(function()
+		local at = placed
+		if at and #jumpConnections > 0 then
+			place(at.touchGui, at.jump)
+		end
+	end)
+
 	table.insert(
 		connections,
 		button.InputBegan:Connect(function(input: InputObject)
-			if currentTouch ~= nil then
+			if currentTouch ~= nil or TouchLayoutController.isEditing() then
 				return
 			end
 			local kind = input.UserInputType
@@ -178,6 +203,7 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 		end,
 		destroy = function()
 			destroyed = true
+			stopLayoutWatch()
 			release()
 			disconnectJump()
 			for _, c in connections do

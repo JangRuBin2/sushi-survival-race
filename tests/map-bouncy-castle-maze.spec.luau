@@ -85,9 +85,19 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC2
 	t.test(
-		"AC2: 구간이 출발→결승 순서로 빈틈없이 이어지고, 진행도(-Z)가 출발(0)에서 결승(134)으로 커져요",
+		"AC2: 구간이 출발→결승 순서로 빈틈없이 이어지고, 진행도(-Z)가 출발(0)에서 결승(240)으로 커져요",
 		function()
-			local order = { Layout.START, Layout.ANTEROOM, Layout.MAZE, Layout.EXIT, Layout.FINISH }
+			-- m5-40: 출구 통로 뒤에 두 번째 미로·쉼 통로·풍선 숲 (전: START, ANTEROOM, MAZE, EXIT, FINISH / 결승 134)
+			local order = {
+				Layout.START,
+				Layout.ANTEROOM,
+				Layout.MAZE,
+				Layout.EXIT,
+				Layout.MAZE2,
+				Layout.LANDING,
+				Layout.FOREST,
+				Layout.FINISH,
+			}
 			t.eq(order[1].front, 0)
 			for i, span in order do
 				t.ok(span.front > span.back, `section {i} must extend toward -Z`)
@@ -95,7 +105,7 @@ return function(t: Test.Test)
 					t.eq(span.front, order[i - 1].back, `section {i} must start where {i - 1} ends`)
 				end
 			end
-			t.eq(-Layout.finishLineZ(), 134)
+			t.eq(-Layout.finishLineZ(), 240) -- m5-40 (전: 134)
 			t.ok(Layout.finishLineZ() < Layout.FINISH.front and Layout.finishLineZ() > Layout.FINISH.back)
 			t.eq(Layout.WIDTH, 40)
 		end

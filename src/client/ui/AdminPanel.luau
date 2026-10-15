@@ -371,6 +371,12 @@ function AdminPanel.new(playerGui: Instance, actions: Actions, options: Options)
 		{ text = "이벤트 재화 +10", color = Color.Egg, onClick = send("tokens", 10) },
 		{ text = "+80", color = Color.Egg, onClick = send("tokens", 80) },
 	})
+	row({ -- m5-31: 🎫 뽑기 티켓 (0~99로 잘려요)
+		{ text = "🎫 티켓 +1", color = Color.Egg, onClick = send("tickets", 1) },
+		{ text = "+10", color = Color.Egg, onClick = send("tickets", 10) },
+		{ text = "+98", color = Color.Egg, onClick = send("tickets", 98) },
+		{ text = "0으로", color = Color.Neutral, onClick = send("tickets", -99) },
+	})
 
 	section("연출 미리보기 (저장 안 됨)")
 	for _, slot in FxCatalog.SLOTS do

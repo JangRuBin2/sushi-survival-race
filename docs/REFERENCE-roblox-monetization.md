@@ -82,6 +82,7 @@
 - 로블록스 정책: R$(또는 R$로 산 재화)로 사는 **랜덤 상품은 모든 결과와 확률(합 100%)을 구매 전에 공개**해야 한다. `PolicyService`의 `ArePaidRandomItemsRestricted`가 true인 사용자에게는 유료 랜덤을 막고 무료 경로·고정 순서·직접 구매 같은 대안을 줘야 한다. [원문] [Paid random items](https://create.roblox.com/docs/production/monetization/paid-random-items)
 - 한국 확률형 아이템 규제가 로블록스 전체의 확률 공개를 밀어붙였다는 보도(2026-06). [검색] [Tech Times](https://www.techtimes.com/articles/319148/20260626/koreas-loot-box-rules-push-roblox-disclose-item-odds-worldwide.htm)
 - → GDD 9.1 "유료 랜덤 뽑기 없음, 골라서 산다"는 시세·규제 양쪽에서 맞다. 유지.
+- 추가 (2026-10-14, m5-31): 사용자가 **무료 뽑기**(우승으로만 얻는 🎫 티켓)를 넣기로 했다. 같은 문서는 Robux·게임 재화 지불이 없는 행동의 보상이면 확률 공개 의무가 없다고 한다 [원문]. 티켓을 Robux·코인으로 팔거나 주는 길이 생기면 유료 랜덤 규칙이 바로 적용되므로 "티켓 판매 금지"를 GDD 규칙으로 둔다. 자세한 조사·비교: [`REFERENCE-winner-ticket-draw.md`](REFERENCE-winner-ticket-draw.md).
 
 ## 6. 우리 게임에 대한 시사점 (요약)
 1. 지금 표(일반 49 / 레어 99 / 에픽 199 / 전설 399, 15종 전부 2,435 R$ ≈ $30 ≈ 3.7~4.6만 원)는 **10대 PvP 대형작의 가격대**에 가깝고, 우리 같은 새 캐주얼 파티 게임(사례 A~D: 단품 50~150)보다 **약 2배** 높다. 전설 1개 = 기프트 카드 한 장 전부.

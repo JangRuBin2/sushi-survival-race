@@ -12,6 +12,10 @@
 --   SushiBody가 Motor6D(PART_JOINT_NAME)로 붙여 둬서 그 Transform만 바꿔요. 카메라에서 DETAIL_DISTANCE보다 멀면 꺼요.
 --   팔(m5-27): ArmLeft/ArmRight 관절이 있는 스킨(실험 스킨 concept-salmon)만 걸을 때 어깨를 축으로 앞뒤로 흔들어요.
 --   관절이 없는 파츠 이름은 그냥 건너뛰어요 (어떤 스킨이든 오류 없음).
+--   물고기 팔딱(m5-32): 고등어 관절(FishRoot 등, FishRig)이 있는 Model만 — 살랑·가끔 팔딱·달리기 꼬리·점프 아치·
+--   착지 팔딱·넘어짐 퍼덕(CharacterAnimLogic.fishPose). 관절은 Model이 바뀔 때 한 번 찾고(프레임마다 찾지 않음),
+--   카메라에서 DETAIL_DISTANCE보다 멀면 기본 자세. 팔딱·첨벙 소리(FishFlop·FishSplash)는 캐릭터 위치 3D, 캐릭터당
+--   SOUND_GAP에 한 번 이하. 관절 이름으로만 움직이고 스킨 id는 보지 않아요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24,6 +28,7 @@ local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
+local FishRig = require(script.Parent.FishRig)
 
 local CharacterFxController = {}
 
@@ -49,7 +54,13 @@ local DEFAULT_GROUND_BELOW_ROOT = 3
 local DIZZY_TEXT = "@_@"
 local DIZZY_SPIN = 360 -- 도/초
 local HIDDEN_THRESHOLD = 0.99
-local NAME_TAG_HEIGHT = SushiBody.NAME_TAG_HEIGHT -- Body 중심에서 이름표까지
+local NAME_TAG_HEIGHT = SushiBody.NAME_TAG_HEIGHT -- Body 중심에서 이름표까지 (기본)
+
+-- 이 Body의 이름표 높이: 기본과 다른 스킨(m5-32 고등어)은 build가 Body에 높이 속성을 달아요 (스킨 id는 몰라요)
+local function nameTagHeightOf(body: BasePart): number
+	local value = body:GetAttribute(SushiBody.NAME_TAG_ATTRIBUTE)
+	return if type(value) == "number" and value > 0 then value else NAME_TAG_HEIGHT
+end
 local NAME_TAG_DISTANCE = 100 -- Roblox 기본 이름표 거리와 같아요
 local NAME_HEIGHT = 24 -- 이름 줄 높이(px)
 local TITLE_HEIGHT = 16 -- 칭호 줄 높이(px, 이름 위)
@@ -63,6 +74,7 @@ type Joints = {
 	footRight: Motor6D?,
 	armLeft: Motor6D?, -- m5-27 (팔이 있는 스킨만)
 	armRight: Motor6D?,
+	fish: FishRig.Rig?, -- m5-32 (고등어 관절이 있는 스킨만)
 }
 
 type State = {
@@ -84,9 +96,17 @@ type State = {
 	knockTime: number,
 	dizzy: BillboardGui?,
 	nameTag: BillboardGui?,
+	-- 물고기 팔딱 (m5-32)
+	fishBlend: CharacterAnimLogic.FishBlend?,
+	flopWait: number,
+	flopTime: number?,
+	fishLandTime: number?,
+	fishLandStrength: number,
+	fishSoundAt: { [string]: number }, -- 소리 이름 → 마지막으로 울린 시각
 }
 
 local states: { [Model]: State } = {}
+local updateFish: (rig: FishRig.Rig, state: State, dt: number, knocked: boolean, inAir: boolean, root: BasePart) -> ()
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 rayParams.IgnoreWater = true
@@ -111,6 +131,12 @@ local function newState(): State
 		knockTime = 0,
 		dizzy = nil,
 		nameTag = nil,
+		fishBlend = nil,
+		flopWait = CharacterAnimLogic.nextFlopDelay(math.random(), "Character"),
+		flopTime = nil,
+		fishLandTime = nil,
+		fishLandStrength = 0,
+		fishSoundAt = {},
 	}
 end
 
@@ -135,7 +161,7 @@ local function makeNameTag(body: BasePart, displayName: string): BillboardGui
 	-- 칭호 줄만큼 키우고 그만큼 위로 밀어 이름 줄은 예전 자리 그대로예요
 	gui.Size = UDim2.fromOffset(200, NAME_HEIGHT + TITLE_HEIGHT)
 	gui.SizeOffset = Vector2.new(0, TITLE_HEIGHT / 2 / (NAME_HEIGHT + TITLE_HEIGHT))
-	gui.StudsOffsetWorldSpace = Vector3.new(0, NAME_TAG_HEIGHT, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, nameTagHeightOf(body), 0) -- 👑·칭호 줄도 이 이름표 안이에요
 	gui.LightInfluence = 0
 	gui.MaxDistance = NAME_TAG_DISTANCE
 	local label = Instance.new("TextLabel")
@@ -220,7 +246,8 @@ local function makeDizzy(body: BasePart): BillboardGui
 	gui.Name = "Dizzy"
 	gui.Adornee = body
 	gui.Size = UDim2.fromOffset(90, 44)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 3, 0)
+	-- 이름표 0.6 아래 (기본 스킨 3, 이름표가 높은 스킨은 같이 올라가요 — m5-32 QA B3: 고등어 몸 속에 가려졌어요)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, nameTagHeightOf(body) - (NAME_TAG_HEIGHT - 3), 0)
 	gui.LightInfluence = 0
 	gui.MaxDistance = 120
 	local label = Instance.new("TextLabel")
@@ -264,6 +291,7 @@ local function findJoints(model: Instance): Joints
 		footRight = partJoint(model, "FootRight"),
 		armLeft = partJoint(model, "ArmLeft"),
 		armRight = partJoint(model, "ArmRight"),
+		fish = FishRig.find(model),
 	}
 end
 
@@ -308,6 +336,56 @@ local function resetJoints(joints: Joints?)
 	moveJoint(joints.footRight, 0, 0, 0)
 	swingArm(joints.armLeft, 0)
 	swingArm(joints.armRight, 0)
+	FishRig.reset(joints.fish)
+end
+
+-- 물고기 팔딱 (m5-32): 가끔 팔딱·착지 팔딱 시계를 돌리고 fishPose → 관절 Transform, 소리 (캐릭터당 SOUND_GAP)
+local function fishSound(state: State, cues: { string }, root: BasePart)
+	-- 같은 소리는 캐릭터당 SOUND_GAP에 한 번 이하 (팔딱·첨벙은 짝이라 서로 막지 않아요)
+	for _, cue in CharacterAnimLogic.fishSoundFilter(state.fishSoundAt, cues, os.clock()) do
+		Sfx.play(cue, root)
+	end
+end
+
+updateFish = function(rig: FishRig.Rig, state: State, dt: number, knocked: boolean, inAir: boolean, root: BasePart)
+	local F = CharacterAnimLogic.FISH
+	-- 착지 팔딱
+	local landTime = state.fishLandTime
+	if landTime ~= nil then
+		local nextTime = landTime + dt
+		local prev = if landTime > 0 then landTime else nil
+		fishSound(state, CharacterAnimLogic.fishCues("Land", "Character", prev, nextTime), root)
+		state.fishLandTime = if nextTime < F.LAND_DELAY + F.LAND_TIME then nextTime else nil
+	end
+	-- 가끔 팔딱 (달리기·공중·넘어짐·착지 팔딱 중에는 새로 시작하지 않아요)
+	local flopTime = state.flopTime
+	if flopTime ~= nil then
+		local nextTime = flopTime + dt
+		fishSound(state, CharacterAnimLogic.fishCues("Flop", "Character", flopTime, nextTime), root)
+		state.flopTime = if nextTime < F.FLOP_TIME then nextTime else nil
+	elseif state.fishLandTime == nil and CharacterAnimLogic.canStartFlop(state.walk, inAir, knocked) then
+		state.flopWait -= dt
+		if state.flopWait <= 0 then
+			state.flopTime = 0
+			state.flopWait = CharacterAnimLogic.nextFlopDelay(math.random(), "Character")
+			fishSound(state, CharacterAnimLogic.fishCues("Flop", "Character", nil, 0), root)
+		end
+	end
+	local input: CharacterAnimLogic.FishInput = {
+		time = state.clock,
+		walk = state.walk,
+		phase = state.phase,
+		riseSpeed = if inAir and state.vy > 0 then state.vy else 0,
+		airborne = inAir,
+		landTime = state.fishLandTime,
+		landStrength = state.fishLandStrength,
+		knocked = knocked,
+		flopTime = state.flopTime,
+		mode = "Character",
+	}
+	state.fishBlend = CharacterAnimLogic.fishBlend(state.fishBlend, input, dt)
+	input.blend = state.fishBlend
+	FishRig.applyTransforms(rig, CharacterAnimLogic.fishMotion(CharacterAnimLogic.fishPose(input)))
 end
 
 local function approach(current: number, target: number, rate: number, dt: number): number
@@ -435,6 +513,13 @@ local function update(character: Model, state: State, dt: number, localCharacter
 		state.landStrength = CharacterAnimLogic.landStrength(state.fallSpeed)
 		state.landTime = if state.landStrength > 0 then 0 else nil
 		state.fallSpeed = 0
+		-- 물고기 착지 팔딱 (m5-32): 찌그러짐과 같은 세기, 더 길게 따로 세요
+		if state.landStrength > 0 then
+			state.fishLandTime = 0
+			state.fishLandStrength = state.landStrength
+			-- 진행 중인 가끔 팔딱은 끊지 않아요 (QA B2 — 끊으면 꼬리가 한 프레임에 튀어요). fishPose가 착지 팔딱과
+			-- 섞고 한도로 묶어요
+		end
 	end
 	state.airborne = inAir
 	local landTime = state.landTime
@@ -486,6 +571,9 @@ local function update(character: Model, state: State, dt: number, localCharacter
 		moveJoint(joints.footRight, 0, pose.footRight.y, pose.footRight.z)
 		swingArm(joints.armLeft, -pose.armSwing)
 		swingArm(joints.armRight, pose.armSwing)
+		if joints.fish then
+			updateFish(joints.fish, state, dt, knocked, inAir, root)
+		end
 	else
 		resetJoints(joints)
 	end

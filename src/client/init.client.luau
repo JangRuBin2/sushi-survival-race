@@ -15,6 +15,7 @@ local gui = require(script.ui.LobbyController).start()
 local CONTROLLERS = {
 	require(script.ProfileStore), -- 맨 먼저: 다른 컨트롤러가 ProfileStore.get/changed를 읽어요 (m4-01)
 	require(script.Sfx), -- 그다음: 다른 컨트롤러가 Sfx.play를 불러요
+	require(script.input.TouchLayoutController), -- m5-41 터치 버튼 배치 (다이브·잡기·관전보다 먼저)
 	require(script.ui.HudController),
 	require(script.ui.SpectateController),
 	require(script.fx.CharacterFxController),
@@ -36,6 +37,7 @@ local CONTROLLERS = {
 	require(script.input.IceController), -- m5-06 얼음 관성
 	require(script.fx.MapDecorFxController), -- m5-20 맵 장식 로컬 애니메이션
 	require(script.fx.MapLightingController), -- m5-23 맵 조명 분위기
+	require(script.ui.SettingsButton), -- m5-41 ⚙ (터치 기기만) → 버튼 위치 편집
 }
 
 for _, controller in CONTROLLERS do

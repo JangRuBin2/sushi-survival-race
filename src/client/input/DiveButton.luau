@@ -5,6 +5,7 @@
 --   button:destroy()
 -- 점프 버튼(PlayerGui.TouchGui.TouchControlFrame.JumpButton) 왼쪽에 85% 크기로 붙고(Shared.UiLayout.touchButtons, m4-09),
 -- 점프 버튼 위치·크기나 화면 크기가 바뀌면 다시 맞춰요. 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
+-- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 자리·크기를 쓰고, 편집 중에는 숨어요.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -14,6 +15,7 @@ local Cleanup = require(game:GetService("ReplicatedStorage").Shared.Cleanup)
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local TouchLayoutController = require(script.Parent.TouchLayoutController)
 
 local DiveButton = {}
 DiveButton.__index = DiveButton
@@ -127,25 +129,36 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 		if size.X <= 0 or size.Y <= 0 then
 			return
 		end
-		-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 바꿔요 (GUI 인셋 차이 흡수)
-		local origin = jump.AbsolutePosition - gui.AbsolutePosition
-		local screenSize = gui.AbsoluteSize
-		local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
-			x = origin.X,
-			y = origin.Y,
-			size = math.min(size.X, size.Y),
-		}).dive
-		local position = UDim2.fromOffset(rect.x, rect.y)
-		local buttonSize = UDim2.fromOffset(rect.size, rect.size)
+		local position: UDim2, buttonSize: UDim2
+		local custom = TouchLayoutController.current()
+		if custom then
+			-- 편집한 배치 (전체 화면 좌표 → 우리 ScreenGui 좌표)
+			position, buttonSize = TouchLayoutController.place(gui, custom.dive)
+		else
+			-- 점프 버튼의 화면 좌표를 우리 ScreenGui 좌표로 바꿔요 (GUI 인셋 차이 흡수)
+			local origin = jump.AbsolutePosition - gui.AbsolutePosition
+			local screenSize = gui.AbsoluteSize
+			local rect = UiLayout.touchButtons(screenSize.X, screenSize.Y, {
+				x = origin.X,
+				y = origin.Y,
+				size = math.min(size.X, size.Y),
+			}).dive
+			position = UDim2.fromOffset(rect.x, rect.y)
+			buttonSize = UDim2.fromOffset(rect.size, rect.size)
+		end
 		button.Position = position
 		button.Size = buttonSize
 		coverHolder.Position = position
 		coverHolder.Size = buttonSize
-		gui.Enabled = jump.Visible
+		-- 편집 중에는 점프 버튼도 숨어 있지만, 따로도 꺼 둬요 (입력이 안 나가게)
+		gui.Enabled = jump.Visible and not TouchLayoutController.isEditing()
 	end
+
+	local currentJump: GuiObject? = nil
 
 	local function attach(jump: GuiObject)
 		self.jumpCleanup:run()
+		currentJump = jump
 		local relayout = function()
 			layout(jump)
 		end
@@ -156,6 +169,7 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 		self.jumpCleanup:add(jump.AncestryChanged:Connect(function()
 			if not jump:IsDescendantOf(playerGui) then
 				self.jumpCleanup:run()
+				currentJump = nil
 				gui.Enabled = false
 			end
 		end))
@@ -182,13 +196,22 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 		end))
 	end
 	refind()
+	-- 배치를 저장·편집하면 다시 맞춰요 (m5-41)
+	self.cleanup:add(TouchLayoutController.changed(function()
+		local jump = currentJump
+		if jump then
+			layout(jump)
+		end
+	end))
 
 	self.cleanup:add(button.InputBegan:Connect(function(input: InputObject)
 		if
 			input.UserInputType == Enum.UserInputType.Touch
 			or input.UserInputType == Enum.UserInputType.MouseButton1
 		then
-			onPress()
+			if not TouchLayoutController.isEditing() then
+				onPress()
+			end
 		end
 	end))
 

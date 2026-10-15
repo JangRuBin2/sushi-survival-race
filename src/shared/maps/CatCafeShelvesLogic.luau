@@ -5,6 +5,7 @@
 --
 --   Logic.climbGap(tierIndex)                   tierIndex단 안쪽 가장자리 → (tierIndex+1)단 바깥쪽 가장자리 수평 거리
 --   Logic.ballOffset(shelf, t)                   t초일 때 공의 선반 축 기준(along) 위치 (사인파 왕복)
+--   Logic.ballCycles(t) / ballPeriod(t)          t초까지 돈 왕복 횟수(60초 뒤 서든데스 주기로 이어짐) / t초의 주기 (m5-40)
 --   Logic.isHit(diff)                            along 위치 차가 BALL_HIT_RANGE 이하면 맞음
 --   Logic.isHitAt(alongDiff, acrossDiff)         along·폭 방향 거리 둘 다 BALL_HIT_RANGE 이하면 맞음 (QA B2)
 --   Logic.pawRest(interval, spent)               경고에 쓴 시간을 뺀 나머지 대기 (실제 주기 = interval, QA B1)
@@ -22,9 +23,15 @@ local Logic = {}
 
 local TAU = 2 * math.pi
 
+-- 시간 제한 (m5-40): 맵 timeLimit 75초 (Config.TimeLimit.Survival 60은 그대로). 60초부터 서든데스 —
+-- 공 주기 4.5 → 3.8초(위상은 이어져요, 공이 순간 이동하지 않음), 고양이 발 간격 2 → 1.6초(마지막 단계 × 0.8).
+Logic.TIME_LIMIT = 75
+Logic.SUDDEN_DEATH_AT = 60
+
 -- 장난감 공
 Logic.BALL_DIAMETER = 2
 Logic.BALL_PERIOD = 4.5 -- 왕복 주기 (초)
+Logic.BALL_PERIOD_SUDDEN = 3.8 -- 서든데스 왕복 주기 (m5-40)
 Logic.BALL_HIT_EXTRA = 1.2 -- 맞음 판정 여유 (지름/2 + 이거)
 Logic.BALL_HIT_RANGE = Logic.BALL_DIAMETER / 2 + Logic.BALL_HIT_EXTRA -- 2.2
 Logic.BALL_KNOCK_HORIZONTAL = 14
@@ -35,6 +42,7 @@ Logic.BALL_COOLDOWN = 1.2 -- 같은 플레이어 재피격 쿨다운 (= MoveExem
 -- 고양이 발
 Logic.PAW_GRACE = 8 -- 이 전까지는 경고가 없어요
 Logic.PAW_WARN_TIME = 1.1
+Logic.PAW_INTERVAL_SUDDEN = 1.6 -- 서든데스 경고 간격 (마지막 단계 2 × 0.8, m5-40). 경고 1.1초가 그 안에 들어가요
 Logic.PAW_KNOCK_HORIZONTAL = 20
 Logic.PAW_KNOCK_UP = 9
 Logic.PAW_KNOCK_HOLD = 0.12
@@ -66,11 +74,26 @@ local function ballAmplitude(shelf: Shelf): number
 end
 Logic.ballAmplitude = ballAmplitude
 
+-- t초까지 공이 돈 왕복 횟수. 60초까지는 t / BALL_PERIOD, 그 뒤는 서든데스 주기로 이어서 늘어요 (m5-40 —
+-- 주기가 바뀌는 순간에도 위치가 끊기지 않아요).
+function Logic.ballCycles(t: number): number
+	local suddenAt = Logic.SUDDEN_DEATH_AT
+	if t <= suddenAt then
+		return t / Logic.BALL_PERIOD
+	end
+	return suddenAt / Logic.BALL_PERIOD + (t - suddenAt) / Logic.BALL_PERIOD_SUDDEN
+end
+
+-- t초의 공 왕복 주기 (60초부터 서든데스)
+function Logic.ballPeriod(t: number): number
+	return if t < Logic.SUDDEN_DEATH_AT then Logic.BALL_PERIOD else Logic.BALL_PERIOD_SUDDEN
+end
+
 -- t초일 때 공의 선반 축 기준(along, 선반 중심 기준) 위치. 선반마다 위상이 달라 전부 같이 움직이지 않아요.
 function Logic.ballOffset(shelf: Shelf, t: number): number
 	local amplitude = ballAmplitude(shelf)
 	local phase = phaseOf(shelf)
-	return amplitude * math.sin(TAU * (t / Logic.BALL_PERIOD + phase))
+	return amplitude * math.sin(TAU * (Logic.ballCycles(t) + phase))
 end
 
 -- 선반 축 기준 위치 차(diff, 항상 0 이상)가 BALL_HIT_RANGE 이하면 맞은 것.
@@ -103,8 +126,10 @@ function Logic.pawInterval(t: number): number?
 		return 5
 	elseif t < 45 then
 		return 3.2
+	elseif t < Logic.SUDDEN_DEATH_AT then
+		return 2
 	end
-	return 2
+	return Logic.PAW_INTERVAL_SUDDEN
 end
 
 -- 고양이 발 한 차례가 시작된 뒤 spent초(경고 1.1초 등)를 썼으면 다음 차례까지 더 기다릴 시간.

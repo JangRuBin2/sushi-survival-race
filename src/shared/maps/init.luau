@@ -22,6 +22,12 @@ local ALL: { MapTypes.MapModule } = {
 	require(script.CatCafeShelves), -- m5-13 껍데기 → m5-17
 	require(script.TugOfWarPlatform), -- m5-13 껍데기 → m5-18
 	require(script.ClawMachinePrize), -- m5-13 껍데기 → m5-19
+	require(script.DishSink), -- m5-33 껍데기 → m5-34
+	require(script.SpaceConveyor), -- m5-33 껍데기 → m5-35
+	require(script.RiceCooker), -- m5-33 껍데기 → m5-36
+	require(script.FishMarket), -- m5-33 껍데기 → m5-37
+	require(script.TeaGarden), -- m5-33 껍데기 → m5-38
+	require(script.OnsenClaw), -- m5-33 껍데기 → m5-39
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

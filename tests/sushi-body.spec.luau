@@ -155,8 +155,15 @@ return function(t: Test.Test)
 			local _, count = string.gsub(source, "require%(", "")
 			t.eq(count, 1, "SushiBody requires only SushiConceptSample")
 			t.ok(string.find(source, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil, "concept require")
+			-- m5-32: 견본은 순수 고등어 토핑 모듈(ConceptMackerel → PartMath)만 불러요 (Roblox API 없음)
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
-			t.ok(string.find(sample, "require(", 1, true) == nil, "SushiConceptSample should not require anything")
+			local _, sampleCount = string.gsub(sample, "require%(", "")
+			t.eq(sampleCount, 1, "SushiConceptSample requires only ConceptMackerel")
+			for _, path in { "src/shared/ConceptMackerel.luau", "src/shared/PartMath.luau" } do
+				local src = fs.readFile(path)
+				t.eq(string.find(src, "game:GetService", 1, true), nil, `{path} pure`)
+				t.eq(string.find(src, "Instance.new", 1, true), nil, `{path} pure`)
+			end
 		end
 	)
 

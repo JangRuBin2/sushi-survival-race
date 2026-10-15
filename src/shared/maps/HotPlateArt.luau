@@ -1258,8 +1258,9 @@ function HotPlateArt.courseVolume(): { MapKitLogic.Bounds }
 	return boxes
 end
 
-function HotPlateArt.isGlowing(elapsed: number): boolean
-	return elapsed >= HotPlateLogic.HEAT_DURATION * HotPlateArt.GLOW_FROM
+-- heatTime: 그 타일의 달아오름 시간 (기본 HEAT_DURATION, m5-40 서든데스 타일은 HEAT_DURATION_SUDDEN)
+function HotPlateArt.isGlowing(elapsed: number, heatTime: number?): boolean
+	return elapsed >= (heatTime or HotPlateLogic.HEAT_DURATION) * HotPlateArt.GLOW_FROM
 end
 
 return HotPlateArt

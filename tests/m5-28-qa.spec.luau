@@ -63,7 +63,7 @@ return function(t: Test.Test)
 			-- 상품 id 어떤 값으로도 콘셉트 스킨이 나오지 않아요
 			for _, skin in Skins.LIST do
 				if skin.productId ~= nil then
-					t.ok(Skins.EXPERIMENTAL_IDS[(Skins.forProduct(skin.productId) :: any).id] ~= true, skin.id)
+					t.ok(Skins.CONCEPT_BODY_IDS[(Skins.forProduct(skin.productId) :: any).id] ~= true, skin.id)
 				end
 			end
 		end
@@ -80,7 +80,7 @@ return function(t: Test.Test)
 		-- 지금 목록에는 없어요
 		for _, offer in Offers.LIST do
 			for _, skinId in (offer :: any).skins or {} do
-				t.ok(Skins.EXPERIMENTAL_IDS[skinId] ~= true, `{offer.id} {skinId}`)
+				t.ok(Skins.CONCEPT_BODY_IDS[skinId] ~= true, `{offer.id} {skinId}`)
 			end
 		end
 	end)
@@ -89,20 +89,23 @@ return function(t: Test.Test)
 		"QA: 나중에 콘셉트 id를 카탈로그에서 빼도 장착값은 안전하게 계란초밥, 저장에 흔적 없음",
 		function()
 			for _, id in NEW do
-				-- 지금: 무료 → 저장된 장착값 유지, ownedSkins에는 안 들어가요
+				-- 지금(m5-31): 뽑기로 보유하면 장착값 유지, 보유가 없으면 계란초밥 (무료가 아니에요)
 				local raw = ProfileSchema.new() :: any
 				raw.equippedSkin = id
+				raw.ownedSkins[id] = true
 				local profile = ProfileLogic.migrate(raw)
-				t.eq(profile.equippedSkin, id, `{id} kept`)
-				t.eq(profile.ownedSkins[id], nil, `{id} not saved`)
-				-- 빼면: isFree가 false가 되는 상황을 흉내 (EXPERIMENTAL_IDS에서 잠시 뺌)
-				Skins.EXPERIMENTAL_IDS[id] = nil
+				t.eq(profile.equippedSkin, id, `{id} kept when owned`)
+				local unowned = ProfileSchema.new() :: any
+				unowned.equippedSkin = id
+				t.eq(ProfileLogic.migrate(unowned).equippedSkin, "tamago", `{id} unowned falls back`)
+				-- 예외 목록에서 빼도 migrate가 안전한지 (CONCEPT_BODY_IDS에서 잠시 뺌)
+				Skins.CONCEPT_BODY_IDS[id] = nil
 				local ok, result = pcall(function()
 					local again = ProfileSchema.new() :: any
 					again.equippedSkin = id
 					return ProfileLogic.migrate(again)
 				end)
-				Skins.EXPERIMENTAL_IDS[id] = true
+				Skins.CONCEPT_BODY_IDS[id] = true
 				t.ok(ok, `{id} migrate after removal`)
 				t.eq((result :: any).equippedSkin, "tamago", `{id} falls back to tamago`)
 				-- 카탈로그에 없는 id(완전히 삭제)도 외형 resolver는 nil → 기본 계란초밥
@@ -117,7 +120,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA: 탈의실 — 새 4종은 '전체' 탭 맨 끝에만, 등급 탭(일반~전설)에는 안 보여요",
+		"QA: 탈의실 — 새 4종은 '전체' 탭 끝(m5-29 4종 바로 앞)에만, 등급 탭(일반~전설)에는 안 보여요",
 		function()
 			local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 			local tabs = ShopLogic.tabs(nil)
@@ -128,18 +131,20 @@ return function(t: Test.Test)
 					ids[skin.id] = true
 				end
 				for _, id in NEW do
-					if tab.id == "all" then
-						t.ok(ids[id], `{id} in all tab`)
+					if tab.id == "all" or tab.id == "draw" then
+						t.ok(ids[id], `{id} in {tab.id} tab`) -- m5-31: 🎫 특 탭에도
 					else
 						t.ok(ids[id] == nil, `{id} not in {tab.id} tab`)
 					end
 				end
 				if tab.id == "all" then
+					-- m5-29가 그 뒤에 4종을 더 붙여요 → 맨 끝 4종 바로 앞
 					local tail = {}
-					for i = #list - 3, #list do
+					-- m5-32 고등어 [신선](order 41)이 맨 끝이라 한 칸 더 앞
+					for i = #list - 8, #list - 5 do
 						table.insert(tail, list[i].id)
 					end
-					t.eq(tail, NEW, "last four in the all tab")
+					t.eq(tail, NEW, "four right before the m5-29 batch in the all tab")
 				end
 			end
 		end

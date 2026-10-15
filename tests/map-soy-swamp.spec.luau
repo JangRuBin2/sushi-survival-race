@@ -26,9 +26,21 @@ return function(t: Test.Test)
 	end)
 
 	t.test(
-		"코스: 구간이 출발→늪→산→내리막→결승 순서로 빈틈없이 이어지고 길이 150~190",
+		"코스: 구간이 출발→늪→산→내리막→(m5-40 쉼터→징검다리→산 2→내리막 2)→결승 순서로 빈틈없이 이어지고 길이 360~440",
 		function()
-			local order = { Layout.START, Layout.SWAMP, Layout.APPROACH, Layout.MOUNTAIN, Layout.SLOPE, Layout.FINISH }
+			local order = {
+				Layout.START,
+				Layout.SWAMP,
+				Layout.APPROACH,
+				Layout.MOUNTAIN,
+				Layout.SLOPE,
+				Layout.LANDING,
+				Layout.RIVER,
+				Layout.APPROACH2,
+				Layout.MOUNTAIN2,
+				Layout.SLOPE2,
+				Layout.FINISH,
+			}
 			t.eq(order[1].front, 0)
 			for i, span in order do
 				t.ok(span.front > span.back, `section {i} must extend toward -Z`)
@@ -37,7 +49,7 @@ return function(t: Test.Test)
 				end
 			end
 			local length = Layout.totalLength()
-			t.ok(length >= 150 and length <= 190, `length {length}`)
+			t.ok(length >= 360 and length <= 440, `length {length}`) -- m5-40 (옛 150~190)
 			t.ok(Layout.WIDTH >= 20, "swamp floor must be at least 20 wide")
 		end
 	)

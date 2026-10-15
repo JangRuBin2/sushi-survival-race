@@ -6,12 +6,14 @@
 -- (점프 버튼은 작은 화면 기준 오른쪽 끝에서 95px, 큰 화면 170px 안쪽에 있어요).
 -- compact(휴대폰 가로, m4-09): ◀ ▶는 화면 아래쪽 양 끝(엄지 위치, 오른쪽은 점프·다이브·잡기 버튼 바로 위,
 -- Shared.UiLayout.spectateArrows), 이름 줄과 동작 버튼은 아래 가운데.
+-- 터치 버튼을 옮겼으면(m5-41) 화살표가 옮긴 버튼 위(또는 옆)를 따라가요 (TouchLayoutController.current()).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
+local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 
 local Color = Kit.Color
 
@@ -118,7 +120,8 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 		actionButton.TextSize = UiLayout.textSize(18, m)
 		if m.compact and m.width > 0 then
 			root.Position = UDim2.new(0.5, 0, 1, -8)
-			local arrows = UiLayout.spectateArrows(m.width, m.height)
+			-- 전체 화면 좌표(ViewportSize)라 m.width·m.height와 같은 기준이에요
+			local arrows = UiLayout.spectateArrows(m.width, m.height, TouchLayoutController.current())
 			local s = m.scale
 			local function place(button: TextButton, rect: UiLayout.Rect, fromRight: boolean)
 				button.Parent = arrowLayer
@@ -143,7 +146,16 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 		end
 		syncArrowLayer()
 	end
-	UiScaleController.onChanged(applyLayout)
+	local lastMetrics: UiLayout.Metrics? = nil
+	UiScaleController.onChanged(function(m: UiLayout.Metrics)
+		lastMetrics = m
+		applyLayout(m)
+	end)
+	TouchLayoutController.changed(function()
+		if lastMetrics then
+			applyLayout(lastMetrics)
+		end
+	end)
 
 	local screen = {}
 

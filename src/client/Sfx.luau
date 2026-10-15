@@ -82,7 +82,8 @@ local function makeGroup(name: string, volume: number): SoundGroup
 	return group
 end
 
-function Sfx.play(cue: string, at: (BasePart | Vector3)?)
+-- volumeScale: 볼륨 배율 (m5-32 — 탈의실·뽑기 화면 인형 소리는 UI 소리로 작게)
+function Sfx.play(cue: string, at: (BasePart | Vector3)?, volumeScale: number?)
 	if not SfxCues.isEffect(cue) then
 		warnOnce("cue", cue)
 		return
@@ -107,11 +108,11 @@ function Sfx.play(cue: string, at: (BasePart | Vector3)?)
 	local sound = Instance.new("Sound")
 	sound.Name = cue
 	sound.SoundId = entry.id :: string
-	sound.Volume = entry.volume
+	sound.Volume = entry.volume * math.clamp(volumeScale or 1, 0, 1)
 	local jitter = entry.pitchJitter or 0
 	sound.PlaybackSpeed = (entry.pitch or 1) * (1 + (math.random() * 2 - 1) * jitter)
 	sound.SoundGroup = sfxGroup
-	sound.RollOffMaxDistance = ROLLOFF_MAX_DISTANCE
+	sound.RollOffMaxDistance = entry.maxDistance or ROLLOFF_MAX_DISTANCE
 
 	-- 소리가 붙을 곳: 파트, 임시 Attachment(위치), SoundService(2D)
 	local holder: Instance? = nil

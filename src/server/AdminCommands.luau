@@ -7,6 +7,7 @@
 --   start         내 방을 인원 조건 없이 바로 시작 (RoomService.forceStart)
 --   plan          내 방 다음 매치 한 번만 맵 순서 (MatchService.setNextPlan, 한 플레이스 모드만)
 --   coins/tokens  내 코인·진행 중 이벤트 재화 +n (DataService.update, 0 아래로 안 감) + 저장 요청
+--   tickets       내 🎫 뽑기 티켓 +n (m5-31, DrawLogic.addTickets로 0~MaxTickets) + 저장 요청
 --   resetprofile  내 프로필을 새 프로필로 (메모리 프로필만 — 저장을 켠 Studio는 canRun·canPersist가 거절)
 -- 이 파일은 AdminService가 명령을 처음 실행할 때 require해요 (미리보기 경로는 경제 모듈을 모르게 — m5-02).
 
@@ -17,6 +18,7 @@ local RunService = game:GetService("RunService")
 local AdminLogic = require(ReplicatedStorage.Shared.AdminLogic)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
+local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
 local FxCatalog = require(ReplicatedStorage.Shared.FxCatalog)
 local ProfileSchema = require(ReplicatedStorage.Shared.ProfileSchema)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
@@ -59,6 +61,7 @@ local function runInfo(player: Player): (boolean, string?)
 		eventName = if event then event.name else nil,
 		tokenIcon = if event then event.token.icon else nil,
 		tokens = if event and profile then (profile.eventTokens or {})[event.id] or 0 else nil,
+		tickets = if profile then profile.drawTickets or 0 else nil,
 	}
 	return true, AdminLogic.infoLine(info)
 end
@@ -154,6 +157,21 @@ local function runTokens(player: Player, parsed: AdminLogic.Parsed): (boolean, s
 	return true, `{event.token.name} {if n >= 0 then "+" else ""}{n} → {event.token.icon}{after}`
 end
 
+local function runTickets(player: Player, parsed: AdminLogic.Parsed): (boolean, string?)
+	local n = parsed.amount :: number
+	local after = 0
+	local updated = DataService.update(player, function(profile)
+		local value = DrawLogic.addTickets(profile.drawTickets, n)
+		profile.drawTickets = value
+		after = value
+	end)
+	if not updated then
+		return fail("NoProfile")
+	end
+	task.spawn(DataService.saveNow, player)
+	return true, `🎫 티켓 {if n >= 0 then "+" else ""}{n} → {after}`
+end
+
 local function runResetProfile(player: Player): (boolean, string?)
 	-- canRun이 저장을 켠 Studio를 이미 거절했어요. 한 번 더: 이 프로필이 실제 저장소에 묶여 있으면 거절
 	if DataService.canPersist(player) then
@@ -196,6 +214,8 @@ function AdminCommands.run(player: Player, parsed: AdminLogic.Parsed): (boolean,
 		return runCoins(player, parsed)
 	elseif command == "tokens" then
 		return runTokens(player, parsed)
+	elseif command == "tickets" then
+		return runTickets(player, parsed)
 	elseif command == "resetprofile" then
 		return runResetProfile(player)
 	end

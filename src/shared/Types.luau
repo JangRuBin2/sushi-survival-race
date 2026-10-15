@@ -100,9 +100,34 @@ export type PlayerResult = {
 	position: Vector3?,
 }
 
+-- 터치 버튼 배치 (m5-41, Shared.TouchLayoutLogic). 버튼 하나 = 가운데 위치(안전 영역 폭·높이에 대한 비율 0~1)
+-- + 크기(짧은 변에 대한 비율). 저장은 소수 셋째 자리까지
+export type TouchButtonSpot = { x: number, y: number, s: number }
+export type TouchLayoutPreset = "default" | "large" | "compact" | "custom"
+export type TouchLayout = {
+	v: number, -- 모양 버전 (지금 1)
+	preset: TouchLayoutPreset,
+	jump: TouchButtonSpot,
+	dive: TouchButtonSpot,
+	grab: TouchButtonSpot,
+}
+export type TouchLayoutBucket = "phone" | "tablet" -- 짧은 변 ≤ 500이면 phone
+-- 기기 묶음별 배치. 없는 묶음은 기본 배치
+export type TouchLayoutSettings = { phone: TouchLayout?, tablet: TouchLayout? }
+
 -- 플레이어 설정 (m4-01). muteLevel: 1 소리 켬, 2 음악 끔, 3 모두 끔 (m3-08 음소거 단계와 같음)
+-- touchLayout (m5-41): 편집한 터치 버튼 배치. 없으면 기본 배치 (프로필 버전 3 그대로, 선택 칸)
 export type Settings = {
 	muteLevel: number,
+	touchLayout: TouchLayoutSettings?,
+}
+
+-- SaveSettings 요청 (m5-41부터 부분 저장): 있는 칸만 바꿔요. 하나라도 틀리면 요청 전체를 무시해요.
+-- touchLayout = { bucket, layout } 이면 그 묶음 저장, { bucket, reset = true } 이면 그 묶음을 지워요 (기본으로)
+export type TouchLayoutChange = { bucket: TouchLayoutBucket, layout: TouchLayout?, reset: boolean? }
+export type SettingsPatch = {
+	muteLevel: number?,
+	touchLayout: TouchLayoutChange?,
 }
 
 -- 클라이언트에 보내는 내 프로필 (ProfileUpdated, ProfileSchema.toView)
@@ -119,6 +144,9 @@ export type ProfileView = {
 	equippedFx: { Elimination: string?, Victory: string? }, -- 입은 연출 (m5-08)
 	boughtOffers: { string }, -- 한 번만 사는 상품 중 산 것 id, 이름순 (m5-08)
 	vip: boolean, -- VIP 게임 패스 확인 결과 (저장 안 함, DataService.setViewExtra로 m5-08이 채움)
+	drawTickets: number, -- 🎫 우승자 뽑기 티켓 (m5-31, 0~Config.Draw.MaxTickets)
+	-- Studio 전부 입기가 켜졌는가 (m5-31, Config.DEBUG.unlockAllSkinsInStudio — 저장 안 함). true면 탈의실 카드가 "입기 (Studio)"
+	studioUnlockAll: boolean,
 }
 
 -- 밥알 코인 지급 이유 (GDD 9.4, m4-08). Code = 코드 보상(m5-10), MatchPlayed = 판 참가(이벤트 재화, m5-07)
@@ -131,6 +159,21 @@ export type RewardGrant = {
 	tokens: number?, -- 이번에 받은 이벤트 재화 (m5-07/m5-10)
 	tokenTotal: number?, -- 지급 뒤 그 이벤트 재화 합계
 	eventId: string?, -- 재화의 이벤트 id (Shared.Seasons)
+	tickets: number?, -- 이번에 받은 🎫 뽑기 티켓 (m5-31, Win일 때만. 가득이면 0)
+	ticketsFull: boolean?, -- 티켓이 가득 차서(Config.Draw.MaxTickets) 이번 우승 티켓을 못 받았으면 true
+}
+
+-- 🎫 뽑기 등급 (m5-31, Shared.Skins.DrawGrade와 같아요). 상점 등급(tier)과 별개
+export type DrawGrade = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary"
+
+-- 🎫 뽑기 결과 (m5-31, DrawTicket이 돌려줘요). 꽝은 없어요: Skin = 새 스킨을 얻음,
+-- Duplicate = 이미 가진 스킨이 나와서 그 뽑기 등급만큼 밥알 코인으로 바뀜 (Config.Draw.DuplicateCoins)
+export type DrawResult = {
+	kind: "Skin" | "Duplicate",
+	skinId: string, -- 나온 스킨 id (Duplicate여도 무엇이 나왔는지 보여 줘요)
+	grade: DrawGrade, -- 뽑기 등급
+	coins: number, -- 이번에 받은 밥알 코인 (Skin이면 0)
+	ticketsLeft: number, -- 뽑은 뒤 남은 뽑기권
 }
 
 return {}

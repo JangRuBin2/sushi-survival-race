@@ -147,12 +147,12 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("QA AC5: 기울기 창 5개가 서로 겹치지 않고 마지막은 53초에 끝나요", function()
+	t.test("QA AC5: 기울기 창 7개가 서로 겹치지 않고 마지막은 73초에 끝나요", function()
 		local plan = Logic.tiltPlan(fakeRng(9))
 		for k = 2, #plan do
 			t.ok(plan[k].startAt >= plan[k - 1].startAt + Logic.TILT_DURATION, `tilt {k} overlaps`)
 		end
-		t.ok(plan[#plan].startAt + Logic.TILT_DURATION <= Config.TimeLimit.Survival, "last tilt ends in time")
+		t.ok(plan[#plan].startAt + Logic.TILT_DURATION <= Logic.TIME_LIMIT, "last tilt ends in time")
 		t.ok(Logic.TILT_RAMP * 2 <= Logic.TILT_DURATION, "ramp fits in duration")
 	end)
 
@@ -271,8 +271,8 @@ return function(t: Test.Test)
 			-- 랜덤은 ctx.rng만
 			t.eq(string.find(source, "Random.new", 1, true), nil)
 			t.eq(string.find(source, "math.random", 1, true), nil)
-			-- 칼 일정은 Survival 시간 제한을 따라요 (맵 timeLimit 없음)
-			t.ok(string.find(source, "Logic.strikeTimes(Config.TimeLimit.Survival)", 1, true) ~= nil, "schedule limit")
+			-- 칼 일정은 맵 시간 제한을 따라요 (m5-40: 맵 timeLimit 75)
+			t.ok(string.find(source, "Logic.strikeTimes(Logic.TIME_LIMIT)", 1, true) ~= nil, "schedule limit")
 		end
 	)
 

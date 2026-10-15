@@ -1,6 +1,7 @@
 --!strict
 -- 회전 벨트 Race 맵 (GDD 5.2 ①). 손님 테이블 사이를 도는 컨베이어 벨트를 거슬러 결승선까지 달려요.
--- 구성: 출발 구간 → 벨트 A(뒤로 미는 구간) → 간장 종지 병목 → 벨트 B(젓가락 2개) → 결승.
+-- 구성: 출발 구간 → 벨트 A(뒤로 미는 구간) → 간장 종지 병목 → 벨트 B(젓가락 2개) → (m5-40) 쉼터 → 지그재그 옆 벨트
+-- → 쉼터 → 접시 탑 슬라롬 → 벨트 C(젓가락 3개) → 결승. 새 구간 표는 RotatingBeltLayout.
 -- 코스는 origin의 LookVector(로컬 -Z) 방향으로 뻗어요 (MapTypes 약속).
 -- 상태(벨트 Heartbeat, 젓가락 사이클, 통과 집합)는 전부 ctx/스레드 안에 둬서 여러 방이 같은 맵을
 -- 동시에 돌려도 서로 섞이지 않게 해요. build()는 Workspace에 아직 안 들어간 Model만 돌려줘요.
@@ -10,6 +11,7 @@
 local Config = require(script.Parent.Parent.Config)
 local Art = require(script.Parent.RotatingBeltArt)
 local Chopstick = require(script.Parent.RotatingBeltChopstick)
+local Layout = require(script.Parent.RotatingBeltLayout)
 local MapDecorTags = require(script.Parent.MapDecorTags)
 local MapKit = require(script.Parent.MapKit)
 local MapKitLogic = require(script.Parent.MapKitLogic)
@@ -35,6 +37,7 @@ local VOID_DROP = 40 -- origin보다 이만큼 아래로 떨어지면 탈락 (�
 local CHOPSTICK_OFFSETS = { -3, 3 } -- 벨트 B 구간에서 두 젓가락이 자리잡을 좌우 위치 (반대 레인으로 피하게)
 local FINISH_LINE_INSET = 4 -- 결승선을 결승 구역 끝 벽보다 이만큼 앞에 둬요 (넘은 뒤 서 있을 자리)
 local CONVEYOR_TAG = "Conveyor" -- 벨트가 미는 구역 (start가 태그로 찾아요, M1 B10)
+local PUSH_SIDE_ATTRIBUTE = "PushSide" -- m5-40 옆 벨트 구역: +1/-1이면 그쪽(로컬 ±x)으로 밀어요. 없으면 뒤로.
 
 -- 아트 색(순수 RGB) → Color3. build 안에서만 불러요.
 local function rgb(c: MapKitLogic.RGB): Color3
@@ -114,7 +117,7 @@ local function build(origin: CFrame): Model
 	conveyors.Name = "Conveyors"
 	conveyors.Parent = model
 
-	local function addConveyorZone(centerZ: number, depth: number, width: number)
+	local function addConveyorZone(centerZ: number, depth: number, width: number, pushSide: number?)
 		local zone = makePart({
 			Name = "ConveyorZone",
 			Size = Vector3.new(width, 6, depth),
@@ -124,6 +127,9 @@ local function build(origin: CFrame): Model
 			Parent = conveyors,
 		})
 		CollectionService:AddTag(zone, CONVEYOR_TAG)
+		if pushSide then
+			zone:SetAttribute(PUSH_SIDE_ATTRIBUTE, pushSide)
+		end
 	end
 
 	-- 출발 구간 + 스폰 (최대 인원만큼, 이름순으로 배치되도록 두 자리 숫자를 써요)
@@ -226,6 +232,111 @@ local function build(origin: CFrame): Model
 		station.Parent = hazards
 	end
 
+	-- m5-40 새 구간 (RotatingBeltLayout.NEW_SECTIONS 순서대로): 쉼터 · 옆 벨트 · 쉼터 · 접시 탑 슬라롬 · 벨트 C
+	for _, section in Layout.NEW_SECTIONS do
+		local width = section.half * 2
+		if section.kind == "Floor" then
+			local center = nextSegment(section.depth)
+			addFloor(
+				center,
+				section.depth,
+				width,
+				rgb(Art.COLORS.woodFloor),
+				Enum.Material.WoodPlanks,
+				Enum.Material.SmoothPlastic
+			)
+			addWalls(center, section.depth, width)
+		elseif section.kind == "SideBelts" then
+			for i, belt in Layout.SIDE_BELTS do
+				local center = nextSegment(belt.depth)
+				addFloor(
+					center,
+					belt.depth,
+					width,
+					rgb(Art.COLORS.sideBelt),
+					Enum.Material.SmoothPlastic,
+					Enum.Material.Metal
+				)
+				addWalls(center, belt.depth, width)
+				addConveyorZone(center, belt.depth, width, belt.push)
+				-- 벨트 끝 칸막이: 미는 쪽 반대편 벽에 붙은 틈으로만 다음 벨트에 가요
+				local solidMin, solidMax = Layout.partitionSolid(i)
+				makePart({
+					Name = "Partition",
+					Size = Vector3.new(solidMax - solidMin, Layout.PARTITION_HEIGHT, Layout.PARTITION_THICKNESS),
+					CFrame = toWorld(
+						CFrame.new(
+							(solidMin + solidMax) / 2,
+							Layout.PARTITION_HEIGHT / 2,
+							cursor + Layout.PARTITION_THICKNESS / 2
+						)
+					),
+					Color = rgb(Art.COLORS.wall),
+					Transparency = 0.5,
+					Material = Enum.Material.Glass,
+					Parent = model,
+				})
+			end
+		elseif section.kind == "Slalom" then
+			local front = cursor
+			local center = nextSegment(section.depth)
+			addFloor(
+				center,
+				section.depth,
+				width,
+				rgb(Art.COLORS.woodFloor),
+				Enum.Material.WoodPlanks,
+				Enum.Material.SmoothPlastic
+			)
+			addWalls(center, section.depth, width)
+			-- 접시 탑: 색 접시를 한 장씩 쌓은 판정 파츠 (지름을 조금씩 바꿔 쌓인 접시처럼)
+			for t, tower in Layout.TOWERS do
+				local plates = math.floor(tower.h / Layout.PLATE_THICKNESS + 0.5)
+				for k = 0, plates - 1 do
+					local color = Art.PLATE_TOWER_COLORS[(t + k) % #Art.PLATE_TOWER_COLORS + 1]
+					local d = if k % 2 == 0 then tower.d else tower.d - 0.5
+					makePart({
+						Name = "PlateTower",
+						Shape = Enum.PartType.Cylinder,
+						Size = Vector3.new(Layout.PLATE_THICKNESS, d, d),
+						CFrame = toWorld(
+							CFrame.new(tower.x, (k + 0.5) * Layout.PLATE_THICKNESS, front - tower.z)
+								* CFrame.Angles(0, 0, math.rad(90))
+						),
+						Color = rgb(color),
+						Material = Enum.Material.SmoothPlastic,
+						CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.Plastic),
+						Parent = model,
+					})
+				end
+			end
+		else
+			local front = cursor
+			local center = nextSegment(section.depth)
+			addFloor(
+				center,
+				section.depth,
+				width,
+				rgb(Art.COLORS.belt),
+				Enum.Material.SmoothPlastic,
+				Enum.Material.Metal
+			)
+			addWalls(center, section.depth, width)
+			addConveyorZone(center, section.depth, width)
+			-- 벨트 C 젓가락: 좌우 번갈아, 옛 대기 시간 범위 안에서 짧은 쪽
+			local sticks = Layout.BELT_C_CHOPSTICKS
+			for i, offsetX in sticks.offsets do
+				local fraction = i / (#sticks.offsets + 1)
+				local station = Chopstick.build(
+					toWorld(CFrame.new(offsetX, 0, front - fraction * section.depth)),
+					sticks.cooldownMin,
+					sticks.cooldownMax
+				)
+				station.Parent = hazards
+			end
+		end
+	end
+
 	-- 결승
 	local finishCenter = nextSegment(DEPTH_FINISH)
 	addFloor(
@@ -310,6 +421,14 @@ local function start(ctx: MapTypes.RoundContext)
 
 	-- 장애물은 폴더 구조가 아니라 태그로 찾아요 (M1 B10). 이 방의 맵(ctx.model) 하위만.
 	local conveyorZones = Chopstick.taggedIn(model, CONVEYOR_TAG)
+	-- m5-40: 옆 벨트 구역은 PushSide 속성 쪽(로컬 ±x)으로, 나머지는 진행 반대 방향으로 밀어요
+	local zoneDirections: { Vector3 } = {}
+	for i, zone in conveyorZones do
+		local side = zone:GetAttribute(PUSH_SIDE_ATTRIBUTE)
+		zoneDirections[i] = if type(side) == "number" and side ~= 0
+			then origin.RightVector * math.sign(side)
+			else pushDirection
+	end
 
 	-- 결승선 통과: 서버 Heartbeat에서 HumanoidRootPart가 결승선의 로컬 z를 지났는지로 판정한다.
 	-- Touched는 얇은 판 위로 점프해 넘으면 안 닿아서 쓰지 않는다 (높이와 상관없이 지나가면 통과).
@@ -340,13 +459,14 @@ local function start(ctx: MapTypes.RoundContext)
 					ctx.eliminate(player)
 					continue
 				end
-				for _, zone in conveyorZones do
+				for i, zone in conveyorZones do
 					if isWithinZone(zone, root.Position) then
+						local direction = zoneDirections[i]
 						local current = root.AssemblyLinearVelocity
-						local along = current:Dot(pushDirection)
+						local along = current:Dot(direction)
 						if along < PUSH_SPEED then
 							local delta = math.min(PUSH_ACCEL * dt, PUSH_SPEED - along)
-							root.AssemblyLinearVelocity = current + pushDirection * delta
+							root.AssemblyLinearVelocity = current + direction * delta
 						end
 						-- 이동 감시(m4-10) 면제는 달지 않아요: 밀기(최고 10, +다이브 50)는 표시 없이도 감시 기준 안이고,
 						-- 면제를 달면 벨트 위 속도 조작이 안 잡혀요 (m4-10 QA B1).

@@ -2,7 +2,7 @@
 -- 회전 벨트 아트 (m4-02 → m5-20 → m5-24): 장식·소개 카메라·색·조명을 순수 데이터로 적어요 (Roblox API 없음 → lune 테스트).
 --   RotatingBeltArt.COLORS          판정 파츠(바닥·벽·종지·젓가락)에 칠할 색 { r, g, b }
 --   RotatingBeltArt.decor()         장식 DecorSpec 목록 (MapKit.buildDecor로 Decor 폴더에, 충돌·쿼리·터치 없음)
---   RotatingBeltArt.introCamera()   라운드 소개 경유점 (출발 위 → 젓가락 → 병목 반전 → 결승 → 출발선 뒤 높이 12)
+--   RotatingBeltArt.introCamera()   라운드 소개 경유점 (출발 위 → 젓가락 → 병목 반전 → 뒷부분 넓은 샷(m5-40) → 출발선 뒤 높이 12)
 --   RotatingBeltArt.courseVolume()  장식이 들어가면 안 되는 상자들 (구간마다 벽 안쪽, 바닥 위 2~12)
 --   RotatingBeltArt.BUDGET          "Extended" (m5-24: 장식 1500·조명 24·그림자 2·파티클 16·움직임 80)
 --   RotatingBeltArt.LIGHTING        맵 조명 분위기 (m5-24: MapLighting.PRESETS 초안을 옮겨 다듬음)
@@ -15,6 +15,7 @@
 -- 파란 거리, 천장 대들보와 종이등. 낙하선(origin - 40)보다 마루가 52 아래예요. 벽·천장은 그림자를 만들지 않아요
 -- (castShadow = false — 해가 창빛처럼 코스를 비추게).
 
+local Layout = require(script.Parent.RotatingBeltLayout)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 local MapLighting = require(script.Parent.MapLighting)
@@ -35,16 +36,26 @@ local RotatingBeltArt = {}
 
 RotatingBeltArt.BUDGET = "Extended"
 
--- RotatingBelt.build와 같은 구간 (half = 벽 안쪽 폭의 절반)
-RotatingBeltArt.SECTIONS = {
-	{ name = "Start", front = 0, back = -14, half = 10 },
-	{ name = "BeltA", front = -14, back = -48, half = 8 },
-	{ name = "Narrow", front = -48, back = -72, half = 3 },
-	{ name = "BeltB", front = -72, back = -106, half = 8 },
-	{ name = "Finish", front = -106, back = -120, half = 10 },
-} :: { Section }
+-- RotatingBelt.build와 같은 구간 (half = 벽 안쪽 폭의 절반). m5-40: 벨트 B 다음에 RotatingBeltLayout.NEW_SECTIONS를
+-- 차례로 끼우고 결승(깊이 14)을 맨 끝에 둬요.
+local function buildSections(): { Section }
+	local list: { Section } = {
+		{ name = "Start", front = 0, back = -14, half = 10 },
+		{ name = "BeltA", front = -14, back = -48, half = 8 },
+		{ name = "Narrow", front = -48, back = -72, half = 3 },
+		{ name = "BeltB", front = -72, back = -106, half = 8 },
+	}
+	local z = Layout.NEW_FRONT
+	for _, section in Layout.NEW_SECTIONS do
+		table.insert(list, { name = section.name, front = z, back = z - section.depth, half = section.half })
+		z -= section.depth
+	end
+	table.insert(list, { name = "Finish", front = z, back = z - 14, half = 10 })
+	return list
+end
+RotatingBeltArt.SECTIONS = buildSections()
 RotatingBeltArt.WALL_HEIGHT = 6
-RotatingBeltArt.FINISH_LINE_Z = -116
+RotatingBeltArt.FINISH_LINE_Z = RotatingBeltArt.SECTIONS[#RotatingBeltArt.SECTIONS].back + 4
 -- 스폰 (6열 × 4줄 = 24). 출발 바닥(z 0 ~ -14, x ±10) 안에 스폰 판(3×3) 가장자리가 1 stud 이상 여유.
 -- M1~M3에서는 z = +3, +7 줄(Spawn13~24)이 출발 바닥 뒤 허공이었고 x ±10 열은 판 절반이 바닥 밖이었어요 (m4-02에서 고침).
 RotatingBeltArt.SPAWN_SIZE = 3
@@ -82,7 +93,7 @@ RotatingBeltArt.SOY_GLINT_Z = -52
 RotatingBeltArt.FLOOR_Y = -92 -- 낙하선 -40보다 52 아래 (카운터 높이 92 cm)
 RotatingBeltArt.CEILING_Y = 200 -- 방 높이 2.9 m
 RotatingBeltArt.SIDE_WALL_X = 250
-RotatingBeltArt.END_WALL_Z = -330
+RotatingBeltArt.END_WALL_Z = -600 -- m5-40: 코스가 -390까지 길어져서 가게 끝 벽·셰프 작업대를 뒤로
 RotatingBeltArt.BACK_Z = 190 -- 바닥·천장이 출발 뒤로 이만큼 (벽은 없어요 — 전체 뷰 카메라가 이쪽에 있어요)
 
 -- 판정 파츠 색 (크기·위치·충돌은 RotatingBelt가 그대로 둬요)
@@ -96,7 +107,17 @@ RotatingBeltArt.COLORS = {
 	stickBlack = { r = 28, g = 24, b = 24 },
 	stickTip = P.Wood,
 	finishLine = { r = 255, g = 196, b = 40 },
+	sideBelt = { r = 66, g = 72, b = 86 }, -- m5-40 옆 벨트 고무 (뒤로 미는 벨트보다 푸르게 — 미는 방향이 달라요)
 } :: { [string]: RGB }
+
+-- m5-40 접시 탑(판정 파츠) 색: 도자기 흰·남색 테·금·연두·연분홍 (경고 빨강은 안 써요)
+RotatingBeltArt.PLATE_TOWER_COLORS = {
+	P.Porcelain,
+	P.PorcelainRim,
+	{ r = 214, g = 170, b = 60 },
+	{ r = 120, g = 160, b = 110 },
+	{ r = 232, g = 160, b = 140 },
+} :: { RGB }
 
 -- 맵 조명 (m5-24): 저녁 5시 반 가게 안 — 호박색 Ambient, 복숭아색 안개, 창밖 푸른 거리와 온도 대비
 RotatingBeltArt.LIGHTING = {
@@ -231,11 +252,12 @@ local function sectionDepth(section: Section): number
 end
 
 -- 벨트 위 슬랫 줄무늬: 진행 방향과 수직, 바닥에 0.05 띄운 얇은 판
-local function addSlats(list: { DecorSpec }, section: Section)
+local function addSlats(list: { DecorSpec }, section: Section, spacing: number?)
+	local step = spacing or 2
 	local z = section.front - 1
 	while z > section.back + 0.5 do
 		part(list, "BeltSlat", "Block", v(section.half * 2 - 0.4, 0.05, 0.4), SLAT, "SmoothPlastic", v(0, 0.075, z))
-		z -= 2
+		z -= step
 	end
 end
 
@@ -512,16 +534,16 @@ end
 local function addFinish(list: { DecorSpec })
 	local lineZ = RotatingBeltArt.FINISH_LINE_Z
 	for row = 0, 1 do
-		for col = 0, 19 do
+		for col = 0, 9 do -- m5-40: 칸 폭 2로 (예산을 새 구간에)
 			local color = if (row + col) % 2 == 0 then WHITE else BLACK
 			part(
 				list,
 				"FinishChecker",
 				"Block",
-				v(1, 0.05, 0.5),
+				v(2, 0.05, 0.5),
 				color,
 				"SmoothPlastic",
-				v(-9.5 + col, 0.45, lineZ + 0.25 - row * 0.5)
+				v(-9 + col * 2, 0.45, lineZ + 0.25 - row * 0.5)
 			)
 		end
 	end
@@ -608,6 +630,26 @@ local ROOM_DEPTH = BACK_Z - END_Z
 
 -- 마루 바닥: 긴 널 9장(3 shade) + 짙은 줄눈, 천장 판 + 대들보
 local function addRoomShell(list: { DecorSpec })
+	-- m5-40: 가게 바깥 저녁 거리 바닥 (코스가 길어져 렌더러 전체 뷰가 가게 밖에서 봐요 — 빈 공중 대신 거리). 반경 800 안.
+	backdrop(
+		list,
+		"StreetGround",
+		v(1600, 4, 1600),
+		{ r = 70, g = 66, b = 84 },
+		"Asphalt",
+		v(0, FLOOR_Y - 10, ROOM_MID_Z)
+	)
+	-- 거리 끝 건물 실루엣 띠 (반경 800 테두리, 그림자 없음 — 가게 안에서는 창 너머로만 보여요)
+	for _, e in { { 0, 798, 1600, 4 }, { 0, -798, 1600, 4 }, { 798, 0, 4, 1600 }, { -798, 0, 4, 1600 } } do
+		backdrop(
+			list,
+			"TownSkyline",
+			v(e[3], 320, e[4]),
+			{ r = 44, g = 52, b = 92 },
+			"SmoothPlastic",
+			v(e[1], FLOOR_Y + 150, ROOM_MID_Z + e[2])
+		)
+	end
 	local boards = 9
 	local boardW = (WALL_X * 2) / boards
 	for i = 0, boards - 1 do
@@ -643,13 +685,12 @@ end
 
 -- 마루 위 테이블 자리 (배경 중경): 둥근 모서리 상판 + 다리 + 방석 의자 + 찻잔·접시 무리. 위치·크기를 조금씩 다르게.
 local function addDiningTables(list: { DecorSpec })
+	-- m5-40: 6 → 4자리 (예산을 새 구간에), 길어진 가게에 고르게
 	local spots = {
 		{ -110, -20, 0 },
-		{ -170, -150, 6 },
-		{ 115, -40, -4 },
-		{ 175, -170, 3 },
-		{ -120, -250, -3 },
-		{ 120, -260, 5 },
+		{ 115, -60, -4 },
+		{ -150, -250, -3 },
+		{ 155, -330, 5 },
 	}
 	for i, s in spots do
 		local x, z, turn = s[1], s[2], s[3]
@@ -702,7 +743,7 @@ end
 
 -- 코스를 받치는 옻칠 기둥 (코스 가운데 아래, 떨어지는 사람이 지나가는 가장자리와 안 겹쳐요)
 local function addCourseSupports(list: { DecorSpec })
-	for _, z in { -8, -40, -80, -112 } do
+	for _, z in { -8, -40, -80, -112, -165, -215, -270, -330, -384 } do
 		local h = -3 - FLOOR_Y
 		part(
 			list,
@@ -832,7 +873,7 @@ local function addGuestCounters(list: { DecorSpec })
 			disc(list, "GuestTea", 0.1, 2.8, { r = 160, g = 176, b = 90 }, "Glass", gx, GUEST_TOP + 2.9, gz)
 			disc(list, "GuestSoyDish", 0.8, 3, WHITE, "SmoothPlastic", gx, GUEST_TOP, gz - 4.5)
 			disc(list, "GuestSoy", 0.1, 2.3, P.Soy, "Glass", gx, GUEST_TOP + 0.8, gz - 4.5).reflectance = 0.25
-			for g = 0, 2 do
+			for g = 0, 1 do -- m5-40: 3 → 2조각 (예산)
 				part(
 					list,
 					"GuestGinger",
@@ -950,7 +991,7 @@ local function addWindow(list: { DecorSpec }, side: number, z: number, seed: num
 			v(x - inward * 1.4, winY - winH / 2 + h / 2, cz)
 		)
 		for row = 0, 2 do
-			if rng:next() < 0.55 and 6 + row * 9 < h - 4 then
+			if rng:next() < 0.45 and 6 + row * 9 < h - 4 then
 				part(
 					list,
 					"StreetLitWindow",
@@ -1016,8 +1057,8 @@ local function addSideWalls(list: { DecorSpec })
 			v(x - side * 0.5, FLOOR_Y + 25, ROOM_MID_Z)
 		)
 		backdrop(list, "SideWainscotRail", v(4, 3, ROOM_DEPTH), BEAM, "Wood", v(x - side * 1, FLOOR_Y + 51, ROOM_MID_Z))
-		local windows = { 60, -60, -180 }
-		local edges = { BACK_Z, 60 + 38, 60 - 38, -60 + 38, -60 - 38, -180 + 38, -180 - 38, END_Z }
+		local windows = { 40, -150, -340 } -- m5-40: 길어진 가게에 맞게 간격을 벌렸어요
+		local edges = { BACK_Z, 40 + 38, 40 - 38, -150 + 38, -150 - 38, -340 + 38, -340 - 38, END_Z }
 		for k = 1, #edges, 2 do
 			local a, b = edges[k], edges[k + 1]
 			if a - b > 0.5 then
@@ -1025,7 +1066,7 @@ local function addSideWalls(list: { DecorSpec })
 			end
 		end
 		-- 기둥 (창 사이) + 위 인방
-		for _, pz in { 120, 0, -120, -240 } do
+		for _, pz in { 120, -55, -245, -435 } do
 			backdrop(list, "WallPost", v(6, wallH, 6), BEAM, "Wood", v(x - side * 2, (FLOOR_Y + CEIL_Y) / 2, pz))
 		end
 		backdrop(list, "WallLintel", v(5, 6, ROOM_DEPTH), BEAM, "Wood", v(x - side * 1.5, 112, ROOM_MID_Z))
@@ -1065,18 +1106,16 @@ local function addEndWall(list: { DecorSpec })
 			v(x, y, z + 4),
 			v(0, 0, tilt)
 		)
-		for line = 0, 1 do
-			part(
-				list,
-				"MenuText",
-				"Block",
-				v(1.6, 20 - line * 6, 0.3),
-				BLACK,
-				"SmoothPlastic",
-				v(x + 3 - line * 5, y + 2 + line * 3, z + 4.9),
-				v(0, 0, tilt)
-			)
-		end
+		part(
+			list,
+			"MenuText",
+			"Block",
+			v(1.6, 20 - (n % 2) * 6, 0.3),
+			BLACK,
+			"SmoothPlastic",
+			v(x + 1, y + 2, z + 4.9),
+			v(0, 0, tilt)
+		)
 		-- 판 위 짙은 테 (맨 판이 아니게)
 		part(list, "MenuBoardCap", "Block", v(w + 1, 1.6, 2), BEAM, "Wood", v(x, y + 17.6, z + 4.2), v(0, 0, tilt))
 		part(list, "MenuPrice", "Block", v(3, 3, 0.3), P.Lacquer, "SmoothPlastic", v(x - 5, y - 12, z + 4.9))
@@ -1144,7 +1183,7 @@ local function addEndWall(list: { DecorSpec })
 		part(list, "SakeShelf", "Block", v(70, 2.4, 14), BEAM_LIGHT, "Wood", v(sx, 10, z + 8))
 		part(list, "SakeShelf", "Block", v(70, 2.4, 14), BEAM_LIGHT, "Wood", v(sx, 40, z + 8))
 		for row, sy in { 11.2, 41.2 } do
-			for k = 0, 6 do
+			for k = 0, 3 do -- m5-40: 7 → 4병 (가게 끝 벽이 멀어져 작게 보여요)
 				local h = 22 + ((k + row) % 3) * 4
 				local bottle = { r = 40, g = 90, b = 60 }
 				if (k + row) % 3 == 1 then
@@ -1152,7 +1191,7 @@ local function addEndWall(list: { DecorSpec })
 				elseif (k + row) % 3 == 2 then
 					bottle = { r = 230, g = 226, b = 210 }
 				end
-				local bx = sx - 30 + k * 10
+				local bx = sx - 27 + k * 18
 				disc(list, "SakeBottle", h, 6, bottle, "Glass", bx, sy, z + 8).reflectance = 0.2
 				disc(list, "SakeLabel", 8, 6.2, WHITE, "SmoothPlastic", bx, sy + h * 0.35, z + 8)
 				disc(list, "SakeNeck", 5, 2.6, bottle, "Glass", bx, sy + h, z + 8)
@@ -1163,7 +1202,7 @@ end
 
 -- 셰프 작업대(결승 너머): 카운터 + 유리 진열 케이스 속 참치·연어·새우, 거대 셰프(모자·팔·칼), 마네키네코, 회전 진열대
 local function addChefStation(list: { DecorSpec })
-	local cz = -150
+	local cz = RotatingBeltArt.SECTIONS[#RotatingBeltArt.SECTIONS].back - 30 -- m5-40: 결승 끝 벽 너머 (옛 -150)
 	-- 작업대 (손님 카운터와 같은 높이 계열, 결승 끝 벽 너머)
 	addAll(
 		list,
@@ -1201,7 +1240,7 @@ local function addChefStation(list: { DecorSpec })
 			TUNA_BLOCK,
 			"SmoothPlastic",
 			v(-14, 7, caseZ),
-			{ radius = 1.6 }
+			{ radius = 1.6, style = "vertical" }
 		)
 	)
 	for k = -1, 1 do
@@ -1223,7 +1262,7 @@ local function addChefStation(list: { DecorSpec })
 			P.Salmon,
 			"SmoothPlastic",
 			v(4, 6.2, caseZ),
-			{ radius = 1.4 }
+			{ radius = 1.4, style = "vertical" }
 		)
 	)
 	for k = -1, 1 do
@@ -1351,16 +1390,375 @@ local function addChefStation(list: { DecorSpec })
 	part(list, "ChefLampCord", "Block", v(0.4, CEIL_Y - 89, 0.4), BLACK, "SmoothPlastic", v(0, (CEIL_Y + 89) / 2, cz))
 end
 
+---------------------------------------------------------------------------- m5-40 새 구간 (손님 홀 → 주방)
+
+local NEW_SECTION_NAMES: { [string]: boolean } = {}
+for _, section in Layout.NEW_SECTIONS do
+	NEW_SECTION_NAMES[section.name] = true
+end
+
+local function sectionNamed(name: string): Section
+	for _, section in RotatingBeltArt.SECTIONS do
+		if section.name == name then
+			return section
+		end
+	end
+	error(`section {name} missing`)
+end
+
+local STEEL = { r = 172, g = 176, b = 186 } -- 주방 스테인리스 (밟는 벨트·나무보다 튀지 않게 한 단계 어둡게)
+local STEEL_DARK = { r = 132, g = 138, b = 150 }
+local KITCHEN_NOREN = { r = 236, g = 232, b = 220 } -- 흰 무명 노렌 (홀의 남색과 구분)
+
+-- 옆 벨트 줄무늬: 미는 방향(x)과 수직이라 z 방향 긴 줄 (벨트마다 4줄, 바닥에 0.05 띄움)
+local function addSideSlats(list: { DecorSpec }, section: Section)
+	local front = section.front
+	for _, belt in Layout.SIDE_BELTS do
+		local cz = front - belt.depth / 2
+		for k = 0, 3 do
+			local x = -section.half + 2 + k * ((section.half * 2 - 4) / 3)
+			part(list, "BeltSlat", "Block", v(0.4, 0.05, belt.depth - 1), SLAT, "SmoothPlastic", v(x, 0.075, cz))
+		end
+		-- 미는 방향 화살표 (밝은 쐐기 둘, 벨트 가운데 — 바닥에 얇게)
+		for k = -1, 1, 2 do
+			part(
+				list,
+				"BeltArrow",
+				"Block",
+				v(2.4, 0.05, 0.5),
+				{ r = 236, g = 226, b = 204 },
+				"SmoothPlastic",
+				v(belt.push * 1.2, 0.08, cz + k * 1.1),
+				v(0, belt.push * k * 35, 0)
+			)
+		end
+		front -= belt.depth
+	end
+end
+
+-- 새 구간 카운터: 판 + 밝은 띠 + 앞판만 (소품·의자는 빼요 — 예산은 주방 소품 무리에)
+local function addCounterRim(list: { DecorSpec }, section: Section)
+	local depth = sectionDepth(section)
+	local centerZ = sectionCenter(section)
+	local inner = section.half + 0.5
+	for _, side in { -1, 1 } do
+		part(
+			list,
+			"Counter",
+			"Block",
+			v(COUNTER_WIDTH, 2, depth),
+			STEEL_DARK,
+			"Metal",
+			v(side * (inner + COUNTER_WIDTH / 2), COUNTER_TOP_Y - 1, centerZ)
+		).reflectance =
+			0.2
+		part(
+			list,
+			"CounterEdge",
+			"Block",
+			v(0.5, 0.4, depth),
+			STEEL_DARK,
+			"Metal",
+			v(side * (inner + COUNTER_WIDTH + 0.25), COUNTER_TOP_Y - 0.2, centerZ)
+		)
+		part(
+			list,
+			"CounterApron",
+			"Block",
+			v(COUNTER_WIDTH + 0.5, 0.6, depth),
+			P.WoodDark,
+			"Wood",
+			v(side * (inner + COUNTER_WIDTH / 2 + 0.25), COUNTER_TOP_Y - 2.3, centerZ)
+		)
+	end
+end
+
+-- 쉼터 두 곳의 흰 노렌 문 (홀 → 주방): 결승 문과 같은 틀, 노렌은 흰 무명 + 남색 문장
+local function addKitchenGates(list: { DecorSpec })
+	for g, name in { "Landing1", "Landing2" } do
+		local section = sectionNamed(name)
+		local gateZ = sectionCenter(section)
+		for _, side in { -1, 1 } do
+			part(list, "KitchenGatePost", "Block", v(1, 19, 1), P.WoodDark, "Wood", v(side * 11.25, 9.5, gateZ))
+			part(list, "KitchenGateFoot", "Block", v(1.6, 1, 1.6), BLACK, "Metal", v(side * 11.25, 0.5, gateZ))
+		end
+		part(list, "KitchenGateBeam", "Block", v(25, 1, 1.2), P.WoodDark, "Wood", v(0, 18.6, gateZ))
+		for i = 0, 2 do
+			local x = -7 + i * 7
+			local cloth =
+				part(list, "KitchenNoren", "Block", v(6.6, 2.8, 0.2), KITCHEN_NOREN, "Fabric", v(x, 16.6, gateZ))
+			cloth.anim = { kind = "Sway", period = 4.4 + i * 0.5 + g * 0.3, amount = 4, axis = "X" }
+			part(list, "KitchenNorenMark", "Ball", v(1.4, 1.4, 0.3), P.Noren, "Fabric", v(x, 16.8, gateZ + 0.15))
+		end
+	end
+end
+
+-- 주방 카운터 (홀 손님 카운터 자리 뒤로 이어짐): 스테인리스 상판 + 립 + 몸통·걸레받이가 마루까지
+-- 위에 구간마다 소품 무리: 설거지대(옆 벨트) · 큰 접시 탑(슬라롬) · 생선 손질대(벨트 C)
+local function addKitchenCounters(list: { DecorSpec })
+	local front = sectionNamed("Landing1").front + 18 -- 손님 카운터 끝(-124)에 이어서
+	local back = sectionNamed("Finish").back + 4
+	local depth = front - back
+	local cz = (front + back) / 2
+	local width = GUEST_OUT - GUEST_IN
+	for _, side in { -1, 1 } do
+		local cx = side * (GUEST_IN + GUEST_OUT) / 2
+		part(list, "KitchenTop", "Block", v(width, 2, depth), STEEL, "Metal", v(cx, GUEST_TOP - 1, cz)).reflectance =
+			0.25
+		part(
+			list,
+			"KitchenLip",
+			"Block",
+			v(0.8, 2.6, depth),
+			STEEL_DARK,
+			"Metal",
+			v(side * (GUEST_IN - 0.4), GUEST_TOP - 1.1, cz)
+		).reflectance =
+			0.3
+		backdrop(
+			list,
+			"KitchenCabinet",
+			v(width - 2, (GUEST_TOP - 2) - FLOOR_Y, depth - 2),
+			shade(CABINET, 0.9),
+			"WoodPlanks",
+			v(cx + side * 1, (GUEST_TOP - 2 + FLOOR_Y) / 2, cz)
+		)
+		backdrop(list, "KitchenKick", v(width - 1, 6, depth - 1), BEAM, "Wood", v(cx + side * 1.5, FLOOR_Y + 3, cz))
+	end
+
+	-- 설거지대 (옆 벨트 옆): 왼쪽 개수대 + 수도꼭지 + 김, 오른쪽 접시 꽂이 + 쌓인 접시
+	local sb = sectionNamed("SideBelts")
+	local sbz = sectionCenter(sb)
+	local sx = -(GUEST_IN + GUEST_OUT) / 2
+	part(list, "SinkBasin", "Block", v(12, 0.6, 30), STEEL_DARK, "Metal", v(sx, GUEST_TOP + 0.3, sbz)).reflectance = 0.3
+	part(
+		list,
+		"SinkWater",
+		"Block",
+		v(10.6, 0.1, 28.6),
+		{ r = 150, g = 186, b = 206 },
+		"Glass",
+		v(sx, GUEST_TOP + 0.65, sbz)
+	).reflectance =
+		0.25
+	addAll(
+		list,
+		MapKitShapes.capsule("SinkFaucet", 10, 1.4, STEEL, "Metal", v(sx - 7.5, GUEST_TOP + 5, sbz), v(0, 0, 90))
+	)
+	addAll(
+		list,
+		MapKitShapes.capsule("SinkSpout", 6, 1.2, STEEL, "Metal", v(sx - 5, GUEST_TOP + 9.5, sbz), v(0, 0, 20))
+	)
+	local steam = part(list, "SinkSteam", "Block", v(4, 0.4, 4), WHITE, "SmoothPlastic", v(sx, GUEST_TOP + 1, sbz - 6))
+	steam.transparency = 1
+	steam.particle = "Steam"
+	steam.particleRate = 1.5
+	for k, dz in { -24, 22 } do
+		for layer = 0, 4 do
+			local color = PLATE_COLORS[(layer + k) % #PLATE_COLORS + 1]
+			disc(list, "WashedPlate", 0.8, 8, color, "SmoothPlastic", sx + 1, GUEST_TOP + layer * 0.9, sbz + dz)
+		end
+	end
+	local rx = (GUEST_IN + GUEST_OUT) / 2
+	part(list, "DishRackBase", "Block", v(10, 1, 40), STEEL_DARK, "Metal", v(rx, GUEST_TOP + 0.5, sbz))
+	for k = 0, 5 do
+		local plate = shade(PLATE_COLORS[k % #PLATE_COLORS + 1], 0.85)
+		part(
+			list,
+			"RackedPlate",
+			"Cylinder",
+			v(0.6, 6, 6),
+			plate,
+			"SmoothPlastic",
+			v(rx, GUEST_TOP + 4, sbz - 15 + k * 6),
+			v(0, 90, 0)
+		)
+	end
+
+	-- 큰 접시 탑 (슬라롬 옆 카운터 위, 판정 탑의 큰 형제 — 조금씩 기울고 어긋나게)
+	local sl = sectionNamed("Slalom")
+	local stacks = {
+		{ side = -1, dz = -30, n = 6, d = 10, tilt = 4 },
+		{ side = -1, dz = 22, n = 4, d = 9, tilt = -3 },
+		{ side = 1, dz = -8, n = 6, d = 10, tilt = -5 },
+		{ side = 1, dz = 34, n = 4, d = 9, tilt = 3 },
+	}
+	for i, st in stacks do
+		local x = st.side * (GUEST_IN + 7)
+		local z = sectionCenter(sl) + st.dz
+		for layer = 0, st.n - 1 do
+			local color = RotatingBeltArt.PLATE_TOWER_COLORS[(layer + i) % #RotatingBeltArt.PLATE_TOWER_COLORS + 1]
+			local d = if layer % 2 == 0 then st.d else st.d - 0.8
+			part(
+				list,
+				"PlatePile",
+				"Cylinder",
+				v(1.4, d, d),
+				color,
+				"SmoothPlastic",
+				v(x + layer * 0.12 * st.tilt, GUEST_TOP + 0.7 + layer * 1.45, z),
+				v(0, layer * 9, 90 + st.tilt * 0.4)
+			)
+		end
+	end
+
+	-- 생선 손질대 (벨트 C 옆): 오른쪽 도마 + 참치 덩어리 + 칼, 왼쪽 연어 + 생강 접시
+	local bc = sectionNamed("BeltC")
+	local bz = sectionCenter(bc)
+	part(list, "PrepBoard", "Block", v(13, 1.2, 26), P.WoodLight, "Wood", v(rx, GUEST_TOP + 0.6, bz))
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"PrepTuna",
+			v(8, 5, 14),
+			TUNA_BLOCK,
+			"SmoothPlastic",
+			v(rx, GUEST_TOP + 3.7, bz + 3),
+			{ radius = 1.2, style = "vertical" }
+		)
+	)
+	for k = -1, 1 do
+		part(
+			list,
+			"PrepTunaFat",
+			"Block",
+			v(8.2, 5.1, 0.3),
+			{ r = 236, g = 150, b = 156 },
+			"SmoothPlastic",
+			v(rx, GUEST_TOP + 3.7, bz + 3 + k * 3.6)
+		)
+	end
+	part(
+		list,
+		"PrepKnife",
+		"Block",
+		v(0.3, 1.8, 14),
+		{ r = 214, g = 220, b = 228 },
+		"Metal",
+		v(rx - 3, GUEST_TOP + 1.6, bz - 8),
+		v(0, 12, 0)
+	).reflectance =
+		0.45
+	addAll(
+		list,
+		MapKitShapes.capsule(
+			"PrepKnifeHandle",
+			6,
+			1.4,
+			BEAM,
+			"Wood",
+			v(rx - 1.5, GUEST_TOP + 1.6, bz - 17.5),
+			v(0, 102, 0)
+		)
+	)
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"PrepSalmon",
+			v(7, 3.6, 16),
+			P.Salmon,
+			"SmoothPlastic",
+			v(sx, GUEST_TOP + 1.8, bz - 4),
+			{ radius = 1.2, style = "vertical" }
+		)
+	)
+	for k = -1, 1 do
+		part(
+			list,
+			"PrepSalmonStripe",
+			"Block",
+			v(7.2, 3.7, 0.4),
+			P.SalmonLight,
+			"SmoothPlastic",
+			v(sx, GUEST_TOP + 1.8, bz - 4 + k * 4),
+			v(0, 18, 0)
+		)
+	end
+	disc(list, "PrepGingerDish", 0.8, 9, WHITE, "SmoothPlastic", sx, GUEST_TOP, bz + 12)
+	for g = 0, 2 do
+		part(
+			list,
+			"PrepGinger",
+			"Ball",
+			v(2.4, 1.2, 2.4),
+			{ r = 246, g = 180, b = 170 },
+			"SmoothPlastic",
+			v(sx - 1 + g, GUEST_TOP + 1.2 + (g % 2) * 0.4, bz + 12 - g * 0.8)
+		)
+	end
+end
+
+-- 판정 접시 탑 꼭대기 초밥 한 점 (탑 윗면 ≥ 12 — 코스 시야 상자 위)
+local function addTowerTops(list: { DecorSpec })
+	local sl = sectionNamed("Slalom")
+	for i, tower in Layout.TOWERS do
+		local plates = math.floor(tower.h / Layout.PLATE_THICKNESS + 0.5)
+		local top = plates * Layout.PLATE_THICKNESS
+		local z = sl.front - tower.z
+		local turn = (i * 37) % 90 - 45
+		part(
+			list,
+			"TowerRice",
+			"Block",
+			v(2.4, 1.6, 3.8),
+			WHITE,
+			"SmoothPlastic",
+			v(tower.x, top + 0.8, z),
+			v(0, turn, 0)
+		)
+		part(
+			list,
+			"TowerTopping",
+			"Block",
+			v(2.8, 0.6, 4.4),
+			TOPPINGS[i % #TOPPINGS + 1],
+			"SmoothPlastic",
+			v(tower.x, top + 1.9, z),
+			v(0, turn, 0)
+		)
+	end
+end
+
+-- 주방 천장 등 셋 (새 구간 위, 빛의 원인 — 소개 카메라 경로 높이 34보다 위)
+local function addKitchenLamps(list: { DecorSpec })
+	for i, name in { "SideBelts", "Slalom", "BeltC" } do
+		local z = sectionCenter(sectionNamed(name))
+		local x = if i % 2 == 0 then 12 else -12
+		local y = 46
+		local bulb = part(list, "KitchenLamp", "Cylinder", v(1.4, 6, 6), LAMP_PAPER, "Neon", v(x, y, z), UP)
+		bulb.light = { kind = "Point", color = LAMP_LIGHT, brightness = 1.5, range = 40 }
+		part(list, "KitchenLampShade", "Cylinder", v(3, 10, 10), STEEL_DARK, "Metal", v(x, y + 2, z), UP).reflectance =
+			0.2
+		part(
+			list,
+			"KitchenLampCord",
+			"Block",
+			v(0.3, CEIL_Y - y - 3.5, 0.3),
+			BLACK,
+			"SmoothPlastic",
+			v(x, (CEIL_Y + y + 3.5) / 2, z)
+		)
+	end
+end
+
 function RotatingBeltArt.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	local itemIndex = 0
 	for _, section in RotatingBeltArt.SECTIONS do
 		if section.name == "BeltA" or section.name == "BeltB" then
 			addSlats(list, section)
+		elseif section.name == "BeltC" then
+			addSlats(list, section, 3) -- m5-40: 새 벨트는 줄 간격 3 (예산)
+		elseif section.name == "SideBelts" then
+			addSideSlats(list, section)
 		end
 		addRails(list, section)
 		addUnderTrim(list, section)
-		itemIndex = addCounters(list, section, itemIndex)
+		if NEW_SECTION_NAMES[section.name] then
+			addCounterRim(list, section)
+		else
+			itemIndex = addCounters(list, section, itemIndex)
+		end
 	end
 	addNarrow(list)
 	addSoyGlints(list) -- m5-20 ①
@@ -1381,6 +1779,11 @@ function RotatingBeltArt.decor(): { DecorSpec }
 	addSideWalls(list)
 	addEndWall(list)
 	addChefStation(list)
+	-- m5-40 새 구간 (손님 홀 → 주방): 노렌 문 둘, 주방 카운터, 설거지대·접시 탑·생선 손질대, 접시 탑 위 초밥, 주방 등
+	addKitchenGates(list)
+	addKitchenCounters(list)
+	addTowerTops(list)
+	addKitchenLamps(list)
 	return list
 end
 
@@ -1389,7 +1792,8 @@ function RotatingBeltArt.introCamera(): { IntroPoint }
 		{ pos = v(0, 14, 6), lookAt = v(0, 2, -24) }, -- 출발 위
 		{ pos = v(0, 17, -66), lookAt = v(0, 2, -88) }, -- 병목 → 젓가락 구간
 		{ pos = v(0, 26, -62), lookAt = v(0, 1, -68) }, -- m5-20 ⑤: 병목 바로 위 반전 샷 (내려다봄, 등 사이로 지나가요)
-		{ pos = v(0, 18, -96), lookAt = v(0, 3, -118) }, -- 결승 노렌
+		-- m5-40: 벨트 B 끝 위에서 새 뒷부분(노렌 문 → 옆 벨트 → 접시 탑 → 벨트 C → 결승 셰프)을 길게 내다봐요
+		{ pos = v(8, 24, -112), lookAt = v(0, 3, -250) },
 		{ pos = v(0, 12, 10), lookAt = v(0, 3, -20) }, -- 출발선 뒤 (내 자리)
 	}
 end

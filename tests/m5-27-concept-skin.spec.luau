@@ -1,6 +1,6 @@
 --!strict
--- m5-27 실험 스킨 concept-salmon (콘셉트 견본 연어초밥을 게임에서 무료로 써 보기):
---   카탈로그·검사 예외가 이 id 하나에만, 모두가 처음부터 가짐(저장 없이), SushiBody.layout/build가 견본 게임 레이아웃,
+-- m5-27 콘셉트 몸 스킨 concept-salmon (콘셉트 견본 연어초밥, m5-31부터 🎫 뽑기 전용 특 스킨 "연어초밥 (특)"):
+--   카탈로그·검사 예외가 콘셉트 9종에만, 뽑기로 얻어 저장된 ownedSkins로 보유(m5-31), SushiBody.layout/build가 견본 게임 레이아웃,
 --   발바닥 = GROUND_OFFSET, 깜빡임·발·팔 관절, 표정 인형, 팔 흔들기 로직.
 
 local fs = require("@lune/fs")
@@ -56,13 +56,14 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- 카탈로그·예외 범위
 	t.test(
-		"카탈로그: 무료 Basic 실험 스킨, 이름 '콘셉트 연어초밥 (테스트)', validate 통과",
+		"카탈로그: Basic 뽑기 전용 특 스킨, 이름 '연어초밥 (특)', validate 통과 (m5-31)",
 		function()
 			local skin = Skins.get(ID)
 			t.ok(skin ~= nil, "in catalog")
-			t.eq(skin.displayName, "콘셉트 연어초밥 (테스트)")
+			t.eq(skin.displayName, "연어초밥 (특)")
 			t.eq(skin.tier, "Basic")
-			t.eq(skin.experimental, true)
+			t.eq(skin.conceptBody, true)
+			t.eq(skin.drawGrade, "Epic") -- m5-31: 뽑기 등급 영웅
 			for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 				t.eq((skin :: any)[field], nil, field)
 			end
@@ -71,39 +72,51 @@ return function(t: Test.Test)
 		end
 	)
 
-	-- m5-28: 같은 콘셉트 몸의 실험 스킨 4종이 늘어 예외 목록이 정확히 5개가 됐어요 (여전히 명시적 목록과 같아야 해요)
-	local CONCEPT_IDS = { "concept-ikura", "concept-salmon", "concept-shrimp", "concept-tamago", "concept-tuna" }
+	-- m5-28·m5-29: 같은 콘셉트 몸의 실험 스킨이 늘어 예외 목록이 정확히 9개가 됐어요 (여전히 명시적 목록과 같아야 해요)
+	local CONCEPT_IDS = {
+		"concept-ikura",
+		"concept-inari",
+		"concept-salmon",
+		"concept-shrimp",
+		"concept-tako",
+		"concept-tamago",
+		"concept-tuna",
+		"concept-unagi",
+		"concept-uni",
+		"fresh-mackerel", -- m5-32 판매 스킨도 콘셉트 몸
+	}
+	table.sort(CONCEPT_IDS)
 	t.test(
-		"예외는 콘셉트 몸 5종뿐: LIST의 experimental·EXPERIMENTAL_IDS·SushiBody.EXPERIMENTAL이 같아요",
+		"예외는 콘셉트 몸 10종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do
-				if skin.experimental ~= nil then
+				if skin.conceptBody ~= nil then
 					flagged[skin.id] = true
 				end
 			end
 			t.eq(sortedKeys(flagged), CONCEPT_IDS)
-			t.eq(sortedKeys(Skins.EXPERIMENTAL_IDS), CONCEPT_IDS)
-			t.eq(sortedKeys(SushiBody.EXPERIMENTAL), CONCEPT_IDS)
-			t.ok(flagged[ID], "concept-salmon still experimental")
-			t.ok(SushiBody.EXPERIMENTAL[ID].partBudget <= 47, "budget 45~47")
+			t.eq(sortedKeys(Skins.CONCEPT_BODY_IDS), CONCEPT_IDS)
+			t.eq(sortedKeys(SushiBody.CONCEPT_BODY), CONCEPT_IDS)
+			t.ok(flagged[ID], "concept-salmon still conceptBody")
+			t.ok(SushiBody.CONCEPT_BODY[ID].partBudget <= 70, "budget ≤ 70 (m5-30)")
 		end
 	)
 
 	t.test(
-		"validate: 다른 스킨에 experimental을 달거나 실험 스킨에 가격을 붙이면 잡아요",
+		"validate: 다른 스킨에 conceptBody를 달거나 실험 스킨에 가격을 붙이면 잡아요",
 		function()
 			local list = table.clone(Skins.LIST) :: { any }
 			for i, skin in list do
 				if skin.id == "salmon" then
 					local copy = table.clone(skin)
-					copy.experimental = true
+					copy.conceptBody = true
 					list[i] = copy
 				end
 			end
 			local ok, problems = Skins.validate(list)
 			t.eq(ok, false)
-			t.ok(string.find(table.concat(problems, ";"), "experimental only for", 1, true) ~= nil, "id scope")
+			t.ok(string.find(table.concat(problems, ";"), "conceptBody only for", 1, true) ~= nil, "id scope")
 
 			local priced = table.clone(Skins.LIST) :: { any }
 			for i, skin in priced do
@@ -115,7 +128,15 @@ return function(t: Test.Test)
 			end
 			local ok2, problems2 = Skins.validate(priced)
 			t.eq(ok2, false)
-			t.ok(string.find(table.concat(problems2, ";"), "must be Basic and free", 1, true) ~= nil, "free")
+			t.ok(
+				string.find(
+					table.concat(problems2, ";"),
+					"only the default skin and draw-only skins are Basic",
+					1,
+					true
+				) ~= nil,
+				"draw only"
+			)
 
 			local tiered = table.clone(Skins.LIST) :: { any }
 			for i, skin in tiered do
@@ -129,52 +150,71 @@ return function(t: Test.Test)
 		end
 	)
 
-	---------------------------------------------------------------- 보유 (저장 없이 모두가 가짐)
-	t.test("보유: isFree, 장착 가능(잠금 중엔 Locked), 코인·로벅스로는 이미 가진 것", function()
-		t.eq(Skins.isFree(ID), true)
-		t.eq(Skins.isFree("tamago"), true)
-		t.eq(Skins.isFree("salmon"), false)
-		t.eq(Skins.isFree("no-such-skin"), false)
-		t.eq(Skins.isFree(nil), false)
+	---------------------------------------------------------------- 보유 (m5-31: 무료 아님, 뽑기로 얻어 저장)
+	t.test(
+		"보유: 무료 아님(isFree false), 미보유면 NotOwned, 보유하면 장착(잠금 중엔 Locked), 살 수 없음",
+		function()
+			t.eq(Skins.isFree(ID), false)
+			t.eq(Skins.isDraw(ID), true)
+			t.eq(Skins.isFree("tamago"), true)
+			t.eq(Skins.isFree("salmon"), false)
+			t.eq(Skins.isFree("no-such-skin"), false)
+			t.eq(Skins.isFree(nil), false)
 
-		t.eq(ShopLogic.canEquip(ID, { tamago = true }), true)
-		t.eq(select(2, ShopLogic.canEquip(ID, { tamago = true }, true)), "Locked")
-		t.eq(ShopLogic.canEquip("salmon", { tamago = true }), false)
-		local coin = ShopLogic.canBuyWithCoins(ID, { coins = 9999, ownedSkins = { tamago = true } })
-		t.eq(coin.ok, false)
-		t.eq(coin.reason, "AlreadyOwned")
-		t.eq(select(2, ReceiptLogic.canRequest(ID, { tamago = true }, { canSave = true, fake = true })), "AlreadyOwned")
-	end)
-
-	t.test("탈의실: 새 프로필에서도 카드가 '입기', 전체 탭에 보여요", function()
-		local view = freshView()
-		local state = ShopLogic.cardState(Skins.get(ID), view)
-		t.eq(state.kind, "Equip")
-		t.eq(state.enabled, true)
-		t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "입기")
-		local shown = false
-		for _, tab in ShopLogic.tabs() do
-			if tab.id == "all" then
-				for _, skin in ShopLogic.visibleSkins(view, tab) do
-					shown = shown or skin.id == ID
-				end
-			end
+			t.eq(select(2, ShopLogic.canEquip(ID, { tamago = true })), "NotOwned")
+			t.eq(ShopLogic.canEquip(ID, { tamago = true, [ID] = true }), true)
+			t.eq(select(2, ShopLogic.canEquip(ID, { tamago = true, [ID] = true }, true)), "Locked")
+			t.eq(ShopLogic.canEquip("salmon", { tamago = true }), false)
+			local coin = ShopLogic.canBuyWithCoins(ID, { coins = 9999, ownedSkins = { tamago = true } } :: any)
+			t.eq(coin.ok, false)
+			t.eq(coin.reason, "NotForCoins")
+			t.eq(select(2, ReceiptLogic.canRequest(ID, { tamago = true }, { canSave = true, fake = true })), "NotRobux")
 		end
-		t.ok(shown, "visible in the all tab")
-		view.equippedSkin = ID
-		t.eq(ShopLogic.cardState(Skins.get(ID), view).kind, "Equipped")
-	end)
+	)
 
 	t.test(
-		"저장: 새 프로필 ownedSkins에는 안 넣고, 장착값 concept-salmon은 불러와도 유지돼요",
+		"탈의실: 새 프로필이면 카드가 '🎫 뽑기로 얻기', 가지면 '입기', 전체 탭에 보여요",
+		function()
+			local view = freshView()
+			local state = ShopLogic.cardState(Skins.get(ID), view)
+			t.eq(state.kind, "Draw")
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "🎫 뽑기로 얻기")
+			local ownedView = freshView()
+			ownedView.ownedSkins = { ID, "tamago" }
+			local owned = ShopLogic.cardState(Skins.get(ID), ownedView)
+			t.eq(owned.kind, "Equip")
+			t.eq(owned.enabled, true)
+			t.eq(LocTest.ko(ShopLogic.cardButtonText(owned)), "입기")
+			local shown = false
+			for _, tab in ShopLogic.tabs() do
+				if tab.id == "all" then
+					for _, skin in ShopLogic.visibleSkins(view, tab) do
+						shown = shown or skin.id == ID
+					end
+				end
+			end
+			t.ok(shown, "visible in the all tab")
+			view.equippedSkin = ID
+			t.eq(ShopLogic.cardState(Skins.get(ID), view).kind, "Equipped")
+		end
+	)
+
+	t.test(
+		"저장: 새 프로필은 안 가져요. 보유 없이 장착한 concept-salmon은 계란초밥으로, 보유하면 장착값 유지 (m5-31)",
 		function()
 			local fresh = ProfileSchema.new()
 			t.eq(fresh.ownedSkins[ID], nil)
 			local raw = ProfileSchema.new() :: any
 			raw.equippedSkin = ID
 			local profile = ProfileLogic.migrate(raw)
-			t.eq(profile.equippedSkin, ID)
+			t.eq(profile.equippedSkin, "tamago")
 			t.eq(profile.ownedSkins[ID], nil)
+			local drawn = ProfileSchema.new() :: any
+			drawn.equippedSkin = ID
+			drawn.ownedSkins[ID] = true
+			local kept = ProfileLogic.migrate(drawn)
+			t.eq(kept.equippedSkin, ID)
+			t.eq(kept.ownedSkins[ID], true)
 			-- 다른 미보유 스킨은 예전처럼 계란초밥으로
 			local other = ProfileSchema.new() :: any
 			other.equippedSkin = "salmon"
@@ -182,12 +222,15 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test("서버 코드: 장착 resolver가 무료 스킨을 보유로 봐요 (프로필은 복사본만)", function()
-		local source = fs.readFile("src/server/ShopService.luau")
-		t.ok(string.find(source, "Skins.isFree(equipped)", 1, true) ~= nil, "equippedOf uses isFree")
-		t.ok(string.find(source, "owned = table.clone(owned)", 1, true) ~= nil, "copy, not profile")
-		t.ok(OfferLogic ~= nil)
-	end)
+	t.test(
+		"서버 코드: 장착 resolver가 무료 스킨(계란초밥)·Studio 전부 입기를 보유로 봐요 (프로필은 복사본만)",
+		function()
+			local source = fs.readFile("src/server/ShopService.luau")
+			t.ok(string.find(source, "Skins.isFree(equipped)", 1, true) ~= nil, "equippedOf uses isFree")
+			t.ok(string.find(source, "owned = table.clone(owned)", 1, true) ~= nil, "copy, not profile")
+			t.ok(OfferLogic ~= nil)
+		end
+	)
 
 	---------------------------------------------------------------- 몸 (SushiBody 경로)
 	t.test(
@@ -200,7 +243,7 @@ return function(t: Test.Test)
 				local label = `{ID}/{expression}`
 				t.eq(layout[1].name, "Body", label)
 				t.eq(layout[1].rotation, nil, label)
-				t.ok(#layout <= SushiBody.EXPERIMENTAL[ID].partBudget, `{label} parts {#layout}`)
+				t.ok(#layout <= SushiBody.CONCEPT_BODY[ID].partBudget, `{label} parts {#layout}`)
 				local b = SushiBody.bounds(layout)
 				t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-9, `{label} sole {b.min[2]}`)
 				t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{label} below name tag {b.max[2]}`)

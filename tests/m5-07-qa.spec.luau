@@ -479,7 +479,7 @@ return function(t: Test.Test)
 			t.eq(ShopLogic.defaultTab(H_START).id, "event")
 			t.eq(LocTest.ko(ShopLogic.tabs(C_START)[1].label), "🎄 크리스마스")
 			t.eq(ShopLogic.defaultTab(H_END).id, "all")
-			t.eq(#ShopLogic.tabs(H_END), 5)
+			t.eq(#ShopLogic.tabs(H_END), 6) -- m5-31: 전체·🎫 특·일반·레어·에픽·전설
 			local inEvent = ids(ShopLogic.visibleSkins(view(), tabs[1], H_START))
 			local n = 0
 			for _ in inEvent do

@@ -26,6 +26,12 @@
 --   eventHeader(event, now, tokens?) -> LocText  "할로윈 초밥 축제 · 11월 5일까지 · 🍬 32" (날짜로만, D4)
 --   lastDayText(event) -> LocText                마지막 날 = endsAt − 1초의 UTC 날짜 "11월 5일" (date.monthDay)
 --   lastDay(event) -> (month, day)               그 날짜 숫자
+-- 🎫 뽑기 특 스킨·Studio 전부 입기 (m5-31):
+--   unlockAllActive(isStudio, flag, persistInStudio) -> boolean   Studio 전부 입기가 켜졌는가 (fakeRobuxActive와 같은 모양)
+--   canEquip(skinId, ownedSkins, locked?, unlockAll?)   unlockAll이면 보유를 보지 않아요 (모르는 id·잠금은 그대로 거절)
+--   tabs: "전체" 다음에 "🎫 특" 탭 (특 스킨 9종, 가진 것·안 가진 것 모두). 등급 탭에는 특 스킨이 없어요
+--   cardState: 안 가진 특 스킨 = "Draw"("🎫 뽑기로 얻기"), view.studioUnlockAll이면 안 가진 스킨도 "입기 (Studio)"
+--   뽑기·구매 판단은 저장된 ownedSkins만 봐요 (Studio 전부 입기는 장착만 열어요)
 -- 소유·착용·코인의 진실은 서버 프로필뿐이에요. 클라이언트는 cardState로 보여 주기만 해요.
 
 local LocalizeLogic = require(script.Parent.LocalizeLogic)
@@ -79,6 +85,7 @@ export type CardKind =
 	| "NeedTokens"
 	| "Vip"
 	| "OffSale"
+	| "Draw" -- m5-31: 🎫 뽑기로만 얻는 특 스킨 (미보유)
 
 export type CardState = {
 	kind: CardKind,
@@ -90,6 +97,7 @@ export type CardState = {
 	tokens: number?, -- Tokens·NeedTokens: 지금 가진 재화 (price = 재화 가격, m5-07)
 	icon: string?, -- Tokens·NeedTokens: 재화 아이콘 (🍬/⭐)
 	limited: boolean?, -- 보유한 한정(시즌) 스킨: 카드 구석에 "한정" (m5-07)
+	studio: boolean?, -- Equip: 보유하지 않았지만 Studio 전부 입기로 입을 수 있어요 (m5-31, "입기 (Studio)")
 }
 
 -- 로벅스 표시 옵션 (클라이언트가 넘겨요, m4-14)
@@ -104,14 +112,16 @@ export type ViewLike = {
 	equippedSkin: string,
 	ownedSkins: { string },
 	eventTokens: { [string]: number }, -- m5-07 (Types.ProfileView에는 항상 있어요)
+	read studioUnlockAll: boolean?, -- m5-31: Studio 전부 입기 (Types.ProfileView에는 항상 있어요)
 }
 
--- 탈의실 탭 (m5-07): id "event"·"all"·등급 이름
+-- 탈의실 탭 (m5-07): id "event"·"all"·"draw"·등급 이름
 export type Tab = {
 	id: string,
 	label: LocText, -- m5-26: 키 (클라이언트가 Loc.text)
 	tier: Skins.Tier?, -- 등급 탭
 	eventId: string?, -- 이벤트 탭
+	draw: boolean?, -- 🎫 특 탭 (m5-31)
 }
 
 local ShopLogic = {}
@@ -120,6 +130,12 @@ local ShopLogic = {}
 -- 가짜 기록·무료 스킨이 써지니 가짜 결제를 끄고 진짜 결제처럼 굴어요 (m4-14 QA R4). 서버·클라이언트가 같이 써요.
 function ShopLogic.fakeRobuxActive(isStudio: boolean, fakeRobux: boolean?, persistInStudio: boolean?): boolean
 	return isStudio and fakeRobux == true and persistInStudio ~= true
+end
+
+-- Studio 전부 입기가 켜졌는가 (m5-31). 실제 서버(isStudio = false)에서는 플래그가 무엇이든 꺼져요.
+-- persistDataInStudio와 같이 켜면 꺼져요 (운영 저장소에 묶인 프로필로 안 산 스킨을 입지 않게). 서버·클라이언트가 같이 써요.
+function ShopLogic.unlockAllActive(isStudio: boolean, flag: boolean?, persistInStudio: boolean?): boolean
+	return isStudio == true and flag == true and persistInStudio ~= true
 end
 
 -- 로벅스로 살 수 있게 열렸는가 (m4-14): 기본 스킨이 아니고 가격이 있고, 상품 id가 있거나 Studio 가짜 결제
@@ -140,13 +156,19 @@ function ShopLogic.robuxPrice(skin: Skins.Skin, robux: RobuxOptions?): number?
 	return skin.robux
 end
 
-function ShopLogic.canEquip(skinId: unknown, ownedSkins: { [string]: boolean }, locked: boolean?): (boolean, Reason?)
+-- unlockAll = Studio 전부 입기 (m5-31, unlockAllActive): 보유를 보지 않아요. 모르는 id·잠금은 그대로 거절해요
+function ShopLogic.canEquip(
+	skinId: unknown,
+	ownedSkins: { [string]: boolean },
+	locked: boolean?,
+	unlockAll: boolean?
+): (boolean, Reason?)
 	local skin = Skins.get(skinId)
 	if skin == nil then
 		return false, "UnknownSkin"
 	end
-	if ownedSkins[skin.id] ~= true and not Skins.isFree(skin.id) then
-		return false, "NotOwned" -- 무료 스킨(계란초밥·실험 스킨)은 저장된 목록에 없어도 가져요 (m5-27)
+	if ownedSkins[skin.id] ~= true and not Skins.isFree(skin.id) and unlockAll ~= true then
+		return false, "NotOwned" -- 무료 스킨(계란초밥)은 저장된 목록에 없어도 가져요
 	end
 	if locked then
 		return false, "Locked"
@@ -304,8 +326,11 @@ ShopLogic.EVENT_TAB_LABEL = {
 -- 이벤트 탭 머리줄 아래 작은 안내 (D4: 압박하지 않는 문구)
 ShopLogic.EVENT_NOTE = { key = "shop.eventNote" } :: LocText
 
+ShopLogic.DRAW_TAB_LABEL = { key = "shop.tab.draw" } :: LocText -- m5-31
+
 local TIER_TABS: { Tab } = {
 	{ id = "all", label = { key = "shop.tab.all" } },
+	{ id = "draw", label = ShopLogic.DRAW_TAB_LABEL, draw = true }, -- m5-31: 전체 다음
 	{ id = "Common", label = { key = "shop.tab.common" }, tier = "Common" },
 	{ id = "Rare", label = { key = "shop.tab.rare" }, tier = "Rare" },
 	{ id = "Epic", label = { key = "shop.tab.epic" }, tier = "Epic" },
@@ -352,8 +377,10 @@ function ShopLogic.visibleSkins(view: ViewLike, tab: Tab?, now: number?): { Skin
 		local show = true -- 전체 탭(또는 탭 없음)
 		if tab ~= nil and tab.eventId ~= nil then
 			show = skin.season == tab.eventId
+		elseif tab ~= nil and tab.draw == true then
+			show = Skins.isDrawOnly(skin.id) -- 🎫 특 탭: 뽑기 전용 특 스킨 모두 (m5-31)
 		elseif tab ~= nil and tab.tier ~= nil then
-			show = skin.tier == tab.tier and (not limited or owned)
+			show = skin.tier == tab.tier and (not limited or owned) and not Skins.isDrawOnly(skin.id)
 		end
 		if show then
 			table.insert(list, skin)
@@ -447,6 +474,12 @@ function ShopLogic.cardState(skin: Skins.Skin, view: ViewLike, robux: RobuxOptio
 	if owns(view, skin) then
 		return { kind = "Equip", enabled = true, limited = limited }
 	end
+	if view.studioUnlockAll == true then
+		return { kind = "Equip", enabled = true, limited = limited, studio = true } -- Studio 전부 입기 (m5-31)
+	end
+	if Skins.isDrawOnly(skin.id) then
+		return { kind = "Draw", enabled = true } -- 누르면 🎫 뽑기 패널을 열어요 (m5-31)
+	end
 	if skin.vipOnly then
 		return { kind = "Vip", enabled = false }
 	end
@@ -487,7 +520,9 @@ function ShopLogic.cardButtonText(state: CardState): LocText
 	if state.kind == "Equipped" then
 		return LocalizeLogic.text("shop.btn.wearing")
 	elseif state.kind == "Equip" then
-		return LocalizeLogic.text("shop.btn.wear")
+		return LocalizeLogic.text(if state.studio then "shop.btn.wearStudio" else "shop.btn.wear")
+	elseif state.kind == "Draw" then
+		return LocalizeLogic.text("shop.btn.draw")
 	elseif state.kind == "Unlock" then
 		return LocalizeLogic.text("shop.btn.unlock", { price = state.price or 0 })
 	elseif state.kind == "NeedCoins" then
@@ -510,6 +545,15 @@ function ShopLogic.cardButtonText(state: CardState): LocText
 		return LocalizeLogic.text("shop.btn.robux", { price = state.price or 0 })
 	end
 	return LocalizeLogic.text("shop.btn.robuxSoon", { price = state.price or 0 })
+end
+
+-- 뽑기에서도 나오는 판매 스킨 안내 (m5-32 고등어 [신선]: "🎫 뽑기 전설에서도 나와요"). 뽑기 전용·뽑기 아님이면 nil
+function ShopLogic.drawHint(skin: Skins.Skin): string?
+	local grade = Skins.drawGradeOf(skin.id)
+	if grade == nil or Skins.isDrawOnly(skin.id) then
+		return nil
+	end
+	return `🎫 뽑기 {Skins.DRAW_GRADE_INFO[grade].displayName}에서도 나와요`
 end
 
 -- 일반·레어 스킨의 두 번째 버튼 (코인 해금 옆 "로벅스로 사기"). 로벅스 가격이 없으면 nil (m4-14)

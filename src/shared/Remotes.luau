@@ -24,6 +24,9 @@
 --   EquipFx(slot: string, fxId: string?)   연출 입기 — slot "Elimination"|"Victory", nil·""면 벗기 (m5-08, OfferService)
 --   RedeemCode(code: string)               코드 보상 받기 (m5-10, CodeService. 목록은 서버 전용). 반환 (ok, message: LocText)
 --   AdminCommand(command: string, args: { any }?)  관리자 명령 (m5-11, AdminService: 관리자·등급 검증). 반환 문구는 한국어 문자열
+--   DrawTicket()                           🎫 우승자 티켓 1장으로 뽑기 (m5-31, ShopService: 요청 간격
+--                                 Config.Draw.RequestCooldown·잠금·저장 가능 검증, 인자는 받지 않아요). 반환
+--                                 (ok, err?, result: DrawResult?) — 확률·결과는 서버만 정해요
 --
 -- 서버 → 클라이언트 알림 (RemoteEvent)
 --   RoomList(rooms: { RoomListing })         로비에 있는 플레이어에게 공개 방 목록
@@ -39,7 +42,7 @@
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
---   SaveSettings(settings: Settings)         설정 저장 { muteLevel = 1~3 정수 } (m4-01, Config.Data.SettingsMinInterval)
+--   SaveSettings(patch: SettingsPatch)       설정 부분 저장 { muteLevel?: 1~3 정수, touchLayout?: { bucket, layout | reset } } (m4-01, m5-41: 틀리면 전체 무시, 칸마다 Config.Data.SettingsMinInterval)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -60,6 +63,7 @@ local FUNCTIONS = {
 	"EquipFx",
 	"RedeemCode",
 	"AdminCommand",
+	"DrawTicket",
 }
 local EVENTS = {
 	"RoomList",

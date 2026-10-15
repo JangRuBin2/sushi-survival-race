@@ -262,9 +262,11 @@ return function(t: Test.Test)
 		{ "rotating-belt", "hot-plate", "ikura-bombs" }, -- m5-04
 		{ "dessert-fridge", "hot-plate", "skewer-showdown" }, -- m5-06
 		{ "rotating-belt", "tempura-pot", "skewer-showdown" }, -- m5-05
+		{ "dish-sink", "rice-cooker", "tea-garden" }, -- m5-34·m5-36·m5-38
+		{ "space-conveyor", "fish-market", "onsen-claw" }, -- m5-35·m5-37·m5-39
 	}
 
-	t.test("연속 플랜 9개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()
+	t.test("연속 플랜 13개가 유효하고 풀의 맵을 모두 한 번 이상 써요", function()
 		local seen: { [string]: boolean } = {}
 		for n, ids in FORCED_PLANS do
 			local plan, problem = Rules.resolveForcedPlan(ids, Maps.infos())
@@ -274,6 +276,7 @@ return function(t: Test.Test)
 			end
 		end
 		for _, info in Maps.infos() do
+			-- m5-33 QA P3-2: 맵 3차 배치(m5-34~39)도 졸업했으니 예외 없이 모두 목록에 있어야 해요
 			t.ok(seen[info.id], `map {info.id} in the forced plan set`)
 		end
 	end)

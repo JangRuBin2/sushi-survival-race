@@ -65,7 +65,7 @@ return function(t: Test.Test)
 
 	t.test("AC3: 네 다리의 maxSwayDeg이 1→2→3로 낮아지다가 4에서 다시 가장 높아요", function()
 		local b = Layout.BRIDGES
-		t.eq(#b, 4)
+		t.eq(#b, 7) -- m5-40: 다리 5~7 추가 (전: 4). 1~4 순서 약속은 아래 그대로
 		t.ok(b[1].maxSwayDeg > b[2].maxSwayDeg, "bridge1 should sway more than bridge2")
 		t.ok(b[2].maxSwayDeg > b[3].maxSwayDeg, "bridge2 should sway more than bridge3")
 		t.ok(b[4].maxSwayDeg > b[1].maxSwayDeg, "bridge4 should be the highest maxSwayDeg")
@@ -175,7 +175,7 @@ return function(t: Test.Test)
 		"AC9: 다리·쉼터 구간 표가 서로 안 겹치고 z 순서대로 이어지며 FinishLine이 결승 평지 안에 있어요",
 		function()
 			local sections = Layout.sections()
-			t.eq(#sections, 9) -- 출발 + 다리4 + 쉼터3 + 결승
+			t.eq(#sections, 15) -- m5-40: 출발 + 다리7 + 쉼터5 + 개울 + 결승 (전: 9 = 출발 + 다리4 + 쉼터3 + 결승)
 			t.eq(sections[1].front, 0)
 			for i, span in sections do
 				t.ok(span.front > span.back, `section {i} must extend toward -Z`)
@@ -183,7 +183,7 @@ return function(t: Test.Test)
 					t.eq(span.front, sections[i - 1].back, `section {i} must start where {i - 1} ends`)
 				end
 			end
-			t.eq(Layout.totalLength(), 152)
+			t.eq(Layout.totalLength(), 382) -- m5-40 (전: 152)
 			local finishZ = Layout.finishLineZ()
 			t.ok(finishZ < Layout.FINISH.front and finishZ > Layout.FINISH.back, "finish line inside finish section")
 		end
@@ -216,8 +216,9 @@ return function(t: Test.Test)
 			t.eq(Logic.bridgeAt(-73), nil) -- 쉼터 2
 			t.eq((Logic.bridgeAt(-90) :: any).index, 3) -- 다리 3 안
 			t.eq(Logic.bridgeAt(-103), nil) -- 쉼터 3
-			t.eq((Logic.bridgeAt(-120) :: any).index, 4) -- 다리 4 안
-			t.eq(Logic.bridgeAt(-145), nil) -- 결승
+			-- m5-40: 다리 4는 개울 뒤(-338~-368)로, 결승은 -368~-382로 옮겼어요 (전: -120 → 4, -145 → nil)
+			t.eq((Logic.bridgeAt(-350) :: any).index, 4) -- 다리 4 안
+			t.eq(Logic.bridgeAt(-375), nil) -- 결승
 		end
 	)
 

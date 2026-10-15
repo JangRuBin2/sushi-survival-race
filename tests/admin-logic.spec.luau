@@ -715,6 +715,7 @@ return function(t: Test.Test)
 		-- 경제 명령은 저장을 켠 Studio에서도 막아요 (2026-10-13 사용자 결정)
 		t.eq(AdminLogic.commandTier("coins"), "StudioOnly")
 		t.eq(AdminLogic.commandTier("tokens"), "StudioOnly")
+		t.eq(AdminLogic.commandTier("tickets"), "StudioOnly") -- m5-31
 		for _, bad in { "kick", "give", "", "INFO", 1, true, {} } :: { any } do
 			t.eq(AdminLogic.commandTier(bad), nil)
 		end
@@ -1081,14 +1082,14 @@ return function(t: Test.Test)
 		t.eq(saved.profile.coins, 100)
 	end)
 
-	t.test("m5-11: info shows role, job, rooms, players, my room, coins and event tokens", function()
+	t.test("m5-11: info shows role, job, rooms, players, my room, coins, tickets (m5-31) and event tokens", function()
 		local env = loadCommands({ now = HALLOWEEN_NOW })
 		env.profile.eventTokens["halloween-2026"] = 12
 		local ok, text = env.run("info", nil)
 		t.eq(ok, true)
 		t.eq(
 			text,
-			"Single · 서버 abcdef01 · 방 1 · 플레이어 1 · 내 방 7(Waiting) · 코인 100 · 할로윈 초밥 축제 🍬12"
+			"Single · 서버 abcdef01 · 방 1 · 플레이어 1 · 내 방 7(Waiting) · 코인 100 · 🎫 0 · 할로윈 초밥 축제 🍬12"
 		)
 	end)
 

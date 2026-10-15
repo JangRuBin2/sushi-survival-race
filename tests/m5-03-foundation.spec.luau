@@ -4,6 +4,7 @@
 
 local fs = require("@lune/fs")
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
@@ -87,45 +88,50 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(validMap()), nil)
 	end)
 
-	t.test("AC1: 맵 15개 전부 validate 통과, 껍데기 없음 — 모든 맵이 풀에 있어요", function()
-		local expected: { [string]: { string } } = {
-			-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
-			-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
-			-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
-		}
-		t.eq(#Maps.allInfos(), 15)
-		for _, info in Maps.allInfos() do
-			local map = Maps.get(info.id)
-			t.eq(MapTypes.validate(map), nil, info.id)
-			local row = expected[info.id]
-			if row then
-				t.eq(map.kind, row[1], `{info.id} kind`)
-				t.eq(map.displayName, row[2], `{info.id} name`)
-				t.eq(map.rule, row[3], `{info.id} rule`)
-				t.eq(map.inPool, false, `{info.id} inPool`)
-			else
-				t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+	t.test(
+		"AC1: 맵 21개 전부 validate 통과, 배치 3(m5-33) 밖에는 껍데기 없음 — 그 맵들은 모두 풀에 있어요",
+		function()
+			local expected: { [string]: { string } } = {
+				-- 신규 맵 6개(bouncy-castle-maze m5-14·lantern-bridge m5-15·giant-jenga m5-16·cat-cafe-shelves m5-17·
+				-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
+				-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
+			}
+			t.eq(#Maps.allInfos(), 21) -- m5-33: 기존 15 + 맵 3차 배치 6
+			for _, info in Maps.allInfos() do
+				local map = Maps.get(info.id)
+				t.eq(MapTypes.validate(map), nil, info.id)
+				local row = expected[info.id]
+				if row then
+					t.eq(map.kind, row[1], `{info.id} kind`)
+					t.eq(map.displayName, row[2], `{info.id} name`)
+					t.eq(map.rule, row[3], `{info.id} rule`)
+					t.eq(map.inPool, false, `{info.id} inPool`)
+				else
+					-- 배치 3(m5-34~39)도 모두 졸업했어요 (m5-33 QA P3-1)
+					t.ok(map.inPool ~= false, `{info.id} stays in the pool`)
+				end
 			end
+			-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
+			local ikura = Maps.get("ikura-bombs")
+			t.eq(ikura.kind, "Final")
+			t.eq(ikura.displayName, "연어알 폭탄 접시")
+			t.eq(ikura.rule, "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
+			t.eq(type(ikura.overtime), "function")
+			t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
+			t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
 		end
-		-- ikura-bombs(m5-04)는 졸업했지만 id·이름·규칙 문구는 m5-03 확정 그대로예요
-		local ikura = Maps.get("ikura-bombs")
-		t.eq(ikura.kind, "Final")
-		t.eq(LocTest.ko(ikura.displayName), "연어알 폭탄 접시")
-		t.eq(LocTest.ko(ikura.rule), "떨어지는 연어알 폭탄을 피해 마지막까지 버텨요!")
-		t.eq(type(ikura.overtime), "function")
-		t.eq(type(Maps.get("tug-of-war-platform").overtime), "function")
-		t.eq(type(Maps.get("claw-machine-prize").overtime), "function")
-	end)
+	)
 
 	---------------------------------------------------------------- AC2 맵 풀
 	t.test(
-		"AC2: infos()는 15개(껍데기 3개 모두 합류 — m5-04·m5-05·m5-06, 신규 맵 6개 m5-14~19), allInfos()도 15개",
+		"AC2: infos()는 15개 + 배치 3 중 풀에 든 것(껍데기 3개 모두 합류 — m5-04·m5-05·m5-06, 신규 맵 6개 m5-14~19), allInfos()는 21개",
 		function()
 			local ids = {}
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 15)
+			t.eq(#Maps.infos(), 21) -- m5-33 QA P3-1: 배치 3 졸업 뒤 고정
+			t.eq(Batch3.POOL_COUNT, 21)
 			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
 			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")
 			t.ok(ids["tempura-pot"], "tempura-pot joined the random pool (m5-05)")
@@ -186,8 +192,9 @@ return function(t: Test.Test)
 	t.test("AC3: v1 프로필 → v2, 새 칸 5개 빈 표, 기존 값 그대로, 모르는 칸 보존", function()
 		local profile, info = ProfileLogic.migrate(v1Profile())
 		t.eq(info.persistable, true)
-		t.eq(profile.version, 2)
-		t.eq(ProfileSchema.VERSION, 2)
+		-- m5-31이 v3으로 올렸어요 (drawTickets). v1은 바로 지금 버전이 돼요
+		t.eq(profile.version, 3)
+		t.eq(ProfileSchema.VERSION, 3)
 		t.eq(profile.coins, 1234)
 		t.eq(profile.wins, 12)
 		t.eq(profile.matchesPlayed, 40)
@@ -277,18 +284,20 @@ return function(t: Test.Test)
 		t.ok(#info.notes >= 1)
 	end)
 
-	t.test("AC3: 미래 버전(3)은 저장하지 않아요, v1·v2는 저장", function()
+	t.test("AC3: 미래 버전(4 — m5-31 뒤)은 저장하지 않아요, v1·v2·v3는 저장", function()
 		local raw = v1Profile()
-		raw.version = 3
+		raw.version = 4
 		local _, info = ProfileLogic.migrate(raw)
 		t.eq(info.persistable, false)
+		raw.version = 3
+		t.eq(select(2, ProfileLogic.migrate(raw)).persistable, true)
 		raw.version = 2
 		t.eq(select(2, ProfileLogic.migrate(raw)).persistable, true)
 	end)
 
 	t.test("AC3: new()에 v2 칸이 있고 부를 때마다 다른 표", function()
 		local a, b = ProfileSchema.new(), ProfileSchema.new()
-		t.eq(a.version, 2)
+		t.eq(a.version, 3) -- m5-31
 		t.eq(a.redeemedCodes, {})
 		t.ok(a.redeemedCodes ~= b.redeemedCodes)
 		t.ok(a.eventTokens ~= b.eventTokens)
@@ -325,22 +334,20 @@ return function(t: Test.Test)
 				true
 			)
 		)
-		t.ok(
-			string.find(
-				src,
-				"ProfileSchema.toView(session.profile, DataService.canPersist(player), viewExtra[player])",
-				1,
-				true
-			)
-		)
+		t.ok(string.find(
+			src,
+			"{ vip = extra ~= nil and extra.vip == true, unlockAll = studioUnlockAll }", -- m5-31: viewExtra + Studio 전부 입기
+			1,
+			true
+		))
 		t.ok(string.find(src, "viewExtra[player] = nil", 1, true), "cleared on leave")
 	end)
 
 	---------------------------------------------------------------- AC5 스킨 카탈로그
 	t.test(
-		"AC5: 36종(m5-22 10종·m5-27 실험 1종·m5-28 실험 4종 포함), order 1~36 연속, 새 5종의 얻는 길·시즌",
+		"AC5: 40종(m5-22 10종·m5-27 실험 1종·m5-28 실험 4종·m5-29 실험 4종 포함), order 1~40 연속, 새 5종의 얻는 길·시즌",
 		function()
-			t.eq(#Skins.LIST, 36)
+			t.eq(#Skins.LIST, 41) -- m5-32 고등어 [신선] order 41
 			for i, skin in Skins.LIST do
 				t.eq(skin.order, i)
 			end
@@ -524,6 +531,7 @@ return function(t: Test.Test)
 		t.eq(Config.Codes, { RequestCooldown = 2, MaxFailures = 8, FailureWindow = 600, MaxLength = 20 })
 		t.eq(Config.DEBUG.eventNow, nil)
 		t.eq(Config.DEBUG.fakeVipInStudio, false)
+		t.eq(Config.DEBUG.unlockAllSkinsInStudio, true) -- m5-31: 커밋 값 true (Studio 전부 입기)
 		t.eq(Config.DEBUG.forceMapPlan, nil)
 		-- 사용자 결정 2026-10-08: 실서버에서 테스트 명령을 켜는 설정은 없어요
 		t.eq((Config.DEBUG :: any).liveTestCommands, nil)

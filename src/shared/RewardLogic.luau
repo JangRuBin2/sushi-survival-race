@@ -14,7 +14,10 @@
 --   matchEndPayout(lastDay?, today, now?) -> Payout?  매치 끝 한 번: 하루 첫 판이면 DailyFirstMatch(코인 50 + 재화
 --       판 참가 1 + 하루 첫 판 3), 아니면 이벤트 중 MatchPlayed(코인 0 + 재화 1), 둘 다 아니면 nil
 --   matchTokenTotal(grants) -> number             받은 지급의 재화 합계 (우승 화면 정산)
---   toastText(reason, amount, tokens?, icon?) · summaryText(total, coins, tokens?, icon?)   화면 문구 (m5-26: LocText)
+--   toastText(reason, amount, tokens?, icon?) · summaryText(total, coins, tokens?, icon?, tickets?)   화면 문구 (m5-26: LocText)
+-- 🎫 우승자 뽑기 티켓 (m5-31): Won 지급에 tickets = Config.Draw.TicketsPerWin (이벤트·VIP 배수 없음). 다른 결과엔 없어요.
+--   simulate의 세 번째 반환값 = 사람별 받을 티켓 합계 (상한은 프로필에서 DrawLogic.addTickets가 잘라요)
+--   matchTicketTotal(grants) -> number · ticketToastText(tickets, full?, max?) -> LocText?
 
 local Config = require(script.Parent.Config)
 local LocalizeLogic = require(script.Parent.LocalizeLogic)
@@ -28,6 +31,7 @@ export type Grant = {
 	amount: number, -- 코인
 	tokens: number?, -- 이벤트 재화 (m5-07, 이벤트 중일 때만)
 	eventId: string?, -- 재화의 이벤트 id
+	tickets: number?, -- 🎫 뽑기 티켓 (m5-31, Win일 때만)
 }
 
 -- 매치 끝 지급 한 번 (m5-07)
@@ -187,15 +191,60 @@ function RewardLogic.toastText(
 	)
 end
 
--- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1,234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1,234)" (m5-07)
-function RewardLogic.summaryText(matchTotal: number, coins: number, tokens: number?, icon: string?): Types.LocText
-	if hasTokens(tokens) then
+-- 매치 정산 한 줄: "이번 판 +210 🍚 (총 1,234)". 재화를 받았으면 "이번 판 +210 🍚 +8 🍬 (총 1,234)" (m5-07),
+-- 🎫 티켓을 받았으면 "이번 판 +210 🍚 🎫 +1 (총 1,234)" (m5-31). 숫자 + 단위 = 한 키라 조합마다 키가 있어요 (m5-26)
+function RewardLogic.summaryText(
+	matchTotal: number,
+	coins: number,
+	tokens: number?,
+	icon: string?,
+	tickets: number?
+): Types.LocText
+	local withTokens = hasTokens(tokens)
+	local withTickets = hasTokens(tickets)
+	if withTokens and withTickets then
+		return LocalizeLogic.text("reward.summaryTokensTickets", {
+			total = matchTotal,
+			tokens = tokens :: number,
+			icon = icon or "🍬",
+			tickets = tickets :: number,
+			coins = coins,
+		})
+	elseif withTokens then
 		return LocalizeLogic.text(
 			"reward.summaryTokens",
 			{ total = matchTotal, tokens = tokens :: number, icon = icon or "🍬", coins = coins }
 		)
+	elseif withTickets then
+		return LocalizeLogic.text(
+			"reward.summaryTickets",
+			{ total = matchTotal, tickets = tickets :: number, coins = coins }
+		)
 	end
 	return LocalizeLogic.text("reward.summary", { total = matchTotal, coins = coins })
+end
+
+-- 받은 지급의 🎫 티켓 합계 (m5-31, 우승 화면 정산)
+function RewardLogic.matchTicketTotal(grants: { read [number]: { read tickets: number? } }): number
+	local total = 0
+	for _, grant in grants do
+		local tickets = grant.tickets
+		if type(tickets) == "number" and tickets > 0 then
+			total += tickets
+		end
+	end
+	return total
+end
+
+-- 뽑기권 토스트 (m5-31): "+1 🎫 우승 뽑기권", 가득이면 "🎫 뽑기권이 가득 찼어요 (99장)", 둘 다 아니면 nil (m5-26: LocText)
+function RewardLogic.ticketToastText(tickets: number?, full: boolean?, max: number?): Types.LocText?
+	if hasTokens(tickets) then
+		return LocalizeLogic.text("reward.ticketToast", { count = tickets :: number })
+	end
+	if full == true then
+		return LocalizeLogic.text("reward.ticketFull", { max = max or Config.Draw.MaxTickets })
+	end
+	return nil
 end
 
 -- 매치 끝 지급(하루 첫 판·matchesPlayed) 대상: 매치를 시작한 참가자 중 매치 끝 시점에 방에 남은 사람 (참가자 순서).
@@ -251,7 +300,14 @@ function RewardLogic.onResult(tracker: Tracker, userId: number, result: ResultKi
 	if result == "Won" then
 		local tokens, eventId = RewardLogic.tokensFor("Win", now)
 		return {
-			{ userId = userId, reason = "Win", amount = RewardLogic.forWin(), tokens = tokens, eventId = eventId },
+			{
+				userId = userId,
+				reason = "Win",
+				amount = RewardLogic.forWin(),
+				tokens = tokens,
+				eventId = eventId,
+				tickets = Config.Draw.TicketsPerWin, -- m5-31: 이벤트 기간·VIP여도 같아요
+			},
 		}
 	elseif result == "Passed" then
 		local amount = RewardLogic.forPass(RewardLogic.isFinalRound(tracker))
@@ -263,9 +319,10 @@ function RewardLogic.onResult(tracker: Tracker, userId: number, result: ResultKi
 	return {}
 end
 
-function RewardLogic.simulate(events: { SimEvent }): ({ [number]: number }, { [number]: number })
+function RewardLogic.simulate(events: { SimEvent }): ({ [number]: number }, { [number]: number }, { [number]: number })
 	local totals: { [number]: number } = {}
 	local tokenTotals: { [number]: number } = {}
+	local ticketTotals: { [number]: number } = {} -- m5-31
 	local tracker = RewardLogic.newTracker()
 	local function add(grants: { Grant })
 		for _, grant in grants do
@@ -273,6 +330,10 @@ function RewardLogic.simulate(events: { SimEvent }): ({ [number]: number }, { [n
 			local tokens = grant.tokens
 			if tokens then
 				tokenTotals[grant.userId] = (tokenTotals[grant.userId] or 0) + tokens
+			end
+			local tickets = grant.tickets
+			if tickets then
+				ticketTotals[grant.userId] = (ticketTotals[grant.userId] or 0) + tickets
 			end
 		end
 	end
@@ -311,7 +372,7 @@ function RewardLogic.simulate(events: { SimEvent }): ({ [number]: number }, { [n
 			end
 		end
 	end
-	return totals, tokenTotals
+	return totals, tokenTotals, ticketTotals
 end
 
 return RewardLogic

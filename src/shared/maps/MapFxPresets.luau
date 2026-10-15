@@ -268,6 +268,70 @@ MapFxPresets.PRESETS = {
 		RotSpeed = { -200, 200 },
 		EmissionDirection = "Top",
 	},
+	-- 맵 3차 배치 (m5-33). 맵 스펙 m5-34~39는 이 표를 고치지 않아요 (새 프리셋이 필요하면 m5-33 담당이 main에서)
+	-- 크고 느린 비눗방울 (설거지통 dish-sink, m5-34)
+	SoapFoam = {
+		Texture = SPARKLE,
+		Rate = 3,
+		Lifetime = { 3, 5 },
+		Speed = { 0.6, 1.4 },
+		SpreadAngle = { 30, 30 },
+		Size = { k(0, 0.6), k(1, 1.6) },
+		Transparency = { k(0, 0.4), k(0.8, 0.6), k(1, 1) },
+		Color = {
+			{ t = 0, c = rgb(250, 252, 255) },
+			{ t = 1, c = rgb(196, 230, 250) },
+		},
+		LightEmission = 0.1,
+		LightInfluence = 1,
+		Acceleration = { 0, 0.4, 0 },
+		Drag = 0.6,
+		Rotation = { 0, 360 },
+		RotSpeed = { -15, 15 },
+		EmissionDirection = "Top",
+	},
+	-- 반짝이며 떠도는 별가루 (우주 회전초밥 space-conveyor, m5-35)
+	Stardust = {
+		Texture = SPARKLE,
+		Rate = 4,
+		Lifetime = { 3, 5 },
+		Speed = { 0.2, 0.6 },
+		SpreadAngle = { 180, 180 },
+		Size = { k(0, 0.15), k(0.5, 0.4), k(1, 0.15) },
+		Transparency = { k(0, 0.2), k(0.5, 0), k(1, 1) },
+		Color = {
+			{ t = 0, c = rgb(255, 255, 255) },
+			{ t = 1, c = rgb(206, 186, 255) },
+		},
+		LightEmission = 0.8,
+		LightInfluence = 0.3,
+		Acceleration = { 0, 0, 0 },
+		Drag = 0.2,
+		Rotation = { 0, 360 },
+		RotSpeed = { -40, 40 },
+		EmissionDirection = "Top",
+	},
+	-- 떨어지는 찻잎 (찻잎 정원 tea-garden, m5-38 — 무너짐 경고에도). Petals와 같은 움직임, 색만 연두·초록
+	TeaLeaves = {
+		Texture = SPARKLE,
+		Rate = 2,
+		Lifetime = { 5, 8 },
+		Speed = { 0.5, 1.5 },
+		SpreadAngle = { 70, 70 },
+		Size = { k(0, 0.5), k(1, 0.4) },
+		Transparency = { k(0, 0.1), k(0.85, 0.2), k(1, 1) },
+		Color = {
+			{ t = 0, c = rgb(170, 220, 110) },
+			{ t = 1, c = rgb(84, 160, 70) },
+		},
+		LightEmission = 0,
+		LightInfluence = 1,
+		Acceleration = { 0.6, -1.2, 0 },
+		Drag = 0.4,
+		Rotation = { 0, 360 },
+		RotSpeed = { -90, 90 },
+		EmissionDirection = "Top",
+	},
 } :: { [string]: Preset }
 
 local names = {}

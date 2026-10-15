@@ -27,6 +27,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
 local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
+local DollAnimator = require(script.Parent.DollAnimator)
 local Props = require(script.Parent.CutsceneProps)
 local Screen = require(script.Parent.EliminationCutsceneScreen)
 
@@ -375,6 +376,8 @@ function EliminationCutsceneController.start(gui: Instance)
 			-- "Hurt" 표정은 표정이 있는 스킨(실험 스킨 concept-salmon, m5-27)만 쓰고 나머지는 무시해요
 			local doll = cleanup:add(SushiBody.build(appearanceId, "Hurt"))
 			doll.Parent = model
+			-- 고등어 관절이 있는 스킨이면 축 처졌다가 가끔 경련 (m5-32, 없으면 아무것도 안 해요)
+			cleanup:add(DollAnimator.attach(doll, "Hurt", { sound = "World" }))
 			local function s(x: number): number
 				return Logic.scaled(x, duration)
 			end

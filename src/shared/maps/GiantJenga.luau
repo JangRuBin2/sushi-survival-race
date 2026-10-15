@@ -6,7 +6,7 @@
 -- 그 칸만(그리고 그 칸에 맞닿은 칸들의 "낮은 쪽" 계산에) 영향을 줘요 — 셰프의 도마(전체가 같이 기움)와 달리
 -- "탑의 어느 부분이 약해졌는지" 계속 눈으로 읽고 무게중심을 옮겨야 해요.
 --
--- 판정은 ctx.eliminate만 불러요 (탑 꼭대기보다 30 아래로 떨어지면). Survival 종료(목표 인원 이하, 60초 종료 시
+-- 판정은 ctx.eliminate만 불러요 (탑 꼭대기보다 30 아래로 떨어지면). Survival 종료(목표 인원 이하, 75초 종료 시
 -- 전원 통과)와 점수(높이)는 RoundService/RoundLogic이 해요.
 -- 칸(GiantJengaColumn)은 CollectionService 태그를 달고, start에서 ctx.model 하위의 태그만 동작시켜요.
 -- 상태(보드 레벨, 애니메이션 중인지)는 전부 start 안의 지역 변수에 둬요 (여러 방이 같은 맵을 동시에 돌려도 안전).
@@ -15,7 +15,6 @@
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
 local Art = require(script.Parent.GiantJengaArt)
-local Config = require(script.Parent.Parent.Config)
 local Layout = require(script.Parent.GiantJengaLayout)
 local Logic = require(script.Parent.GiantJengaLogic)
 local MapKit = require(script.Parent.MapKit)
@@ -342,7 +341,7 @@ local function start(ctx: MapTypes.RoundContext)
 	-- 제거 일정: 시간이 갈수록 간격이 좁아지고 한 번에 뽑는 개수가 늘어요
 	ctx.cleanup:add(task.spawn(function()
 		local previousKeys: { string }? = nil
-		for _, removeAt in Logic.removalTimes(Config.TimeLimit.Survival) do
+		for _, removeAt in Logic.removalTimes(Logic.TIME_LIMIT) do
 			local untilThen = removeAt - (os.clock() - startedAt)
 			if untilThen > 0 then
 				task.wait(untilThen)
@@ -372,6 +371,7 @@ local GiantJenga: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "와르르 나무 블록",
 	rule = "블록이 빠진 쪽으로 바닥이 기울어요. 떨어지지 말고 끝까지 버텨요!",
+	timeLimit = Logic.TIME_LIMIT, -- 75초 (m5-40 — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
 	build = build,
 	start = start,
 	lighting = Art.LIGHTING, -- m5-24 맵 조명 분위기 (저녁 목공소)

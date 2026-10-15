@@ -50,10 +50,10 @@ lune run tests               # 4. 순수 로직 테스트 (라운드 규칙·판
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src   # 5. 타입 검사
 ```
-- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (M5 2026-10-13 반영 기준 112개 파일, 1736개). **실패가 있어도 끝 코드는 0**이라 마지막 줄의 `0 failed`를 꼭 읽어요.
+- 모두 에러 없이 끝나야 해요. `lune run tests`는 `tests/*.spec.luau` 파일별 결과 뒤 마지막 줄에 `N passed, 0 failed`가 나와요 (2026-10-14 main `4229e9a` 기준 134개 파일, 1992개). 실패가 하나라도 있으면 끝 코드 1이에요(예전에 "실패가 있어도 0"이라고 적었던 건 틀린 설명). 그래도 마지막 줄의 `0 failed`를 꼭 읽어요.
 - 5단계(타입 검사)는 에러가 없으면 끝 코드 0이고 `[INFO] Loading definitions…`·`[WARN] … didChangeWatchedFiles` 같은 줄만 나와요. 에러가 있으면 `파일(줄,칸): TypeError …`와 끝 코드 1. `sourcemap.json`은 커밋 안 함(.gitignore). 정의 파일·검사기 선택 이유는 `types/README.md`.
 - 도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 적어요.
-- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요. 코드 보상 확인용 `src/server/CodeList.luau`는 `.gitignore`라 커밋되지 않아요(실제 코드를 문서 예시와 다르게).
+- `Config.DEBUG`의 디버그 값(`forceMapPlan`, `forceMapPlans`, `persistDataInStudio`, `simulateMatchServer`, `logArenaStats`, `fakeRobuxInStudio`, `overtimeAt`, `eventNow`, `fakeVipInStudio`, `unlockAllSkinsInStudio`)을 바꾼 채로 두면 테스트가 실패해요 (3-9 "디버그 설정", 3-10). `unlockAllSkinsInStudio`만 커밋 값이 **`true`**예요. 관리자 설정 `src/server/AdminConfig.luau`의 `StudioAllAdmins`도 확인 뒤 `true`로 되돌려요. 코드 보상 확인용 `src/server/CodeList.luau`는 `.gitignore`라 커밋되지 않아요(실제 코드를 문서 예시와 다르게).
 
 ### 2-1. 맵 미리보기 렌더러 (m5-23, Studio 없이 맵 모습 보기)
 맵 모듈의 `build(origin)`을 Lune에서 진짜로 돌려(`@lune/roblox` 인스턴스) 순수 Luau 소프트웨어 렌더러로 PNG를 그려요. 에이전트·개발자가 Studio 없이 구도·실루엣·빈 공중·색 비율·밀도·조명 분위기를 확인하는 도구예요.
@@ -77,12 +77,15 @@ lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all]
 ```bash
 lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|all]
                                 [--light studio|lobby|both] [--quality fast|high] [--out build/renders/characters]
-# 예) lune run tools/render-character all --quality fast     (31종 × 조명 2개, high면 약 4.5분)
+# 예) lune run tools/render-character all --quality fast     (전체 스킨 × 조명 2개)
 #     lune run tools/render-character cat-sushi --view turntable --light studio
+#     lune run tools/render-character --sample concept-tuna      (콘셉트 몸 스킨 묶음, m5-28)
+#     lune run tools/render-character fresh-mackerel --pose all  (고등어 자세·팔딱 프레임·시트 비교, m5-32)
 ```
 - 결과 `build/renders/characters/<studio|lobby>/`: `lineup.png`(전체 격자, 앞 3/4, 칸 아래 id) + `lineup.txt`(칸 → id·등급), `turntable/<id>.png`(앞·3/4·옆·뒤·위), `face.png`(계란초밥 얼굴), `gameplay-back/front.png`(Roblox 기본 카메라: 머리 뒤 12.5 studs·시야 70°, 이름표는 픽셀 글자 흉내), `mobile-back/front.png`(480×270), 그리고 `build/renders/characters/stats.txt`(스킨별 파츠·모양·효과·재질·색 수·외곽·삼각형, `zfight=` 같은 쪽 면이 같은 평면에서 겹치는 파츠 쌍, `floating=` 아무 데도 안 닿는 파츠).
 - 조명: `studio` = 중립 회색 스튜디오, `lobby` = 로비 조명. 해가 캐릭터 앞 왼쪽 30°에서 오도록 캐릭터를 돌려 세워요.
-- 기준 그림은 `docs/renders/characters/`(`before-*.png` = m5-25 시점). 한계는 2-1과 같아요(`Sparkles`는 안 그려요).
+- 기준 그림은 `docs/renders/characters/`: `before-*.png` = m5-25 전, `after-*.png` = m5-25 새 기준 몸, `concept-*.png` = 콘셉트 몸 스킨(m5-27~m5-30), `fresh-mackerel-*.png` = 고등어(m5-32, `sheet-compare`·`flop-strip`·`poses`·`closeup`). 한계는 2-1과 같아요(`Sparkles`·이름표 글꼴은 안 그려요, 뽑기 화면 같은 2D UI는 렌더러가 없어요).
+- 콘셉트 몸·고등어 옵션: `--sample <concept-…>`(콘셉트 몸 묶음 — turntable·turntable-run·expressions·gameplay·mobile·compare), 콘셉트 몸 게임 스킨 id(예 `fresh-mackerel`)는 expressions(표정 6종)·poses·flop-strip·sheet-compare까지, `--pose <이름|all>`(Rest·TailLeft·TailRight·JumpArch·LandPeak·Knocked·Hurt·Splash), `--sheet <png>`(비교할 시트). 사용법은 `tools/render-character.luau` 머리 주석.
 
 ## 3. Studio에서 게임 테스트
 
@@ -94,14 +97,14 @@ lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gamep
 
 ### 3-2. 기본 구조 확인 (M0, 연결할 때마다)
 Explorer 창에서:
-- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`, `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`, `AdminCommands`, `OfferService`, `CodeService`, `CodeConfig`, `CodeList.example`(로컬에 `CodeList.luau`를 만들었으면 그것도)
+- [ ] `ServerScriptService` → `Server` (Script)와 그 안의 `DataService`, `PlaceService`, `PlaceBackend`, `RoomService`, `RoomDirectory`, `MatchService`, `MatchEvents`, `RoundService`, `EliminationService`, `CharacterUtil`, `AppearanceService`, `GrabService`, `LobbyService`, `RewardService`, `MovementGuardService`, `ShopService`(🎫 `DrawTicket` 포함), `RobuxShopService`, `PurchaseLog`, `AdminConfig`, `AdminService`, `AdminCommands`, `OfferService`, `CodeService`, `CodeConfig`, `CodeList.example`(로컬에 `CodeList.luau`를 만들었으면 그것도)
 - [ ] `ServerStorage` → `MapArt` 폴더 (비어 있어도 정상, `assets/map-art`)
-- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `Skins`, `ShopLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `Seasons`, `Offers`, `OfferLogic`, `FxCatalog`, `CodeLogic`, `IceLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapKitShapes`, `MapFxPresets`, `MapDecorAnimLogic`, `MapDecorTags`, `MapLighting`, `MapLightingLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 15개 — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
-- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `PriceCache`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `Offer*`, `Code*`, `Admin*`, `ChatTagController`, `UiScaleController`, `fx` 폴더: `CharacterFxController`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `MapLightingController`, `MapDecorFxController`, `input` 폴더: `Dive*`, `Grab*`, `IceController`)
+- [ ] `ReplicatedStorage` → `Shared` 안의 `Config`, `Rules`, `RoundLogic`, `RoomLogic`, `SpectateLogic`, `Remotes`, `Types`, `Cleanup`, `Attributes`, `CameraPriority`, `SushiBody`, `SushiConceptSample`, `ConceptMackerel`, `SushiPose`, `PartMath`, `CharacterAnimLogic`, `Skins`, `ShopLogic`, `DrawLogic`, `DrawScreenLayout`, `TouchLayoutLogic`, `ReceiptLogic`, `ProfileSchema`, `ProfileLogic`, `RewardLogic`, `PlaceRole`, `PlacePayload`, `RoomDirectoryLogic`, `MoveExempt`, `MovementGuardLogic`, `LobbyLayout`, `UiLayout`, `IntroLayout`, `EliminationCutsceneLogic`, `IntroCameraLogic`, `VictoryCutsceneLogic`, `DiveLogic`, `GrabLogic`, `GrabInputLogic`, `SfxCues`, `SfxLibrary`, `AdminLogic`, `Seasons`, `Offers`, `OfferLogic`, `FxCatalog`, `CodeLogic`, `IceLogic`, `maps`(안에 `MapTypes`, `MapKit`, `MapKitLogic`, `MapKitShapes`, `MapFxPresets`, `MapDecorAnimLogic`, `MapDecorTags`, `MapLighting`, `MapLightingLogic`, `MapSfx`, `MapSfxLogic`, 그리고 맵 15개 — 맵마다 `Art`·`Logic`/`Layout` 모듈이 붙어요)
+- [ ] `StarterPlayer` → `StarterPlayerScripts` → `Client` (안에 `CameraDirector`, `Sfx`, `ProfileStore`, `PriceCache`, `ui` 폴더: `Lobby*`, `Room*`, `Hud*`, `Spectate*`, `Coin*`, `Shop*`, `DrawScreen`, `Offer*`, `Code*`, `Admin*`, `ChatTagController`, `UiScaleController`, `SettingsButton`, `TouchLayoutEditor`, `fx` 폴더: `CharacterFxController`, `FishRig`, `DollAnimator`, `EliminationCutscene*`, `CutsceneProps`, `Intro*`, `VictoryCutscene*`, `VictoryProps`, `LobbyFxController`, `MapLightingController`, `MapDecorFxController`, `input` 폴더: `Dive*`, `Grab*`, `IceController`, `TouchLayoutController`)
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 26개(RemoteFunction 15, RemoteEvent 11)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 27개(RemoteFunction 16, RemoteEvent 11 — m5-31 `DrawTicket`까지)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
 - [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼, 왼쪽 가장자리 "🛠"(Studio에서는 관리자)가 떠요 (3-4, 3-9, 3-10)
 - [ ] Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상이에요(코드 목록을 로컬에 안 만들었을 때)
@@ -612,7 +615,8 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M4 "알려진 한계 · 보류" 참고.
 
 ### 3-10. M5 확인 (연장전 · 관리자 · 시즌 · 상점 · 연출 · 코드 · 스킨 · 새 맵 9개)
-출처: `docs/qa/m5-01-…`~`docs/qa/m5-22-…`의 "사용자 Studio 확인 체크리스트"(맵은 재QA 절 포함). QA 뒤 고쳐진 것은 고친 뒤 동작으로 적었어요("QA 뒤 고침"). 맵 비주얼 키트(조명)는 3-11. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요. 표시 [바로] / [C1 먼저] / [C2 먼저]는 3-9와 같아요.
+출처: `docs/qa/m5-01-…`~`docs/qa/m5-22-…`의 "사용자 Studio 확인 체크리스트"(맵은 재QA 절 포함). m5-24 이후(아트 패스 v2·캐릭터·콘셉트 스킨·뽑기·고등어·버튼 편집)는 3-12.
+- **m5-31 뒤 바뀐 점**: Studio는 기본으로 모든 스킨을 입을 수 있어요(`unlockAllSkinsInStudio = true`). 아래 D(시즌 스킨 사기·교환)·E(묶음·VIP 금박)·I(코인 해금)처럼 **보유·구매를 보는 항목은 먼저 `unlockAllSkinsInStudio = false`**로 바꾸고 확인한 뒤 `true`로 되돌려요. QA 뒤 고쳐진 것은 고친 뒤 동작으로 적었어요("QA 뒤 고침"). 맵 비주얼 키트(조명)는 3-11. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주거나 해당 스펙 개발 메모에 적어 주세요. 표시 [바로] / [C1 먼저] / [C2 먼저]는 3-9와 같아요.
 
 **디버그 설정 (M5에서 추가)** — 로컬에서만 바꾸고 **커밋 금지**. 3-9 표의 설정도 그대로 써요.
 
@@ -621,13 +625,14 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 | `overtimeAt` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 결승 연장전 시작을 그 초로 당겨요(예: `15`). Studio에서만 적용 | A, J, R, S |
 | `eventNow` | `src/shared/Config.luau` `Config.DEBUG` | `nil :: number?` | 서버가 쓰는 "지금 시각"(UTC unix 초). 할로윈 `1792108800`~`1793923199`, 끝 `1793923200`, 크리스마스 `1796947200`. Studio에서만(실서버는 무시) | C, D, G, H |
 | `fakeVipInStudio` | `src/shared/Config.luau` `Config.DEBUG` | `false` | 게임 패스 없이 VIP로 봐요. `persistDataInStudio`와 같이 켜면 꺼지고 경고만 | E |
+| `unlockAllSkinsInStudio` | `src/shared/Config.luau` `Config.DEBUG` | **`true`** (m5-31) | `true`면 Studio에서 보유와 상관없이 모든 스킨이 "입기 (Studio)"(저장된 보유에는 안 남음, 서버 Output `[ShopService] Studio: all skins can be worn …` 한 줄). **구매·코인 해금·🎫 뽑기 흐름을 볼 때만 `false`**로 — 켜 두면 탈의실이 "입기 (Studio)"만 보여요. `persistDataInStudio`와 같이 켜면 꺼지고 경고 한 줄. 실서버는 무시 | I, 3-12 |
 | `fakeRobuxInStudio` | (3-9 표) | `false` | 시즌·특별 상품도 가짜 결제로 | D, E |
-| `persistDataInStudio` | (3-9 표) | `false` | 켜면 가짜 결제·가짜 VIP가 꺼지고, 관리자 코인·재화·프로필 초기화 명령이 거절돼요 | C3, G4, H7 |
+| `persistDataInStudio` | (3-9 표) | `false` | 켜면 가짜 결제·가짜 VIP·Studio 전부 입기가 꺼지고, 관리자 코인·재화·🎫 티켓·프로필 초기화 명령이 거절돼요 | C3, G4, H7, 3-12 |
 | `src/server/CodeList.luau` | 로컬 파일(`.gitignore`) | 없음 | `CodeList.example.luau`를 복사해 코드 목록을 적어요. 커밋되지 않아요. 실제 코드는 문서 예시와 다르게 | G |
 | `StudioAllAdmins` | `src/server/AdminConfig.luau` | `true` | `false`면 Studio에서도 UserId 목록(과 퍼블리시된 플레이스의 개인 소유자)만 관리자 — 비관리자 화면 확인용 | B5 |
 | `LiveEnabled` | `src/server/AdminConfig.luau` | `true` (확정, 2026-10-08) | `false`면 **실서버**에서 아무도 관리자가 아님. Studio에는 영향 없음. 공개 출시 전에 유지/끄기 재확인(USER-TODO A1) | B7 |
 
-**되돌리기**: 확인이 끝나면 `forceMapPlan = nil`, `overtimeAt = nil`, `eventNow = nil`(타입 표기 `nil :: number?` 그대로), `fakeRobuxInStudio = false`, `fakeVipInStudio = false`, `persistDataInStudio = false`, `StudioAllAdmins = true`. 맵 Art에 잠깐 넣은 시험용 장식(3-11 4번)도 지워요. 안 되돌리면 `lune run tests`가 실패하거나(Config 커밋 값 고정 테스트) 관리자 확인이 헷갈려요. `git status`로 `src/`에 바뀐 파일이 없는지 확인하고 커밋하지 마세요.
+**되돌리기**: 확인이 끝나면 `forceMapPlan = nil`, `overtimeAt = nil`, `eventNow = nil`(타입 표기 `nil :: number?` 그대로), `fakeRobuxInStudio = false`, `fakeVipInStudio = false`, `persistDataInStudio = false`, **`unlockAllSkinsInStudio = true`**, `StudioAllAdmins = true`. 맵 Art에 잠깐 넣은 시험용 장식(3-11 4번)도 지워요. 안 되돌리면 `lune run tests`가 실패하거나(Config 커밋 값 고정 테스트) 관리자 확인이 헷갈려요. `git status`로 `src/`에 바뀐 파일이 없는지 확인하고 커밋하지 마세요.
 
 **A. 결승 연장전 (m5-01)** [바로] — 준비: `forceMapPlan = { "rotating-belt", "hot-plate", "skewer-showdown" }`, 빠르게 보려면 `overtimeAt = 15`
 1. (AC11) Test → Clients and Servers 2명, 방 만들고 시작 → 결승(꼬치 쇼다운)까지 둘 다 살아남아 버티기. 15초(디버그) 또는 90초가 되면:
@@ -850,6 +855,41 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > m5-23은 QA 수정 뒤 재QA 전(`in-qa`)이에요. 결과가 이상하면 메인 세션에 알려 주세요.
 
+### 3-12. M5 확인 2 (아트 패스 v2 · 캐릭터 · 콘셉트 스킨 · 🎫 뽑기 · 고등어 · 버튼 편집)
+출처: 아래 QA 리포트의 "사용자 Studio 확인 체크리스트"(재QA 절 포함). 단계별 순서는 **리포트를 그대로 따라 하면 돼요** — 여기에는 준비물, 리포트를 쓴 뒤 바뀐 점, 꼭 볼 것만 모았어요. 결과(특히 실패·이상한 점)는 메인 세션에 알려 주세요. 전부 [바로](Studio만). 디버그 설정은 3-10 표, 끝나면 3-10 "되돌리기".
+
+**리포트를 쓴 뒤 바뀐 점 (먼저 읽기)**
+- 콘셉트 몸 스킨 9종은 m5-31부터 이름이 "○○ (특)"(예: 장어초밥 (특))이고 **뽑기 전용**이에요. m5-28·m5-29·m5-30 리포트의 "콘셉트 ○○ (테스트)", "전체 탭 맨 아래, 모두 '입기'", "`resetprofile` 뒤에도 '입기'"는 옛 동작이에요. 지금은 탈의실 **"🎫 특" 탭**(전체 탭에도 있음)에 있고, 커밋 값(`unlockAllSkinsInStudio = true`)에서는 "입기 (Studio)", `false`면 안 가진 카드가 "🎫 뽑기로 얻기"예요. 모양 확인은 `true` 그대로 하면 돼요.
+- 콘셉트 몸 표정은 6종(화남·슬픔 추가, m5-32). 뽑기 확률표는 고등어가 들어와서 **전설 1.0 / 영웅 5.0 / 희귀 15.0 / 고급 30.0 / 일반 49.0**, "준비 중" 줄 없음, 보유 목록 n/**10**(m5-31 리포트의 "전설 준비 중·5.0/15.2/30.3/49.5·n/9"는 고등어 전 값). ⓘ의 스킨별 %도 바뀌어요(영웅 5.00%, 희귀 각 5.00%, 고급 각 10.00%, 일반 각 24.50%, 전설 1.00% — `DrawLogic.perSkinPercent`).
+- m5-31 재QA P3 R1(상세 창 빈 곳 터치가 아래 카드로 샘)·R2(큰 미리보기가 이름·대사와 겹침)는 m5-32에서 고쳤어요 → m5-32 체크리스트 3번으로 확인.
+- 고등어 넘어짐 "@_@"가 몸 속에 가려지던 것(m5-32 재QA B3)은 병합 뒤 고쳤어요 → 체크리스트 13번.
+- 젠가 소개 카메라가 블록탑을 뚫던 것(m5-24 B1)은 병합 전에 고쳤어요(탑 모서리를 돌아감) → m5-24 체크리스트 2-a는 "안 뚫는지"로 봐요.
+
+**A. 기존 맵 12개 아트 패스 v2 (m5-24)** — [`docs/qa/m5-24-map-art-pass-v2.md`](qa/m5-24-map-art-pass-v2.md) "사용자 Studio 확인 체크리스트" 1~5
+- 준비: `forceMapPlans`에 리포트의 5판 플랜(혼자 = 3라운드라 맵 3개씩), 결승 연장전은 `overtimeAt = 5` + Clients and Servers 2명. 끝나면 `forceMapPlans = nil`, `overtimeAt = nil`.
+- 꼭 볼 것: 맵마다 조명 분위기(1-a 목록), 소개 카메라가 벽·블록을 뚫지 않는지(2), 장식에 올라서거나 부딪히는 곳이 없는지(3-f), 회전 벨트 벽 바깥 카운터가 바닥처럼 보이지 않는지(3-a), 방방 미로 출발 시점(4-b, 렌더러로 못 봄), **인형뽑기 연장전에 오락실 전체가 같이 기우는 모습이 괜찮은지**(5-c — 결과로 planner가 B2 방향을 정해요), 휴대폰에서 방방·회전 벨트·등불 다리가 끊기지 않는지(4-c).
+
+**B. 캐릭터 퀄리티 (m5-25)** — [`docs/qa/m5-25-character-quality.md`](qa/m5-25-character-quality.md) 1~9
+- 숨쉬기·깜빡임·걸음·착지 찌그러짐·넘어짐 자세, 31종 탈의실 미리보기, 인형이 땅에 서 있는지, 빛 효과가 몸 주변만인지, 바짝 줌 때 몸 속이 비치는지(P3), 휴대폰에서 눈·입이 보이는지.
+
+**C. 콘셉트 몸 스킨 (m5-28, m5-29, m5-30)** — [`m5-28`](qa/m5-28-concept-skins.md) 1~7, [`m5-29`](qa/m5-29-concept-skins-2.md) 1~8, [`m5-30`](qa/m5-30-concept-topping-quality.md) 1~6
+- 위 "바뀐 점"대로 "🎫 특" 탭에서 입어요. 팔 흔들기·발 닿음·깜빡임, 탈락 인형(x x + 반창고)·우승/단상 인형(^ ^), 휴대폰 뒤 카메라에서 비슷한 쌍(장어 ↔ 연어, 성게 ↔ 연어알, 문어 ↔ 새우, 참치 ↔ 연어)이 구분되는지.
+- 사용자 판단이 필요한 것: **장어 정면에서 주황 살이 너무 커 보이는지**(m5-30 체크리스트 2, B-V1), 새우 꼬리가 넘어질 때 묻히는지, 연어알·장어 Glass가 Future 조명에서 너무 투명·검게 보이는지, 유부 Sand 재질, 문어·성게 멀리서 깜빡임(z-fighting).
+
+**D. 🎫 우승자 뽑기 (m5-31)** — [`docs/qa/m5-31-winner-ticket-draw.md`](qa/m5-31-winner-ticket-draw.md) 1~8 + "재QA Studio 체크리스트" 9~10
+- 준비: 1번만 커밋 값(`unlockAllSkinsInStudio = true`), **2번부터 `unlockAllSkinsInStudio = false`**(끝나면 `true`로). 티켓은 🛠 명령 탭 🎫 +1/+10/+98/0으로(혼자 우승으로도 1장). 7번은 `persistDataInStudio = true`라 실제 DataStore를 써요 — 테스트 계정으로만, 끝나면 `false`.
+- 꼭 볼 것: 우승 토스트·배지(2), 샘플 그림과 같은 구성인지(3 — 확률 값은 위 "바뀐 점"), 결과 연출·중복 코인·연타해도 한 장씩·꽝 없음(4), 판 시작하면 뽑기 화면이 탈의실과 같이 닫히는지(6), 휴대폰 버튼 44px·탭 3개(8·9), 두근두근 동안 배경 목록이 먼저 안 바뀌는지(10).
+
+**E. 🐟 고등어 초밥 [신선] (m5-32)** — [`docs/qa/m5-32-fresh-mackerel.md`](qa/m5-32-fresh-mackerel.md) 1~9 + "Studio 체크리스트 추가" 10~14
+- 준비: 판매 카드 확인(1)은 `fakeRobuxInStudio = true` + `unlockAllSkinsInStudio = false`(끝나면 둘 다 되돌림), 뽑기 확인(2)은 🛠 `tickets 99`. 움직임만 볼 때는 커밋 값 그대로 "입기 (Studio)".
+- 꼭 볼 것: **팔딱이 "굉장히 팔딱"으로 느껴지는지, 너무 잦거나 정신없지 않은지**(4 — 바꾸고 싶으면 간격·각도를 숫자로), 월드 인형(단상·우승·탈락)에서 고등어만 움직이고 밥·얼굴은 가만히 있는지(5·12), Future 조명 윤기·꼬리 반짝이(6), 8명 모두 고등어일 때 프레임(7, 마이크로프로파일러 숫자), 이름표·👑·칭호가 4.8에 뜨고 다른 스킨으로 바꾸면 3.6으로 내려오는지(10·11), "@_@"가 보이는지(13), 레이스 뒤 카메라에서 앞 시야를 너무 가리지 않는지(14), 근접 정면에서 분홍 혀가 "빨간 띠"처럼 보이는지(8). 소리는 id가 없어 무음이 정상(9).
+
+**F. 📱 터치 버튼 위치·크기 편집 (m5-41)** — [`docs/qa/m5-41-touch-button-layout.md`](qa/m5-41-touch-button-layout.md) 1~8
+- 준비: Test → Device 에뮬레이터에서 휴대폰 가로(작은 화면)로 Play, `minPlayersToStart = 1`(커밋 값). PC 화면에서는 ⚙가 안 보이는 게 정상.
+- 꼭 볼 것: **옮긴 점프 버튼이 리셋·라운드 시작·기기 변경 뒤에도 그 자리인지, 원래 자리로 돌아가거나 깜빡이지 않는지**(3, 가장 중요 — 되돌아가면 자체 점프 버튼으로 바꿔요), 금지 구역·겹침·최소 크기(4), 편집 중 입력이 안 나가는지·취소·기본값으로·프리셋(5), 라운드 중 잠금(6 — 카운트다운 중에는 열리는 게 지금 동작, B1), 휴대폰/태블릿 배치가 따로인지(7), 관전 ◀ ▶가 옮긴 버튼과 안 겹치는지(8). 재접속 유지는 퍼블리시 뒤 실제 휴대폰(USER-TODO C1).
+
+> 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 참고.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -867,7 +907,7 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 작업 흐름(스펙 → 개발 → QA → 문서), 에이전트별 파일 소유권, worktree 나누는 법은 [`docs/WORKFLOW.md`](WORKFLOW.md)에 있어요. 여기는 Studio 쪽에서 필요한 것만 적어요.
 
 - **확인할 브랜치/worktree 하나만 연결해요.** worktree마다 Rojo 포트를 다르게 띄우고(`rojo serve --port 34872`, `34873`, `34874`, ...), Studio 플러그인 창의 포트를 그 번호로 맞춰서 Connect 해요. 한 Studio 창에는 한 worktree만 연결해요.
-- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10·3-11)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
+- **QA가 "사용자 확인 필요"로 남긴 항목**(M3는 3-8, M4는 3-9, M5는 3-10·3-11·3-12)은 `docs/qa/<스펙 id>.md`에 있어요. 문서화 담당이 스펙을 `done`으로 넘길 때 그 체크리스트를 이 문서의 마일스톤 절(3-x)로 옮겨요.
 - 머지는 QA 통과 뒤 메인 세션에서 해요. 머지 후에는 `main`에서 `rojo serve`를 다시 켜고 3-2부터 확인해요.
 
 ## Windows 메모

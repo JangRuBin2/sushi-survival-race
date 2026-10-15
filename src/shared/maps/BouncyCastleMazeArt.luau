@@ -31,12 +31,17 @@ BouncyCastleMazeArt.COLORS = {
 	partition1 = { r = 100, g = 176, b = 255 }, -- 1·2레인 칸막이 (파랑)
 	partition2 = { r = 132, g = 220, b = 120 }, -- 2·3레인 칸막이 (초록)
 	partition3 = { r = 206, g = 142, b = 255 }, -- 3·4레인 칸막이 (보라)
+	partition4 = { r = 255, g = 170, b = 70 }, -- m5-40 두 번째 미로 오른쪽·가운데 칸막이 (주황)
+	partition5 = { r = 70, g = 206, b = 200 }, -- m5-40 두 번째 미로 가운데·왼쪽 칸막이 (청록)
+	pillar = { r = 255, g = 250, b = 240 }, -- m5-40 풍선 기둥 (흰 몸통 — 색 띠·풍선은 장식)
 	spawn = { r = 246, g = 196, b = 70 },
 	finish = { r = 255, g = 196, b = 40 },
 } :: { [string]: RGB }
 
 -- 칸막이 x 위치 순서(Layout.PARTITIONS와 같은 순서)와 1:1인 색 이름
 BouncyCastleMazeArt.PARTITION_COLOR_KEYS = { "partition1", "partition2", "partition3" }
+-- m5-40: Layout.MAZE2_PARTITIONS와 1:1
+BouncyCastleMazeArt.MAZE2_PARTITION_COLOR_KEYS = { "partition4", "partition5" }
 
 -- m5-14 파티클·조명 이름 상수
 BouncyCastleMazeArt.LAMP = "CarnivalLamp"
@@ -129,9 +134,8 @@ end
 -- 입구 문 경고 줄무늬 (관문 위, 빨강-흰 사선 느낌의 블록들). 1번 레인이 벽에 붙어 있으면(왼쪽 폭 0)
 -- 그쪽은 건너뛰고, 막힌 폭(보통 오른쪽)에만 줄무늬를 그려요.
 local function addGateStripes(list: { DecorSpec })
-	local gate = Layout.GATE
 	local y = Layout.WALL_HEIGHT * 0.85
-	local function stripeBlock(xMin: number, xMax: number)
+	local function stripeBlock(gate: Layout.Gate, xMin: number, xMax: number)
 		local blockWidth = xMax - xMin
 		if blockWidth <= 0 then
 			return
@@ -151,15 +155,69 @@ local function addGateStripes(list: { DecorSpec })
 			)
 		end
 	end
-	stripeBlock(Layout.BOUNDS.xMin, gate.openXMin)
-	stripeBlock(gate.openXMax, Layout.BOUNDS.xMax)
+	-- m5-40: 두 번째 미로 입구·출구 문도 같은 경고 줄무늬 (막힌 폭에만)
+	for _, gate in { Layout.GATE, Layout.MAZE2_GATE, Layout.MAZE2_EXIT_GATE } do
+		stripeBlock(gate, Layout.BOUNDS.xMin, gate.openXMin)
+		stripeBlock(gate, gate.openXMax, Layout.BOUNDS.xMax)
+	end
+end
+
+-- m5-40 새 바운스 구간 바닥 무늬 (판정 바닥 위 얇은 장식 판). 첫 미로의 체크무늬와 다르게 해서 구간이 바뀐 걸
+-- 보여줘요: 두 번째 미로 = 레인마다 다른 색 가로 띠(진행 방향이 뒤집힌 걸 레인 색으로 구분),
+-- 풍선 기둥 숲 = 흰 바탕 위 큰 물방울 무늬.
+local function addNewFloorPatterns(list: { DecorSpec })
+	local laneColors = {
+		{ r = 255, g = 214, b = 150 }, -- 오른쪽 (주황 칸막이 쪽)
+		{ r = 255, g = 236, b = 200 }, -- 가운데
+		{ r = 176, g = 232, b = 222 }, -- 왼쪽 (청록 칸막이 쪽)
+	}
+	local bands = 7
+	local depth = Layout.MAZE2.front - Layout.MAZE2.back
+	local bandDepth = depth / bands
+	local laneEdges = { { 7, Layout.HALF_WIDTH }, { -7, 7 }, { -Layout.HALF_WIDTH, -7 } }
+	for lane, edges in laneEdges do
+		local w = edges[2] - edges[1]
+		for b = 0, bands - 1, 2 do
+			part(
+				list,
+				"Maze2Band",
+				"Block",
+				v(w - 0.6, 0.06, bandDepth - 0.4),
+				laneColors[lane],
+				"SmoothPlastic",
+				v((edges[1] + edges[2]) / 2, 0.08, Layout.MAZE2.front - bandDepth * (b + 0.5))
+			)
+		end
+	end
+	-- 숲: 물방울 무늬 (기둥 줄 사이 통로에, 원판)
+	local dots = { WHITE, BouncyCastleMazeArt.COLORS.wall, { r = 120, g = 200, b = 255 } }
+	local k = 0
+	for z = Layout.FOREST.front - 3, Layout.FOREST.back + 3, -10 do
+		for x = -15, 15, 10 do
+			k += 1
+			part(
+				list,
+				"ForestDot",
+				"Cylinder",
+				v(0.06, 4.4, 4.4),
+				dots[k % #dots + 1],
+				"SmoothPlastic",
+				v(x + (if (k % 2) == 0 then 2.5 else -2.5), 0.08, z),
+				UP
+			)
+		end
+	end
 end
 
 -- 칸막이·벽 위 둥근 풍선 장식 (통통 튀는 느낌)
 local function addBalloons(list: { DecorSpec })
 	local y = Layout.WALL_HEIGHT + 1.4
 	local count = 0
-	for _, partition in Layout.PARTITIONS do
+	local partitions = table.clone(Layout.PARTITIONS)
+	for _, p in Layout.MAZE2_PARTITIONS do -- m5-40 두 번째 미로 칸막이에도
+		table.insert(partitions, p)
+	end
+	for _, partition in partitions do
 		for _, z in
 			{ partition.blockedZHigh, (partition.blockedZHigh + partition.blockedZLow) / 2, partition.blockedZLow }
 		do
@@ -169,7 +227,7 @@ local function addBalloons(list: { DecorSpec })
 		end
 	end
 	for _, side in { -1, 1 } do
-		for i, z in { Layout.ANTEROOM.front, -45, -90, Layout.MAZE.back } do
+		for i, z in { Layout.ANTEROOM.front, -45, -90, Layout.MAZE.back, -150, Layout.FOREST.front, -205 } do
 			count += 1
 			local color = BALLOON_COLORS[(count + i) % #BALLOON_COLORS + 1]
 			part(list, "WallBalloon", "Ball", v(1.6, 1.6, 1.6), color, "SmoothPlastic", v(side * (HALF + 1), y, z))
@@ -216,7 +274,9 @@ end
 
 -- 색색의 유원지 조명 기둥 (예산 12개 안에서 여러 색)
 local function addLamps(list: { DecorSpec })
-	local positions = { Layout.START.front - 6, -18, -55, -95, Layout.EXIT.front - 4, Layout.FINISH_LINE_Z - 4 }
+	-- m5-40: 두 번째 미로·풍선 숲 옆에도 하나씩 (-148, -204), 결승 쪽 등은 새 결승선을 따라가요
+	local positions =
+		{ Layout.START.front - 6, -18, -55, -95, Layout.EXIT.front - 4, -148, -204, Layout.FINISH_LINE_Z - 4 }
 	for i, z in positions do
 		-- m5-24: 레인 안(밟는 곳)에 서 있던 기둥을 성 바깥 땅으로 옮겼어요 (등 개수·이름·조명은 그대로)
 		local x = if i % 2 == 0 then -(HALF + 8) else (HALF + 8)
@@ -232,7 +292,8 @@ end
 local function addFinishChecker(list: { DecorSpec })
 	local lineZ = Layout.finishLineZ()
 	local y = 0.45
-	local cols = Layout.WIDTH
+	local cell = 2 -- m5-40: 1 → 2 (파츠 80 → 40, 새 구간에 예산을 돌렸어요)
+	local cols = Layout.WIDTH / cell
 	for row = 0, 1 do
 		for col = 0, cols - 1 do
 			local color = if (row + col) % 2 == 0 then WHITE else STRIPE_RED
@@ -240,10 +301,10 @@ local function addFinishChecker(list: { DecorSpec })
 				list,
 				"FinishChecker",
 				"Block",
-				v(1, 0.05, 0.5),
+				v(cell, 0.05, 0.5),
 				color,
 				"SmoothPlastic",
-				v(-HALF + 0.5 + col, y, lineZ + 0.25 - row * 0.5)
+				v(-HALF + cell / 2 + col * cell, y, lineZ + 0.25 - row * 0.5)
 			)
 		end
 	end
@@ -403,24 +464,25 @@ local function addPark(list: { DecorSpec })
 			return { patch }
 		end)
 	)
-	-- 성을 두르는 모래색 산책길 (ㅁ자) + 입구 쪽 길
+	-- 성을 두르는 모래색 산책길 (ㅁ자) + 입구 쪽 길 (m5-40: 성이 길어져서 뒤쪽 길을 -180 → -300으로)
 	local pathY = GROUND + 0.1
+	local pathLen, pathZ = 360, -130
 	for _, side in { -1, 1 } do
-		add(list, "ParkPath", "Block", v(14, 0.2, 260), PATH, "Pavement", v(side * 52, pathY, -70))
+		add(list, "ParkPath", "Block", v(14, 0.2, pathLen), PATH, "Pavement", v(side * 52, pathY, pathZ))
 		for _, edge in { -1, 1 } do
 			add(
 				list,
 				"PathCurb",
 				"Block",
-				v(0.8, 0.6, 260),
+				v(0.8, 0.6, pathLen),
 				MapKitLogic.shade(PATH, 0.8),
 				"Concrete",
-				v(side * 52 + edge * 7.2, GROUND + 0.3, -70)
+				v(side * 52 + edge * 7.2, GROUND + 0.3, pathZ)
 			)
 		end
 	end
 	add(list, "ParkPath", "Block", v(118, 0.2, 14), PATH, "Pavement", v(0, pathY, 40))
-	add(list, "ParkPath", "Block", v(118, 0.2, 14), PATH, "Pavement", v(0, pathY, -180))
+	add(list, "ParkPath", "Block", v(118, 0.2, 14), PATH, "Pavement", v(0, pathY, -303))
 	add(list, "ParkPath", "Block", v(14, 0.2, 300), PATH, "Pavement", v(0, pathY, 196))
 end
 
@@ -438,7 +500,8 @@ local function addCastleBody(list: { DecorSpec })
 		"SmoothPlastic",
 		v(0, (bodyTop + GROUND) / 2, midZ)
 	)
-	local tubeD = 3.6
+	local tubeD = 4.4 -- m5-40: 3.6 → 4.4, 간격 4 → 5 (성이 길어져도 기둥 수가 크게 늘지 않게)
+	local tubeStep = 5
 	local tubeTop = Layout.WALL_HEIGHT - 1
 	local outer = HALF + 0.5 + tubeD / 2 - 0.1
 	local shine: Extra = { reflectance = 0.08 }
@@ -460,7 +523,7 @@ local function addCastleBody(list: { DecorSpec })
 				shine
 			)
 		end
-		z -= 4
+		z -= tubeStep
 		i += 1
 	end
 	-- 앞·뒤 벽 바깥 공기 기둥
@@ -481,7 +544,7 @@ local function addCastleBody(list: { DecorSpec })
 				nil,
 				shine
 			)
-			x += 4
+			x += tubeStep
 			k += 1
 		end
 	end
@@ -538,7 +601,11 @@ local function addPiping(list: { DecorSpec })
 	for _, endZ in { Layout.START.front + 0.25, Layout.FINISH.back - 0.25 } do
 		add(list, "WallPiping", "Cylinder", v(Layout.WIDTH + 1.5, 1.1, 1.1), PIPING, "SmoothPlastic", v(0, y, endZ))
 	end
-	for _, partition in Layout.PARTITIONS do
+	local partitions = table.clone(Layout.PARTITIONS)
+	for _, p in Layout.MAZE2_PARTITIONS do -- m5-40
+		table.insert(partitions, p)
+	end
+	for _, partition in partitions do
 		local depth = partition.blockedZHigh - partition.blockedZLow
 		local mid = (partition.blockedZHigh + partition.blockedZLow) / 2
 		append(
@@ -560,6 +627,41 @@ local function addPiping(list: { DecorSpec })
 		list,
 		MapKitShapes.capsule("GatePiping", gx1 - gx0, 1.6, YELLOW, "SmoothPlastic", v((gx0 + gx1) / 2, y + 0.1, gate.z))
 	)
+	-- m5-40: 두 번째 미로 문 (막힌 폭 위에만)
+	for _, g in { Layout.MAZE2_GATE, Layout.MAZE2_EXIT_GATE } do
+		local x0 = if g.openXMin > Layout.BOUNDS.xMin then Layout.BOUNDS.xMin else g.openXMax
+		local x1 = if g.openXMin > Layout.BOUNDS.xMin then g.openXMin else Layout.BOUNDS.xMax
+		append(
+			list,
+			MapKitShapes.capsule("GatePiping", x1 - x0, 1.6, YELLOW, "SmoothPlastic", v((x0 + x1) / 2, y + 0.1, g.z))
+		)
+	end
+end
+
+-- m5-40 풍선 기둥 장식: 판정 기둥(흰 원기둥) 허리 색 띠 + 꼭대기 큰 풍선(셋에 하나 Bob). 기둥은 고정이라
+-- 그 위 장식에 anim을 달아도 판정과 같이 움직이는 일이 없어요.
+local function addPillarBalloons(list: { DecorSpec })
+	local colors = { RED, YELLOW, BLUE, GREEN }
+	for i, pillar in Layout.pillars() do
+		local color = colors[(i - 1) % #colors + 1]
+		local d = pillar.radius * 2
+		column(list, "PillarBand", pillar.x, 6.5, pillar.z, 2, d + 0.3, color, "SmoothPlastic")
+		local bd = d + 1.4
+		add(
+			list,
+			"PillarBalloon",
+			"Ball",
+			v(bd, bd * 1.1, bd),
+			color,
+			"SmoothPlastic",
+			v(pillar.x, Layout.WALL_HEIGHT + bd * 0.5, pillar.z),
+			nil,
+			{
+				reflectance = 0.12,
+				anim = if i % 3 == 0 then { kind = "Bob", period = 2.6 + (i % 4) * 0.3, amount = 0.5 } else nil,
+			}
+		)
+	end
 end
 
 -- 탑: 공기 원기둥(색 띠 3단) + 성가퀴 + 원뿔 지붕 + 깃발(Sway)
@@ -577,7 +679,8 @@ local function addTurret(
 		local color = if k % 2 == 0 then RED else YELLOW
 		column(list, "Turret", x, GROUND + k * bandH, z, bandH, d, color, "SmoothPlastic", { reflectance = 0.06 })
 	end
-	append(list, MapKitShapes.ring("TurretRim", d / 2 + 0.2, 1.4, 1.6, 10, PIPING, "SmoothPlastic", v(x, top + 0.8, z)))
+	-- m5-40: 테두리 조각 10 → 8 (탑 한 쌍을 더 세우면서 예산 맞춤)
+	append(list, MapKitShapes.ring("TurretRim", d / 2 + 0.2, 1.4, 1.6, 8, PIPING, "SmoothPlastic", v(x, top + 0.8, z)))
 	for k = 0, 7 do
 		local a = math.rad(k * 45)
 		add(
@@ -619,6 +722,10 @@ local function addTurrets(list: { DecorSpec })
 	addTurret(list, HALF + 5, Layout.FINISH.back - 5, 12, 26, roofA, GOLD)
 	addTurret(list, -(HALF + 4), -70, 8, 18, roofA, GREEN)
 	addTurret(list, HALF + 4, -70, 8, 18, roofB, BLUE)
+	-- m5-40: 쉼 통로(G) 옆 한 쌍 — 두 번째 미로와 풍선 숲의 경계를 멀리서도 보이게
+	local landingZ = (Layout.LANDING.front + Layout.LANDING.back) / 2
+	addTurret(list, -(HALF + 4), landingZ, 8, 20, roofB, YELLOW)
+	addTurret(list, HALF + 4, landingZ, 8, 20, roofA, RED)
 end
 
 -- 입구 아치: 앞 탑 두 개를 잇는 굵은 공기 아치 + 노란 현판
@@ -706,7 +813,13 @@ end
 -- 공기 송풍기 + 굵은 호스 (호스 Pulse — 바람이 들어가는 느낌). dir: 성에서 바깥쪽 x 부호
 local function addBlower(list: { DecorSpec }, x: number, z: number, dir: number)
 	local y = GROUND + 4.6
-	append(list, MapKitShapes.roundedBox("Blower", v(10, 9, 9), RED, "SmoothPlastic", v(x, y, z), { radius = 1.2 }))
+	append(
+		list,
+		MapKitShapes.roundedBox("Blower", v(10, 9, 9), RED, "SmoothPlastic", v(x, y, z), {
+			radius = 1.2,
+			style = "vertical", -- m5-40: full(23) → vertical(6), 새 구간에 예산을 돌렸어요
+		})
+	)
 	add(
 		list,
 		"BlowerGrille",
@@ -855,17 +968,8 @@ local function addFerrisWheel(list: { DecorSpec }, cx: number, cz: number, radiu
 			v(cx + math.cos(ar) * radius / 2, hubY + math.sin(ar) * radius / 2, cz),
 			v(0, 0, a)
 		)
-		append(
-			list,
-			MapKitShapes.roundedBox(
-				"WheelGondola",
-				v(12, 11, 10),
-				colors[k % 4 + 1],
-				"SmoothPlastic",
-				v(cxk, cyk - 7, cz),
-				{ radius = 2.5, style = "vertical" }
-			)
-		)
+		-- m5-40: 먼 배경(400 studs 너머)이라 둥근 상자(6) → 둥근 통 하나(원기둥)로 예산을 새 구간에
+		add(list, "WheelGondola", "Cylinder", v(10, 12, 12), colors[k % 4 + 1], "SmoothPlastic", v(cxk, cyk - 7, cz))
 	end
 	add(list, "WheelHub", "Cylinder", v(26, 14, 14), GOLD, "Metal", v(cx, hubY, cz), v(0, 90, 0), { reflectance = 0.2 })
 	local spin = { anim = { kind = "Spin", period = 24, amount = 0, axis = "Z" } } :: Extra
@@ -882,16 +986,16 @@ local function addCarousel(list: { DecorSpec }, cx: number, cz: number, d: numbe
 		local a = math.rad(k * 36)
 		local px, pz = cx + math.cos(a) * d * 0.4, cz + math.sin(a) * d * 0.4
 		column(list, "CarouselPole", px, GROUND + 6, pz, 40, 1.6, GOLD, "Metal", { reflectance = 0.25 })
-		append(
+		-- m5-40: 먼 배경이라 둥근 상자(6) → 상자 하나 (예산을 새 구간에)
+		add(
 			list,
-			MapKitShapes.roundedBox(
-				"CarouselHorse",
-				v(4, 7, 12),
-				colors[k % 4 + 1],
-				"SmoothPlastic",
-				v(px, GROUND + 16, pz),
-				{ radius = 1.5, style = "vertical", rotation = v(0, -k * 36, 0) }
-			)
+			"CarouselHorse",
+			"Block",
+			v(4, 7, 12),
+			colors[k % 4 + 1],
+			"SmoothPlastic",
+			v(px, GROUND + 16, pz),
+			v(0, -k * 36, 0)
 		)
 	end
 	column(list, "CarouselCenter", cx, GROUND + 6, cz, 40, d * 0.3, { r = 250, g = 120, b = 150 }, "SmoothPlastic")
@@ -1015,6 +1119,7 @@ local function addCart(list: { DecorSpec }, x: number, z: number, yaw: number)
 			v(0, GROUND + 7, 0),
 			{
 				radius = 1.4,
+				style = "vertical", -- m5-40: full(23) → vertical(6)
 			}
 		)
 	)
@@ -1059,15 +1164,13 @@ end
 local function addHedges(list: { DecorSpec })
 	local hedge = MapKitLogic.shades({ r = 62, g = 140, b = 64 })
 	for _, side in { -1, 1 } do
-		for k = 0, 5 do
+		for k = 0, 7 do -- m5-40: 성이 길어져서 0~5 → 0~7 (z 20 → -260)
 			local z = 20 - k * 40
 			local color = if k % 2 == 0 then hedge.base else hedge.dark
+			-- m5-40: 둥근 상자(6) → 눕힌 캡슐(3) — 둥근 산울타리 느낌은 그대로, 예산을 새 구간에
 			append(
 				list,
-				MapKitShapes.roundedBox("Hedge", v(10, 9, 30), color, "Grass", v(side * 78, GROUND + 4.5, z), {
-					radius = 3,
-					style = "vertical",
-				})
+				MapKitShapes.capsule("Hedge", 30, 9, color, "Grass", v(side * 78, GROUND + 4.5, z), v(0, 90, 0))
 			)
 			local flower = if k % 2 == 0 then YELLOW else { r = 255, g = 140, b = 190 }
 			add(list, "HedgeFlower", "Ball", v(3, 3, 3), flower, "SmoothPlastic", v(side * 78 + 2, GROUND + 9.4, z + 6))
@@ -1165,7 +1268,7 @@ local function addTicketBooth(list: { DecorSpec }, x: number, z: number)
 			BLUE,
 			"SmoothPlastic",
 			v(x + 14, GROUND + 2, z - 4),
-			{ radius = 0.8 }
+			{ radius = 0.8, style = "vertical" } -- m5-40: full(23) → vertical(6)
 		)
 	)
 	add(list, "BubbleNozzle", "Cylinder", v(2, 1.6, 1.6), PIPING, "SmoothPlastic", v(x + 14, GROUND + 5, z - 4), UP, {
@@ -1275,11 +1378,20 @@ function BouncyCastleMazeArt.decor(): { DecorSpec }
 	addSushiShop(list, 40, -640)
 	addTicketBooth(list, -30, 44)
 	addPicnic(list)
+	-- m5-40 새 구간 (두 번째 미로·쉼 통로·풍선 숲): 바닥 무늬, 기둥 풍선, 옆 송풍기·풍선 다발·바람개비
+	addNewFloorPatterns(list)
+	addPillarBalloons(list)
+	addBlower(list, 46, -196, 1)
+	addBalloonBunch(list, -44, -210, 30, 13)
+	for k, p in { { -36, -128, 13 }, { 34, -232, 15 } } do
+		addPinwheel(list, p[1], p[2], p[3], k + 4)
+	end
 	-- 먼 언덕 띠 (지평선 아래 빈 하늘이 안 보이게, 잔디밭 가장자리 바깥)
 	local hill = MapKitLogic.shades({ r = 98, g = 168, b = 96 })
+	-- m5-40: 성이 길어져 overview 카메라가 더 멀리 봐요 → 언덕을 키우고 고리 중심을 코스 가운데(-120)로
 	for k = 0, 17 do
 		local a = math.rad(k * 20 + 7)
-		local d = 260 + (k % 3) * 50
+		local d = 320 + (k % 3) * 60
 		local c = if k % 3 == 0 then hill.base elseif k % 3 == 1 then hill.dark else hill.light
 		add(
 			list,
@@ -1288,7 +1400,7 @@ function BouncyCastleMazeArt.decor(): { DecorSpec }
 			v(d, d, d),
 			c,
 			"Grass",
-			v(math.cos(a) * 760, GROUND - d * 0.3, -70 + math.sin(a) * 760)
+			v(math.cos(a) * 760, GROUND - d * 0.25, -120 + math.sin(a) * 760)
 		)
 	end
 	local trees = {
@@ -1311,13 +1423,14 @@ function BouncyCastleMazeArt.decor(): { DecorSpec }
 	return list
 end
 
--- 소개: ① 입구 앞 넓은 샷(성·탑·대관람차) ② 관문과 열린 1번 레인 ③ 미로 위에서 결승 쪽(S자) ④ 결승 아치
+-- 소개: ① 입구 앞 넓은 샷(긴 성 전체·탑·대관람차) ② 관문과 열린 1번 레인 ③ 두 번째 미로 위에서 풍선 숲 쪽
+-- (m5-40 새 구간 1컷) ④ 결승 아치. (m5-40: ①은 더 멀리 보게, ③·④는 새 길이에 맞게 옮겼어요)
 function BouncyCastleMazeArt.introCamera(): { IntroPoint }
 	return {
-		{ pos = v(-50, 40, 36), lookAt = v(0, 0, -50) },
+		{ pos = v(-50, 44, 36), lookAt = v(0, 0, -110) },
 		{ pos = v(14, 30, -4), lookAt = v(-14, 3, -30) },
-		{ pos = v(0, 42, -42), lookAt = v(0, 0, -104) },
-		{ pos = v(0, 20, -108), lookAt = v(0, 14, -140) },
+		{ pos = v(0, 40, -128), lookAt = v(0, 0, -200) },
+		{ pos = v(0, 29, -206), lookAt = v(0, 12, -246) },
 	}
 end
 

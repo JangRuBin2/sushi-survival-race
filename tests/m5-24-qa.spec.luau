@@ -41,17 +41,23 @@ type Fingerprint = { n: number, size: number, x: number, y: number, z: number, c
 
 -- main(481eea0, m5-24 병합 전)에서 같은 계산으로 잰 값. 판정 지오메트리를 바꾸면 이 값이 달라져요.
 local MAIN_FINGERPRINT: { [string]: Fingerprint } = {
-	["rotating-belt"] = { n = 57, size = 982.30, x = 239.50, y = 91.82, z = -2496.25, collide = 22, tags = 4 },
+	-- m5-40 L1 길이 늘리기로 판정 지오메트리가 의도해서 바뀜 (옛 n = 57, size = 982.30, x = 239.50, y = 91.82, z = -2496.25, collide = 22, tags = 4)
+	["rotating-belt"] = { n = 203, size = 3922.20, x = 867.00, y = 871.90, z = -42000.25, collide = 151, tags = 12 },
 	["hot-plate"] = { n = 267, size = 3259.80, x = 3564.00, y = -4979.10, z = -7209.00, collide = 243, tags = 243 },
 	["skewer-showdown"] = { n = 89, size = 934.22, x = 632.14, y = -42.60, z = 73.03, collide = 65, tags = 0 },
-	["soy-swamp"] = { n = 40, size = 1429.33, x = 174.10, y = 167.35, z = -1700.10, collide = 12, tags = 4 },
+	-- m5-40 L1 (옛 n = 40, size = 1429.33, x = 174.10, y = 167.35, z = -1700.10, collide = 12, tags = 4)
+	["soy-swamp"] = { n = 69, size = 3234.56, x = 268.80, y = 739.30, z = -9538.09, collide = 39, tags = 9 },
 	["chef-board"] = { n = 85, size = 1259.80, x = 1136.00, y = -89.10, z = 0.00, collide = 61, tags = 61 },
 	["tug-of-war-platform"] = { n = 25, size = 194.80, x = 420.00, y = 1.40, z = -1000.00, collide = 1, tags = 1 },
-	["ramen-rapids"] = { n = 57, size = 1353.67, x = 272.10, y = -721.56, z = -5197.64, collide = 33, tags = 10 },
+	-- m5-40 L2: 젓가락 다리·렌게 계단·두 번째 급류를 끼우고 결승을 -446으로 옮긴 뒤 다시 잰 값 (옛 값 n 57, size 1353.67,
+	-- x 272.10, y -721.56, z -5197.64, collide 33, tags 10)
+	["ramen-rapids"] = { n = 72, size = 1826.36, x = 304.60, y = -1124.20, z = -11017.37, collide = 48, tags = 11 },
 	["giant-jenga"] = { n = 49, size = 610.80, x = 600.00, y = -2.60, z = 0.00, collide = 25, tags = 25 },
 	["claw-machine-prize"] = { n = 88, size = 996.80, x = 912.00, y = -53.98, z = -3520.00, collide = 64, tags = 64 },
-	["bouncy-castle-maze"] = { n = 37, size = 1205.80, x = 286.50, y = 61.40, z = -1105.60, collide = 13, tags = 1 },
-	["lantern-bridge"] = { n = 33, size = 358.80, x = 84.00, y = -6.60, z = -820.00, collide = 9, tags = 4 },
+	-- m5-40 L3 길이 늘리기로 판정 지오메트리가 의도해서 바뀐 두 맵 (전: bouncy n 37·size 1205.80·x 286.50·y 61.40·
+	-- z -1105.60·collide 13·tags 1 / lantern n 33·size 358.80·x 84.00·y -6.60·z -820.00·collide 9·tags 4)
+	["bouncy-castle-maze"] = { n = 72, size = 2469.80, x = 555.10, y = 282.40, z = -8230.60, collide = 48, tags = 3 },
+	["lantern-bridge"] = { n = 51, size = 727.80, x = 106.50, y = -24.60, z = -5925.00, collide = 27, tags = 7 },
 	["cat-cafe-shelves"] = { n = 33, size = 430.80, x = 433.60, y = 155.40, z = -1320.00, collide = 9, tags = 9 },
 }
 
@@ -70,11 +76,9 @@ local KNOWN_INTRO_THROUGH: { [string]: boolean } = {
 	["ramen-rapids/StartWall"] = true,
 }
 
--- QA B1 (docs/qa/m5-24-map-art-pass-v2.md, P2): 젠가 새 소개 경유점 ②(-62,-30,30) → ③(39,6,15) 직선이 탑 앞줄(j = 2)
--- 블록 속을 지나가요(main에는 없던 문제). 지금은 "아직 뚫는다"를 고정해 두고, 고치면 이 항목을 지우세요.
-local KNOWN_INTRO_BUG: { [string]: boolean } = {
-	["giant-jenga"] = true,
-}
+-- QA B1 (docs/qa/m5-24-map-art-pass-v2.md, P2)은 고쳤어요(젠가 ②와 ③ 사이에 탑 모서리 바깥 경유점 추가).
+-- 새로 알려진 버그가 생기면 여기에 맵 id를 넣어 "아직 뚫는다"를 고정해요.
+local KNOWN_INTRO_BUG: { [string]: boolean } = {}
 
 local origin = roblox.CFrame.new(Config.Arena.SlotSpacing, Config.Arena.BaseHeight, 0)
 

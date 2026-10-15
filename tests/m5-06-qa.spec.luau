@@ -454,7 +454,7 @@ return function(t: Test.Test)
 			local env = loadMap()
 			local model = env.map.build(ORIGIN)
 			local iced = env.collection:GetTagged("Ice")
-			local trayCount, shelfCount = 0, 0
+			local trayCount, shelfCount, freezerCount = 0, 0, 0
 			for _, part in iced do
 				t.ok(model:IsAncestorOf(part), "ice part in model")
 				t.eq(part.Material, "Material.Ice", part.Name)
@@ -468,12 +468,16 @@ return function(t: Test.Test)
 				elseif part.Name == "FanShelf" then
 					shelfCount += 1
 					t.ok(near(top, Layout.HIGH_Y), `FanShelf top {top}`)
+				elseif string.match(part.Name, "^FreezerFloor") then -- m5-40 L2: F 냉동실 칸 얼음 (y 12)
+					freezerCount += 1
+					t.ok(near(top, Layout.HIGH_Y), `{part.Name} top {top}`)
 				else
 					t.ok(false, `unexpected Ice tag on {part.Name}`)
 				end
 			end
 			t.eq(trayCount, #Layout.iceTrayRects())
 			t.eq(shelfCount, 1)
+			t.eq(freezerCount, #Layout.freezerRects()) -- m5-40 L2
 			-- 일반 바닥(출발·C·착지대·결승)·큐브·젤리·쿠키에는 Ice 태그가 없어요
 			for _, name in { "StartFloor", "JellyFloor", "Landing", "FinishFloor", "IceCube1", "Jelly1", "CookieStep1" } do
 				local part = model:FindFirstChild(name)
@@ -511,7 +515,11 @@ return function(t: Test.Test)
 			local boxes = collidableBoxes(model)
 			local z = -0.25
 			while z > Layout.FINISH.back do
-				local expectedTop = if z > Layout.LANDING.front then Layout.LOW_Y else Layout.HIGH_Y
+				-- m5-40 L2: G 착지대부터(결승 포함) 위 칸 y 24
+				local expectedTop = if z > Layout.LANDING.front
+					then Layout.LOW_Y
+					elseif z > Layout.SCOOP_LANDING.front then Layout.HIGH_Y
+					else Layout.TOP_Y
 				-- 구멍(x -5 / +5)은 x = 0을 덮지 않아요(6 폭 → x -8 ~ -2, 2 ~ 8). 젤리 구간(x 0은 젤리 2 위)은 윗면 1
 				local f = floorAt(boxes, 0, z, expectedTop)
 				if f == nil and z <= -116 and z >= -124 then
@@ -521,17 +529,17 @@ return function(t: Test.Test)
 				z -= 0.5
 			end
 			-- 결승선 너머에도 바닥이 있어요
-			t.ok(floorAt(boxes, 0, Layout.FINISH_LINE_Z - 5, Layout.HIGH_Y) ~= nil, "floor past the finish")
+			t.ok(floorAt(boxes, 0, Layout.FINISH_LINE_Z - 5, Layout.TOP_Y) ~= nil, "floor past the finish") -- m5-40 L2: HIGH_Y → TOP_Y
 		end
 	)
 
-	t.test("QA build: 결승선은 z -250, 충돌·터치·쿼리 없음, 결승 바닥 폭 전체", function()
+	t.test("QA build: 결승선은 z -422, 충돌·터치·쿼리 없음, 결승 바닥 폭 전체", function()
 		local env = loadMap()
 		local model = env.map.build(ORIGIN)
 		local line = model:FindFirstChild("FinishLine")
 		t.ok(line ~= nil, "FinishLine")
 		local rel = localOf(line).Position
-		t.ok(near(rel.Z, -250), `finish z {rel.Z}`)
+		t.ok(near(rel.Z, -422), `finish z {rel.Z}`)
 		t.eq(line.CanCollide, false)
 		t.eq(line.CanTouch, false)
 		t.eq(line.CanQuery, false)
@@ -571,9 +579,9 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- start: 판정
 
-	t.test("QA start: 결승선 -250에서 통과, -249.9는 아직 (돌린 origin)", function()
-		local near1, _ = newRacer("near", 0, 15, -249.9)
-		local over, _ = newRacer("over", 6, 15, -250)
+	t.test("QA start: 결승선 -422에서 통과, -421.9는 아직 (돌린 origin)", function()
+		local near1, _ = newRacer("near", 0, 27, -421.9)
+		local over, _ = newRacer("over", 6, 27, -422)
 		local run = startRun({ near1, over })
 		tick(run, 0.1)
 		t.eq(run.passed, { over })
@@ -917,7 +925,13 @@ return function(t: Test.Test)
 					front = Layout.FAN_SHELF.front,
 					back = Layout.FAN_SHELF.back,
 				},
-				{ half = Layout.FINISH_WIDTH / 2, y = high, front = Layout.FINISH.front, back = Layout.FINISH.back },
+				-- m5-40 L2: 결승 바닥은 y 12 → 24 (TOP_Y)
+				{
+					half = Layout.FINISH_WIDTH / 2,
+					y = Layout.TOP_Y,
+					front = Layout.FINISH.front,
+					back = Layout.FINISH.back,
+				},
 			}
 			for _, spec in Art.decor() do
 				local b = MapKitLogic.bounds({ spec }) :: any

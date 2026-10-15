@@ -1,0 +1,3 @@
+[render] dessert-fridge decor=1436/1500 lights=17/24 (shadowed 2/2) particles=15/16 anim=23/80 tris=124232 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,overview:6%,eye:0%,mobile:0%,top:0% time=36.4s
+[render]   Race · budget Extended · parts 1504 (judgment 68, decor 1436, hidden 2) · beams 0 · lighting map preset
+[render]   bounds all 1215x424x990 · play area 30x26x432 · out build/after/dessert-fridge/

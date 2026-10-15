@@ -4,6 +4,7 @@
 
 local fs = require("@lune/fs")
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -83,9 +84,9 @@ return function(t: Test.Test)
 	-- AC2 ---------------------------------------------------------------------------------
 	t.test("AC2: ProfileSchema.new 기본값, 부를 때마다 다른 표", function()
 		local a = ProfileSchema.new()
-		-- m5-03이 v2로 올렸어요 (redeemedCodes·eventTokens·ownedFx·equippedFx·boughtOffers)
-		t.eq(a.version, 2)
-		t.eq(ProfileSchema.VERSION, 2)
+		-- m5-03이 v2로 올렸어요 (redeemedCodes·eventTokens·ownedFx·equippedFx·boughtOffers), m5-31이 v3 (drawTickets)
+		t.eq(a.version, 3)
+		t.eq(ProfileSchema.VERSION, 3)
 		t.eq(a.coins, 0)
 		t.eq(a.wins, 0)
 		t.eq(a.matchesPlayed, 0)
@@ -328,16 +329,34 @@ return function(t: Test.Test)
 			for _, list in byKind do
 				table.sort(list)
 			end
-			t.eq(byKind.Race, {
-				"bouncy-castle-maze",
-				"dessert-fridge",
-				"lantern-bridge",
-				"ramen-rapids",
-				"rotating-belt",
-				"soy-swamp",
-			})
-			t.eq(byKind.Survival, { "cat-cafe-shelves", "chef-board", "giant-jenga", "hot-plate", "tempura-pot" })
-			t.eq(byKind.Final, { "claw-machine-prize", "ikura-bombs", "skewer-showdown", "tug-of-war-platform" })
+			-- m5-33: 기존 15개 목록 + 맵 3차 배치 전부 (졸업 뒤 고정, m5-33 QA P3-1 — 배치 3 id는 tests/lib/Batch3 한 곳에)
+			local function withBatch3(kind: string, base: { string }): { string }
+				local list = table.clone(base)
+				for _, id in Batch3.idsOfKind(kind) do
+					table.insert(list, id)
+				end
+				table.sort(list)
+				return list
+			end
+			t.eq(
+				byKind.Race,
+				withBatch3("Race", {
+					"bouncy-castle-maze",
+					"dessert-fridge",
+					"lantern-bridge",
+					"ramen-rapids",
+					"rotating-belt",
+					"soy-swamp",
+				})
+			)
+			t.eq(
+				byKind.Survival,
+				withBatch3("Survival", { "cat-cafe-shelves", "chef-board", "giant-jenga", "hot-plate", "tempura-pot" })
+			)
+			t.eq(
+				byKind.Final,
+				withBatch3("Final", { "claw-machine-prize", "ikura-bombs", "skewer-showdown", "tug-of-war-platform" })
+			)
 
 			local ramen = Maps.get("ramen-rapids")
 			t.eq(MapTypes.validate(ramen), nil)
@@ -424,7 +443,10 @@ return function(t: Test.Test)
 		-- m4-14가 RequestRobuxPurchase를 더해 20개
 		-- m5-02가 AdminPreviewSkin을 더해 21개
 		-- m5-03이 BuyWithTokens·RequestOfferPurchase·EquipFx·RedeemCode·AdminCommand를 더해 26개
-		t.eq(eventCount + functionCount, 26)
+		-- m5-31이 DrawTicket을 더해 27개 (RemoteFunction 16 + RemoteEvent 11)
+		t.eq(eventCount + functionCount, 27)
+		t.eq(functionCount, 16)
+		t.eq(eventCount, 11)
 	end)
 
 	t.test("Types: Settings·ProfileView·RewardReason·RewardGrant", function()

@@ -262,6 +262,9 @@ end
 function Loc.tierName(tier: string): string
 	return Loc.t(LocalizeLogic.tierKey(tier))
 end
+function Loc.drawGradeName(grade: string): string
+	return Loc.t(LocalizeLogic.drawGradeKey(grade))
+end
 function Loc.offerName(offerId: string): string
 	return Loc.t(LocalizeLogic.offerNameKey(offerId))
 end

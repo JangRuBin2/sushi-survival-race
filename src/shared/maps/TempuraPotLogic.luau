@@ -24,14 +24,21 @@ local Logic = {}
 Logic.OIL_START_Y = 0
 Logic.OIL_GRACE = 6 -- 이 초까지는 그대로
 Logic.OIL_RISE_SPEED = 0.4 -- studs/s
-Logic.OIL_MAX_Y = 22
+-- m5-40 서든데스: 상한 22 → 25. 같은 0.4/s로 계속 올라 61초에 22, 약 68.5초에 25 — 23층이 약 63.5초에 잠기고
+-- 27·31층은 75초까지 안전해요 (60초까지는 예전과 같음: 60초 21.6).
+Logic.OIL_MAX_Y = 25
 Logic.CHECK_INTERVAL = 0.1 -- 서버 탈락 확인 간격
+
+-- 시간 제한 (m5-40): 맵 timeLimit 75초 (Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
+Logic.TIME_LIMIT = 75
+Logic.SUDDEN_DEATH_AT = 60
 
 -- 튀는 기름 (스펙 "튀는 기름")
 Logic.SPLASH_SCHEDULE = {
 	{ from = 10, interval = 3 },
 	{ from = 30, interval = 2 },
 	{ from = 45, interval = 1.5 },
+	{ from = 60, interval = 1.2 }, -- 서든데스 (m5-40)
 }
 Logic.SPLASH_RADIUS = 5
 Logic.SPLASH_WARN_TIME = 1.2

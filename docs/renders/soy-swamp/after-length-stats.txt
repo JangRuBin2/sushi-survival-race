@@ -1,0 +1,3 @@
+[render] soy-swamp decor=1288/1500 lights=10/24 (shadowed 1/2) particles=11/16 anim=51/80 tris=116732 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,intro-05:0%,overview:0%,eye:0%,mobile:0%,top:0% time=18.7s
+[render]   Race · budget Extended · parts 1358 (judgment 70, decor 1288, hidden 8) · beams 0 · lighting map preset
+[render]   bounds all 1362x428x1362 · play area 25x50x410 · out build/r4/soy-swamp/

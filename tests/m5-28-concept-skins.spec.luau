@@ -1,6 +1,6 @@
 --!strict
 -- m5-28 콘셉트 몸 실험 스킨 4종 (concept-tuna·shrimp·tamago·ikura): concept-salmon과 같은 밥·얼굴·팔다리·깜빡임 관절을
--- 쓰고 토핑만 달라요. 카탈로그·예외 범위, 저장 없이 모두가 가짐, 표정마다 파츠 ≤ 47·발바닥·겹침·떠 있음,
+-- 쓰고 토핑만 달라요. 카탈로그·예외 범위, 저장 없이 모두가 가짐, 표정마다 파츠 ≤ 70·발바닥·겹침·떠 있음,
 -- 진짜 Instance build, 공유 몸이 정말 같은지, 클라이언트 연결(표정 인형·팔 흔들기)이 이름으로 그대로 동작하는지.
 
 local fs = require("@lune/fs")
@@ -25,13 +25,13 @@ local Cutscene = RobloxRequire.require(Shared.EliminationCutsceneLogic)
 
 -- id, 이름, 탈의실 순서, 토핑을 알아보는 파츠 (뒤 카메라에서 이 스킨이라고 읽히게 하는 것)
 local NEW = {
-	{ "concept-tuna", "콘셉트 참치초밥 (테스트)", 33, { "Ridge", "Marble1", "Marble4" } },
-	{ "concept-shrimp", "콘셉트 새우초밥 (테스트)", 34, { "Ridge", "Band1", "TailMid" } },
-	{ "concept-tamago", "콘셉트 계란초밥 (테스트)", 35, { "Topping", "NoriTop", "NoriBackStrip" } },
-	{ "concept-ikura", "콘셉트 연어알 군함 (테스트)", 36, { "Wall", "RoeBed", "Roe1", "RoeTop1" } },
+	{ "concept-tuna", "참치초밥 (특)", 33, { "Ridge", "Marble1", "Marble4" } },
+	{ "concept-shrimp", "새우초밥 (특)", 34, { "Ridge", "Band1", "TailMid" } },
+	{ "concept-tamago", "계란초밥 (특)", 35, { "Topping", "NoriTop", "NoriBackStrip" } },
+	{ "concept-ikura", "연어알 군함 (특)", 36, { "Wall", "RoeBed", "Roe1", "RoeTop1" } },
 }
 local SALMON = "concept-salmon"
-local BUDGET = 47
+local BUDGET = 70 -- m5-30: 사용자 결정 2026-10-14 (47 → 70)
 local RICE_FRONT = -1.35 -- 콘셉트 밥 앞면 z
 
 -- 표정·토핑과 무관하게 모든 콘셉트 스킨이 똑같아야 하는 파츠 (밥·받침·팔·다리)
@@ -83,7 +83,7 @@ end
 return function(t: Test.Test)
 	---------------------------------------------------------------- 카탈로그·예외 범위
 	t.test(
-		"카탈로그: 새 4종 모두 무료 Basic 실험 스킨, 이름 '(테스트)', 순서 33~36, 대사 2줄",
+		"카탈로그: 새 4종 모두 Basic 뽑기 전용 특 스킨, 이름 '(특)', 순서 33~36, 대사 2줄 (m5-31 이름·draw)",
 		function()
 			for _, row in NEW do
 				local id = row[1]
@@ -92,42 +92,50 @@ return function(t: Test.Test)
 				t.eq(skin.displayName, row[2], `{id} name`)
 				t.eq(skin.order, row[3], `{id} order`)
 				t.eq(skin.tier, "Basic", `{id} tier`)
-				t.eq(skin.experimental, true, `{id} experimental`)
+				t.eq(skin.conceptBody, true, `{id} conceptBody`)
+				t.ok(Skins.drawGradeOf(id) ~= nil, `{id} drawGrade`)
 				for _, field in { "robux", "coins", "tokens", "vipOnly", "season", "productId" } do
 					t.eq((skin :: any)[field], nil, `{id} {field}`)
 				end
 				t.eq(#skin.speech, 2, `{id} speech`)
 				t.eq(Cutscene.SKIN_LINES[id], skin.speech, `{id} elimination lines`)
-				t.ok(string.find(skin.displayName, "(테스트)", 1, true) ~= nil, `{id} test suffix`)
+				t.ok(string.find(skin.displayName, " (특)", 1, true) ~= nil, `{id} special suffix`)
+				t.ok(string.find(skin.displayName, "(테스트)", 1, true) == nil, `{id} no test suffix`)
+				t.ok(string.find(skin.displayName, "콘셉트", 1, true) == nil, `{id} no concept prefix`)
 			end
 			-- 탈의실 "전체" 탭 맨 끝, concept-salmon 바로 다음
-			local last = Skins.LIST[#Skins.LIST]
-			t.eq(last.id, "concept-ikura")
+			local last = Skins.LIST[#Skins.LIST - 1]
+			t.eq(last.id, "concept-inari") -- m5-29 4종이 뒤에 붙었어요 (그 뒤 m5-32 고등어 [신선] order 41)
+			t.eq(Skins.LIST[#Skins.LIST].id, "fresh-mackerel")
+			t.eq(Skins.get("concept-ikura").order, 36)
 			t.eq(Skins.get(SALMON).order, 32)
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))
 		end
 	)
 
-	t.test("예외 목록: Skins.EXPERIMENTAL_IDS = SushiBody.EXPERIMENTAL = 콘셉트 몸 SKIN_IDS (5종)", function()
-		local expected = table.clone(Sample.SKIN_IDS)
-		table.sort(expected)
-		local function keys(map: { [string]: any }): { string }
-			local list = {}
-			for key in map do
-				table.insert(list, key)
+	t.test(
+		"예외 목록: Skins.CONCEPT_BODY_IDS = SushiBody.CONCEPT_BODY = 콘셉트 몸 SKIN_IDS (9종, m5-29)",
+		function()
+			local expected = table.clone(Sample.SKIN_IDS)
+			table.sort(expected)
+			local function keys(map: { [string]: any }): { string }
+				local list = {}
+				for key in map do
+					table.insert(list, key)
+				end
+				table.sort(list)
+				return list
 			end
-			table.sort(list)
-			return list
+			t.eq(#expected, 10) -- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차)
+			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
+			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
+			for _, id in Sample.SKIN_IDS do
+				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if id == "fresh-mackerel" then 80 else BUDGET, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].expressions, Sample.EXPRESSIONS, id)
+			end
 		end
-		t.eq(#expected, 5)
-		t.eq(keys(Skins.EXPERIMENTAL_IDS), expected)
-		t.eq(keys(SushiBody.EXPERIMENTAL), expected)
-		for _, id in Sample.SKIN_IDS do
-			t.eq(SushiBody.EXPERIMENTAL[id].partBudget, BUDGET, id)
-			t.eq(SushiBody.EXPERIMENTAL[id].expressions, Sample.EXPRESSIONS, id)
-		end
-	end)
+	)
 
 	t.test(
 		"validate: 새 실험 스킨에 가격·다른 등급을 붙이거나 SushiBody 예외가 없으면 잡아요",
@@ -146,54 +154,62 @@ return function(t: Test.Test)
 					t.eq((Skins.validate(list)), false, `{id} {change[1]}`)
 				end
 			end
-			-- 예외 목록에 없는 새 id에 experimental을 달면 잡아요 (범위가 명시적 목록뿐)
+			-- 예외 목록에 없는 새 id에 conceptBody를 달면 잡아요 (범위가 명시적 목록뿐)
 			local list = table.clone(Skins.LIST) :: { any }
 			table.insert(list, {
-				id = "concept-unagi",
+				id = "concept-nope", -- m5-29: concept-unagi가 목록에 들어가 다른 id로
 				displayName = "x",
 				tier = "Basic",
-				experimental = true,
+				conceptBody = true,
 				speech = { "a" },
 				order = 99,
 			})
 			local ok, problems = Skins.validate(list)
 			t.eq(ok, false)
-			t.ok(string.find(table.concat(problems, ";"), "experimental only for", 1, true) ~= nil, "id scope")
+			t.ok(string.find(table.concat(problems, ";"), "conceptBody only for", 1, true) ~= nil, "id scope")
 		end
 	)
 
-	---------------------------------------------------------------- 보유 (저장 없이)
+	---------------------------------------------------------------- 보유 (m5-31: 뽑기로 얻어 저장)
 	t.test(
-		"보유: 새 프로필에서도 장착·'입기', 코인·로벅스로는 이미 가진 것, 저장에는 안 남아요",
+		"보유: 새 프로필은 미보유('🎫 뽑기로 얻기'·NotOwned), 살 수 없음, 보유(뽑기)하면 장착·'입기'·장착값 유지 (m5-31)",
 		function()
 			for _, row in NEW do
 				local id = row[1]
-				t.eq(Skins.isFree(id), true, id)
-				t.eq(ShopLogic.canEquip(id, { tamago = true }), true, id)
-				t.eq(select(2, ShopLogic.canEquip(id, { tamago = true }, true)), "Locked", id)
-				local coin = ShopLogic.canBuyWithCoins(id, { coins = 9999, ownedSkins = { tamago = true } })
-				t.eq(coin.reason, "AlreadyOwned", id)
+				t.eq(Skins.isFree(id), false, id)
+				t.eq(Skins.isDraw(id), true, id)
+				t.eq(select(2, ShopLogic.canEquip(id, { tamago = true })), "NotOwned", id)
+				t.eq(ShopLogic.canEquip(id, { tamago = true, [id] = true }), true, id)
+				t.eq(select(2, ShopLogic.canEquip(id, { tamago = true, [id] = true }, true)), "Locked", id)
+				local coin = ShopLogic.canBuyWithCoins(id, { coins = 9999, ownedSkins = { tamago = true } } :: any)
+				t.eq(coin.reason, "NotForCoins", id)
 				t.eq(
 					select(2, ReceiptLogic.canRequest(id, { tamago = true }, { canSave = true, fake = true })),
-					"AlreadyOwned"
+					"NotRobux"
 				)
 				local view = { coins = 0, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 				local state = ShopLogic.cardState(Skins.get(id), view)
-				t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "입기", id)
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(state)), "🎫 뽑기로 얻기", id)
+				local ownedView =
+					{ coins = 0, equippedSkin = "tamago", ownedSkins = { id, "tamago" }, eventTokens = {} }
+				t.eq(LocTest.ko(ShopLogic.cardButtonText(ShopLogic.cardState(Skins.get(id), ownedView))), "입기", id)
 
-				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not saved as owned`)
+				t.eq(ProfileSchema.new().ownedSkins[id], nil, `{id} not owned in a new profile`)
 				local raw = ProfileSchema.new() :: any
 				raw.equippedSkin = id
 				local profile = ProfileLogic.migrate(raw)
-				t.eq(profile.equippedSkin, id, `{id} equip kept`)
-				t.eq(profile.ownedSkins[id], nil, `{id} still not owned in save`)
+				t.eq(profile.equippedSkin, "tamago", `{id} unowned equip falls back`)
+				local drawn = ProfileSchema.new() :: any
+				drawn.equippedSkin = id
+				drawn.ownedSkins[id] = true
+				t.eq(ProfileLogic.migrate(drawn).equippedSkin, id, `{id} owned equip kept`)
 			end
 		end
 	)
 
 	---------------------------------------------------------------- 몸
 	t.test(
-		"레이아웃: 표정마다 파츠 ≤ 47, 발바닥 = GROUND_OFFSET, 이름표 아래, 효과 0, 겹침·떠 있음 0",
+		"레이아웃: 표정마다 파츠 ≤ 70, 발바닥 = GROUND_OFFSET, 이름표 아래, 효과 0, 겹침·떠 있음 0",
 		function()
 			t.eq(Sample.GAME_GROUND_OFFSET, SushiBody.GROUND_OFFSET)
 			for _, id in Sample.SKIN_IDS do
@@ -202,11 +218,13 @@ return function(t: Test.Test)
 					local layout = SushiBody.layout(id, expression)
 					local label = `{id}/{expression}`
 					t.eq(layout[1].name, "Body", label)
-					t.ok(#layout <= BUDGET, `{label} parts {#layout}`)
+					t.ok(#layout <= SushiBody.CONCEPT_BODY[id].partBudget, `{label} parts {#layout}`)
 					local b = SushiBody.bounds(layout)
 					t.ok(math.abs(b.min[2] + SushiBody.GROUND_OFFSET) < 1e-9, `{label} sole {b.min[2]}`)
-					t.ok(b.max[2] <= SushiBody.NAME_TAG_HEIGHT - 0.4, `{label} top {b.max[2]}`)
-					t.eq(SushiBody.effectCount(layout), 0, `{label} effects`)
+					t.ok(b.max[2] <= SushiBody.nameTagHeight(id) - 0.4, `{label} top {b.max[2]}`) -- 고등어만 4.8 (m5-32 4차)
+					-- 특 9종(Basic)은 효과 0, 판매 콘셉트 몸(고등어 전설)은 등급 예산 안
+					local tier = (Skins.get(id) :: any).tier
+					t.ok(SushiBody.effectCount(layout) <= SushiBody.EFFECT_BUDGET[tier], `{label} effects`)
 					t.eq(LayoutCheck.zFight(layout), {}, `{label} z-fighting`)
 					t.eq(LayoutCheck.floating(layout), {}, `{label} floating`)
 					local names = {}
@@ -406,8 +424,16 @@ return function(t: Test.Test)
 			local _, count = string.gsub(source, "require%(", "")
 			t.eq(count, 1)
 			t.ok(string.find(source, "SushiConceptSample.SKIN_IDS", 1, true) ~= nil, "ids from the sample module")
+			-- m5-32: 견본은 고등어 토핑(순수 ConceptMackerel) 하나만, 그 모듈은 순수 PartMath 하나만 불러요
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
-			t.ok(string.find(sample, "require(", 1, true) == nil, "sample requires nothing")
+			local _, sampleCount = string.gsub(sample, "require%(", "")
+			t.eq(sampleCount, 1, "sample requires only ConceptMackerel")
+			t.ok(string.find(sample, "require(script.Parent.ConceptMackerel)", 1, true) ~= nil)
+			local mackerel = fs.readFile("src/shared/ConceptMackerel.luau")
+			local _, mackerelCount = string.gsub(mackerel, "require%(", "")
+			t.eq(mackerelCount, 1, "ConceptMackerel requires only PartMath")
+			t.ok(string.find(mackerel, "require(script.Parent.PartMath)", 1, true) ~= nil)
+			t.eq(string.find(fs.readFile("src/shared/PartMath.luau"), "require(", 1, true), nil, "PartMath is pure")
 		end
 	)
 

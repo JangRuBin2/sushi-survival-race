@@ -4,6 +4,7 @@
 -- 2) m2-01~m2-07 스펙의 Studio 절차에 적힌 forceMapPlan 목록이 전부 실제 풀에서 풀리는지 (스펙 간 계약)
 -- 3) 종류별 개수 상한이 무작위 풀에서도 지켜지는지 (충분하면 중복 0)
 
+local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
 
@@ -68,6 +69,10 @@ return function(t: Test.Test)
 				["claw-machine-prize"] = true,
 				["ikura-bombs"] = true,
 			}
+			-- m5-33: 맵 3차 배치 Final도 (tea-garden m5-38·onsen-claw m5-39, 졸업 뒤 고정)
+			for _, id in Batch3.idsOfKind("Final") do
+				finals[id] = true
+			end
 			for seed = 1, 100 do
 				for _, roundCount in { 3, 4 } do
 					local plan = Rules.buildRoundPlan(roundCount, Maps.infos(), fakeRng(seed))

@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-28 — 콘셉트 몸 스킨 4종 추가 (참치·새우·계란·연어알 군함, 무료 테스트)
@@ -56,10 +56,10 @@ status: qa-passed
 - 2026-10-13 · 첫 배치 범위 · 참치·새우·계란·연어알 군함 4종, 모두 무료 실험 스킨(concept-salmon과 같은 방식) · 메인 세션
 - 2026-10-13 · 연어알 파츠 상한 · 알을 크게(지름 0.68) 11알만 — 게임 레이아웃 기본 44, 당황 46 (상한 47) · developer
 - 2026-10-13 · 참치에 김 띠 · **없음** — 연어(김 띠)와 뒤 카메라에서 바로 구분되게. 대신 결 4줄을 연어 지방 줄보다 굵기·간격을 불규칙하게 · developer
-- **열린 질문 (사용자)**
-  1. 콘셉트 스킨 5종의 **가격·등급** — 계속 무료 테스트로 둘지, 일반(29 R$ / 300 코인) 등 판매로 바꿀지. 판매로 바꾸면 `experimental`을 빼고 기준 몸 규칙(BASE_NAMES·외곽 허용치)을 콘셉트 몸에도 맞게 고치는 스펙이 필요해요.
-  2. 이름 "(테스트)"를 정식 출시 때 뺄지, 기존 같은 음식 스킨(참치·새우·계란초밥·연어알 군함)과 이름을 어떻게 나눌지 (예: "말랑 참치").
-  3. 다음 배치(장어·성게·문어·유부 등)를 콘셉트 스타일로 더 만들지.
+- 2026-10-14 · 열린 질문 1 (가격·등급) · **무료 테스트 그대로 유지** (가격·등급·판매 없음) · 사용자
+- 2026-10-14 · 열린 질문 3 (다음 배치) · **더 만든다** — 장어·성게 군함·문어·유부 → `docs/specs/m5-29-concept-skins-2.md` · 사용자(종류는 메인 세션)
+- **열린 질문 (사용자, 급하지 않음)**
+  2. 이름 "(테스트)"를 정식 출시 때 뺄지, 기존 같은 음식 스킨(참치·새우·계란초밥·연어알 군함)과 이름을 어떻게 나눌지 (예: "말랑 참치"). 판매를 정할 때까지 미룸.
 
 ## 개발 메모
 - 바뀐 파일: `src/shared/SushiConceptSample.luau`(공유 몸 + 스킨별 토핑, `SKIN_IDS`), `src/shared/SushiBody.luau`(콘셉트 id 목록 연결), `src/shared/Skins.luau`(4종·EXPERIMENTAL_IDS), `tools/render-character.luau`(`--sample <콘셉트 스킨 id>`), 테스트 `tests/m5-28-concept-skins.spec.luau`(새), `tests/skins.spec.luau`·`tests/m5-03-foundation.spec.luau`·`tests/m5-22-qa.spec.luau`(개수), `tests/m5-27-concept-skin.spec.luau`(예외 목록 1 → 5종, 정확한 목록 비교는 그대로).

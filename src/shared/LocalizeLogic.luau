@@ -537,6 +537,10 @@ end
 function LocalizeLogic.tierKey(tier: string): string
 	return `tier.{tier}`
 end
+-- 🎫 뽑기 등급 이름 (m5-31 Skins.DRAW_GRADE_INFO — 상점 등급 tier.*와 다른 말이에요)
+function LocalizeLogic.drawGradeKey(grade: string): string
+	return `shop.drawGrade.{grade}`
+end
 function LocalizeLogic.offerNameKey(offerId: string): string
 	return `offer.{offerId}.name`
 end
@@ -575,6 +579,7 @@ LocalizeLogic.DYNAMIC_KEY_PATTERNS = {
 	"^skin%.[%w%-]+%.name$",
 	"^skin%.[%w%-]+%.speech%.%d+$",
 	"^tier%.%w+$",
+	"^shop%.drawGrade%.%w+$",
 	"^offer%.[%w%-]+%.name$",
 	"^offer%.[%w%-]+%.blurb$",
 	"^offer%.[%w%-]+%.perk%.%d+$",

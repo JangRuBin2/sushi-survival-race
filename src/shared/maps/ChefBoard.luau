@@ -2,9 +2,10 @@
 -- Survival 맵 "셰프의 도마" (GDD 5.2 ④, m4-05).
 -- 공중에 뜬 둥근 나무 도마(8×8 칸 61개) 위에서 버텨요. 셰프의 칼이 가로·세로 한 줄을 빨갛게 예고한 뒤
 -- 내리쳐 그 줄 위 초밥을 바깥으로 튕겨 내고, 줄 양 끝 칸이 흔들리다 떨어져 도마가 점점 작아져요.
--- 가운데 3×3은 잘리지 않아요. 10·20·30·40·50초에 도마가 8도 기울어 3초 동안 낮은 쪽으로 밀어요.
+-- 가운데 3×3은 잘리지 않아요. 10·20·30·40·50·60·70초에 도마가 8도 기울어 3초 동안 낮은 쪽으로 밀어요.
+-- m5-40: 시간 제한 75초, 60초부터 서든데스(칼 주기 2.5초, 60·70초 기울기).
 --
--- 판정은 ctx.eliminate만 불러요 (도마 윗면보다 30 아래로 떨어지면). Survival 종료(목표 인원 이하, 60초 종료 시
+-- 판정은 ctx.eliminate만 불러요 (도마 윗면보다 30 아래로 떨어지면). Survival 종료(목표 인원 이하, 75초 종료 시
 -- 전원 통과)와 점수(높이)는 RoundService/RoundLogic이 해요.
 -- 칸(ChefBoardCell)과 칼(ChefKnife)은 CollectionService 태그를 달고, start에서 ctx.model 하위의 태그만 동작시켜요.
 -- 상태(남은 칸, 기울기 일정, 넉백 시각)는 전부 start 안의 지역 변수에 둬요 (여러 방이 같은 맵을 동시에 돌려도 안전).
@@ -13,7 +14,6 @@
 -- Roblox API는 build/start 안에서만 써요 — require만 하는 것(Lune 테스트)은 안전해요.
 
 local Art = require(script.Parent.ChefBoardArt)
-local Config = require(script.Parent.Parent.Config)
 local Logic = require(script.Parent.ChefBoardLogic)
 local MapKit = require(script.Parent.MapKit)
 local MapSfx = require(script.Parent.MapSfx)
@@ -36,7 +36,7 @@ local CUT_FALL_TIME = 0.8
 local CUT_FALL_DISTANCE = 30
 local CUT_SHAKE = 0.3
 local BOARD_PUSH_MARGIN = 2 -- 도마 반지름 + 이만큼 안에 있으면 기울기에 밀려요
--- 칼이 내려치는 전체 과정이 가장 짧은 주기(3초)보다 짧아야 다음 경고가 밀리지 않아요
+-- 칼이 내려치는 전체 과정이 가장 짧은 주기(서든데스 2.5초)보다 짧아야 다음 경고가 밀리지 않아요
 assert(0.8 + KNIFE_SLAM_TIME + KNIFE_HOLD_TIME + KNIFE_LIFT_TIME < Logic.knifeInterval(math.huge), "knife too slow")
 
 type RGB = { r: number, g: number, b: number }
@@ -548,7 +548,7 @@ local function start(ctx: MapTypes.RoundContext)
 	-- 칼: 정해진 시각마다 줄 하나
 	ctx.cleanup:add(task.spawn(function()
 		local previousKey: string? = nil
-		for _, warnAt in Logic.strikeTimes(Config.TimeLimit.Survival) do
+		for _, warnAt in Logic.strikeTimes(Logic.TIME_LIMIT) do
 			local untilWarn = warnAt - (os.clock() - startedAt)
 			if untilWarn > 0 then
 				task.wait(untilWarn)
@@ -572,6 +572,7 @@ local ChefBoard: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "셰프의 도마",
 	rule = "칼이 내려치는 줄을 피하고, 잘려 나가는 도마 위에서 끝까지 버티세요!",
+	timeLimit = Logic.TIME_LIMIT, -- 75초 (m5-40 — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
 	build = build,
 	start = start,
 }

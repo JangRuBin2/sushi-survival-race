@@ -31,7 +31,7 @@ return function(t: Test.Test)
 		t.eq(MapTypes.validate(map), nil)
 		t.eq(map.kind, "Survival")
 		t.eq(map.displayName, "고양이 카페 캣타워")
-		t.eq(map.timeLimit, nil) -- Config.TimeLimit.Survival(60)을 써요
+		t.eq(map.timeLimit, 75) -- m5-40: 맵 timeLimit 75 (Config.TimeLimit.Survival 60은 그대로)
 		t.ok(map.inPool ~= false, "inPool = false 줄이 지워졌어야 해요")
 	end)
 
@@ -191,7 +191,7 @@ return function(t: Test.Test)
 		t.eq(Logic.pawInterval(25), 3.2)
 		t.eq(Logic.pawInterval(44.9), 3.2)
 		t.eq(Logic.pawInterval(45), 2)
-		t.eq(Logic.pawInterval(60), 2)
+		t.eq(Logic.pawInterval(60), 1.6) -- m5-40 서든데스 (2 × 0.8)
 	end)
 
 	---------------------------------------------------------------- AC9

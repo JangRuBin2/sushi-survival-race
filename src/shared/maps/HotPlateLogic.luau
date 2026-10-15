@@ -20,6 +20,11 @@ HotPlateLogic.SPAWN_COLUMNS = 6
 
 -- 달아오름: 처음 밟힌 순간부터 HEAT_DURATION초 뒤 사라져요. 내려와도 멈추지 않고 다시 생기지 않아요.
 HotPlateLogic.HEAT_DURATION = 1.5
+-- m5-40: 시간 제한 75초(맵 timeLimit — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스.
+-- 서든데스에 처음 밟힌 타일은 HEAT_DURATION_SUDDEN초에 사라져요. 이미 달아오르던 타일은 처음 밟힌 때의 시간을 그대로 써요.
+HotPlateLogic.TIME_LIMIT = 75
+HotPlateLogic.SUDDEN_DEATH_AT = 60
+HotPlateLogic.HEAT_DURATION_SUDDEN = 1.2
 -- 색만 m4-03 아트 패스로 다듬었어요 (진회색 철판 → 진한 주황 → 빨강, 마지막엔 HotPlateArt.isGlowing으로 Neon).
 -- 달아오르는 동안 초록·파랑이 늘지 않게 COLD의 g·b가 WARM보다 커요 (map-hot-plate 테스트).
 HotPlateLogic.COLOR_COLD = { r = 104, g = 106, b = 112 } :: RGB -- 진회색 철판
@@ -34,10 +39,18 @@ local function lerp(a: RGB, b: RGB, alpha: number): RGB
 	}
 end
 
--- 처음 밟힌 뒤 elapsed초가 지난 타일의 색과 사라졌는지.
--- 0초 회색 → 절반(0.75초) 주황 → HEAT_DURATION(1.5초) 빨강. HEAT_DURATION 이상이면 gone = true.
-function HotPlateLogic.heatVisual(elapsed: number): (RGB, boolean)
-	local duration = HotPlateLogic.HEAT_DURATION
+-- 라운드 시작 뒤 roundElapsed초에 처음 밟힌 타일이 사라지기까지 걸리는 시간 (m5-40 서든데스).
+function HotPlateLogic.heatDuration(roundElapsed: number): number
+	if roundElapsed >= HotPlateLogic.SUDDEN_DEATH_AT then
+		return HotPlateLogic.HEAT_DURATION_SUDDEN
+	end
+	return HotPlateLogic.HEAT_DURATION
+end
+
+-- 처음 밟힌 뒤 elapsed초가 지난 타일의 색과 사라졌는지. heatTime은 그 타일의 달아오름 시간(기본 HEAT_DURATION).
+-- 0초 회색 → 절반 주황 → heatTime 빨강. heatTime 이상이면 gone = true.
+function HotPlateLogic.heatVisual(elapsed: number, heatTime: number?): (RGB, boolean)
+	local duration = heatTime or HotPlateLogic.HEAT_DURATION
 	local t = math.clamp(elapsed / duration, 0, 1)
 	local color
 	if t <= 0.5 then
@@ -103,6 +116,34 @@ end
 -- 이 로컬 높이(origin 기준 y)보다 아래로 내려가면 탈락
 function HotPlateLogic.eliminationY(): number
 	return HotPlateLogic.layerTopY(HotPlateLogic.LAYER_COUNT) - HotPlateLogic.FALL_BELOW_BOTTOM
+end
+
+-- m5-40 AC3: 바닥이 모자라지 않는지 보는 단순 시뮬레이션. 레이서 players명이 "조심스럽게" 움직여요 —
+-- 한 타일에 그 타일이 사라지기 직전까지 서 있다가 아직 안 밟은 타일로 옮겨요(한 사람이 한 번에 한 타일만 달굼).
+-- 한 사람이 타일 하나를 쓰는 시간 = 그 타일을 밟은 시각의 heatDuration. 층 3개의 전체 타일(243)에서
+-- step초 간격으로 빼 나가요(타일은 다시 생기지 않아요, m2-03). 돌려주는 값: 가장 적었을 때 남은 "아직 안 밟은"
+-- 타일 수, duration초에 남은 타일 수. 실제로는 넘어지거나 떨어진 사람이 생겨 이보다 덜 써요.
+function HotPlateLogic.simulateFloor(players: number, duration: number, step: number?): (number, number)
+	local dt = step or 0.05
+	local total = HotPlateLogic.LAYER_COUNT * HotPlateLogic.GRID_SIZE * HotPlateLogic.GRID_SIZE
+	local remaining = total - players -- 출발할 때 각자 한 타일 위 (스폰은 서로 다른 타일)
+	local lowest = remaining
+	local nextStep: { number } = {}
+	for i = 1, players do
+		nextStep[i] = HotPlateLogic.heatDuration(0)
+	end
+	local t = 0
+	while t < duration - 1e-9 do
+		t += dt
+		for i = 1, players do
+			if t >= nextStep[i] - 1e-9 then
+				remaining -= 1
+				nextStep[i] += HotPlateLogic.heatDuration(nextStep[i])
+			end
+		end
+		lowest = math.min(lowest, remaining)
+	end
+	return lowest, remaining
 end
 
 return HotPlateLogic

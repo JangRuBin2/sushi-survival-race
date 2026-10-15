@@ -576,25 +576,25 @@ end
 
 return function(t: Test.Test)
 	---------------------------------------------------------------- 기름 경계
-	t.test("QA oil: 6초 직후부터 오르고 61초에 정확히 22에서 멈춰요, 음수 시간은 0", function()
+	t.test("QA oil: 6초 직후부터 오르고 68.5초에 정확히 25에서 멈춰요, 음수 시간은 0", function()
 		t.eq(Logic.oilHeight(-5), 0)
 		t.ok(Logic.oilHeight(6.01) > 0, "rises right after grace")
 		t.ok(near(Logic.oilHeight(61), 22), "61s = 22")
 		t.ok(near(Logic.oilHeight(60.9), 21.96, 1e-9), "60.9s just under")
-		t.eq(Logic.oilHeight(1000), 22)
+		t.eq(Logic.oilHeight(1000), 25) -- m5-40 서든데스 상한
 		-- 경계에서 같은 높이는 살아요 (13.5초 바구니 발 = 3)
 		t.eq(Logic.isFried(Layout.BASKET_TOP_Y, Logic.oilHeight(13.5)), false)
 		t.eq(Logic.isFried(Layout.BASKET_TOP_Y, Logic.oilHeight(13.6)), true)
-		-- 안전 세 층 바로 아래(19층)은 53.5초에 잠기고 23층은 OIL_MAX(22)보다도 높아 영원히 안전
-		t.ok(Layout.TIER_TOPS[5] > Logic.OIL_MAX_Y, "tier 23 above max oil even after time limit")
+		-- m5-40: 상한이 25가 되어 23층은 약 63.5초에 잠기고, 27층은 OIL_MAX(25)보다도 높아 영원히 안전
+		t.ok(Layout.TIER_TOPS[6] > Logic.OIL_MAX_Y + 1, "tier 27 above max oil even after time limit")
 	end)
 
-	t.test("QA splash 경계: 간격 29.99 → 3, 44.99 → 2, 60·1000 → 1.5, 음수 nil", function()
+	t.test("QA splash 경계: 간격 29.99 → 3, 44.99 → 2, 60·1000 → 1.2(m5-40), 음수 nil", function()
 		t.eq(Logic.splashInterval(-1), nil)
 		t.eq(Logic.splashInterval(29.99), 3)
 		t.eq(Logic.splashInterval(44.99), 2)
-		t.eq(Logic.splashInterval(60), 1.5)
-		t.eq(Logic.splashInterval(1000), 1.5)
+		t.eq(Logic.splashInterval(60), 1.2) -- m5-40 서든데스
+		t.eq(Logic.splashInterval(1000), 1.2)
 	end)
 
 	t.test(

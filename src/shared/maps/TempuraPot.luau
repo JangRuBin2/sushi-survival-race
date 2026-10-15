@@ -3,7 +3,9 @@
 -- 가운데 튀김 바구니(출발 판)에서 둘레의 튀김 발판(새우·고구마·깻잎, 고정)을 밟고 나선을 따라 위로 올라가야
 -- 살아요. 발이 기름보다 낮아지면 "튀겨짐" 탈락. 10초부터는 서 있는 레이서 한 명의 발밑에 주황 원이 뜨고,
 -- 1.2초 뒤 기름이 솟구쳐 원 안 레이서를 바깥으로 밀어 넘어뜨려요. 23·27·31층은 60초까지 잠기지 않는
--- 안전 구역(좁아서 자리싸움). 결승선은 없고 통과자는 RoundService가 정해요 (남은 인원 ≤ 목표 또는 시간 종료).
+-- 안전 구역(좁아서 자리싸움). m5-40: 시간 제한 75초, 60초부터 서든데스 — 기름 상한 22 → 25(23층이 약 63.5초에
+-- 잠기고 27·31층은 75초까지 안전), 튀는 기름 1.2초 간격. 결승선은 없고 통과자는 RoundService가 정해요
+-- (남은 인원 ≤ 목표 또는 시간 종료).
 --
 -- 치수·발판 배치는 TempuraPotLayout, 기름 높이·튀김 판정·튀는 기름 일정·넉백·경로 계산은 TempuraPotLogic —
 -- 둘 다 순수 로직이고 tests/map-tempura-pot.spec.luau가 확인해요. 장식은 TempuraPotArt → MapKit.buildDecor.
@@ -518,6 +520,7 @@ local map: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "튀김 냄비 탈출",
 	rule = "차오르는 기름을 피해 위로! 튀는 기름도 조심!",
+	timeLimit = Logic.TIME_LIMIT, -- 75초 (m5-40 — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
 	lighting = Art.LIGHTING, -- m5-23 맵 조명: 밤의 주방
 	build = build,
 	start = start,

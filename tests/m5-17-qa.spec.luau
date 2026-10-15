@@ -284,7 +284,7 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA pawInterval: 그레이스 뒤 0~300초 nil 없음, 단조 감소(안 늘어남), 2 아래로 안 감",
+		"QA pawInterval: 그레이스 뒤 0~300초 nil 없음, 단조 감소(안 늘어남), 서든데스 1.6 아래로 안 감(m5-40)",
 		function()
 			local last = math.huge
 			local tt = Logic.PAW_GRACE
@@ -292,7 +292,7 @@ return function(t: Test.Test)
 				local interval = Logic.pawInterval(tt)
 				t.ok(interval ~= nil, `nil at {tt}`)
 				t.ok((interval :: number) <= last + EPS, `interval grows at {tt}`)
-				t.ok((interval :: number) >= 2 - EPS, `interval below 2 at {tt}`)
+				t.ok((interval :: number) >= Logic.PAW_INTERVAL_SUDDEN - EPS, `interval below 1.6 at {tt}`)
 				last = interval :: number
 				tt += 0.1
 			end

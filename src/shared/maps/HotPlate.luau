@@ -161,10 +161,13 @@ local function start(ctx: MapTypes.RoundContext)
 	local heatStart: { [BasePart]: number } = {} -- 달아오르는 중인 타일 → 처음 밟힌 시각
 	local colorStep: { [BasePart]: number } = {} -- 마지막으로 칠한 색 단계
 	local gone: { [BasePart]: boolean } = {}
+	local heatTime: { [BasePart]: number } = {} -- 그 타일의 달아오름 시간 (처음 밟힌 때 정해요, m5-40)
+	local startedAt = os.clock()
 
 	local function startHeating(tile: BasePart, now: number)
 		if heatStart[tile] == nil and not gone[tile] then
 			heatStart[tile] = now -- 두 번 밟아도 리셋되지 않아요 (처음 밟힌 시각 기준)
+			heatTime[tile] = Logic.heatDuration(now - startedAt) -- 60초부터 서든데스 1.2초
 			MapSfx.play(tile, "HotTileSizzle")
 		end
 	end
@@ -172,6 +175,7 @@ local function start(ctx: MapTypes.RoundContext)
 	local function vanish(tile: BasePart)
 		gone[tile] = true
 		heatStart[tile] = nil
+		heatTime[tile] = nil
 		colorStep[tile] = nil
 		tile.Transparency = 1
 		tile.CanCollide = false
@@ -205,16 +209,17 @@ local function start(ctx: MapTypes.RoundContext)
 			end
 		end
 
-		for tile, startedAt in heatStart do
-			local color, isGone = Logic.heatVisual(now - startedAt)
+		for tile, steppedAt in heatStart do
+			local duration = heatTime[tile] or Logic.HEAT_DURATION
+			local color, isGone = Logic.heatVisual(now - steppedAt, duration)
 			if isGone then
 				vanish(tile)
 			else
-				local step = math.floor((now - startedAt) / COLOR_STEP)
+				local step = math.floor((now - steppedAt) / COLOR_STEP)
 				if colorStep[tile] ~= step then
 					colorStep[tile] = step
 					tile.Color = toColor3(color)
-					if Art.isGlowing(now - startedAt) and tile.Material ~= Enum.Material.Neon then
+					if Art.isGlowing(now - steppedAt, duration) and tile.Material ~= Enum.Material.Neon then
 						tile.Material = Enum.Material.Neon -- 마지막 단계는 은은하게 빛나요 (물성은 build에서 고정)
 					end
 				end
@@ -229,6 +234,7 @@ local HotPlate: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "뜨거운 철판",
 	rule = "밟은 철판은 곧 사라져요. 계속 움직여서 끝까지 버티세요!",
+	timeLimit = Logic.TIME_LIMIT, -- 75초 (m5-40 — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
 	build = build,
 	start = start,
 }

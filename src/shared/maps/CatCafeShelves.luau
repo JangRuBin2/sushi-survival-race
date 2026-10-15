@@ -5,6 +5,7 @@
 --   · 고양이 발(CatPaw)이 주기적으로(occupant 가중 랜덤) 선반 하나를 경고 뒤 바깥쪽으로 크게 민다.
 -- 테두리 밖은 허공이라 가장자리 밖으로 밀리면 떨어져 탈락. 3단(꼭대기, "캣방석")은 고양이 발 대상에서
 -- 빠져요(공은 그대로) — Survival은 시간 종료 때 버틴 사람 전원이 통과하니 완전한 안전지대가 필요해요.
+-- m5-40: 시간 제한 75초, 60초부터 서든데스(공 주기 3.8초, 고양이 발 1.6초 간격).
 --
 -- 치수·기하는 CatCafeShelvesLayout, 공·고양이 발 계산(사인파, 맞음, 방향, 일정, 선반 고르기)은
 -- CatCafeShelvesLogic — 둘 다 순수 로직이고 tests/map-cat-cafe-shelves.spec.luau가 확인해요.
@@ -356,6 +357,7 @@ local map: MapTypes.MapModule = {
 	kind = "Survival",
 	displayName = "고양이 카페 캣타워",
 	rule = "좁은 선반 사이를 옮겨 다니며 버텨요. 가장자리 밖으로 밀리면 안 돼요!",
+	timeLimit = Logic.TIME_LIMIT, -- 75초 (m5-40 — Config.TimeLimit.Survival 60은 그대로), 60초부터 서든데스
 	build = build,
 	start = start,
 	lighting = Art.LIGHTING, -- m5-24 오후 햇살 카페

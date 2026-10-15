@@ -533,21 +533,18 @@ return function(t: Test.Test)
 		end
 	)
 
-	t.test(
-		"QA build: 결승선은 z -422 (m5-40 L2: 옛 -250), 충돌·터치·쿼리 없음, 결승 바닥 폭 전체",
-		function()
-			local env = loadMap()
-			local model = env.map.build(ORIGIN)
-			local line = model:FindFirstChild("FinishLine")
-			t.ok(line ~= nil, "FinishLine")
-			local rel = localOf(line).Position
-			t.ok(near(rel.Z, -422), `finish z {rel.Z}`)
-			t.eq(line.CanCollide, false)
-			t.eq(line.CanTouch, false)
-			t.eq(line.CanQuery, false)
-			t.eq(line.Size.X, Layout.FINISH_WIDTH)
-		end
-	)
+	t.test("QA build: 결승선은 z -422, 충돌·터치·쿼리 없음, 결승 바닥 폭 전체", function()
+		local env = loadMap()
+		local model = env.map.build(ORIGIN)
+		local line = model:FindFirstChild("FinishLine")
+		t.ok(line ~= nil, "FinishLine")
+		local rel = localOf(line).Position
+		t.ok(near(rel.Z, -422), `finish z {rel.Z}`)
+		t.eq(line.CanCollide, false)
+		t.eq(line.CanTouch, false)
+		t.eq(line.CanQuery, false)
+		t.eq(line.Size.X, Layout.FINISH_WIDTH)
+	end)
 
 	t.test(
 		"QA build: 젤리 3개(윗면 1·Jelly 태그·충돌), 송풍구 2개(ColdFan 태그·충돌 없음·서리 꺼짐·선반 바깥)",
@@ -582,7 +579,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- start: 판정
 
-	t.test("QA start: 결승선 -422에서 통과, -421.9는 아직 (돌린 origin, m5-40 L2: 옛 -250)", function()
+	t.test("QA start: 결승선 -422에서 통과, -421.9는 아직 (돌린 origin)", function()
 		local near1, _ = newRacer("near", 0, 27, -421.9)
 		local over, _ = newRacer("over", 6, 27, -422)
 		local run = startRun({ near1, over })

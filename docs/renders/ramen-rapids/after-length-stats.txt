@@ -1,0 +1,3 @@
+[render] ramen-rapids decor=1178/1500 lights=8/24 (shadowed 1/2) particles=14/16 anim=31/80 tris=56208 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,overview:0%,eye:0%,mobile:0%,top:0% time=51.8s
+[render]   Race · budget Extended · parts 1264 (judgment 86, decor 1178, hidden 13) · beams 0 · lighting map preset
+[render]   bounds all 1684x1112x1383 · play area 40x47x447 · out build/after/ramen-rapids/

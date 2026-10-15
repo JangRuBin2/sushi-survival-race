@@ -36,26 +36,23 @@ return function(t: Test.Test)
 		t.eq(Maps.timeLimit(RamenRapids), Config.TimeLimit.Race)
 	end)
 
-	t.test(
-		"AC1: 구간이 출발→급류→토핑→막대→(m5-40 새 구간)→결승 순서로 이어지고 길이 446",
-		function()
-			local sections = Layout.sections()
-			t.eq(sections[1].front, 0)
-			for i, span in sections do
-				t.ok(span.front > span.back, `section {i} must extend toward -Z`)
-				if i > 1 then
-					t.eq(span.front, sections[i - 1].back, `section {i} must start where {i - 1} ends`)
-				end
+	t.test("AC1: 구간이 출발→급류→토핑→막대→결승 순서로 이어지고 길이 446", function()
+		local sections = Layout.sections()
+		t.eq(sections[1].front, 0)
+		for i, span in sections do
+			t.ok(span.front > span.back, `section {i} must extend toward -Z`)
+			if i > 1 then
+				t.eq(span.front, sections[i - 1].back, `section {i} must start where {i - 1} ends`)
 			end
-			t.eq(Layout.totalLength(), 446) -- m5-40 L2: 300 → 446 (젓가락 다리·렌게 계단·두 번째 급류)
-			local finishZ = Layout.finishLineZ()
-			t.ok(finishZ < Layout.FINISH.front and finishZ > Layout.FINISH.back, "finish line inside finish section")
-			-- 급류 약 12도, 출발에서 결승까지 내려가요
-			t.eq(Layout.RAPIDS_SLOPE_DEG, 12)
-			t.ok(Layout.platformTop() < -Layout.rapidsDrop(), "finish lower than rapids end")
-			t.ok(-Layout.platformTop() >= 25, "course drops at least 25 studs")
 		end
-	)
+		t.eq(Layout.totalLength(), 446) -- m5-40 L2: 300 → 446 (젓가락 다리·렌게 계단·두 번째 급류)
+		local finishZ = Layout.finishLineZ()
+		t.ok(finishZ < Layout.FINISH.front and finishZ > Layout.FINISH.back, "finish line inside finish section")
+		-- 급류 약 12도, 출발에서 결승까지 내려가요
+		t.eq(Layout.RAPIDS_SLOPE_DEG, 12)
+		t.ok(Layout.platformTop() < -Layout.rapidsDrop(), "finish lower than rapids end")
+		t.ok(-Layout.platformTop() >= 25, "course drops at least 25 studs")
+	end)
 
 	t.test("AC1: 스폰 24개가 출발 구간 안에서 서로 3 studs 이상 떨어져 있어요", function()
 		local spawns = Layout.spawnPositions()

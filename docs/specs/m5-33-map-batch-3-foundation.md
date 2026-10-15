@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-33 — 맵 3차 배치 기반: 새 맵 6개 껍데기 + 등록 + 소리·파티클 이름 + 풀 개수 테스트 정리

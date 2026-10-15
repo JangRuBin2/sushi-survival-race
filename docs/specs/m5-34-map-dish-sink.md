@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-34 — 새 Race 맵: 깨끗하게! 설거지통 (`dish-sink`)

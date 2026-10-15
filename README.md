@@ -14,18 +14,18 @@
 | 9~24명 | 4 | 24 → 16 → 9 → 5 → 1 |
 
 - Race: 결승선에 목표 인원이 들어오면 끝 (최대 90초)
-- Survival: 목표 인원만 남거나 60초가 지나면 끝. 시간이 끝나면 버틴 사람은 모두 통과
+- Survival: 목표 인원만 남거나 75초가 지나면 끝(60초부터 서든데스). 시간이 끝나면 버틴 사람은 모두 통과
 - Final: 한 명이 남으면 우승. 90초가 지나면 연장전으로 20초 안에 발판이 모두 무너지고, 가장 늦게 떨어진 사람이 우승
 
 떨어지면 젓가락에 집혀 먹히는 연출이 나오고, 이후 남은 사람을 관전한다.
 
-### 맵 (15개)
+### 맵 (21개)
 
 | 종류 | 맵 |
 |---|---|
-| Race | 회전 벨트, 간장 늪 & 와사비 산, 라멘 국물 급류, 디저트 냉장고, 방방 미로, 등불 다리 |
-| Survival | 뜨거운 철판, 셰프의 도마, 튀김 냄비 탈출, 와르르 나무 블록, 고양이 카페 캣타워 |
-| Final | 회전 꼬치 쇼다운, 연어알 폭탄 접시, 줄다리기 발판, 인형뽑기 기계 속 |
+| Race | 회전 벨트, 간장 늪 & 와사비 산, 라멘 국물 급류, 디저트 냉장고, 방방 미로, 등불 다리, 깨끗하게! 설거지통, 우주 회전초밥 |
+| Survival | 뜨거운 철판, 셰프의 도마, 튀김 냄비 탈출, 와르르 나무 블록, 고양이 카페 캣타워, 초대형 밥솥, 수산시장 |
+| Final | 회전 꼬치 쇼다운, 연어알 폭탄 접시, 줄다리기 발판, 인형뽑기 기계 속, 찻잎 정원, 온천탕 인형뽑기 |
 
 맵별 규칙과 수치는 [GDD](docs/GDD.md) 5절과 `docs/specs/`의 맵 스펙에 있다.
 
@@ -67,7 +67,7 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 1992개(134개 파일, 2026-10-14). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
+lune run tests     # 2282개(156개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```
@@ -82,7 +82,7 @@ Studio 없이 맵을 PNG로 확인하려면 `lune run tools/render-map <맵 id>`
 src/server/   서버 서비스: 방, 매치, 라운드, 판정, 저장, 보상, 상점, 이동 감시
 src/client/   UI, 카메라, 효과음, 연출, 입력
 src/shared/   설정, 리모트, Roblox API를 쓰지 않는 순수 로직
-  maps/       맵 모듈 15개와 장식 키트
+  maps/       맵 모듈 21개와 장식 키트
 tests/        Lune 테스트
 tools/        맵·캐릭터 미리보기 렌더러
 docs/         기획서, 스펙, QA 리포트, 변경 기록

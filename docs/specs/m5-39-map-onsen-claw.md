@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-39 — 새 결승 맵: 온천탕 인형뽑기 (`onsen-claw`)

@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-38 — 새 결승 맵: 찻잎 정원 (`tea-garden`)

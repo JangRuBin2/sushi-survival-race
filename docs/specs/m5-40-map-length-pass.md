@@ -1,4 +1,4 @@
-status: qa-passed
+status: done
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-40 — 기존 맵 길이 늘리기 (Race 구간 추가 · Survival 시간 제한 75초)

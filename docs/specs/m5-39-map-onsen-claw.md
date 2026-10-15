@@ -1,4 +1,4 @@
-status: ready
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-39 — 새 결승 맵: 온천탕 인형뽑기 (`onsen-claw`)
@@ -113,6 +113,29 @@ status: ready
 - 2026-10-14 · D4 90초 전에 설 곳이 바닥나지 않게(m5-19 B2 교훈) · 물은 4.5에서 멈추고 4단(데크 4개)은 연장전까지 남김 · planner
 - 2026-10-14 · D6 길이 요청 반영 여부 · 사용자: **"맵들이 전반적으로 좀 짧다는 느낌이 들던데 길이가 좀 있었으면 좋겠어."** → 결승은 90초 + 연장전 20초로 이미 가장 긴 라운드, 4단을 연장전까지 남겨 보통 60~100초. 시간 제한·무대(지름 84) 그대로(`m5-40` Final 기준) · planner
 - 2026-10-14 · D5 연장전에 물을 더 올릴지 · 안 올림. 디버그로 일찍 연장전이 시작돼 낮은 단이 남아 있을 때 물이 그 단을 한꺼번에 덮으면 같은 순간 전원 탈락이 되어 "늦게 떨어진 사람 우승"이 흐려진다 → 데크를 하나씩 가라앉힘 · planner
+- 2026-10-15 · D7 탕 중심 위치 · origin 로컬 (0, −45) — 코스가 origin 앞쪽(−Z)인 공통 관례, 여관은 북쪽(−Z) 배경 · developer
+- 2026-10-15 · D8 "부채꼴(상자로 근사)" · 데크 = 태그 `OnsenDeck` Model(속성 `Tier`·`Index`·`Top`) 안에 상자 조각 `PlankNN`(4단 9·3단 6·2단 5·1단 3개, 10° 안팎). 조각 폭 2·outer·tan(θ/2)로 **틈 0**(≤ 1 충족), 안쪽은 이웃과 ≤ 0.8 겹침 — 겹친 곳 z-fighting은 단 전체에서 번갈아 0.02 낮춤. 첫 렌더에서 폭을 가운데 반지름 기준으로 했더니 이음매가 빗살처럼 보여서 바꿈 · developer
+- 2026-10-15 · D9 기계 "폭 18"과 "섬 반지름 9 안" · 정사각 18은 귀퉁이가 반지름 12.7이라 4단(10~17)을 침범 → 충돌 몸체를 **12.6 정사각**(대각선 반 8.91 ≤ 9), 높이 −10~24, 보이지 않는 `ClawBody` 하나 + 같은 자리의 보이는 장식. 높이 24·연장전 끝 `CanCollide = false`는 스펙 그대로 · developer (아트 판단, 위임 범위)
+- 2026-10-15 · D10 "45초부터 9초 간격(53, 62초), 65초부터 6초" 해석 · 다음 쿵 = 이전 + 지금 구간 간격, 그 값이 다음 구간에 들어가면 다음 구간 간격 → 8·20·32·44·**53·62·68**·74… (65초 이후 쿵 = 고리 2개). 연장전이 정해지면 max(이전, 연장전 시작) + 3초, 고리 2개 (`Logic.nextSlam`) · developer
+- 2026-10-15 · D11 충격파 "땅에 서 있음" 판정 · 발밑 데크를 레이캐스트(이 방 데크만, 가라앉은 조각은 `CanQuery = false`라 빠짐)로 찾고 `Logic.waveHit`: 발 ≤ 윗면 + 1.2 **그리고 발 ≥ 윗면 − 1.5**(물에 빠지는 중인 사람을 튕겨 올리지 않게) · developer
+- 2026-10-15 · D12 물 "1초에 걸쳐 부드럽게" · 보이는 물은 다음 칸 **1초 전부터** 올라 그 칸 시각에 판정 물과 같아짐 → 보이는 물 ≥ 판정 물(안 보이는 물에 빠지는 일 없음). 판정은 스펙 `waterHeight` 그대로 · developer
+- 2026-10-15 · D13 연장전과 정상 일정 · 연장전 시작 시각에 물·정상 가라앉기 일정이 멈춤(경고 중이던 단은 경고를 취소하고 원래대로) → 남은 데크 전부가 `overtimeSinkOrder`로. 연장전에 김 Rate ×1.8 · developer
+- 2026-10-15 · D14 `Logic.waveKnockback(dist, tier)` 반환형 · `{ horizontal, up }`(방향은 `Logic.outward(dx, dz)`) — 스펙의 "Velocity"를 크기 두 개로 · developer
+- 2026-10-15 · D15 "물 위 초밥 쟁반·나무통 Bob(탕 바깥 고정 위치)" · 탕 물은 서버가 올리니 그 위에 고정 장식을 띄울 수 없음 → 탕 남쪽 **돌 수반**(정적인 물, 윗면 7.8) 위에 쟁반 3·통 1을 Bob · developer
+- 2026-10-15 · D16 경고 거품 파티클 수 · 데크 4개마다 하나(1단 12개 동시 경고 때 3개) — 장식 파티클 9 + 최대 3 ≤ Extended 16 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+- 브랜치 `m5-map-onsen` (origin/main `b2769b8` 위). 작업 기록 `docs/developer/m5-39-map-onsen-claw.md`(렌더 반복 3회 비평·시트 비교·휴대폰 메모).
+- **바뀐 파일**: `src/shared/maps/OnsenClaw.luau`(껍데기 덮어씀, `inPool = false` 줄 삭제), 새 `OnsenClawLayout.luau`·`OnsenClawLogic.luau`, `OnsenClawArt.luau`(껍데기 덮어씀), `tests/map-onsen-claw.spec.luau`(24개, start·overtime 모의 실행 포함), `docs/renders/onsen-claw/`(before 4 + after 9 + stats). **공용 파일 변경 없음.**
+- **검증**: rojo build · stylua --check src tests tools · selene 0/0 · `lune run tests` 2028 passed, 0 failed · luau-lsp 끝 코드 0.
+- **최종 렌더**: `docs/renders/onsen-claw/after-overview.png`, `after-eye.png`, `after-intro-01.png`~`after-intro-05.png`, `after-top.png`, `after-mobile.png` (stats `after-stats.txt`: decor 963/1500, 빛 17/24, 그림자 2/2, 파티클 9/16, anim 47/80, void 최대 4%).
+- **Studio 확인 (AC11~AC16)**: `src/shared/Config.luau`에서 `DEBUG.forceMapPlan = { "rotating-belt", "hot-plate", "onsen-claw" }`(빠른 연장전은 `DEBUG.overtimeAt = 65`)로 Play. **확인 뒤 둘 다 nil로 되돌리기**(커밋 값 고정 테스트).
+  1. 결승 소개: 여관 쪽 넓은 샷 → 기계·고양이 → 물 위 반전 샷 → 바깥 데크 → 출발 자리. 조명이 해 질 녘(남보라 하늘·주황 종이등)으로 바뀌고 끝나면 로비 조명으로.
+  2. 6.5초쯤 집게가 내려가며 기계 밑바닥 불빛이 주황·흰색으로 깜빡 + 섬 가장자리 옅은 고리 → 8초 "쿵" → 주황-흰 고리가 퍼져요. 고리가 올 때 서 있으면 바깥으로 튕기고, 점프하면 안 맞아요. 4단(가장 안)은 더 세게(×1.3).
+  3. 10초마다 물이 한 칸씩. 17초부터 1단(가장 바깥) 가장자리가 주황·흰색으로 깜빡이고 흔들리며 거품 → 20초에 가라앉아요(위에 있으면 물에 빠져 셰프 손 탈락). 40초 2단, 60초 3단. 4단은 남아요.
+  4. 2명 이상이면 90초(또는 `overtimeAt`)에 "⚡ 연장전!" → 4단 데크가 5초마다 하나씩(2초 경고) 가라앉고, +20초에 기계 몸체 충돌도 꺼져 설 곳이 없어요. 기계·간판·바위·울타리에 올라서거나 매달릴 수 없는지.
+  5. 혼자(Play Solo)도 연장전으로 끝나는지. 서버 Output에 `[MovementGuard]` 이동 감시 경고가 충격파 넉백 때문에 찍히지 않는지.
+  6. 휴대폰 에뮬레이터(Test → Device)에서 고리·가라앉기 경고·단 경계가 김에 가리지 않는지.
+- **남은 이슈 / 사용자 작업**: `ClawSlam`·`OnsenRise` 소리 id(USER-TODO A2, 지금 무음). 데크가 가라앉을 때 `TileVanish`(기존 cue)를 써요. 재미 수치(고리 속도 24, 넉백, 주기)는 `OnsenClawLogic` 상수만 고치면 돼요(AC16).
+- **렌더러 한계**: 고리·경고 깜빡임·물 상승은 런타임이라 렌더에 없음(Studio AC15). 시트 대비 "실내 목욕탕"이 아닌 "노천탕"은 스펙 아트 디렉션대로.

@@ -41,10 +41,12 @@ type Fingerprint = { n: number, size: number, x: number, y: number, z: number, c
 
 -- main(481eea0, m5-24 병합 전)에서 같은 계산으로 잰 값. 판정 지오메트리를 바꾸면 이 값이 달라져요.
 local MAIN_FINGERPRINT: { [string]: Fingerprint } = {
-	["rotating-belt"] = { n = 57, size = 982.30, x = 239.50, y = 91.82, z = -2496.25, collide = 22, tags = 4 },
+	-- m5-40 L1 길이 늘리기로 판정 지오메트리가 의도해서 바뀜 (옛 n = 57, size = 982.30, x = 239.50, y = 91.82, z = -2496.25, collide = 22, tags = 4)
+	["rotating-belt"] = { n = 203, size = 3922.20, x = 867.00, y = 871.90, z = -42000.25, collide = 151, tags = 12 },
 	["hot-plate"] = { n = 267, size = 3259.80, x = 3564.00, y = -4979.10, z = -7209.00, collide = 243, tags = 243 },
 	["skewer-showdown"] = { n = 89, size = 934.22, x = 632.14, y = -42.60, z = 73.03, collide = 65, tags = 0 },
-	["soy-swamp"] = { n = 40, size = 1429.33, x = 174.10, y = 167.35, z = -1700.10, collide = 12, tags = 4 },
+	-- m5-40 L1 (옛 n = 40, size = 1429.33, x = 174.10, y = 167.35, z = -1700.10, collide = 12, tags = 4)
+	["soy-swamp"] = { n = 69, size = 3234.56, x = 268.80, y = 739.30, z = -9538.09, collide = 39, tags = 9 },
 	["chef-board"] = { n = 85, size = 1259.80, x = 1136.00, y = -89.10, z = 0.00, collide = 61, tags = 61 },
 	["tug-of-war-platform"] = { n = 25, size = 194.80, x = 420.00, y = 1.40, z = -1000.00, collide = 1, tags = 1 },
 	["ramen-rapids"] = { n = 57, size = 1353.67, x = 272.10, y = -721.56, z = -5197.64, collide = 33, tags = 10 },

@@ -3,6 +3,7 @@
 --   SoySauce 태그 웅덩이: 안에 있으면 이동 속도 50%, 점프 불가. 벗어나면 바로 기본값으로.
 --   Wasabi 태그 패드: 밟으면 위·앞으로 크게 튕기고 머리 위에 "매워!!" 1초. 같은 플레이어 1초 쿨다운.
 --   날치알 공: 내리막 위에서 2~3초마다 생겨 굴러 내려와요. 맞으면 1초 넘어져요 (PlatformStand).
+--     m5-40: 내리막 2에서는 왼쪽·오른쪽 레인이 따로 2~3초마다 (공 규칙·수치는 같아요).
 -- 태그 파츠는 ctx.model 하위에 있는 것만 써요 (M1 B10 (A)). 상태는 전부 이 함수들의 지역 변수에 둬서
 -- 여러 방이 같은 맵을 동시에 돌려도 섞이지 않아요. Roblox API는 함수 안에서만 불러요.
 
@@ -179,13 +180,38 @@ function Hazards.wasabiStepper(ctx: MapTypes.RoundContext): (racers: { Player })
 	end
 end
 
-type Ball = { part: BasePart, bornAt: number }
+type Ball = { part: BasePart, bornAt: number, slope: Layout.Span }
 
-local function spawnBall(ctx: MapTypes.RoundContext, folder: Instance): BasePart
+-- 공이 생기는 자리 하나 (내리막 1 전체 폭, m5-40 내리막 2는 레인마다 하나)
+type Spawner = { slope: Layout.Span, z: number, minX: number, maxX: number, floorY: number }
+
+local function spawners(): { Spawner }
+	local list: { Spawner } = {
+		{
+			slope = Layout.SLOPE,
+			z = Layout.BALL_SPAWN_Z,
+			minX = -Layout.BALL_SPAWN_HALF_WIDTH,
+			maxX = Layout.BALL_SPAWN_HALF_WIDTH,
+			floorY = Layout.slopeHeightAt(Layout.BALL_SPAWN_Z),
+		},
+	}
+	for _, lane in Layout.BALL_LANES_2 do
+		table.insert(list, {
+			slope = Layout.SLOPE2,
+			z = Layout.BALL_SPAWN_Z_2,
+			minX = lane.minX,
+			maxX = lane.maxX,
+			floorY = Layout.slope2HeightAt(Layout.BALL_SPAWN_Z_2),
+		})
+	end
+	return list
+end
+
+local function spawnBall(ctx: MapTypes.RoundContext, folder: Instance, spawner: Spawner): BasePart
 	local origin = ctx.origin
-	local x = ctx.rng:NextNumber(-Layout.BALL_SPAWN_HALF_WIDTH, Layout.BALL_SPAWN_HALF_WIDTH)
+	local x = ctx.rng:NextNumber(spawner.minX, spawner.maxX)
 	local radius = Layout.BALL_DIAMETER / 2
-	local y = Layout.slopeHeightAt(Layout.BALL_SPAWN_Z) + radius + 0.5
+	local y = spawner.floorY + radius + 0.5
 	local ball = Instance.new("Part")
 	ball.Name = "Tobiko"
 	ball.Shape = Enum.PartType.Ball
@@ -197,7 +223,7 @@ local function spawnBall(ctx: MapTypes.RoundContext, folder: Instance): BasePart
 	ball.CustomPhysicalProperties = PhysicalProperties.new(Enum.Material.SmoothPlastic)
 	ball.Anchored = false
 	ball.CanCollide = true
-	ball.CFrame = origin * CFrame.new(x, y, Layout.BALL_SPAWN_Z)
+	ball.CFrame = origin * CFrame.new(x, y, spawner.z)
 	ball.Parent = folder
 	ctx.cleanup:add(ball)
 	-- 공 물리는 서버가 맡아요 (클라이언트가 소유하면 위치가 사람마다 달라져서 판정이 어긋나요).
@@ -224,8 +250,8 @@ local function knockDown(ctx: MapTypes.RoundContext, player: Player, humanoid: H
 	end))
 end
 
--- 날치알: 공 생성 스레드를 띄우고(ctx.cleanup에 넣어요), 공 수명·속도 제한·충돌 판정을 하는
--- 함수를 돌려줘요. 돌려주는 함수를 Heartbeat에서 불러요.
+-- 날치알: 생기는 자리마다 공 생성 스레드를 띄우고(ctx.cleanup에 넣어요), 공 수명·속도 제한·충돌 판정을 하는
+-- 함수를 돌려줘요. 돌려주는 함수를 Heartbeat에서 불러요. m5-40: 내리막 2의 두 레인도 같은 규칙으로 따로 굴러요.
 function Hazards.tobikoStepper(ctx: MapTypes.RoundContext): (racers: { Player }) -> ()
 	local folder = Instance.new("Folder")
 	folder.Name = "TobikoBalls"
@@ -236,15 +262,20 @@ function Hazards.tobikoStepper(ctx: MapTypes.RoundContext): (racers: { Player })
 	local hitCooldown = Layout.newCooldown(Layout.KNOCKDOWN_COOLDOWN)
 	local hitRange = Layout.BALL_DIAMETER / 2 + Layout.BALL_HIT_EXTRA
 
-	ctx.cleanup:add(task.spawn(function()
-		while ctx.isActive() do
-			task.wait(ctx.rng:NextNumber(Layout.BALL_INTERVAL_MIN, Layout.BALL_INTERVAL_MAX))
-			if not ctx.isActive() then
-				break
+	for _, spawner in spawners() do
+		ctx.cleanup:add(task.spawn(function()
+			while ctx.isActive() do
+				task.wait(ctx.rng:NextNumber(Layout.BALL_INTERVAL_MIN, Layout.BALL_INTERVAL_MAX))
+				if not ctx.isActive() then
+					break
+				end
+				table.insert(
+					balls,
+					{ part = spawnBall(ctx, folder, spawner), bornAt = os.clock(), slope = spawner.slope }
+				)
 			end
-			table.insert(balls, { part = spawnBall(ctx, folder), bornAt = os.clock() })
-		end
-	end))
+		end))
+	end
 
 	return function(racers: { Player })
 		local now = os.clock()
@@ -252,7 +283,7 @@ function Hazards.tobikoStepper(ctx: MapTypes.RoundContext): (racers: { Player })
 			local ball = balls[i]
 			local part = ball.part
 			local rel = ctx.origin:PointToObjectSpace(part.Position)
-			if part.Parent == nil or Layout.ballExpired(now - ball.bornAt, rel.Z, rel.Y) then
+			if part.Parent == nil or Layout.ballExpired(now - ball.bornAt, rel.Z, rel.Y, ball.slope) then
 				part:Destroy()
 				table.remove(balls, i)
 				continue

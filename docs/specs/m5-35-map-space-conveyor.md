@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-35 — 새 Race 맵: 우주 회전초밥 (`space-conveyor`)

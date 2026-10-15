@@ -7,13 +7,12 @@
 
 ## 현재 상태
 - 기획서 **v0.7**(무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
-- **M5 (운영 업데이트) 진행 중**
+- **M5 (운영 업데이트) — 개발 스펙 모두 `done`, 사용자 확인 대기** (`ready`·개발 중인 스펙 없음)
   - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), **m5-33~39 맵 3차 배치 6개**(기반 + 새 맵, 풀 21개), **m5-40 맵 길이**(Race 6개 코스 연장, Survival 75초 + 60초 서든데스), m5-41 터치 버튼 위치·크기 편집.
-  - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙").
-  - `ready`(기획만): m5-12 콘솔 UI — **개발 중**(worktree `m5-12-console`).
-- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-14), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
-- **다음 단계**: m5-12 콘솔 UI(worktree `m5-12-console` 개발 중) → QA → 병합. 그사이 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드), 영어 뽑기 등급 이름 결정(m5-26 B7) → 비공개 테스트 → 공개.
-- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 21개(기존 12개 아트 패스 v2, Race 45~55초 길이), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외).
+  - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙"), **m5-12 콘솔(게임패드) UI**(2026-10-15 main 병합, 아래 "게임패드 UI 규칙").
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-15), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
+- **다음 단계**: 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드, 영어 뽑기 등급 이름 결정 m5-26 B7 포함) → 비공개 테스트 → 공개. 콘솔 출시는 3-15 확인 뒤 사용자가 켬(USER-TODO C4).
+- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 21개(기존 12개 아트 패스 v2, Race 45~55초 길이), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
 - 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
 ## 맵 풀 (21개, 전부 랜덤 판 풀)
@@ -57,6 +56,12 @@
 - **숫자 + 단위는 한 키**(사용자 규칙): "{wins}승" / "Wins: {wins}"처럼 단위까지 자리표시자를 가진 한 키로, 코드가 숫자에 한국어 단위를 붙이지 않는다(`m5-26-phase2` "규칙" 테스트). 원문은 인자 뒤에 바뀌는 조사를 쓰지 않는다("🍚 {price} · 해금"), `.btn` 키 en 16자·`.tab` 10자 이하(`long-ok` 예외).
 - **동적 키**는 `LocalizeLogic.DYNAMIC_KEY_PATTERNS` 모양만, `Loc` 도우미로만 만든다: `map.<mapId>.name|rule`, `skin.<skinId>.name`, `skin.<skinId>.speech.<n>`, `tier.<Tier>`, `shop.drawGrade.<Grade>`(뽑기 등급, `Loc.drawGradeName`), `offer.<offerId>.name|blurb|perk.<n>`, `fx.<fxId>.name`, `season.<eventId>.name|token`, `title.w<wins>`, `reward.reason.<RewardReason>`, `date.month.<n>`, `cutscene.line.<group>.<n>`.
 - **월드 글씨**(서버가 만드는 BillboardGui·SurfaceGui 글씨)는 `WorldText.mark(label, key)` — 빈 글씨 + `Attributes.LocKey` + 태그 `LocalizedWorldText`, 클라이언트 `WorldTextController`가 채운다. 인자가 있으면 단상처럼 숫자·이름 속성(`WinnerName`·`WinnerWins`)을 따로 달고 클라이언트가 조합. 사람 이름·방 이름·숫자 타이머 같은 글씨는 `AutoLocalize = false`(`RoomUiKit` label·button·textBox는 기본 false).
+
+## 게임패드 UI 규칙 (m5-12)
+- **패드 모드** = 마지막 입력이 `Gamepad1~8`(`GamepadNavLogic.isGamepadInput`/`modeFor` — 마우스·터치·키보드면 끔, 글자 칸 입력 중 키보드는 유지). 기기가 아니라 입력으로 정해서 PC에 꽂은 패드도 같다. 10피트 기기(`GuiService:IsTenFootInterface()`)에서만 추가로 `UiScaleController.attach`가 화면 ScreenGui마다(위쪽 바 gui 제외) 5% `UIPadding`(`TvSafePadding`)·채팅 창 끄기(`ChatTagController`). 패드 모드가 아니면 `GamepadNav`는 아무것도 하지 않는다.
+- **잠금 기준은 탈의실 버튼(`ShopController.canShow`)과 같다**(`GamepadNavLogic.navAllowed`, 테스트가 모든 조합을 고정): 카운트다운·소개·달리는 중(내 레이서)·우승 연출이면 선택 지움 + `GuiNavigationEnabled = false` + (패드면) 열린 창 닫기 → A·B·X·R2는 게임 조작만. 관전·대기석·라운드 결과는 풀림. 클라이언트 UI 편의일 뿐 권한이 아니다(서버 `ShopService.isLocked` 그대로).
+- 패드 모드에서는 **⚙ 버튼·터치 버튼 편집을 숨긴다**(`SettingsButton`, `TouchLayoutEditor.open()` 거절, 편집 중 패드를 쓰면 저장 없이 취소 — GDD 6 "게임패드 해당 없음").
+- **새 화면·창은 `GamepadNav`에 등록**: 만들 때 한 번 `GamepadNav.window`(B로 닫히는 창)·`page`(로비·대기실 같은 기본 화면)·`anchor`(Select로 고를 버튼), 탭이 있으면 LB/RB(`GamepadNavLogic.nextTab`, 끝에서 멈춤). render·루프 안에서 부르지 않는다. 창 열림은 "조상까지 보이는가"로 판단하고 B = 맨 위 창 닫기 → 연 버튼으로 선택 복귀. 힌트 문구는 `gamepad.hint.*` 키.
 
 ## 역할 분담 (에이전트 협업)
 기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
@@ -106,7 +111,7 @@ src/
     Loc                  # 화면 문구의 유일한 출입구(t·tPlace·text·도우미, 번역기 + 폴백, m5-26). init에서 맨 먼저
     ui/                  # Lobby*, Room*, Hud*, Spectate*, Coin*, Shop*(탈의실·이벤트·🎫 특 탭), DrawScreen(🎫 뽑기 화면, m5-31),
                          # Offer*(🎁 상점), Code*(🎟 코드), Admin*(🛠 미리보기·명령 탭), ChatTagController([VIP]), UiScaleController,
-                         # SettingsButton(⚙ 메뉴)·TouchLayoutEditor(버튼 위치 편집, m5-41)
+                         # SettingsButton(⚙ 메뉴)·TouchLayoutEditor(버튼 위치 편집, m5-41), GamepadNav(게임패드 내비·힌트 줄, m5-12)
     fx/                  # CharacterFxController(캐릭터 움직임·이름표), FishRig·DollAnimator(고등어 관절·인형 움직임, m5-32),
                          # EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
                          # LobbyFxController(단상 이름표), MapLightingController(맵별 조명), MapDecorFxController(장식 움직임),
@@ -118,7 +123,7 @@ src/
     SushiBody  SushiConceptSample(콘셉트 몸)  ConceptMackerel  SushiPose  PartMath  CharacterAnimLogic   # 캐릭터 몸·움직임
     Skins  ShopLogic  DrawLogic  DrawScreenLayout  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
     ProfileSchema(v3)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
-    LobbyLayout  UiLayout  TouchLayoutLogic  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
+    LobbyLayout  UiLayout  TouchLayoutLogic  GamepadNavLogic(m5-12)  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
     DiveLogic  GrabLogic  GrabInputLogic  IceLogic  SfxCues  SfxLibrary
     LocalizeLogic(순수: 키·CSV·format·choose·동적 키)  WorldText(월드 글씨 키 표시)  PodiumLogic(단상 이름표)
     Localization/Strings.csv   # 문구 카탈로그 → LocalizationTable (클라우드 표에도 같은 파일 업로드)
@@ -126,7 +131,7 @@ src/
       init.luau  MapTypes.luau                     # 맵 풀(ALL), 공통 인터페이스 + validate
       MapKit  MapKitLogic  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
       <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 21개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
-tests/               # 순수 로직·가짜 Roblox 테스트 (161개 파일 2357개, 2026-10-15 main 3893c8a). init.luau 실행기, lib/, fixtures/
+tests/               # 순수 로직·가짜 Roblox 테스트 (163개 파일 2381개, 2026-10-15 main 6b50f8d). init.luau 실행기, lib/, fixtures/
 docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md  REFERENCE-*.md
   specs/  qa/  proposals/  renders/<mapId>/·renders/characters/(커밋한 before/after PNG)

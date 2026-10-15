@@ -37,9 +37,11 @@
 | 점프 | Space | A | 점프 버튼 |
 | 다이브 | Shift 또는 E | X | 다이브 버튼 |
 | 잡기 (누르고 있기) | 마우스 왼쪽 | R2 | 잡기 버튼 |
-| 관전 대상 바꾸기 | Q / E | | 화면 좌우 버튼 |
+| 관전 대상 바꾸기 | Q / E | LB / RB | 화면 좌우 버튼 |
 
 모바일은 위쪽 바의 ⚙ → "버튼 위치 편집"으로 점프·다이브·잡기 버튼을 옮기고 크기를 바꿀 수 있다(프로필에 저장).
+
+게임패드(콘솔, PC에 꽂은 패드)는 모든 창을 방향키 + A(선택) + B(닫기)로 다룬다. 탈의실·관리자 패널 탭은 LB/RB, 관전 중 "로비로"는 Y. 라운드 중에는 UI 선택이 꺼져 버튼이 게임 조작으로만 쓰인다. 콘솔(TV) 화면은 가장자리 5% 안전 여백을 두고 채팅 창을 끈다.
 
 ### 진행·상점
 
@@ -71,7 +73,7 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 2357개(161개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
+lune run tests     # 2381개(163개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```

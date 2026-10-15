@@ -3,6 +3,7 @@
 -- 서버 요청은 actions로 넘겨받아요. 이 화면은 보여주기만 해요.
 -- 화면 크기 대응 (m4-09): 버튼은 배율 적용 뒤 Config.Ui.MinTouchSize 이상, compact(휴대폰 가로)에서는
 -- 패널·방 만들기 창을 위쪽에 붙이고(키보드가 올라와도 입력칸이 보이게) 글씨를 실제 14px 이상으로 키워요.
+-- 게임패드 (m5-12): 로비는 GamepadNav.page(첫 버튼 = 빠른 참가), 방 만들기 창은 GamepadNav.window(B = 취소).
 -- TODO(M4): 스킨 상점, 탈의실, 코인 표시, 방 목록을 벨트 위 접시로
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +12,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -508,6 +510,24 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			actions.joinByCode(codeBox.Text)
 		end
 	end)
+
+	-- 게임패드 (m5-12): 로비는 기본 화면, 방 만들기 창은 B로 닫는 창 (첫 버튼 = 지금 고른 인원)
+	GamepadNav.page({
+		root = root,
+		first = function(): GuiObject?
+			return quickButton
+		end,
+	})
+	GamepadNav.window({
+		root = dialog,
+		group = dialogPanel,
+		close = function()
+			dialog.Visible = false
+		end,
+		first = function(): GuiObject?
+			return maxButtons[selectedMax]
+		end,
+	})
 
 	UiScaleController.onChanged(applyLayout) -- 바로 한 번 불러서 renderRooms까지 해요
 	if parent:IsA("GuiBase2d") then

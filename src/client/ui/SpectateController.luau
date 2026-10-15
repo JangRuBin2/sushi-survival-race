@@ -21,6 +21,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local SpectateScreen = require(script.Parent.SpectateScreen)
 local CameraDirector = require(script.Parent.Parent.CameraDirector)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 
 local OWNER_SPECTATE = "Spectate"
 local OWNER_VICTORY = "Victory"
@@ -242,6 +243,16 @@ function SpectateController.start(gui: Instance)
 		render()
 	end
 
+	-- [로비로] / [내 캐릭터 보기] / [관전하기] (화면 버튼, 게임패드 Y)
+	local function toggleWatching()
+		if role == "None" or inCutscene then
+			return
+		end
+		clearHold()
+		watching = not watching
+		render()
+	end
+
 	screen = SpectateScreen.new(gui, {
 		previous = function()
 			cycle(-1)
@@ -249,14 +260,7 @@ function SpectateController.start(gui: Instance)
 		nextTarget = function()
 			cycle(1)
 		end,
-		action = function()
-			if role == "None" or inCutscene then
-				return
-			end
-			clearHold()
-			watching = not watching
-			render()
-		end,
+		action = toggleWatching,
 	})
 
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(room: Types.RoomSnapshot?)
@@ -331,6 +335,26 @@ function SpectateController.start(gui: Instance)
 
 	Players.PlayerRemoving:Connect(function()
 		task.defer(render)
+	end)
+
+	-- 게임패드 (m5-12): LB/RB = 이전/다음 대상 (Q/E와 같음), Y = 동작 버튼("로비로" 등).
+	-- 선택 모드에서는 Roblox가 처리했다고 표시될 수 있어 gameProcessed를 보지 않고, 창이 열려 있으면 창이 먼저예요.
+	UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)
+		local key = input.KeyCode
+		if
+			(key ~= Enum.KeyCode.ButtonL1 and key ~= Enum.KeyCode.ButtonR1 and key ~= Enum.KeyCode.ButtonY)
+			or GamepadNav.isWindowOpen()
+			or UserInputService:GetFocusedTextBox() ~= nil
+		then
+			return
+		end
+		if key == Enum.KeyCode.ButtonL1 then
+			cycle(-1)
+		elseif key == Enum.KeyCode.ButtonR1 then
+			cycle(1)
+		elseif inMatch and not inVictory then
+			toggleWatching()
+		end
 	end)
 
 	UserInputService.InputBegan:Connect(function(input: InputObject, gameProcessed: boolean)

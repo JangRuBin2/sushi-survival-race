@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -171,6 +172,16 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 			submit()
 		end
 	end)
+
+	-- 게임패드 (m5-12): 첫 선택 = 코드 칸 (A → 화면 키보드), B = 닫기
+	GamepadNav.anchor(openButton)
+	GamepadNav.window({
+		root = backdrop,
+		close = actions.close,
+		first = function(): GuiObject?
+			return input
+		end,
+	})
 
 	local resultToken = 0
 	local screen = { gui = gui } :: CodeScreen

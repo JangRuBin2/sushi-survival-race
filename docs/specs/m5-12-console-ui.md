@@ -1,4 +1,4 @@
-status: ready
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-12 — 콘솔(게임패드) UI: 방향키로 모든 창 다루기
@@ -73,6 +73,32 @@ Xbox·PlayStation 패드(또는 PC에 꽂은 패드)만으로 로비에서 방 �
 - 2026-10-08 · D1 이 스펙의 순서 · UI 화면을 거의 다 고쳐서 **마지막 단계(단계 2)에 혼자**. 콘솔은 출시 체크리스트에서 꺼 둔 상태(USER-TODO C4)라 늦어도 다른 것을 막지 않음 → 사용자가 원하면 다음 묶음으로 미룸 · **기본값으로 진행, 사용자 수정 가능** · planner
 - 2026-10-08 · D2 콘솔 모드 판단 · 기기 종류가 아니라 **마지막 입력이 패드인가**(PC 패드 사용자도 편하게). 채팅 끄기·안전 여백만 10피트 기기에서. 근거: Roblox 콘솔 가이드라인(모든 UI를 방향키·선택·뒤로로, 몇 번만 눌러서, TV 안전 영역, 콘솔 채팅 창 끄기) — REFERENCE-console-ui 1·3절 · planner
 - 2026-10-08 · D3 버튼 아이콘 · Roblox `InputActionLabel` 대신 글자 힌트("Ⓐ 선택 · Ⓑ 닫기") — 지금 UI 키트로 충분하고 PlayStation 글자(✕○)는 후속 · **기본값, 사용자 수정 가능** · planner
+- 2026-10-15 · D4 추가 범위 (스펙 뒤에 생긴 화면) · 화면 목록에 없던 **🎫 뽑기 화면(DrawScreen — 본 창·결과 창·ⓘ 확률 상세 3개 창, 휴대폰 탭은 LB/RB)**, **⚙ 설정 메뉴(SettingsButton)·터치 버튼 편집(TouchLayoutEditor)**도 다룸. 🎁 상점·🎟 코드·🛠 관리자는 스펙 목록 그대로 · developer
+- 2026-10-15 · D5 터치 버튼 편집·⚙ (터치 전용) · 게임패드 모드에서는 **숨김**: ⚙ 버튼·메뉴가 안 보이고(TouchGui가 켜져 있어도), `TouchLayoutEditor.open()`은 거절, 편집 중에 패드를 쓰면 SettingsButton이 편집을 취소(바꾼 것 버림 — 기존 "TouchGui 꺼짐" 경로와 같음). 근거: GDD 6 "PC·게임패드는 해당 없음" · developer
+- 2026-10-15 · D6 기본 화면에서 B · 로비·대기실(창 없음)에서 B는 **창을 닫지 않고 선택만 끔**(Roblox 기본 동작과 같음) → 왼쪽 스틱으로 캐릭터를 움직일 수 있게. 다시 고르려면 방향키 한 번 또는 Select. 스펙 "아무 일 없음"을 "닫는 창 없음"으로 읽음 · developer (사용자 수정 가능)
+- 2026-10-15 · D7 Select(뷰) 버튼 · `GuiService.AutoSelectGuiEnabled = false`로 Roblox 자동 선택을 끄고 우리가 처리: 아무것도 안 골랐으면 맨 위 창 → 기본 화면 → (관전 중 등) 왼쪽 위 "🍣 스킨"·"🎁 상점"·"🎟 코드"·"🛠" 버튼 순으로 첫 버튼, 골랐으면 선택 끄기(창 안에서는 그대로). 방향키는 창·기본 화면이 있을 때만 첫 버튼 · developer
+- 2026-10-15 · D8 버튼 힌트 자리 · 창마다 넣지 않고 **화면 아래 가운데 한 줄**(자체 ScreenGui `GamepadHintGui`, DisplayOrder 60)에 맨 위 창 기준으로: 창 "Ⓐ 선택 · Ⓑ 닫기", 탭 있는 창 "LB/RB 탭 · Ⓐ 선택 · Ⓑ 닫기", 로비·대기실 "Ⓐ 선택 · Ⓑ 선택 끄기"/"방향키로 메뉴 고르기". 관전은 관전 패널 안에 "LB ◀ 관전 대상 ▶ RB · Ⓨ 로비로" (Strings.csv `gamepad.hint.*` 6개) · developer
+- 2026-10-15 · D9 잠금 기준 · "라운드 소개·달리는 중"을 탈의실 버튼이 숨는 때와 같은 기준으로(`GamepadNavLogic.navAllowed`): 시작 카운트다운·소개·달리는 중(내가 레이서)·우승 연출 = 잠금, 탈락해 관전·통과해 대기석·라운드 결과 = 풀림. 잠금이면 선택 지움 + `GuiNavigationEnabled = false` + (게임패드 모드면) 열린 창 닫기 · developer
+- 2026-10-15 · D10 창별 첫 선택 · 로비 = 빠른 참가, 방 만들기 = 지금 고른 인원 버튼, 대기실 = 시작(방장)/나가기, 탈의실 = 보이는 첫 카드(카드에 선택이 오면 미리보기가 바뀜), 상점 = 맨 위 칸 버튼, 코드 = 코드 칸(A → 화면 키보드), 관리자 = 지금 탭, 뽑기 = "뽑기 시작하기", 결과 = "확인", ⓘ = 닫기. 창을 다시 그려 버튼이 바뀌면 같은 이름 자리로, 없으면 첫 버튼 · developer
+- 2026-10-15 · D11 방 대기실 코드 · 지금 대기실에는 복사 버튼이 없고 코드가 이미 큰 글씨(22) → 그대로 둠. HUD(`HudScreen`)도 고칠 것 없음(버튼 없음, 잠금이 처리) · developer
+- 2026-10-15 · D12 10피트 안전 여백 · `UiScaleController.attach`가 비율 `UIPadding` 5%(`TvSafePadding`)를 붙임 — 화면 전체를 덮는 어두운 배경도 TV 가장자리 5%는 비어 보임(받아들임). 위쪽 바 gui는 그대로 · developer
 
 ## 개발 메모
 <!-- developer가 작성: 바뀐 파일, Studio 확인 방법, 남은 이슈 -->
+
+### 2026-10-15 구현 (브랜치 `m5-12-console`)
+**새 파일**: `src/shared/GamepadNavLogic.luau`(순수: isGamepadInput·modeFor·insetsFor·nextTab·navAllowed·reconcile·pickFirst·scrollToShow), `src/client/ui/GamepadNav.luau`(공통 도우미·컨트롤러), `tests/gamepad-nav.spec.luau`.
+**바뀐 파일**: `LobbyScreen`(로비 page + 방 만들기 window), `RoomScreen`(page), `ShopScreen`(window·LB/RB 탭·카드 선택 = 미리보기), `DrawScreen`(window 3개), `OfferScreen`, `CodeScreen`, `AdminPanel`(window·LB/RB 탭), `SpectateController`(LB/RB·Y), `SpectateScreen`(패드 힌트 줄), `RoomUiKit`(`selectionImage`, 스크롤 목록 `Selectable = false`), `UiScaleController`(10피트 5% 여백), `ChatTagController`(10피트 채팅 창 끄기), `SettingsButton`·`TouchLayoutEditor`(게임패드 모드에서 숨김), `src/shared/Localization/Strings.csv`(`gamepad.hint.*` 6개 — 탭 힌트 키는 AC12 `.tab` 검사에 안 걸리게 `gamepad.hint.withTabs`), 공용 `src/client/init.client.luau`(GamepadNav 등록 한 줄). `ShopController`·`OfferController`·`CodeController`·`LobbyController`·`HudScreen`은 안 고침(화면 모듈에서 등록).
+테스트: 새 `tests/gamepad-nav.spec.luau` 12개, `tests/m4-09-qa.spec.luau` 가짜 환경에 GuiService·GamepadNavLogic 추가(UiScaleController 의존이 늘어서). 검증 5단계 통과 — rojo build, stylua, selene 0/0/0, `lune run tests` **2369 passed, 0 failed**, luau-lsp 0.
+**판정·권한·서버 코드 변경 없음.**
+
+**Studio 확인 방법** (사용자):
+1. 패드 준비: 실제 패드(Xbox/PS)를 PC에 꽂거나, Studio **Test → Controller Emulator**(테스트 탭의 컨트롤러 에뮬레이터)를 켜고 Play.
+2. AC5: 패드 버튼을 한 번 누르면 패드 모드. 로비에서 방향키 → "빠른 참가"에 흰 굵은 테두리, 아래 가운데 "Ⓐ 선택 · Ⓑ 선택 끄기". "방 만들기" A → 창이 뜨고 인원 버튼 선택됨, 방향키로 인원·공개/비공개·이름 칸(A = 키보드)·만들기 → 대기실 → "시작" A (Studio는 1명이면 시작 가능).
+3. AC6: 대기실/로비에서 "🍣 스킨"으로 이동해 A → 첫 카드 선택·미리보기 바뀜, LB/RB로 탭(끝에서 멈춤), A로 입기/해금, B → 창이 닫히고 "🍣 스킨"이 다시 선택됨. "🎫 뽑기" A → 뽑기 화면("뽑기 시작하기" 선택), B로 탈의실로.
+4. AC7: "🎁 상점"·"🎟 코드" 같은 방식. 코드 칸에서 A → 입력(콘솔은 화면 키보드). 관리자면 "🛠" 패널도 LB/RB 탭·B 닫기.
+5. AC8: 라운드가 시작되면 테두리·힌트가 사라지고 A = 점프, X = 다이브, R2 = 잡기가 UI를 누르지 않음 (Select·방향키를 눌러도 UI가 선택되지 않음).
+6. AC9: 탈락 → 관전 패널 아래 "LB ◀ 관전 대상 ▶ RB · Ⓨ 로비로", LB/RB로 대상, Y로 로비로/관전하기.
+7. AC10: 마우스를 움직이면 테두리·힌트가 바로 사라지고 예전과 같음. Device 에뮬레이터 휴대폰 가로 배치·⚙ 그대로(패드를 쓰면 ⚙ 숨음).
+8. AC11(선택): Test → Device 에뮬레이터에서 콘솔(Xbox One) 화면 → UI가 가장자리 5% 안쪽, 채팅 창 안 보임.
+- 확인 못 한 엔진 동작(Studio에서 봐야 함): 선택 모드에서 B를 누를 때 Roblox가 먼저 선택을 끄는지(그래도 다음 프레임에 연 버튼으로 돌려놓게 짰음), ScrollingFrame 자동 스크롤과 우리 스크롤이 겹쳐 튀는지, ScreenGui 바로 아래 `UIPadding`이 적용되는지.

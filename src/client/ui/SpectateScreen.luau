@@ -7,11 +7,14 @@
 -- compact(휴대폰 가로, m4-09): ◀ ▶는 화면 아래쪽 양 끝(엄지 위치, 오른쪽은 점프·다이브·잡기 버튼 바로 위,
 -- Shared.UiLayout.spectateArrows), 이름 줄과 동작 버튼은 아래 가운데.
 -- 터치 버튼을 옮겼으면(m5-41) 화살표가 옮긴 버튼 위(또는 옆)를 따라가요 (TouchLayoutController.current()).
+-- 게임패드 (m5-12): 패널 아래에 "LB ◀ 관전 대상 ▶ RB · Ⓨ 로비로" 한 줄 (게임패드 모드일 때만). 버튼은 SpectateController가 받아요.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
+local Loc = require(script.Parent.Parent.Loc)
 local UiScaleController = require(script.Parent.UiScaleController)
 local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 
@@ -101,6 +104,26 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 		Size = UDim2.fromOffset(160, BUTTON_HEIGHT),
 	})
 
+	-- 게임패드 힌트 (m5-12)
+	local padHint = Kit.label({
+		Name = "GamepadHint",
+		Parent = root,
+		LayoutOrder = 3,
+		TextSize = 15,
+		TextColor3 = Color.White,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, 22),
+		Visible = false,
+	})
+	local padText = ""
+	local function refreshPadHint()
+		padHint.Visible = GamepadNav.isGamepad() and padText ~= ""
+		padHint.Text = padText
+	end
+	GamepadNav.onModeChanged(function()
+		refreshPadHint()
+	end)
+
 	Kit.onClick(previousButton, callbacks.previous)
 	Kit.onClick(nextButton, callbacks.nextTarget)
 	Kit.onClick(actionButton, callbacks.action)
@@ -160,6 +183,8 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 	local screen = {}
 
 	function screen.hide(_self: SpectateScreen)
+		padText = ""
+		refreshPadHint()
 		root.Visible = false
 		syncArrowLayer()
 	end
@@ -172,6 +197,10 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 		Kit.setEnabled(previousButton, canCycle)
 		Kit.setEnabled(nextButton, canCycle)
 		actionButton.Text = actionText
+		padText = if canCycle
+			then Loc.t("gamepad.hint.spectate", { action = actionText })
+			else Loc.t("gamepad.hint.spectateIdle", { action = actionText })
+		refreshPadHint()
 		root.Visible = true
 		syncArrowLayer()
 	end
@@ -181,6 +210,8 @@ function SpectateScreen.new(parent: Instance, callbacks: Callbacks): SpectateScr
 		previousButton.Visible = false
 		nextButton.Visible = false
 		actionButton.Text = actionText
+		padText = Loc.t("gamepad.hint.spectateIdle", { action = actionText })
+		refreshPadHint()
 		root.Visible = true
 		syncArrowLayer()
 	end

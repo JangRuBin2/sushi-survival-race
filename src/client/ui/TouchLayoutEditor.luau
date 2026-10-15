@@ -8,6 +8,7 @@
 -- 편집 중에는 진짜 버튼이 숨고 입력이 안 나가요 (TouchLayoutController.setEditing).
 -- 규칙(크기·금지 구역·겹침)은 Shared.TouchLayoutLogic. 끄는 동안은 잡은 버튼만 맞추고, 겹쳐도 밀어내지 않아요.
 -- 도구 칸은 UIScale 안 좌표, 버튼 높이는 실제 Config.Ui.MinTouchSize(44px) 이상 (TouchLayoutLogic.editorPanel).
+-- 게임패드 모드(m5-12)에서는 열리지 않아요 — 터치 전용 기능이라 숨김 (⚙도 숨고, 편집 중에 패드를 쓰면 SettingsButton이 취소해요).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +20,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 local TouchLayoutController = require(script.Parent.Parent.input.TouchLayoutController)
 
@@ -71,7 +73,12 @@ function TouchLayoutEditor.cancel()
 end
 
 function TouchLayoutEditor.open()
-	if session ~= nil or not UserInputService.TouchEnabled or TouchLayoutController.isLocked() then
+	if
+		session ~= nil
+		or not UserInputService.TouchEnabled
+		or TouchLayoutController.isLocked()
+		or GamepadNav.isGamepad()
+	then
 		return
 	end
 	local screen = TouchLayoutController.screen()

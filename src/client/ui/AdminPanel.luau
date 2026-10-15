@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local FxCatalog = require(ReplicatedStorage.Shared.FxCatalog)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
+local GamepadNav = require(script.Parent.GamepadNav)
 local Kit = require(script.Parent.RoomUiKit)
 
 local Color = Kit.Color
@@ -429,6 +430,22 @@ function AdminPanel.new(playerGui: Instance, actions: Actions, options: Options)
 	showPage(false)
 
 	local open = false
+
+	-- 게임패드 (m5-12): 첫 선택 = 미리보기 탭, LB/RB = 탭, B = 닫기 ("🛠" 버튼으로 돌아가요)
+	GamepadNav.anchor(openButton)
+	GamepadNav.window({
+		root = panel,
+		close = function()
+			open = false
+			panel.Visible = false
+		end,
+		first = function(): GuiObject?
+			return if commandPage.Visible then commandTab else previewTab
+		end,
+		tabs = function(dir: number)
+			showPage(dir > 0)
+		end,
+	})
 	local current: string? = nil
 	local busy = false
 

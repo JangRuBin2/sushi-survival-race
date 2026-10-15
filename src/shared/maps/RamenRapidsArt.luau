@@ -12,6 +12,7 @@
 -- 기준으로 1 cm ≈ 17.8 studs. 카운터 위 찻잔·양념통·교자 접시·옆 그릇도 같은 비율로 맞췄어요(그릇 20 cm, 찻잔 8 cm).
 
 local Layout = require(script.Parent.RamenRapidsLayout)
+local Logic = require(script.Parent.RamenRapidsLogic)
 local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapKitShapes = require(script.Parent.MapKitShapes)
 local MapLighting = require(script.Parent.MapLighting)
@@ -72,10 +73,14 @@ Art.LIGHTING = {
 -- m5-20 안개 패널 이름 상수
 Art.FOG_PANEL = "FogPanel"
 
--- 그릇: 코스 가운데(z -150)를 중심으로 하는 큰 원
+-- 그릇: 코스 가운데를 중심으로 하는 큰 원. m5-40: 코스가 300 → 446으로 길어져 그릇도 반지름 178 → 251로 키웠어요
+-- (출발·결승 끝에서 그릇 벽까지 28은 그대로). 그릇 스케일은 1 cm ≈ 17.8 studs 그대로 — 큰 라멘 그릇(지름 약 28 cm)이에요.
 Art.BOWL_CENTER_Z = (Layout.START.front + Layout.FINISH.back) / 2
-Art.BOWL_RADIUS = 178
-Art.BOWL_SEGMENTS = 40
+Art.BOWL_RADIUS = (Layout.START.front - Layout.FINISH.back) / 2 + 28
+Art.BOWL_SEGMENTS = 48
+-- m5-24 때의 그릇 반지름·중심. 그릇 가장자리에 붙은 소품(김 판·렌게)은 이 기준에서 바깥으로 옮겨요.
+local OLD_BOWL_RADIUS = 178
+local OLD_BOWL_CENTER_Z = -150
 Art.BOWL_RIM_Y = 16
 Art.BOWL_BOTTOM_Y = -80
 
@@ -217,7 +222,7 @@ local function bowl(list: { DecorSpec })
 		list,
 		MapKitShapes.ring(
 			"BowlFoot",
-			130,
+			Art.BOWL_RADIUS * 0.73,
 			8,
 			Art.BOWL_BOTTOM_Y - Art.COUNTER_TOP_Y - 1,
 			28,
@@ -408,9 +413,11 @@ local function addFogPanels(list: { DecorSpec })
 			transparency = 0.88,
 		})
 	end
-	panel(-130, centerZ, 2, 230)
-	panel(130, centerZ, 2, 230)
-	panel(0, centerZ - 140, 200, 2)
+	-- m5-40: 그릇이 커진 만큼 늘려요 (여전히 그릇 벽 안쪽)
+	local k = Art.BOWL_RADIUS / OLD_BOWL_RADIUS
+	panel(-130 * k, centerZ, 2, 230 * k)
+	panel(130 * k, centerZ, 2, 230 * k)
+	panel(0, centerZ - 140 * k, 200 * k, 2)
 end
 
 -- 그릇 위를 가로지르는 거대한 젓가락 한 쌍 (머리 위 20 이상)
@@ -613,6 +620,415 @@ local function narutoIsland(list: { DecorSpec })
 	})
 end
 
+-- ── m5-40 새 구간 장식 (F 젓가락 다리 · G 렌게 계단 · H 두 번째 급류) ──────────────────────
+-- 판정 파츠(뗏목·젓가락·받침·렌게 발판·급류 판)는 RamenRapids.luau에 있고, 장식은 그 윗면보다 아래나 코스 시야 상자 밖에만 둬요.
+local RENGE_STRIPE: RGB = PALETTE.PorcelainRim
+local function lengthSections(list: { DecorSpec })
+	local top = Layout.platformTop()
+	local surface = Layout.BROTH_Y
+	-- F 유부 뗏목: 부푼 가장자리 (판정 윗면보다 0.2 아래, 옆으로 0.8 더 넓게)
+	local raft = Layout.CHOP_RAFT
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"RaftPuff",
+			v(raft.width + 1.6, 2.4, raft.front - raft.back + 1.6),
+			MapKitLogic.shade({ r = 226, g = 176, b = 92 }, 0.82),
+			"Sand",
+			v(0, top - 1.4, (raft.front + raft.back) / 2),
+			{ radius = 0.9 }
+		)
+	)
+	-- 젓가락: 손잡이 쪽 짙은 나무 띠(윗면 아래 옆면) + 국물에 닿는 자리 물결 고리
+	for i, stick in Logic.chopsticks() do
+		local dx, dz = stick.x1 - stick.x0, stick.z1 - stick.z0
+		local length = math.sqrt(dx * dx + dz * dz)
+		local yaw = math.deg(math.atan2(-dx, -dz))
+		local ux, uz = dx / length, dz / length
+		for _, along in { 0.12, 0.2 } do
+			add(
+				list,
+				part(
+					"ChopstickBand",
+					"Block",
+					v(Layout.CHOPSTICK_WIDTH + 0.12, 0.5, 0.8),
+					PALETTE.WoodDark,
+					"Wood",
+					v(stick.x0 + ux * length * along, top - 0.9, stick.z0 + uz * length * along),
+					v(0, yaw, 0)
+				)
+			)
+		end
+		local mx, mz = stick.x0 + ux * length * 0.6, stick.z0 + uz * length * 0.6
+		addAll(
+			list,
+			MapKitShapes.ring(
+				"ChopstickRipple",
+				2.4 + (i % 2) * 0.6,
+				0.35,
+				0.12,
+				8,
+				MapKitLogic.shade(BROTH, 1.18),
+				"SmoothPlastic",
+				v(mx, surface + 0.12, mz)
+			)
+		)
+	end
+	-- 젓가락 받침: 물고기 모양 도자기 (양끝 꼬리·머리, 남색 띠, 국물 속 다리)
+	local rest = Layout.CHOP_REST
+	local restZ = (rest.front + rest.back) / 2
+	local restDepth = rest.front - rest.back
+	local half = rest.width / 2
+	add(
+		list,
+		part(
+			"RestBand",
+			"Block",
+			v(rest.width + 0.2, 0.6, restDepth + 0.2),
+			RENGE_STRIPE,
+			"SmoothPlastic",
+			v(0, top - 1.3, restZ)
+		)
+	)
+	add(
+		list,
+		part(
+			"RestTail",
+			"Wedge",
+			v(restDepth, 2, 3.4),
+			PALETTE.Porcelain,
+			"Marble",
+			v(half + 1.7, top - 1.4, restZ),
+			v(0, 90, 0)
+		)
+	)
+	add(
+		list,
+		part(
+			"RestTail",
+			"Wedge",
+			v(restDepth, 2, 3.4),
+			PALETTE.Porcelain,
+			"Marble",
+			v(half + 1.7, top - 3.4, restZ),
+			v(180, 90, 0)
+		)
+	)
+	add(list, {
+		name = "RestHead",
+		shape = "Ball",
+		size = v(5, 3.6, restDepth),
+		color = PALETTE.Porcelain,
+		material = "Marble",
+		offset = v(-half - 0.6, top - 2, restZ),
+	})
+	add(
+		list,
+		part("RestEye", "Ball", v(0.9, 0.9, 0.9), RENGE_STRIPE, "SmoothPlastic", v(-half - 2.2, top - 1.6, restZ - 1.4))
+	)
+	for _, x in { -4.5, 4.5 } do
+		add(
+			list,
+			part("RestFoot", "Block", v(3, 3, restDepth - 1.5), PALETTE.RiceShade, "Marble", v(x, top - 3.5, restZ))
+		)
+	end
+
+	-- G 렌게 계단: 숟가락 몸통(윗면 아래 둥근 그릇) + 남색 띠 + 바깥으로 뻗은 손잡이 + 국물에서 받친 면 더미
+	local noodle = MapKitLogic.shades(NOODLE)
+	for i, step in Layout.RENGE_STEPS do
+		local stepTop = Layout.rengeStepTop(i)
+		local depth = step.front - step.back
+		local z = (step.front + step.back) / 2
+		add(list, {
+			name = "RengeBowl",
+			shape = "Ball",
+			size = v(step.width + 1.6, 3, depth + 1.6),
+			color = PALETTE.Porcelain,
+			material = "Marble",
+			offset = v(step.x, stepTop - 1.7, z),
+			reflectance = 0.05,
+		})
+		add(
+			list,
+			part(
+				"RengeBand",
+				"Block",
+				v(step.width + 0.24, 0.5, depth + 0.24),
+				RENGE_STRIPE,
+				"SmoothPlastic",
+				v(step.x, stepTop - 1.35, z)
+			)
+		)
+		local side = if i % 2 == 1 then 1 else -1
+		local baseX = side * 8.4
+		local handleLength = 15
+		addAll(
+			list,
+			MapKitShapes.capsule(
+				"RengeHandle",
+				handleLength,
+				2.6,
+				PALETTE.Porcelain,
+				"Marble",
+				v(baseX + side * handleLength / 2, stepTop - 0.2, z),
+				v(0, 0, side * 14)
+			)
+		)
+		add(
+			list,
+			part(
+				"RengeHandleStripe",
+				"Block",
+				v(3, 2.8, 2.8),
+				RENGE_STRIPE,
+				"SmoothPlastic",
+				v(baseX + side * (handleLength - 2.5), stepTop + 2.6, z),
+				v(0, 0, side * 14)
+			)
+		)
+		-- 국물에서 올라온 면 더미가 숟가락을 받쳐요
+		local moundTop = stepTop - 3.2
+		local h = moundTop - (surface - 1)
+		add(
+			list,
+			upright(
+				"NoodleMound",
+				h,
+				step.width - 1,
+				if i % 2 == 0 then noodle.base else noodle.light,
+				"SmoothPlastic",
+				v(step.x, surface - 1 + h / 2, z)
+			)
+		)
+		add(
+			list,
+			part(
+				"NoodleMoundLoop",
+				"Cylinder",
+				v(step.width + 3, 1.2, 1.2),
+				noodle.dark,
+				"SmoothPlastic",
+				v(step.x, surface + h * 0.45, z + 1),
+				v(0, 20 + i * 35, 0)
+			)
+		)
+	end
+
+	-- H 두 번째 급류: 미끄럼틀 아래 도자기 홈통(판 바로 밑) + 남색 줄
+	local slope = Layout.RAPIDS_SLOPE_DEG
+	local r2 = Layout.RAPIDS2
+	local r2Depth = r2.front - r2.back
+	local r2Center = r2.front - r2Depth / 2
+	local r2Length = r2Depth / math.cos(math.rad(slope))
+	local ny, nz = math.cos(math.rad(slope)), -math.sin(math.rad(slope)) -- 판 윗면 법선 (로컬)
+	local function onSlide(z: number, depthBelow: number): Vec3
+		return v(0, Layout.rapids2HeightAt(z) - ny * depthBelow, z - nz * depthBelow)
+	end
+	-- 홈통은 코스 시야 상자(경사 5칸)와 같은 5토막으로 — 기운 판 하나의 경계 상자가 위 칸 시야를 덮지 않게
+	local pieces = 5
+	for k = 0, pieces - 1 do
+		local z = r2.front - (k + 0.5) * r2Depth / pieces
+		add(
+			list,
+			part(
+				"Rapids2Trough",
+				"Block",
+				v(Layout.RAPIDS2_WIDTH + 3, 2.4, r2Length / pieces - 0.05),
+				PALETTE.Porcelain,
+				"Marble",
+				onSlide(z, 3.2),
+				v(-slope, 0, 0)
+			)
+		)
+	end
+	for _, side in { -1, 1 } do
+		local c = onSlide(r2Center, 3.2)
+		add(
+			list,
+			part(
+				"Rapids2Stripe",
+				"Block",
+				v(0.3, 0.7, r2Length - 1),
+				RENGE_STRIPE,
+				"SmoothPlastic",
+				v(side * (Layout.RAPIDS2_WIDTH / 2 + 1.65), c.y, c.z),
+				v(-slope, 0, 0)
+			)
+		)
+	end
+
+	-- 히어로: 오른쪽 위에서 국물을 붓는 거대한 국자 (28도 기울어 왼쪽 입술로 국물 줄기 — 급류 벽 밖 국물로, 김)
+	local lx, lz = 30, -384
+	local cupY = top + 30
+	local tilt = math.rad(28)
+	local ux, uy = -math.sin(tilt), math.cos(tilt) -- 기운 국자의 위 방향
+	local px, py = math.cos(tilt), math.sin(tilt) -- 입술 평면에서 오른쪽(손잡이 쪽)
+	local cupRadius = 11.5
+	add(list, {
+		name = "LadleCup",
+		shape = "Cylinder",
+		size = v(7, cupRadius * 2, cupRadius * 2),
+		color = PALETTE.Steel,
+		material = "Metal",
+		offset = v(lx - ux * 3.5, cupY - uy * 3.5, lz),
+		rotation = v(0, 0, 90 + 28),
+		reflectance = 0.25,
+	})
+	add(list, {
+		name = "LadleCupBottom",
+		shape = "Ball",
+		size = v(cupRadius * 1.7, 9, cupRadius * 1.7),
+		color = MapKitLogic.shade(PALETTE.Steel, 0.9),
+		material = "Metal",
+		offset = v(lx - ux * 7, cupY - uy * 7, lz),
+		rotation = v(0, 0, 28),
+		reflectance = 0.25,
+	})
+	add(list, {
+		name = "LadleCupRim",
+		shape = "Cylinder",
+		size = v(1.2, cupRadius * 2 + 1.2, cupRadius * 2 + 1.2),
+		color = MapKitLogic.shade(PALETTE.Steel, 1.12),
+		material = "Metal",
+		offset = v(lx, cupY, lz),
+		rotation = v(0, 0, 90 + 28),
+		reflectance = 0.3,
+	})
+	add(list, {
+		name = "LadleBroth",
+		shape = "Cylinder",
+		size = v(0.6, cupRadius * 2 - 2, cupRadius * 2 - 2),
+		color = BROTH,
+		material = "Glass",
+		offset = v(lx + ux * 0.2, cupY + uy * 0.2 - 0.6, lz),
+		rotation = v(0, 0, 90 + 28),
+		transparency = 0.15,
+	})
+	-- 손잡이: 오른쪽 입술에서 바깥 위로 (그릇 테두리 너머)
+	local hx, hy = lx + px * cupRadius, cupY + py * cupRadius
+	local handleLength = 150
+	addAll(
+		list,
+		MapKitShapes.capsule(
+			"LadleHandle",
+			handleLength,
+			3.2,
+			PALETTE.Steel,
+			"Metal",
+			v(hx + math.cos(math.rad(30)) * handleLength / 2, hy + math.sin(math.rad(30)) * handleLength / 2, lz),
+			v(0, 0, 30)
+		)
+	)
+	-- 왼쪽 입술에서 떨어지는 국물 줄기
+	local sx, sy = lx - px * cupRadius, cupY - py * cupRadius
+	local streamTop, streamBottom = sy, surface
+	add(list, {
+		name = "LadleStream",
+		shape = "Cylinder",
+		size = v(streamTop - streamBottom, 3.2, 3.2),
+		color = MapKitLogic.shade(BROTH, 1.08),
+		material = "Glass",
+		offset = v(sx, (streamTop + streamBottom) / 2, lz),
+		rotation = v(0, 0, 90),
+		transparency = 0.2,
+		anim = { kind = "Pulse", period = 0.9, amount = 0.06 },
+	})
+	addAll(
+		list,
+		MapKitShapes.ring(
+			"LadleSplash",
+			4.5,
+			1,
+			0.8,
+			10,
+			MapKitLogic.shade(BROTH, 1.25),
+			"SmoothPlastic",
+			v(sx, surface + 0.3, lz)
+		)
+	)
+	add(list, {
+		name = "LadleSteam",
+		shape = "Block",
+		size = v(8, 0.4, 8),
+		color = BROTH,
+		material = "SmoothPlastic",
+		offset = v(sx, surface + 0.5, lz),
+		transparency = 1,
+		particle = "SteamThick",
+		particleRate = 3,
+	})
+
+	-- 렌게 계단 위 종이 등 (따뜻한 빛의 원인, 흔들려요)
+	local lanternX, lanternZ = 17, -350
+	add(list, upright("StairLanternCord", 70, 0.5, BEAM, "SmoothPlastic", v(lanternX, top + 62, lanternZ)))
+	add(list, {
+		name = "StairLantern",
+		shape = "Cylinder",
+		size = v(12, 10, 10),
+		color = { r = 255, g = 232, b = 196 },
+		material = "Neon",
+		offset = v(lanternX, top + 22, lanternZ),
+		rotation = v(0, 0, 90),
+		light = { kind = "Point", color = { r = 255, g = 196, b = 130 }, brightness = 1.6, range = 50 },
+		anim = { kind = "Sway", period = 5, amount = 2, axis = "X" },
+	})
+	add(list, upright("StairLanternCap", 1.6, 7, PALETTE.Nori, "SmoothPlastic", v(lanternX, top + 28.5, lanternZ)))
+	add(list, upright("StairLanternCap", 1.6, 7, PALETTE.Nori, "SmoothPlastic", v(lanternX, top + 15.5, lanternZ)))
+
+	-- 새 구간 양옆 고명 (|x| >= 30, 국물 위): 파·멘마·어묵 조각·김
+	local rng = MapKitShapes.rng(40)
+	for i = 1, 16 do
+		local sideX = if i % 2 == 0 then 1 else -1
+		local x = sideX * (32 + rng:range(0, 44))
+		local z = -300 - i * 8 + rng:range(-3, 3)
+		local kind = i % 4
+		if kind == 0 then
+			add(
+				list,
+				part(
+					"Menma",
+					"Block",
+					v(7, 1, 2.2),
+					{ r = 196, g = 150, b = 80 },
+					"Wood",
+					v(x, surface + 0.4, z),
+					v(0, i * 29, 0)
+				)
+			)
+		elseif kind == 1 then
+			add(
+				list,
+				part(
+					"Scallion",
+					"Cylinder",
+					v(0.6, 3.5, 3.5),
+					SCALLION,
+					"SmoothPlastic",
+					v(x, surface + 0.2, z),
+					v(0, i * 25, 90)
+				)
+			)
+		elseif kind == 2 then
+			add(list, upright("FishCake", 1, 6, PALETTE.Rice, "SmoothPlastic", v(x, surface + 0.4, z)))
+			add(list, upright("FishCakeSwirl", 1.1, 3, NARUTO_PINK, "SmoothPlastic", v(x, surface + 0.45, z)))
+		else
+			-- 차슈 조각 (지방 테 + 살코기)
+			add(list, upright("ChashuSlice", 1.2, 9, { r = 150, g = 82, b = 56 }, "Slate", v(x, surface + 0.3, z)))
+			add(
+				list,
+				upright(
+					"ChashuFat",
+					1.3,
+					5,
+					{ r = 236, g = 208, b = 176 },
+					"SmoothPlastic",
+					v(x + 1, surface + 0.35, z)
+				)
+			)
+		end
+	end
+end
+
 -- 결승 아래 숟가락 (렌게) 출구 느낌 + 출발 뒤 그릇 테두리 받침
 local function spoonExit(list: { DecorSpec })
 	local top = Layout.platformTop()
@@ -655,7 +1071,7 @@ local function spoonExit(list: { DecorSpec })
 end
 
 -- m5-24 ⑤ 그릇 가장자리에 세워 꽂은 큰 김 판 (왼쪽) + 테두리에 걸친 렌게 숟가락 (오른쪽)
-local function rimProps(list: { DecorSpec })
+local function rimPropsAt(list: { DecorSpec })
 	-- 김 판: 국물에서 테두리 위로, 바깥쪽으로 기울어요
 	add(list, part("RimNori", "Block", v(70, 150, 1.5), PALETTE.Nori, "Fabric", v(-158, 30, -96), v(0, 70, -14)))
 	add(
@@ -702,6 +1118,24 @@ local function rimProps(list: { DecorSpec })
 		list,
 		part("RimRengeStripe", "Block", v(16, 15, 15), PALETTE.Lacquer, "SmoothPlastic", v(232, 17, 13), v(0, -60, 22))
 	)
+end
+
+-- m5-40: 그릇이 커지고 중심이 옮겨져서, 가장자리 소품 무리를 각자 바깥 방향(옛 중심 기준)으로 반지름 차이만큼 통째로 옮겨요
+local function rimProps(list: { DecorSpec })
+	local raw: { DecorSpec } = {}
+	rimPropsAt(raw)
+	local grow = Art.BOWL_RADIUS - OLD_BOWL_RADIUS
+	local dropZ = Art.BOWL_CENTER_Z - OLD_BOWL_CENTER_Z
+	for _, spec in raw do
+		-- 김 판(왼쪽 무리)은 (-158, -96), 렌게(오른쪽 무리)는 (150, -40) 방향으로
+		local left = spec.offset.x < 0
+		local ax, az = if left then -158 else 150, if left then -96 else -40
+		local rx, rz = ax, az - OLD_BOWL_CENTER_Z
+		local len = math.sqrt(rx * rx + rz * rz)
+		local moved = table.clone(spec)
+		moved.offset = v(spec.offset.x + rx / len * grow, spec.offset.y, spec.offset.z + dropZ + rz / len * grow)
+		table.insert(list, moved)
+	end
 end
 
 -- m5-24 배경: 카운터 상판 (나무 판 여러 장, 결은 z 방향)
@@ -1084,7 +1518,7 @@ local function counterProps(list: { DecorSpec })
 		particleRate = 2,
 	})
 	-- 양념 쟁반 (왼쪽 앞): 간장병·고추기름 단지·후추통
-	local tray = v(370, 0, -190)
+	local tray = v(440, 0, -190) -- m5-40: 커진 그릇 밖으로 (옛 370)
 	addAll(
 		list,
 		MapKitShapes.bevelBox(
@@ -1299,13 +1733,14 @@ function Art.decor(): { DecorSpec }
 	shelfWall(list)
 	frontWall(list)
 	counterProps(list)
+	lengthSections(list) -- m5-40
 	return list
 end
 
 -- 김 3곳: 국물 수면 바로 위, 코스 옆
 function Art.steamPoints(): { Vec3 }
 	local y = Layout.BROTH_Y + 1
-	return { v(-34, y, -165), v(34, y, -230), v(-30, y, -280) }
+	return { v(-34, y, -165), v(34, y, -230), v(-32, y, -326) } -- m5-40: 셋째는 젓가락 다리 옆으로
 end
 
 export type IntroPoint = { pos: Vec3, lookAt: Vec3 }
@@ -1314,9 +1749,10 @@ export type IntroPoint = { pos: Vec3, lookAt: Vec3 }
 -- → ④ 출발선 뒤 높이 12 (m4-02 공통 규칙)
 function Art.introCamera(): { IntroPoint }
 	return {
-		{ pos = v(56, 50, 38), lookAt = v(0, -28, -190) },
+		{ pos = v(56, 50, 38), lookAt = v(0, -28, -250) },
 		{ pos = v(34, -8, -132), lookAt = v(0, -30, -172) },
-		{ pos = v(-40, -4, -300), lookAt = v(0, -20, -190) },
+		-- m5-40: 결승 너머에서 새 구간(두 번째 급류·렌게 계단·젓가락 다리 + 국자)을 거꾸로
+		{ pos = v(-30, 8, -452), lookAt = v(0, -26, -346) },
 		{ pos = v(0, 12, 14), lookAt = v(0, 4, -20) },
 	}
 end
@@ -1333,13 +1769,41 @@ function Art.courseVolumes(): { MapKitLogic.Bounds }
 	for _, chashu in Layout.CHASHUS do
 		reachX = math.max(reachX, math.abs(chashu.x) + Layout.CHASHU_DIAMETER / 2)
 	end
-	return {
+	local volumes = {
 		box(Layout.START_WIDTH / 2, 2, 12, Layout.START.front, Layout.START.back),
 		box(Layout.RAPIDS_WIDTH / 2, rapidsLow + 2, 12, Layout.RAPIDS.front, Layout.RAPIDS.back),
 		box(reachX, Layout.BROTH_Y + 2, chashuHigh + 12, Layout.TOPPINGS.front, Layout.TOPPINGS.back),
 		box(Layout.PLATFORM_DIAMETER / 2, top + 2, top + 12, Layout.SWEEPERS.front, Layout.SWEEPERS.back),
 		box(Layout.FINISH_WIDTH / 2, top + 2, top + 12, Layout.FINISH.front, Layout.FINISH.back),
 	}
+	-- m5-40 새 구간: 뗏목 · 젓가락 다리 · 렌게 발판 4개(발판마다) · 두 번째 급류(경사를 따라 5칸)
+	local raft = Layout.CHOP_RAFT
+	table.insert(volumes, box(raft.width / 2, top + 2, top + 12, Layout.CHOPSTICKS.front, raft.back))
+	table.insert(volumes, box(Layout.CHOP_REST.width / 2, top + 2, top + 12, raft.back, Layout.CHOPSTICKS.back))
+	for i, step in Layout.RENGE_STEPS do
+		local stepTop = Layout.rengeStepTop(i)
+		table.insert(volumes, {
+			min = v(step.x - step.width / 2 - 1, stepTop + 2, step.back - 1),
+			max = v(step.x + step.width / 2 + 1, stepTop + 12, step.front + 1),
+		})
+	end
+	local r2 = Layout.RAPIDS2
+	local pieces = 5
+	local len = (r2.front - r2.back) / pieces
+	for k = 0, pieces - 1 do
+		local front, back = r2.front - k * len, r2.front - (k + 1) * len
+		table.insert(
+			volumes,
+			box(
+				Layout.RAPIDS2_WIDTH / 2,
+				Layout.rapids2HeightAt(back) + 2,
+				Layout.rapids2HeightAt(front) + 12,
+				front,
+				back
+			)
+		)
+	end
+	return volumes
 end
 
 return Art

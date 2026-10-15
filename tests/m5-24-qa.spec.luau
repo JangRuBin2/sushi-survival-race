@@ -49,7 +49,9 @@ local MAIN_FINGERPRINT: { [string]: Fingerprint } = {
 	["soy-swamp"] = { n = 69, size = 3234.56, x = 268.80, y = 739.30, z = -9538.09, collide = 39, tags = 9 },
 	["chef-board"] = { n = 85, size = 1259.80, x = 1136.00, y = -89.10, z = 0.00, collide = 61, tags = 61 },
 	["tug-of-war-platform"] = { n = 25, size = 194.80, x = 420.00, y = 1.40, z = -1000.00, collide = 1, tags = 1 },
-	["ramen-rapids"] = { n = 57, size = 1353.67, x = 272.10, y = -721.56, z = -5197.64, collide = 33, tags = 10 },
+	-- m5-40 L2: 젓가락 다리·렌게 계단·두 번째 급류를 끼우고 결승을 -446으로 옮긴 뒤 다시 잰 값 (옛 값 n 57, size 1353.67,
+	-- x 272.10, y -721.56, z -5197.64, collide 33, tags 10)
+	["ramen-rapids"] = { n = 72, size = 1826.36, x = 304.60, y = -1124.20, z = -11017.37, collide = 48, tags = 11 },
 	["giant-jenga"] = { n = 49, size = 610.80, x = 600.00, y = -2.60, z = 0.00, collide = 25, tags = 25 },
 	["claw-machine-prize"] = { n = 88, size = 996.80, x = 912.00, y = -53.98, z = -3520.00, collide = 64, tags = 64 },
 	-- m5-40 L3 길이 늘리기로 판정 지오메트리가 의도해서 바뀐 두 맵 (전: bouncy n 37·size 1205.80·x 286.50·y 61.40·

@@ -6,8 +6,9 @@
 --   Art.courseVolume() -> { Bounds }      장식이 들어가면 안 되는 코스 시야 상자 (각 바닥 위 2~12)
 --   Art.introCamera() -> { IntroPoint }   라운드 소개 경유점 4개
 -- 아트 디렉션(스펙 "### 아트", docs/REFERENCE-map-art-direction.md): "차가운 업소용 냉장고 속 디저트 칸, 끝에 따뜻한 주방".
---   세계: 코스(로컬 z 0 → -260)가 거대한 냉장고(안쪽 폭 124·높이 122·깊이 308) 한가운데 선반 높이에 떠 있고,
---         끝(z -264)은 활짝 열린 양문 너머 따뜻한 주방이에요. 1 stud ≈ 1 cm.
+--   세계: 코스(로컬 z 0 → -432)가 거대한 업소용 냉장고(안쪽 폭 124·높이 122·깊이 480) 한가운데 선반 높이에 떠 있고,
+--         끝(z -436)은 활짝 열린 양문 너머 따뜻한 주방이에요. 1 stud ≈ 1 cm.
+--   m5-40: D와 결승 사이에 F 냉동실 칸(서리 문틀·고드름·냉동 송풍구)과 G 스쿱 계단(아이스크림 통·케이크 단)을 더했어요.
 --   층: FG = 얼음 쟁반 림·구멍 안쪽(남색 + 흰 림)·코스 받침 기둥·케이크 단 옆면 / MG = 양옆 유리 선반 위 디저트
 --       (푸딩·딸기 쇼트케이크·우유팩 + 계란판·마카롱 탑·젤리) / BG = 냉장고 벽·천장 LED·뒷벽 LED 패널과 송풍구,
 --       아래 칸 채소 서랍(낙하 탈락선보다 10 이상 아래), 열린 문의 문 선반(병·아이스크림 콘 탑), 문 너머 주방.
@@ -39,7 +40,7 @@ Art.WALL = 4
 Art.FLOOR_Y = -48
 Art.CEIL_Y = 74
 Art.BACK_Z = 44
-Art.FRONT_Z = -264
+Art.FRONT_Z = Layout.FINISH.back - 4 -- m5-40: 코스가 -260 → -432로 길어져 냉장고도 앞으로 늘렸어요 (옛 -264)
 Art.KITCHEN_FLOOR_Y = -62
 Art.LOW_SHELF_Y = -10 -- 양옆 아래 유리 선반 윗면
 Art.HIGH_SHELF_Y = 44 -- 양옆 위 유리 선반 윗면
@@ -163,9 +164,18 @@ local function addShell(list: { DecorSpec })
 		)
 	)
 	-- 옆벽: 5칸으로 나눠 칸마다 shade를 조금씩 (큰 면을 한 색으로 칠하지 않게) + 칸 사이 둥근 이음매
-	local segments = 5
+	local segments = 8 -- m5-40: 깊이 308 → 480이라 칸을 늘렸어요 (칸 길이 약 60 그대로)
 	local segLen = depth / segments
-	local tones = { LINER, LINER_SHADE, LINER, shade(LINER, 0.96), LINER_SHADE }
+	local tones = {
+		LINER,
+		LINER_SHADE,
+		LINER,
+		shade(LINER, 0.96),
+		LINER_SHADE,
+		LINER,
+		shade(LINER, 0.97),
+		LINER_SHADE,
+	}
 	for _, side in { -1, 1 } do
 		for i = 1, segments do
 			local z = back - (i - 0.5) * segLen
@@ -290,10 +300,14 @@ end
 local function addLights(list: { DecorSpec })
 	local ceil = Art.CEIL_Y
 	-- LED 띠: 천장 양쪽 두 줄, 각 3칸 (칸마다 SurfaceLight 하나)
-	local zs = { -10, -100, -190 }
+	local zs = { -10, -100, -190, -280, -370 } -- m5-40: 냉장고가 길어져 두 칸 더
+	local housingLength = Art.BACK_Z - Art.FRONT_Z - 40
+	local housingMid = (Art.BACK_Z + Art.FRONT_Z) / 2
 	for _, side in { -1, 1 } do
-		add(list, rodZ("LedHousing", 4, 280, LINER_DARK, "SmoothPlastic", v(side * 36, ceil - 1, -86)))
-		for _, z in zs do
+		add(list, rodZ("LedHousing", 4, housingLength, LINER_DARK, "SmoothPlastic", v(side * 36, ceil - 1, housingMid)))
+		for i, z in zs do
+			-- m5-40: 띠가 5칸이 되어 빛은 양쪽 엇갈려 5개만 (옛 6개, 휴대폰 점광 비용)
+			local lit = (i + (if side > 0 then 1 else 0)) % 2 == 1
 			add(list, {
 				name = "LedStrip",
 				shape = "Block",
@@ -303,7 +317,7 @@ local function addLights(list: { DecorSpec })
 				offset = v(side * 36, ceil - 2.8, z),
 				castShadow = false,
 				-- 띠 전체가 빛의 원인. SurfaceLight는 Range 16이 한계라 아래 코스까지 닿는 PointLight로
-				light = { kind = "Point", color = LED_COLD, brightness = 1.1, range = 60 },
+				light = if lit then { kind = "Point", color = LED_COLD, brightness = 1.25, range = 60 } else nil,
 			})
 		end
 	end
@@ -393,7 +407,7 @@ end
 local function addShelves(list: { DecorSpec })
 	local back, front = Art.BACK_Z - 4, Art.FRONT_Z + 2
 	local length = back - front
-	local segs = 3
+	local segs = 5 -- m5-40: 선반이 길어져 칸을 늘렸어요
 	local segLen = length / segs
 	for _, side in { -1, 1 } do
 		for _, shelf in { { y = Art.LOW_SHELF_Y, inner = Art.SHELF_INNER_X }, { y = Art.HIGH_SHELF_Y, inner = 34 } } do
@@ -433,7 +447,7 @@ end
 local function addCrisper(list: { DecorSpec })
 	local top, bottom = Art.DRAWER_TOP_Y, Art.FLOOR_Y
 	local h = top - bottom
-	local back, front = Art.BACK_Z - 6, -226
+	local back, front = Art.BACK_Z - 6, Art.FRONT_Z + 38 -- m5-40: 문 앞까지 (옛 -226)
 	local length = back - front
 	local midZ = (back + front) / 2
 	for _, side in { -1, 1 } do
@@ -822,6 +836,7 @@ local function addCourse(list: { DecorSpec })
 	local eh = Layout.FINISH_WIDTH / 2
 	local eLen = Layout.FINISH.front - Layout.FINISH.back
 	local eMid = (Layout.FINISH.front + Layout.FINISH.back) / 2
+	local finishY = Layout.TOP_Y -- m5-40: 결승은 스쿱 계단 위 칸(y 24)
 	for _, side in { -1, 1 } do
 		lip(
 			list,
@@ -829,7 +844,7 @@ local function addCourse(list: { DecorSpec })
 			side * (eh + 0.3),
 			Layout.FINISH.front,
 			Layout.FINISH.back,
-			high,
+			finishY,
 			P.Cream,
 			"SmoothPlastic"
 		)
@@ -841,12 +856,12 @@ local function addCourse(list: { DecorSpec })
 			v(Layout.FINISH_WIDTH + 1.6, 3, eLen + 1),
 			P.Porcelain,
 			"SmoothPlastic",
-			v(0, high - t - 1.4, eMid),
+			v(0, finishY - t - 1.4, eMid),
 			{ radius = 1.2 }
 		)
 	)
-	supportPost(list, -8, -240, high - t - 2.9)
-	supportPost(list, 8, -240, high - t - 2.9)
+	supportPost(list, -8, eMid, finishY - t - 2.9)
+	supportPost(list, 8, eMid, finishY - t - 2.9)
 end
 
 -- 마카롱 하나 (껍질 2 + 크림)
@@ -1273,7 +1288,7 @@ local function addDesserts(list: { DecorSpec })
 			P.PastelPink,
 			"Cardboard",
 			v(48, high + 7, -60),
-			{ radius = 0.6 }
+			{ radius = 0.6, style = "vertical" }
 		)
 	)
 	add(list, block("CakeBoxRibbon", v(22.3, 14.3, 2), P.Strawberry, "Fabric", v(48, high + 7, -60)))
@@ -1285,7 +1300,7 @@ local function addDesserts(list: { DecorSpec })
 			P.PastelYellow,
 			"SmoothPlastic",
 			v(-46, high + 5, -110),
-			{ radius = 1 }
+			{ radius = 1, style = "vertical" }
 		)
 	)
 end
@@ -1507,32 +1522,104 @@ local function addKitchen(list: { DecorSpec })
 	local front = Art.FRONT_Z
 	-- 마루 바닥 (냉장고 밑까지 넓게) — 줄마다 shade
 	local planks = { P.WoodLight, P.Wood, shade(P.Wood, 0.9), P.WoodLight, shade(P.Wood, 0.95) }
+	-- m5-40: 냉장고 뒤 250부터 주방 뒷벽(문 앞 300)까지
+	local floorFront, floorBack = Art.BACK_Z + 206, front - 304
+	local floorLength = floorFront - floorBack
+	local floorMid = (floorFront + floorBack) / 2
+	-- m5-40: 바닥·뒷벽을 왼쪽(-700)·오른쪽 벽(+460)까지 넓혀 전체 뷰에 빈 하늘이 안 보이게
+	local roomMinX, roomMaxX = -700, 460
+	local roomWidth = roomMaxX - roomMinX
+	local roomMidX = (roomMinX + roomMaxX) / 2
 	for i = 1, 5 do
-		local w = 160
+		local w = roomWidth / 5
 		add(
 			list,
 			block(
 				"KitchenFloor",
-				v(w, 4, 900),
+				v(w, 4, floorLength),
 				shade(planks[i], 0.9),
 				"WoodPlanks",
-				v(-400 + (i - 0.5) * w, floorY - 2, -200)
+				v(roomMinX + (i - 0.5) * w, floorY - 2, floorMid)
 			)
 		)
 	end
 	-- 뒷벽 (냉장고 앞 300)
 	local wallZ = front - 300
-	add(list, block("KitchenWall", v(800, 380, 6), KITCHEN_WALL, "Plaster", v(0, floorY + 190, wallZ)))
+	add(list, block("KitchenWall", v(roomWidth, 420, 6), KITCHEN_WALL, "Plaster", v(roomMidX, floorY + 210, wallZ)))
 	add(
 		list,
 		block(
 			"KitchenWallTile",
-			v(800, 50, 1),
+			v(roomWidth, 50, 1),
 			shade(KITCHEN_WALL, 1.12),
 			"CeramicTiles",
-			v(0, floorY + 118, wallZ + 3.5)
+			v(roomMidX, floorY + 118, wallZ + 3.5)
 		)
 	)
+	-- 오른쪽 벽 (m5-40): 흙벽 + 나무 허리판 + 타일 띠 + 따뜻한 창 하나 + 위 선반 (멀리 보이는 배경)
+	local sideX = roomMaxX
+	local sideMidZ = (floorFront + wallZ) / 2
+	local sideLength = floorFront - wallZ
+	add(
+		list,
+		block(
+			"KitchenSideWall",
+			v(6, 420, sideLength),
+			shade(KITCHEN_WALL, 0.95),
+			"Plaster",
+			v(sideX, floorY + 210, sideMidZ)
+		)
+	)
+	add(
+		list,
+		block("KitchenWainscot", v(2, 90, sideLength), P.WoodDark, "WoodPlanks", v(sideX - 4, floorY + 45, sideMidZ))
+	)
+	add(
+		list,
+		block(
+			"KitchenSideTile",
+			v(1, 40, sideLength),
+			shade(KITCHEN_WALL, 1.12),
+			"CeramicTiles",
+			v(sideX - 3.5, floorY + 112, sideMidZ)
+		)
+	)
+	add(list, {
+		name = "KitchenSideWindow",
+		shape = "Block",
+		size = v(1, 110, 200),
+		color = WARM_DEEP,
+		material = "Neon",
+		offset = v(sideX - 3.6, floorY + 200, sideMidZ + 120),
+		castShadow = false,
+	})
+	addAll(
+		list,
+		MapKitShapes.lipTrim(
+			"SideWindowFrame",
+			v(200, 0, 110),
+			6,
+			4,
+			P.Wood,
+			"Wood",
+			v(sideX - 6, floorY + 200, sideMidZ + 120),
+			v(90, 90, 0)
+		)
+	)
+	add(list, block("KitchenSideShelf", v(30, 4, 320), P.Wood, "Wood", v(sideX - 18, floorY + 250, sideMidZ - 220)))
+	for k = 0, 4 do
+		add(
+			list,
+			post(
+				"ShelfJar",
+				20,
+				30 + (k % 2) * 10,
+				if k % 2 == 0 then P.PastelYellow else P.Caramel,
+				"Glass",
+				v(sideX - 18, floorY + 252 + 15 + (k % 2) * 5, sideMidZ - 340 + k * 60)
+			)
+		)
+	end
 	-- 아래장 + 상판 + 위장
 	local counterTop = floorY + 90
 	for k = -3, 3 do
@@ -1621,7 +1708,7 @@ local function addKitchen(list: { DecorSpec })
 			P.Lacquer,
 			"SmoothPlastic",
 			v(-170, counterTop + 18, wallZ + 34),
-			{ radius = 6 }
+			{ radius = 6, style = "vertical" }
 		)
 	)
 	addAll(
@@ -1697,6 +1784,397 @@ local function addKitchen(list: { DecorSpec })
 	end
 end
 
+-- ── 9. m5-40 새 구간: F 냉동실 칸 · G 스쿱 계단 (판정 바닥은 그대로, 바깥·아래에만) ─────────────
+local FREEZER_BODY = shade(P.IceBlue, 0.72)
+local function addLengthSections(list: { DecorSpec })
+	local high, top = Layout.HIGH_Y, Layout.TOP_Y
+	local t = Layout.FLOOR_THICKNESS
+	-- F 냉동실: 얼음 바닥 아래 두꺼운 서리 쟁반 몸통 + 구멍 우물(남색)·흰 림 (B와 같은 읽기)
+	local fh = Layout.FREEZER_WIDTH / 2
+	local fMid = (Layout.FREEZER.front + Layout.FREEZER.back) / 2
+	local fLen = Layout.FREEZER.front - Layout.FREEZER.back
+	for _, rect in Layout.freezerRects() do
+		add(
+			list,
+			block(
+				"FreezerTrayBody",
+				v(rect.maxX - rect.minX, 3, rect.maxZ - rect.minZ),
+				FREEZER_BODY,
+				"SmoothPlastic",
+				v((rect.minX + rect.maxX) / 2, high - t - 1.5, (rect.minZ + rect.maxZ) / 2)
+			)
+		)
+	end
+	for _, hole in Layout.freezerHoleRects() do
+		local cx, cz = (hole.minX + hole.maxX) / 2, (hole.minZ + hole.maxZ) / 2
+		local sx, sz = hole.maxX - hole.minX, hole.maxZ - hole.minZ
+		local wellTop, wellBottom = high - 1.0, high - t - 4
+		local wh = wellTop - wellBottom
+		add(list, block("HoleWell", v(sx, wh, 0.4), NAVY, "SmoothPlastic", v(cx, wellBottom + wh / 2, hole.maxZ - 0.2)))
+		add(list, block("HoleWell", v(sx, wh, 0.4), NAVY, "SmoothPlastic", v(cx, wellBottom + wh / 2, hole.minZ + 0.2)))
+		-- 안쪽 세로 벽 하나 (가장자리 쪽은 열려 있어요 — 홈)
+		local innerX = if cx < 0 then hole.maxX - 0.2 else hole.minX + 0.2
+		add(list, block("HoleWell", v(0.4, wh, sz - 0.8), NAVY, "SmoothPlastic", v(innerX, wellBottom + wh / 2, cz)))
+		local rimH, rimY = 0.9, high - 0.08 - 0.45
+		add(list, block("HoleRim", v(sx, rimH, 0.5), P.Rice, "SmoothPlastic", v(cx, rimY, hole.maxZ - 0.25)))
+		add(list, block("HoleRim", v(sx, rimH, 0.5), P.Rice, "SmoothPlastic", v(cx, rimY, hole.minZ + 0.25)))
+		local rimX = if cx < 0 then hole.maxX - 0.25 else hole.minX + 0.25
+		add(list, block("HoleRim", v(0.5, rimH, sz - 1), P.Rice, "SmoothPlastic", v(rimX, rimY, cz)))
+	end
+	-- 쟁반 아래 고드름 (양옆 가장자리 밑, 바닥보다 낮게)
+	for i = 0, 9 do
+		local side = if i % 2 == 0 then -1 else 1
+		local z = Layout.FREEZER.front - 8 - i * 11.5
+		local len = 3 + (i % 3) * 1.4
+		add(list, {
+			name = "Icicle",
+			shape = "Wedge",
+			size = v(1, len, 1.4),
+			color = P.Frost,
+			material = "Ice",
+			offset = v(side * (fh - 0.8), high - t - 3 - len / 2, z),
+			rotation = v(180, 0, 0),
+			transparency = 0.2,
+		})
+	end
+	for _, z in { -246, -306 } do
+		supportPost(list, -5, z, high - t - 3)
+		supportPost(list, 5, z, high - t - 3)
+	end
+	-- 냉동실 문틀 (앞·뒤): 양옆 기둥(코스에서 6 떨어져) + 위 보(코스 시야 상자 위) + 눈꽃 표지 + 냉기
+	for gate, z in { Layout.FREEZER.front - 1, Layout.FREEZER.back + 2 } do
+		for _, side in { -1, 1 } do
+			local x = side * (fh + 6)
+			local postBottom, postTop = Art.DRAWER_TOP_Y + 1, 31
+			add(
+				list,
+				post(
+					"FreezerGatePost",
+					2.6,
+					postTop - postBottom,
+					TRIM,
+					"SmoothPlastic",
+					v(x, (postTop + postBottom) / 2, z)
+				)
+			)
+			add(list, post("FreezerGateCap", 3.4, 1, TRIM_DARK, "SmoothPlastic", v(x, postTop + 0.5, z)))
+		end
+		addAll(list, MapKitShapes.capsule("FreezerGateBeam", 2 * (fh + 7.6), 3, LINER, "SmoothPlastic", v(0, 29.5, z)))
+		-- 눈꽃 표지 (남색 판 + 흰 막대 세 개)
+		local faceZ = if gate == 1 then z + 0.3 else z - 0.3 -- 다가오는 쪽 면
+		add(list, block("FreezerSign", v(9, 5.4, 0.4), NAVY, "SmoothPlastic", v(0, 26.9, z)))
+		for k = 0, 2 do
+			add(list, {
+				name = "FreezerSnowflake",
+				shape = "Block",
+				size = v(4.4, 0.6, 0.3),
+				color = LED,
+				material = "Neon",
+				offset = v(0, 26.9, faceZ),
+				rotation = v(0, 0, k * 60),
+				castShadow = false,
+			})
+		end
+		add(list, {
+			name = "FreezerGateMist",
+			shape = "Block",
+			size = v(2 * fh, 0.4, 1),
+			color = STEEL_DARK,
+			material = "Metal",
+			offset = v(0, 28, z),
+			particle = "ColdMist",
+			particleRate = 3,
+			transparency = 1,
+		})
+	end
+	-- 냉동 송풍구 하우징 (D와 같은 민트 테·파란 LED·냉기)
+	for _, fan in Layout.FREEZER_FANS do
+		local x = -fan.dirX
+		local z = (fan.front + fan.back) / 2
+		local len = fan.front - fan.back
+		addAll(
+			list,
+			MapKitShapes.roundedBox(
+				"FanHousing",
+				v(4, 10, len + 4),
+				TRIM,
+				"SmoothPlastic",
+				v(x * (fh + 3.2), high + 3.6, z),
+				{ radius = 1, style = "vertical" }
+			)
+		)
+		add(
+			list,
+			block("FanFrameTop", v(1, 0.8, len + 1), TRIM_DARK, "SmoothPlastic", v(x * (fh + 1.2), high + 6.4, z))
+		)
+		add(list, {
+			name = "FanLed",
+			shape = "Ball",
+			size = v(1.2, 1.2, 1.2),
+			color = LED_COLD,
+			material = "Neon",
+			offset = v(x * (fh + 3.2), high + 9.2, z),
+			light = { kind = "Point", color = LED_COLD, brightness = 1.5, range = 14 },
+		})
+	end
+	-- 냉동실 바닥 아래 서리 판 (아래에서 볼 때 냉동실 칸이 한 덩어리로 읽히게)
+	add(list, {
+		name = "FreezerUnderGlass",
+		shape = "Block",
+		size = v(2 * fh + 1.6, 0.8, fLen),
+		color = GLASS,
+		material = "Glass",
+		offset = v(0, high - t - 3.4, fMid),
+		transparency = 0.3,
+		castShadow = false,
+	})
+
+	-- G 스쿱 계단: 아이스크림 통 몸통 + 립 + 착지대(아이스크림 케이크) 옆면 층 + 크림 + 웨하스
+	local gh = Layout.SCOOP_ZONE_WIDTH / 2
+	local gFloorLen = Layout.SCOOP_ZONE.front - Layout.SCOOP_LANDING.front
+	local gFloorMid = (Layout.SCOOP_ZONE.front + Layout.SCOOP_LANDING.front) / 2
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"ScoopTub",
+			v(2 * gh + 1.6, 6, gFloorLen + 1.2),
+			P.PastelSky,
+			"SmoothPlastic",
+			v(0, high - t - 3, gFloorMid),
+			{ radius = 1.2, style = "vertical" }
+		)
+	)
+	add(
+		list,
+		block(
+			"ScoopTubLabel",
+			v(2 * gh + 1.8, 2, gFloorLen - 6),
+			P.Rice,
+			"SmoothPlastic",
+			v(0, high - t - 3, gFloorMid)
+		)
+	)
+	for _, side in { -1, 1 } do
+		lip(
+			list,
+			"ScoopLip",
+			side * (gh + 0.3),
+			Layout.SCOOP_ZONE.front,
+			Layout.SCOOP_LANDING.front,
+			high,
+			TRIM,
+			"SmoothPlastic"
+		)
+		local lz = (Layout.SCOOP_LANDING.front + Layout.SCOOP_LANDING.back) / 2
+		local ll = Layout.SCOOP_LANDING.front - Layout.SCOOP_LANDING.back
+		local layers = {
+			{ y0 = high - t, y1 = high + 2.5, c = P.Chocolate },
+			{ y0 = high + 2.5, y1 = high + 6.5, c = P.PastelPink },
+			{ y0 = high + 6.5, y1 = high + 7.6, c = P.Strawberry },
+			{ y0 = high + 7.6, y1 = high + 10.6, c = P.Cream },
+			{ y0 = high + 10.6, y1 = top - 0.1, c = P.Mint },
+		}
+		for _, layer in layers do
+			add(
+				list,
+				block(
+					"IceCakeLayer",
+					v(0.4, layer.y1 - layer.y0, ll),
+					layer.c,
+					"SmoothPlastic",
+					v(side * (gh + 0.2), (layer.y0 + layer.y1) / 2, lz)
+				)
+			)
+		end
+		for k = 0, 3 do
+			add(
+				list,
+				ball(
+					"CreamDollop",
+					2.2,
+					P.Cream,
+					"SmoothPlastic",
+					v(side * (gh + 0.9), top - 1.2, Layout.SCOOP_LANDING.front - 1.5 - k * 3)
+				)
+			)
+		end
+		-- 웨하스 두 장 (착지대 뒤 모서리 바깥, 결승 쪽 표지)
+		add(
+			list,
+			block(
+				"Wafer",
+				v(1.2, 16, 5),
+				P.Caramel,
+				"Pebble",
+				v(side * (gh + 2.6), top + 6, Layout.SCOOP_LANDING.back + 3),
+				v(0, 0, side * -8)
+			)
+		)
+		add(
+			list,
+			block(
+				"WaferCream",
+				v(1.3, 0.8, 5.1),
+				P.Cream,
+				"SmoothPlastic",
+				v(side * (gh + 2.6), top + 6, Layout.SCOOP_LANDING.back + 3),
+				v(0, 0, side * -8)
+			)
+		)
+	end
+	supportPost(list, -8, gFloorMid, high - t - 6)
+	supportPost(list, 8, gFloorMid, high - t - 6)
+	-- G 위 매달린 LED 램프 (그림자 없는 점광 — 스쿱과 착지대를 밝게)
+	local lampZ = -358
+	add(list, post("LampRod", 0.8, Art.CEIL_Y - 58, STEEL, "Metal", v(0, (Art.CEIL_Y + 58) / 2, lampZ)))
+	add(list, post("LampShade", 10, 3, LINER, "SmoothPlastic", v(0, 57.5, lampZ)))
+	add(list, {
+		name = "LampBulb",
+		shape = "Cylinder",
+		size = v(0.6, 8, 8),
+		color = LED,
+		material = "Neon",
+		offset = v(0, 55.8, lampZ),
+		rotation = v(0, 0, 90),
+		castShadow = false,
+		light = { kind = "Point", color = LED, brightness = 1.6, range = 50 },
+	})
+
+	-- 선반 위 냉동 식품 (F·G 양옆, 무리 지어)
+	local shelf = Art.LOW_SHELF_Y
+	-- 오른쪽: 아이스캔디 진열 (막대 + 파스텔 몸통 + 한 입 베어 문 자리)
+	local pops = { P.PastelPink, P.Mint, P.PastelYellow, P.PastelLavender, P.Strawberry }
+	for i, c in pops do
+		local x, z = 38 + (i % 2) * 6, -236 - i * 6
+		addAll(
+			list,
+			MapKitShapes.roundedBox(
+				"Popsicle",
+				v(5, 12, 2.4),
+				c,
+				"SmoothPlastic",
+				v(x, shelf + 10, z),
+				{ radius = 1, style = "vertical", rotation = v(0, 70, (i % 3 - 1) * 6) }
+			)
+		)
+		add(list, block("PopsicleStick", v(1.2, 6, 0.5), P.WoodLight, "Wood", v(x, shelf + 3, z), v(0, 70, 0)))
+	end
+	-- 왼쪽: 냉동 참치 블록 (초밥 세계 오마주 — 붉은 살 + 흰 지방 줄 + 서리 덮개)
+	local tx, tz = -44, -276
+	addAll(
+		list,
+		MapKitShapes.bevelBox("FrozenTuna", v(18, 10, 26), P.TunaDark, "SmoothPlastic", v(tx, shelf + 5, tz), 1.2)
+	)
+	for k = 0, 2 do
+		add(
+			list,
+			block(
+				"TunaFat",
+				v(18.2, 0.8, 1.2),
+				P.Cream,
+				"SmoothPlastic",
+				v(tx, shelf + 4 + k * 2.2, tz - 6 + k * 6),
+				v(0, 20, 0)
+			)
+		)
+	end
+	add(list, {
+		name = "TunaFrost",
+		shape = "Block",
+		size = v(18.6, 10.6, 26.6),
+		color = P.Frost,
+		material = "Ice",
+		offset = v(tx, shelf + 5, tz),
+		transparency = 0.55,
+		castShadow = false,
+	})
+	-- 오른쪽: 얼음 틀 (칸마다 얼음 조각)
+	local ix, iz = 42, -320
+	addAll(
+		list,
+		MapKitShapes.bevelBox(
+			"IceCubeTray",
+			v(12, 2.4, 28),
+			shade(P.IceBlue, 0.9),
+			"SmoothPlastic",
+			v(ix, shelf + 1.2, iz),
+			0.6
+		)
+	)
+	for row = 0, 5 do
+		for col = 0, 1 do
+			add(list, {
+				name = "TrayCube",
+				shape = "Block",
+				size = v(4.4, 3, 3.6),
+				color = P.Frost,
+				material = "Ice",
+				offset = v(ix - 2.6 + col * 5.2, shelf + 3, iz - 11 + row * 4.4),
+				transparency = 0.2,
+			})
+		end
+	end
+	-- 왼쪽: 아이스크림 통 탑 + 스쿱 (G 옆)
+	for k, c in { P.PastelSky, P.PastelPink, P.Mint } do
+		addAll(
+			list,
+			MapKitShapes.roundedBox(
+				"IceCreamCarton",
+				v(16, 9, 16),
+				c,
+				"SmoothPlastic",
+				v(-44, shelf + 4.5 + (k - 1) * 9.2, -352),
+				{ radius = 1, style = "vertical" }
+			)
+		)
+	end
+	add(list, ball("CartonScoop", 8, P.Cream, "SmoothPlastic", v(-44, shelf + 30, -352)))
+	add(list, ball("CartonScoop", 6.4, P.Chocolate, "SmoothPlastic", v(-41, shelf + 34, -350)))
+	addAll(list, MapKitShapes.capsule("Spoon", 16, 1.6, STEEL, "Metal", v(-38, shelf + 31, -354), v(0, 20, 30)))
+	-- 오른쪽 스쿱 계단 옆: 콘 받침대 (콘 3개 + 스쿱)
+	for k = 0, 2 do
+		local x, z = 42 + (k % 2) * 6, -350 - k * 8
+		for s = 0, 3 do
+			add(
+				list,
+				post(
+					"StandCone",
+					5.6 - s * 1.2,
+					3,
+					if s % 2 == 0 then P.Caramel else shade(P.Caramel, 0.85),
+					"Pebble",
+					v(x, shelf + 2 + (3 - s) * 3, z)
+				)
+			)
+		end
+		add(list, ball("StandScoop", 7, pops[1 + k], "SmoothPlastic", v(x, shelf + 15, z)))
+	end
+	-- 위 선반: 냉동 새우 상자·완두콩 봉지 (BG, 적게)
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"FrozenEbiBox",
+			v(20, 10, 16),
+			P.Sea,
+			"Cardboard",
+			v(48, Art.HIGH_SHELF_Y + 5, -290),
+			{ radius = 0.6, style = "vertical" }
+		)
+	)
+	add(list, block("FrozenEbiLabel", v(20.3, 4, 16.3), P.Salmon, "SmoothPlastic", v(48, Art.HIGH_SHELF_Y + 5, -290)))
+	addAll(
+		list,
+		MapKitShapes.roundedBox(
+			"PeaBag",
+			v(16, 6, 22),
+			P.Lime,
+			"Foil",
+			v(-48, Art.HIGH_SHELF_Y + 3, -330),
+			{ radius = 2, style = "vertical" }
+		)
+	)
+end
+
 function Art.decor(): { DecorSpec }
 	local list: { DecorSpec } = {}
 	addShell(list)
@@ -1707,6 +2185,7 @@ function Art.decor(): { DecorSpec }
 	addDesserts(list)
 	addDoors(list)
 	addKitchen(list)
+	addLengthSections(list) -- m5-40
 	return list
 end
 
@@ -1722,7 +2201,10 @@ function Art.courseVolume(): { Bounds }
 		box(Layout.JELLY_ZONE_WIDTH / 2, low, Layout.JELLY_ZONE.front, Layout.LANDING.front),
 		box(Layout.JELLY_ZONE_WIDTH / 2, high, Layout.LANDING.front, Layout.LANDING.back),
 		box(Layout.FAN_SHELF_WIDTH / 2, high, Layout.FAN_SHELF.front, Layout.FAN_SHELF.back),
-		box(Layout.FINISH_WIDTH / 2, high, Layout.FINISH.front, Layout.FINISH.back),
+		box(Layout.FREEZER_WIDTH / 2, high, Layout.FREEZER.front, Layout.FREEZER.back), -- m5-40 F
+		box(Layout.SCOOP_ZONE_WIDTH / 2, high, Layout.SCOOP_ZONE.front, Layout.SCOOP_LANDING.front), -- m5-40 G
+		box(Layout.SCOOP_ZONE_WIDTH / 2, Layout.TOP_Y, Layout.SCOOP_LANDING.front, Layout.SCOOP_LANDING.back),
+		box(Layout.FINISH_WIDTH / 2, Layout.TOP_Y, Layout.FINISH.front, Layout.FINISH.back),
 	}
 end
 
@@ -1756,8 +2238,8 @@ Art.LIGHTING = {
 
 function Art.introCamera(): { IntroPoint }
 	return {
-		-- ① 문 쪽에서 코스 전체를 거꾸로 (냉장고 안 + 뒷벽 LED 패널)
-		{ pos = v(22, 54, -256), lookAt = v(0, 0, -80) },
+		-- ① 문 쪽에서 코스를 거꾸로 (m5-40: 스쿱 계단·냉동실 칸이 앞에, 멀리 뒷벽 LED 패널)
+		{ pos = v(22, 56, Art.FRONT_Z + 10), lookAt = v(0, 8, -280) },
 		-- ② 얼음 구멍·큐브
 		{ pos = v(-18, 20, -22), lookAt = v(0, -1, -58) },
 		-- ③ 젤리 계단을 위에서 내려다보는 샷 (젤리 3개·쿠키 계단·케이크 단, 양옆 푸딩·쇼트케이크)

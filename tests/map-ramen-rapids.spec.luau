@@ -36,7 +36,7 @@ return function(t: Test.Test)
 		t.eq(Maps.timeLimit(RamenRapids), Config.TimeLimit.Race)
 	end)
 
-	t.test("AC1: 구간이 출발→급류→토핑→막대→결승 순서로 이어지고 길이 약 300", function()
+	t.test("AC1: 구간이 출발→급류→토핑→막대→결승 순서로 이어지고 길이 446", function()
 		local sections = Layout.sections()
 		t.eq(sections[1].front, 0)
 		for i, span in sections do
@@ -45,7 +45,7 @@ return function(t: Test.Test)
 				t.eq(span.front, sections[i - 1].back, `section {i} must start where {i - 1} ends`)
 			end
 		end
-		t.eq(Layout.totalLength(), 300)
+		t.eq(Layout.totalLength(), 446) -- m5-40 L2: 300 → 446 (젓가락 다리·렌게 계단·두 번째 급류)
 		local finishZ = Layout.finishLineZ()
 		t.ok(finishZ < Layout.FINISH.front and finishZ > Layout.FINISH.back, "finish line inside finish section")
 		-- 급류 약 12도, 출발에서 결승까지 내려가요
@@ -304,11 +304,12 @@ return function(t: Test.Test)
 		-- 마지막 토핑에서 첫 회전 발판까지 건널 수 있고, 회전 발판 두 개는 이어져 있어요
 		local a, b = Layout.SWEEPER_LIST[1], Layout.SWEEPER_LIST[2]
 		t.ok(math.abs(a.z - b.z) < Layout.PLATFORM_DIAMETER, "sweeper platforms must touch")
-		t.ok(b.z - Layout.PLATFORM_DIAMETER / 2 <= Layout.FINISH.front, "finish floor must meet last platform")
+		-- m5-40 L2: 마지막 원판 뒤는 결승 바닥 대신 젓가락 다리의 유부 뗏목(같은 폭 24)이 이어받아요
+		local raft = Layout.CHOP_RAFT
+		t.ok(b.z - Layout.PLATFORM_DIAMETER / 2 <= raft.front, "raft must meet last platform")
 		t.ok(
-			Layout.FINISH.front + Layout.FINISH_FLOOR_OVERLAP
-				>= b.z - math.sqrt((Layout.PLATFORM_DIAMETER / 2) ^ 2 - (Layout.FINISH_WIDTH / 2) ^ 2),
-			"finish floor must overlap the last platform across its width"
+			raft.front >= b.z - math.sqrt((Layout.PLATFORM_DIAMETER / 2) ^ 2 - (raft.width / 2) ^ 2),
+			"raft must overlap the last platform across its width"
 		)
 	end)
 
@@ -318,7 +319,7 @@ return function(t: Test.Test)
 		t.eq(MapKitLogic.checkBudget(decor, "Extended"), nil, `decor {MapKitLogic.count(decor)}`) -- m5-24 D2
 		t.ok(#Art.steamPoints() == 3 and #Art.steamPoints() <= MapKitLogic.PARTICLE_BUDGET, "steam emitters 3")
 		local volumes = Art.courseVolumes()
-		t.eq(#volumes, 5)
+		t.eq(#volumes, 16) -- m5-40 L2: 5 + 뗏목 1 + 젓가락 다리 1 + 렌게 발판 4 + 두 번째 급류 5
 		for i, spec in decor do
 			local bounds = MapKitLogic.bounds({ spec }) :: any
 			for j, volume in volumes do

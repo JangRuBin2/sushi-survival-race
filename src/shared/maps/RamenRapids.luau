@@ -40,6 +40,11 @@ local function palette()
 		sweeper = Color3.fromRGB(186, 140, 92),
 		spawn = Color3.fromRGB(246, 196, 70),
 		finish = Color3.fromRGB(255, 196, 40),
+		-- m5-40 새 구간 (밟는 곳은 밝고 깨끗하게)
+		raft = Color3.fromRGB(226, 176, 92), -- 유부 뗏목
+		chopstick = Color3.fromRGB(236, 206, 150), -- 밝은 대나무 젓가락
+		rest = Color3.fromRGB(244, 242, 236), -- 도자기 젓가락 받침
+		renge = Color3.fromRGB(248, 246, 240), -- 흰 렌게
 	}
 end
 
@@ -64,6 +69,45 @@ end
 -- 원판 (원기둥 축을 세워요). center는 윗면 가운데.
 local function discCFrame(origin: CFrame, x: number, top: number, z: number, thickness: number): CFrame
 	return origin * CFrame.new(x, top - thickness / 2, z) * CFrame.Angles(0, 0, math.pi / 2)
+end
+
+-- 급류 미끄럼틀 판 하나 + 양옆 낮은 벽 (Broth 태그). 높은 쪽이 +Z라서 Rx(-각도)로 기울여요.
+local function brothSlide(
+	model: Model,
+	origin: CFrame,
+	name: string,
+	span: { front: number, back: number },
+	width: number,
+	heightAt: (number) -> number,
+	brothColor: Color3,
+	wallColor: Color3
+)
+	local CollectionService = game:GetService("CollectionService")
+	local depth = span.front - span.back
+	local center = span.front - depth / 2
+	local slope = math.rad(Layout.RAPIDS_SLOPE_DEG)
+	local slopeFrame = origin * CFrame.new(0, heightAt(center), center) * CFrame.Angles(-slope, 0, 0)
+	local length = depth / math.cos(slope)
+	local slide = makePart({
+		Name = name,
+		Size = Vector3.new(width, Layout.FLOOR_THICKNESS, length),
+		CFrame = slopeFrame * CFrame.new(0, -Layout.FLOOR_THICKNESS / 2, 0),
+		Color = brothColor,
+		Material = Enum.Material.Glass,
+		Transparency = 0.2,
+		Parent = model,
+	})
+	CollectionService:AddTag(slide, TAG_BROTH)
+	for _, side in { -1, 1 } do
+		makePart({
+			Name = "Wall",
+			Size = Vector3.new(0.5, Layout.LOW_WALL_HEIGHT, length),
+			CFrame = slopeFrame * CFrame.new(side * (width / 2 + 0.25), Layout.LOW_WALL_HEIGHT / 2, 0),
+			Color = wallColor,
+			Material = Enum.Material.Marble,
+			Parent = model,
+		})
+	end
 end
 
 -- 막대 CFrame: 발판 중심(윗면) hubTop에서 angle 방향으로 축~끝 사이 가운데
@@ -136,32 +180,18 @@ local function build(origin: CFrame): Model
 		})
 	end
 
-	-- B. 급류 미끄럼틀: 기울인 판 하나(Broth 태그). 높은 쪽이 +Z라서 Rx(-각도)로 기울여요.
-	local rapidsDepth = Layout.RAPIDS.front - Layout.RAPIDS.back
-	local rapidsCenter = Layout.RAPIDS.front - rapidsDepth / 2
+	-- B. 급류 미끄럼틀: 기울인 판 하나(Broth 태그) + 양옆 낮은 벽
 	local slope = math.rad(Layout.RAPIDS_SLOPE_DEG)
-	local slopeFrame = at(0, Layout.rapidsHeightAt(rapidsCenter), rapidsCenter) * CFrame.Angles(-slope, 0, 0)
-	local slideLength = rapidsDepth / math.cos(slope)
-	local slide = makePart({
-		Name = "BrothSlide",
-		Size = Vector3.new(Layout.RAPIDS_WIDTH, Layout.FLOOR_THICKNESS, slideLength),
-		CFrame = slopeFrame * CFrame.new(0, -Layout.FLOOR_THICKNESS / 2, 0),
-		Color = COLORS.broth,
-		Material = Enum.Material.Glass,
-		Transparency = 0.2,
-		Parent = model,
-	})
-	CollectionService:AddTag(slide, TAG_BROTH)
-	for _, side in { -1, 1 } do
-		makePart({
-			Name = "Wall",
-			Size = Vector3.new(0.5, Layout.LOW_WALL_HEIGHT, slideLength),
-			CFrame = slopeFrame * CFrame.new(side * (Layout.RAPIDS_WIDTH / 2 + 0.25), Layout.LOW_WALL_HEIGHT / 2, 0),
-			Color = COLORS.wall,
-			Material = Enum.Material.Marble,
-			Parent = model,
-		})
-	end
+	brothSlide(
+		model,
+		origin,
+		"BrothSlide",
+		Layout.RAPIDS,
+		Layout.RAPIDS_WIDTH,
+		Layout.rapidsHeightAt,
+		COLORS.broth,
+		COLORS.wall
+	)
 	-- 소용돌이 표시 (판정은 RamenRapidsLogic.whirlpoolAt, 이 파츠는 보이기만)
 	for i, pool in Layout.WHIRLPOOLS do
 		makePart({
@@ -288,7 +318,86 @@ local function build(origin: CFrame): Model
 		CollectionService:AddTag(stick, TAG_SWEEPER)
 	end
 
-	-- E. 결승: 마지막 원판과 조금 겹치게 시작
+	-- F. 젓가락 다리 (m5-40): 유부 뗏목(마지막 원판과 겹침) → 나란한 젓가락 → 도자기 받침 → X자 젓가락
+	local raft = Layout.CHOP_RAFT
+	local raftDepth = raft.front - raft.back
+	makePart({
+		Name = "ChopRaft",
+		Size = Vector3.new(raft.width, Layout.FLOOR_THICKNESS, raftDepth),
+		CFrame = at(0, platformTop - Layout.FLOOR_THICKNESS / 2, raft.front - raftDepth / 2),
+		Color = COLORS.raft,
+		Material = Enum.Material.Sand,
+		Parent = model,
+	})
+	local bridge = Instance.new("Folder")
+	bridge.Name = "ChopstickBridge"
+	bridge.Parent = model
+	for i, stick in Logic.chopsticks() do
+		local dx, dz = stick.x1 - stick.x0, stick.z1 - stick.z0
+		local length = math.sqrt(dx * dx + dz * dz)
+		-- 로컬 -Z가 앞 끝 → 뒤 끝 방향이 되게 돌려요 (yaw = atan2(-dx, -dz))
+		makePart({
+			Name = `Chopstick{i}`,
+			Size = Vector3.new(Layout.CHOPSTICK_WIDTH, Layout.CHOPSTICK_THICKNESS, length),
+			CFrame = at(
+				(stick.x0 + stick.x1) / 2,
+				platformTop - Layout.CHOPSTICK_THICKNESS / 2,
+				(stick.z0 + stick.z1) / 2
+			) * CFrame.Angles(0, math.atan2(-dx, -dz), 0),
+			Color = COLORS.chopstick,
+			Material = Enum.Material.Wood,
+			Parent = bridge,
+		})
+	end
+	local rest = Layout.CHOP_REST
+	local restDepth = rest.front - rest.back
+	makePart({
+		Name = "ChopRest",
+		Size = Vector3.new(rest.width, Layout.FLOOR_THICKNESS, restDepth),
+		CFrame = at(0, platformTop - Layout.FLOOR_THICKNESS / 2, rest.front - restDepth / 2),
+		Color = COLORS.rest,
+		Material = Enum.Material.Marble,
+		Parent = bridge,
+	})
+
+	-- G. 렌게 계단 (m5-40): 고정 숟가락 발판 4개
+	for i, step in Layout.RENGE_STEPS do
+		local depth = step.front - step.back
+		makePart({
+			Name = `RengeStep{i}`,
+			Size = Vector3.new(step.width, Layout.RENGE_STEP_THICKNESS, depth),
+			CFrame = at(step.x, Layout.rengeStepTop(i) - Layout.RENGE_STEP_THICKNESS / 2, step.front - depth / 2),
+			Color = COLORS.renge,
+			Material = Enum.Material.Marble,
+			Parent = bridge,
+		})
+	end
+
+	-- H. 두 번째 급류 (m5-40): 첫 급류와 같은 판·벽·밀기, 면발 줄기 2개
+	brothSlide(
+		model,
+		origin,
+		"BrothSlide2",
+		Layout.RAPIDS2,
+		Layout.RAPIDS2_WIDTH,
+		Layout.rapids2HeightAt,
+		COLORS.broth,
+		COLORS.wall
+	)
+	for i, z in Layout.RAPIDS2_NOODLE_ZS do
+		makePart({
+			Name = `Noodle2_{i}`,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(Layout.RAPIDS2_WIDTH, Layout.NOODLE_HEIGHT, Layout.NOODLE_HEIGHT),
+			CFrame = at(0, Layout.rapids2HeightAt(z), z)
+				* CFrame.Angles(-slope, 0, 0)
+				* CFrame.new(0, Layout.NOODLE_HEIGHT / 2, 0),
+			Color = COLORS.noodle,
+			Parent = model,
+		})
+	end
+
+	-- E. 결승: 두 번째 급류 끝 아래로 조금 겹치게 시작
 	local finishFront = Layout.FINISH.front + Layout.FINISH_FLOOR_OVERLAP
 	local finishDepth = finishFront - Layout.FINISH.back
 	local finishCenter = finishFront - finishDepth / 2

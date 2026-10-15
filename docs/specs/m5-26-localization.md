@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m5-26 — 다국어(현지화): 키 기반 번역 + 영어
@@ -222,6 +222,7 @@ status: in-qa
 - 2026-10-13 · 관리자 명령 `start` 문구 · `RoomService.forceStart`는 이유 이름("MatchServer"·"NoRoom"·"InMatch"·"AutoStarting")만 돌려주고 한국어는 `AdminCommands`(관리자 파일)로 옮겼다. AC11 허용 목록은 Studio 전용 "Studio 매치" 1줄만 남음. AC11 검사 범위를 `src` 전체(관리자 파일 제외)로 넓히고, CSV와 같은 데이터 원문(스킨·상품·시즌·연출·칭호·손님 대사·맵 이름/규칙)은 이유와 함께 따로 허용. · developer
 
 - 2026-10-15 · main 병합(p3) 중 정한 세부 (developer, 스펙 범위 안 — QA가 볼 것) · (1) 🎫 뽑기 등급 이름(전설·영웅·희귀·고급·일반, 상점 등급과 다른 말)은 **동적 키 `shop.drawGrade.<Grade>`** — `LocalizeLogic.drawGradeKey`·`Loc.drawGradeName`, `DYNAMIC_KEY_PATTERNS`에 추가, AC5가 `Skins.DRAW_GRADE_INFO.displayName`과 동기화 확인(2절 동적 키 목록에 한 줄 늘어남). 영역은 새로 만들지 않고 `shop`. (2) 뽑기 화면 상세 "R$ {price}로 사기"는 조사 규칙(6절) 때문에 탈의실과 같은 `shop.btn.robuxBuy` "R$ {price} · 사기". (3) 뽑기 화면 부제·안내·말풍선의 강제 줄바꿈(`\n`)은 CSV 한 줄로 바꾸고 `TextWrapped`에 맡김(CSV 칸 안 줄바꿈을 피함). (4) 확률표 "전설 (Legendary)" 괄호 영어는 한국어 넓은 화면에서만, 영어·다른 언어·휴대폰은 이름만. (5) `DrawTicket` 반환 `err`도 `LocText`(다른 리모트와 같음, `Remotes` 주석). `DrawLogic.displayPercents`의 빈 등급 값 = `LocText`(`shop.draw.empty`), 나머지 퍼센트는 문자열 그대로. (6) 수산시장 간판 "수산시장"은 `WorldText.mark(label, "map.fish-market.sign")`, 밥솥 숫자 타이머는 `AutoLocalize = false`. (7) 우승 정산 줄은 숫자 + 단위 한 키 규칙대로 조합마다 키(`reward.summaryTickets`·`reward.summaryTokensTickets`). · developer
+- 2026-10-15 · 재QA (p3, main 3f2678c 병합 뒤) · **통과(qa-passed)**: B1 고침·회귀 테스트 확인, main 병합 충돌 해결이 main 기능(🎫 뽑기·터치 편집·맵 3차·맵 길이)을 깨지 않음, 키 누락 없음, developer p3 판단 7개 스펙·GDD와 맞음(1번 동적 키는 2절 목록에 한 줄 추가 필요). P3 B7(영어에서 뽑기 등급·상점 등급 이름이 같은 단어)은 기획 선택. 자세한 건 `docs/qa/m5-26-localization-reqa.md`. · qa
 
 
 ## 개발 메모

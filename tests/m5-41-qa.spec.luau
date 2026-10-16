@@ -752,9 +752,8 @@ return function(t: Test.Test)
 		t.eq(controller.isLocked(), false, "not alive stays unlocked")
 		roomUpdated:Fire({ state = "Waiting" })
 		t.eq(controller.isLocked(), false, "back to room")
-		-- 리포트 B1(P3): D10은 Starting도 잠근다고 했지만, 이 순서에서는 RoomUpdated가 phase를 지워서 안 잠겨요.
-		-- 지금 동작을 기록해 둬요 — B1을 고치면 이 기대값을 true로 바꿔요.
-		t.eq(startingLocked, false, "B1: Starting not locked with real event order")
+		-- 리포트 B1(P3) 수정: RoomUpdated(InMatch)가 Starting 뒤에 와도 phase를 지우지 않아 카운트다운부터 잠겨요(D10).
+		t.eq(startingLocked, true, "B1: Starting locked with real event order")
 	end)
 
 	t.test(

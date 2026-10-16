@@ -31,7 +31,7 @@ local VictoryProps = require(script.Parent.VictoryProps)
 
 local OWNER = "VictoryCutscene"
 -- m3-02가 SushiBody.GROUND_OFFSET(발바닥 → Body 중심)을 정해요. 없으면 이 값.
-local DEFAULT_GROUND_OFFSET = 2.3
+local DEFAULT_GROUND_OFFSET = 2.25
 local GRAVITY = 60
 local CAMERA_FOV = 60
 

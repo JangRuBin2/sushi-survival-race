@@ -9,7 +9,7 @@
 --                               0.25 내려가고 위끝은 밥 속까지 길어요. 다리 이름은 FootLeft/FootRight, 눈은 깜빡임 관절(EyeLeft/Right + 감은 눈 LidLeft/Right),
 --                               팔(ArmLeft/Right)·발은 Motor6D(joint) — m5-25 CharacterFxController가 그대로 움직여요.
 --                               앞 지방 줄 조각 3개는 빼서 파츠를 줄였어요 (기본 44).
---   EXPRESSIONS                 "Default"(기본) · "Happy"(신남 ^ ^) · "Flustered"(당황 o + 땀) · "Hurt"(아픔 x x + 반창고)
+--   EXPRESSIONS                 "Default"(기본) · "Happy"(신남 ^ ^) · "Flustered"(당황 o + 땀) · "Hurt"(아픔 x x + 반창고) · "Angry"(화남) · "Sad"(슬픔)
 --   POSES                       "Stand"(서 있기) · "Run"(달리기: 팔 앞뒤, 한 발 앞)
 --   GROUND_OFFSET               밥 중심에서 발바닥까지
 -- 모양 (앞 = -Z, 위 = +Y, 메시 없이 Block·Ball·Cylinder만):

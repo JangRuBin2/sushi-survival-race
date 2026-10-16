@@ -2,6 +2,14 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-10-16 — 사용자 확인 대기 중 정리 (막지 않는 P3·문서)
+
+M5 개발 스펙은 모두 `done`, 사용자 Studio 확인 대기 그대로. 기다리는 동안 사용자 결정·플레이테스트가 필요 없는 것만 main에서 고침. 5단계: rojo OK · stylua OK · selene 0/0/0 · `lune run tests` **2381 passed, 0 failed** · luau-lsp 끝 코드 0.
+- **m5-41 B1 고침**: 카운트다운(Starting)부터 버튼 위치 편집 잠금. `TouchLayoutController` `RoomUpdated`는 InMatch가 아닐 때만 phase를 지움. `m5-41-qa` 기대값 true, QA 리포트·DEV-SETUP 3-12 문구 갱신. Studio 확인은 기존 체크리스트 6.
+- 코드 주석: `SushiBody` CONCEPT_BODY 10종·표정 6종, `SushiConceptSample` EXPRESSIONS 6종, `VictoryCutsceneController` 대비값 `DEFAULT_GROUND_OFFSET` 2.3 → 2.25(실제 값과 같게, 동작 영향 없음).
+- GDD(기획 변경 없음): 9.2 제목 41종·판매 26종 합계 2,334 R$, 11.7 41종, 6절 캐릭터 몸을 m5-25 기준 몸·콘셉트 몸으로.
+- 그대로 둔 것: 플레이테스트 판단 4개(`docs/planner/2026-10-15-doc-sync.md`), m5-41 B2(Studio AC14에서 보이면), 게임패드 P3들, worktree 정리(사용자 확인 뒤).
+
 ## 2026-10-15 — 맵 3차 배치·맵 길이·현지화·콘솔 UI 병합, M5 개발 스펙 전부 완료
 
 main `7bf280c` 기준(push 됨). 마지막 병합 뒤 5단계: rojo OK · `stylua --check src tests tools` OK · selene 0/0/0 · `lune run tests` **2381 passed, 0 failed (163개 파일)** · luau-lsp 끝 코드 0. **`ready`·개발 중 스펙 없음** — 모든 M5 스펙 `done`. 다음은 사용자 Studio 확인·플레이테스트 결과 반영.

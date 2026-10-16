@@ -9,12 +9,12 @@
 --   BASE_NAMES            모든 스킨이 계란초밥과 똑같이 가지는 기준 파츠 이름 (밥 몸·눈·입·볼·발, m5-25)
 --   PART_BUDGET           스킨 하나의 파츠 수 상한 (m5-25, 24명·모바일 기준)
 --   build(appearanceId, expression?)   파츠를 만든 Model. expression은 표정이 있는 실험 스킨(concept-*)만 봐요
---                         ("Default"·"Happy"·"Flustered"·"Hurt", 인형 연출용 — 나머지 스킨은 무시). PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
+--                         ("Default"·"Happy"·"Flustered"·"Hurt"·"Angry"·"Sad", 인형 연출용 — 나머지 스킨은 무시). PrimaryPart = Body(Anchored). 원점에 있어요 → PivotTo로 옮겨요.
 --   GROUND_OFFSET         Body 중심이 땅(발바닥)에서 몇 studs 위인지. 인형을 땅에 세울 때 써요.
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel = 10종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,

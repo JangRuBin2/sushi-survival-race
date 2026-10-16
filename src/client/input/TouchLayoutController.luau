@@ -441,9 +441,9 @@ local function watchLock()
 		end
 	end
 	Remotes.event("RoomUpdated").OnClientEvent:Connect(function(snapshot: Types.RoomSnapshot?)
-		local was = inMatch
 		inMatch = type(snapshot) == "table" and snapshot.state == "InMatch"
-		if not inMatch or not was then
+		-- 서버는 Starting을 RoomUpdated(InMatch)보다 먼저 보내요 — InMatch가 될 때 phase를 지우면 Starting 잠금이 빠져요
+		if not inMatch then
 			phase = nil
 			alive = true
 			passed = false

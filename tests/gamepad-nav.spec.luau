@@ -127,6 +127,69 @@ return function(t: Test.Test)
 		t.eq(closed, { "shop", "draw" })
 	end)
 
+	t.test("reconcile 층: 한 번에 열린 창은 화면 층이 높은 것이 맨 위 (QA P3-2)", function()
+		local order = { "shop", "admin" } -- 관리자 패널이 나중에 등록돼도
+		-- 마우스로 둘 다 연 뒤 패드로 바꿈: 탈의실(20)이 관리자(15) 위에 보여요
+		local stack, opened = GamepadNavLogic.reconcile(
+			{},
+			{ shop = true, admin = true },
+			order,
+			{ shop = 20, admin = 15 }
+		)
+		t.eq(stack, { "admin", "shop" })
+		t.eq(opened, { "admin", "shop" })
+		-- 같은 층이면 등록 순서
+		stack = GamepadNavLogic.reconcile({}, { shop = true, admin = true }, order, { shop = 15, admin = 15 })
+		t.eq(stack, { "shop", "admin" })
+		-- 이미 쌓인 창은 층과 상관없이 그대로 아래
+		stack = GamepadNavLogic.reconcile({ "shop" }, { shop = true, admin = true }, order, { shop = 20, admin = 15 })
+		t.eq(stack, { "shop", "admin" })
+	end)
+
+	t.test(
+		"nextInReadingOrder: 위 줄 왼쪽부터, 마지막 다음은 nil (QA P3-4 Select 앵커 차례)",
+		function()
+			local points = { { x = 900, y = 10 }, { x = 10, y = 12 }, { x = 120, y = 10 }, { x = 10, y = 80 } }
+			t.eq(GamepadNavLogic.nextInReadingOrder(points, nil), 2)
+			t.eq(GamepadNavLogic.nextInReadingOrder(points, 2), 3)
+			t.eq(GamepadNavLogic.nextInReadingOrder(points, 3), 1)
+			t.eq(GamepadNavLogic.nextInReadingOrder(points, 1), 4)
+			t.eq(GamepadNavLogic.nextInReadingOrder(points, 4), nil)
+			t.eq(GamepadNavLogic.nextInReadingOrder({}, nil), nil)
+		end
+	)
+
+	t.test("stickScroll: 오른쪽 스틱으로 글 목록 굴리기, 데드존·끝에서 멈춤 (QA P3-1)", function()
+		local speed = GamepadNavLogic.STICK_SCROLL_SPEED
+		-- 데드존 안 → 그대로
+		t.eq(GamepadNavLogic.stickScroll(100, 0.1, 0.1, 300, 1000), 100)
+		-- 아래로 밀면(-1) 아래 글이 보여요
+		t.eq(GamepadNavLogic.stickScroll(100, -1, 0.1, 300, 1000), 100 + speed * 0.1)
+		-- 끝에서 멈춤 (캔버스 1000 - 보이는 300)
+		t.eq(GamepadNavLogic.stickScroll(650, -1, 1, 300, 1000), 700)
+		t.eq(GamepadNavLogic.stickScroll(20, 1, 1, 300, 1000), 0)
+		-- 글이 창보다 짧으면 0, NaN은 그대로
+		t.eq(GamepadNavLogic.stickScroll(0, -1, 1, 300, 200), 0)
+		t.eq(GamepadNavLogic.stickScroll(50, 0 / 0, 1, 300, 1000), 50)
+	end)
+
+	t.test(
+		"QA P3 소스: 창 층·이어 고르기·앵커 차례·스틱 스크롤·음소거 앵커·소개 여백",
+		function()
+			local nav = read("src/client/ui/GamepadNav.luau")
+			t.ok(string.find(nav, "GamepadNavLogic.reconcile(stack, open, order, layers)", 1, true) ~= nil, "layers")
+			t.ok(string.find(nav, "carryUntil > now", 1, true) ~= nil, "carry selection to the next page")
+			t.ok(string.find(nav, "setSelection(anchorAfter(current))", 1, true) ~= nil, "select cycles anchors")
+			t.ok(string.find(nav, "scrollTextWithStick(top, dt)", 1, true) ~= nil, "stick scroll in windows")
+			t.ok(string.find(nav, "gui.ChildAdded:Connect(adoptMute)", 1, true) ~= nil, "mute button is an anchor")
+			local sfx = read("src/client/Sfx.luau")
+			t.ok(string.find(sfx, 'screen.Name = "SoundGui"', 1, true) ~= nil, "SoundGui name")
+			t.ok(string.find(sfx, 'button.Name = "MuteButton"', 1, true) ~= nil, "MuteButton name")
+			local intro = read("src/client/fx/IntroScreen.luau")
+			t.ok(string.find(intro, "bannerBottom(parent) - top", 1, true) ~= nil, "intro subtracts TV padding")
+		end
+	)
+
 	------------------------------------------------------------------ 첫 버튼
 	t.test("pickFirst: 맨 위 줄의 맨 왼쪽 (같은 줄은 6px 안)", function()
 		t.eq(GamepadNavLogic.pickFirst({}), nil)

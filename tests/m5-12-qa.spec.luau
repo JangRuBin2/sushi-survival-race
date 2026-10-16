@@ -268,7 +268,7 @@ return function(t: Test.Test)
 		"QA 비패드 경로: 모드가 아니면 한 프레임·입력·카드 미리보기가 바로 빠져요",
 		function()
 			local nav = read("src/client/ui/GamepadNav.luau")
-			local stepAt = string.find(nav, "local function step()", 1, true) :: number
+			local stepAt = string.find(nav, "local function step(", 1, true) :: number
 			t.ok(stepAt ~= nil, "step")
 			local stepHead = string.sub(nav, stepAt, stepAt + 80)
 			t.ok(has(stepHead, "if not gamepad then"), "step returns when not gamepad")

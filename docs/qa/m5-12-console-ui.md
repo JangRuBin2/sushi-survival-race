@@ -76,30 +76,35 @@
 ## 버그
 P0·P1·P2 없음.
 
-### [P3-1] ⓘ 확률 상세(글자만 든 스크롤)가 패드로 굴려지지 않을 수 있음
+### [P3-1] ⓘ 확률 상세(글자만 든 스크롤)가 패드로 굴려지지 않을 수 있음 — **고침 (2026-10-16, main)**
+- 수정: 오른쪽 스틱으로 창 안의 글만 든(고를 버튼 없는) 스크롤 목록을 굴려요 — `GamepadNav.scrollTextWithStick`, 순수 `GamepadNavLogic.stickScroll`(데드존 0.25, 초당 900).
 - 재현: 패드 모드, 탈의실 → 🎫 뽑기 → ⓘ. 글이 창보다 길면(작은 TV·큰 글씨·영어).
 - 기대: 오른쪽 스틱/방향키로 끝까지 읽을 수 있다.
 - 실제: `sanitize`가 모든 ScrollingFrame을 `Selectable = false`로 만들고, 안에 고를 버튼이 없어 `scrollIntoView`도 안 움직인다. 지금 분량(10종)은 창 안에 들어갈 가능성이 크다 — Studio 확인.
 - 위치: `src/client/ui/GamepadNav.luau:164-173`, `src/client/ui/DrawScreen.luau:631-642`
 
-### [P3-2] 마우스로 관리자 패널과 탈의실을 같이 연 뒤 패드로 바꾸면 가려진 관리자 패널이 "맨 위"
+### [P3-2] 마우스로 관리자 패널과 탈의실을 같이 연 뒤 패드로 바꾸면 가려진 관리자 패널이 "맨 위" — **고침 (2026-10-16, main)**
+- 수정: `reconcile(stack, open, order, layers)` — 한 번에 열린 창은 ScreenGui DisplayOrder가 낮은 것부터 쌓아 맨 위 = 보이는 창(같은 층이면 등록 순서).
 - 재현: 마우스로 🛠 패널을 열고 🍣 탈의실도 연다(탈의실이 위, DisplayOrder 20 > 15) → 패드 버튼을 누른다.
 - 기대: 보이는 탈의실 안에 선택.
 - 실제: 모드를 바꿀 때 스택을 비우고 등록 순서로 다시 쌓는데 관리자 패널이 마지막에 등록돼서 맨 위가 되어, 선택이 탈의실 뒤에 가려진 패널 안으로 간다. B 한 번이면 풀린다(관리자 전용, 입력을 섞을 때만).
 - 위치: `src/client/ui/GamepadNav.luau:481`, `src/shared/GamepadNavLogic.luau` `reconcile`
 
-### [P3-3] 방을 만든 뒤 대기실에서 선택이 자동으로 오지 않음
+### [P3-3] 방을 만든 뒤 대기실에서 선택이 자동으로 오지 않음 — **고침 (2026-10-16, main)**
+- 수정: 연 버튼이 숨은 채 창이 닫히면 기본 화면 첫 버튼, 고르던 버튼이 화면째 사라지면(로비 → 대기실) 3초 안에 보이는 새 기본 화면의 첫 버튼으로 이어서 골라요(`carryUntil`). 처음 들어온 화면·Ⓑ로 끈 뒤에는 그대로 자동 선택 없음(D6).
 - 재현: 패드로 방 만들기 창 → "만들기".
 - 기대(스펙 AC5 흐름): 대기실에서 바로 "시작"을 누를 수 있으면 좋다.
 - 실제: 창이 닫히며 연 버튼("방 만들기")이 숨어 있어 선택이 꺼진다. 방향키를 한 번 눌러야 "시작"이 고른다. 힌트가 "방향키로 메뉴 고르기"를 보여 주므로 막히지는 않음(UX).
 - 위치: `src/client/ui/GamepadNav.luau:335-346`
 
-### [P3-4] 위쪽 바 음소거 버튼이 패드로 닿는지 보장되지 않음
+### [P3-4] 위쪽 바 음소거 버튼이 패드로 닿는지 보장되지 않음 — **고침 (2026-10-16, main)**
+- 수정: `GamepadNav.start`가 `SoundGui.MuteButton`을 앵커로 등록, View(Select)가 기본 화면 → 앵커 읽는 순서(`GamepadNavLogic.nextInReadingOrder`) → 끄기로 돌아요(D7 변경, 스펙 결정 기록).
 - 재현: 패드 모드에서 음소거 버튼(🔊)을 고르려 한다.
 - 실제: 앵커 목록에 없고 기본 화면에는 울타리가 없어 방향키 기하로만 닿는다(될 수도 안 될 수도 있음). 콘솔은 Roblox 메뉴 볼륨으로 대신할 수 있다. Studio 확인.
 - 위치: `src/client/Sfx.luau`(SoundGui.MuteButton), `GamepadNav.anchor` 호출부
 
-### [P3-5] 10피트 화면에서 라운드 소개 배너 아래 요소가 여백만큼 내려갈 수 있음
+### [P3-5] 10피트 화면에서 라운드 소개 배너 아래 요소가 여백만큼 내려갈 수 있음 — **고침 (2026-10-16, main)**
+- 수정: `IntroScreen.place`가 글씨 gui의 `UIPadding` 위·아래 픽셀을 빼고 여백 안쪽 기준으로 계산해요.
 - 내용: `IntroScreen`이 `banner.AbsolutePosition.Y - gui.AbsolutePosition.Y`를 Offset으로 쓰는데, `TvSafePadding`(위 5%)이 붙은 ScreenGui에서는 자식 원점이 5% 내려가 그만큼 더 내려간다. 겹침이 아니라 간격이 커지는 쪽이라 표시 문제만. AC11 확인 때 같이 본다.
 - 위치: `src/client/fx/IntroScreen.luau:35-36`, `src/client/ui/UiScaleController.luau:112-123`
 

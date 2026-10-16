@@ -36,6 +36,17 @@ local function bannerBottom(parent: Instance): number
 	return IntroLayout.bannerBottom(banner.AbsolutePosition.Y, banner.AbsoluteSize.Y, guiTop)
 end
 
+-- 글씨 gui의 UIPadding(10피트 TV 안전 여백 m5-12 등) 위·아래 픽셀. 자식 좌표는 위 여백만큼 아래에서 시작해요 (QA P3-5)
+local function paddingOf(gui: GuiBase2d): (number, number)
+	local padding = gui:FindFirstChildOfClass("UIPadding")
+	if padding == nil then
+		return 0, 0
+	end
+	local height = gui.AbsoluteSize.Y
+	return padding.PaddingTop.Scale * height + padding.PaddingTop.Offset,
+		padding.PaddingBottom.Scale * height + padding.PaddingBottom.Offset
+end
+
 function IntroScreen.new(parent: Instance): IntroScreen
 	local label = Instance.new("TextLabel")
 	label.Name = "IntroGo"
@@ -84,8 +95,10 @@ function IntroScreen.new(parent: Instance): IntroScreen
 		if size.Y <= 0 then
 			return
 		end
-		-- 계산은 실제 픽셀(Absolute*)로 하고, LobbyGui의 UIScale(m4-09) 안 좌표로 나눠서 넣어요
-		local layout = IntroLayout.compute(size.X, size.Y, bannerBottom(parent))
+		-- 계산은 실제 픽셀(Absolute*)로 하고, LobbyGui의 UIScale(m4-09) 안 좌표로 나눠서 넣어요.
+		-- 여백이 있으면 여백 안쪽(자식 좌표) 기준으로: 배너 아래 끝에서 위 여백을 빼요
+		local top, bottom = paddingOf(parent)
+		local layout = IntroLayout.compute(size.X, size.Y - top - bottom, bannerBottom(parent) - top)
 		local s = UiScaleController.metrics().scale
 		label.Position = UDim2.new(0.5, 0, 0, layout.centerY / s)
 		label.Size = UDim2.fromOffset(layout.boxWidth / s, layout.boxHeight / s)

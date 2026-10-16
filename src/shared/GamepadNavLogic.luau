@@ -5,9 +5,12 @@
 --   insetsFor(tenFoot, w, h)          10피트(TV) 화면이면 각 변 5% 안전 여백, 아니면 0
 --   nextTab(tabs, current, dir)       LB(-1)/RB(+1)로 다음 탭 id. 끝에서 멈춰요(돌아가지 않음)
 --   navAllowed(state)                 게임패드 내비게이션을 켜도 되는가 (라운드 소개·달리는 중·우승 연출이면 false)
---   reconcile(stack, open, order)     열린 창 목록을 열린 순서대로 맞춰요 → (새 스택, 새로 열린 id, 닫힌 id)
+--   reconcile(stack, open, order, layers?)  열린 창 목록을 열린 순서대로 맞춰요 → (새 스택, 새로 열린 id, 닫힌 id).
+--                                     한 번에 여러 창이 열리면 화면 층(layers, DisplayOrder)이 낮은 것부터 쌓아 맨 위 = 보이는 창
 --   pickFirst(points)                 화면에서 맨 위·맨 왼쪽 점의 번호 (같은 줄은 ROW_TOLERANCE 안)
+--   nextInReadingOrder(points, i?)    읽는 순서(위 줄 → 아래 줄, 같은 줄은 왼쪽 → 오른쪽)로 i 다음 점의 번호 (끝이면 nil)
 --   scrollToShow(...)                 선택한 칸이 스크롤 목록 안에 보이게 할 CanvasPosition.Y
+--   stickScroll(...)                  오른쪽 스틱으로 글만 든 스크롤 목록을 굴릴 CanvasPosition.Y
 
 local GamepadNavLogic = {}
 
@@ -17,6 +20,9 @@ GamepadNavLogic.SAFE_FRACTION = 0.05
 GamepadNavLogic.ROW_TOLERANCE = 6
 -- scrollToShow: 칸 위아래로 남길 여유 (픽셀)
 GamepadNavLogic.SCROLL_MARGIN = 8
+-- stickScroll: 오른쪽 스틱 데드존과 끝까지 기울였을 때 초당 굴리는 픽셀
+GamepadNavLogic.STICK_DEADZONE = 0.25
+GamepadNavLogic.STICK_SCROLL_SPEED = 900
 
 -- 모드를 바꾸지 않는 입력 종류 (창 포커스, 아직 모름, 화면 키보드 글자)
 local NEUTRAL_INPUTS = {
@@ -100,11 +106,13 @@ end
 
 -- stack: 지금까지 열린 창 id (열린 순서, 맨 뒤가 맨 위)
 -- open: id → 지금 보이는지
--- order: 등록 순서(층 순서). 한 번에 여러 창이 열리면 이 순서대로 쌓아요
+-- order: 등록 순서. layers: id → 화면 층(ScreenGui DisplayOrder). 한 번에 여러 창이 열리면 층이 낮은 것부터,
+--        같은 층이면 등록 순서대로 쌓아요 (마우스로 두 창을 연 뒤 패드로 바꿔도 맨 위 = 실제로 보이는 창, m5-12 QA P3-2)
 function GamepadNavLogic.reconcile(
 	stack: { string },
 	open: { [string]: boolean },
-	order: { string }
+	order: { string },
+	layers: { [string]: number }?
 ): ({ string }, { string }, { string })
 	local nextStack: { string } = {}
 	local closed: { string } = {}
@@ -118,12 +126,25 @@ function GamepadNavLogic.reconcile(
 		end
 	end
 	local opened: { string } = {}
-	for _, id in order do
+	local rank: { [string]: number } = {}
+	for index, id in order do
 		if open[id] and not inStack[id] then
-			table.insert(nextStack, id)
 			table.insert(opened, id)
+			rank[id] = index
 			inStack[id] = true
 		end
+	end
+	if layers then
+		table.sort(opened, function(a: string, b: string): boolean
+			local la, lb = layers[a] or 0, layers[b] or 0
+			if la ~= lb then
+				return la < lb
+			end
+			return rank[a] < rank[b]
+		end)
+	end
+	for _, id in opened do
+		table.insert(nextStack, id)
 	end
 	return nextStack, opened, closed
 end
@@ -148,6 +169,30 @@ function GamepadNavLogic.pickFirst(points: { Point }): number?
 	return best
 end
 
+-- 읽는 순서로 정렬했을 때 current 다음 번호. current가 nil이면 첫 번째, 마지막이면 nil
+function GamepadNavLogic.nextInReadingOrder(points: { Point }, current: number?): number?
+	local sorted: { number } = {}
+	for index in points do
+		table.insert(sorted, index)
+	end
+	local tolerance = GamepadNavLogic.ROW_TOLERANCE
+	table.sort(sorted, function(a: number, b: number): boolean
+		local pa, pb = points[a], points[b]
+		if math.abs(pa.y - pb.y) > tolerance then
+			return pa.y < pb.y
+		end
+		if pa.x ~= pb.x then
+			return pa.x < pb.x
+		end
+		return a < b
+	end)
+	if current == nil then
+		return sorted[1]
+	end
+	local at = table.find(sorted, current)
+	return if at then sorted[at + 1] else sorted[1]
+end
+
 -- canvasY: 지금 CanvasPosition.Y, viewHeight: 보이는 높이,
 -- itemTop: 칸 위쪽 (캔버스 맨 위 기준), itemHeight: 칸 높이, canvasHeight: 캔버스 전체 높이
 function GamepadNavLogic.scrollToShow(
@@ -166,6 +211,21 @@ function GamepadNavLogic.scrollToShow(
 	end
 	local maxY = math.max(0, canvasHeight - viewHeight)
 	return math.clamp(target, 0, maxY)
+end
+
+-- stickY: 오른쪽 스틱 Y (-1~1, 위로 밀면 +) → 위로 밀면 글을 위쪽으로(CanvasPosition.Y 감소). 데드존 안이면 그대로
+function GamepadNavLogic.stickScroll(
+	canvasY: number,
+	stickY: number,
+	dt: number,
+	viewHeight: number,
+	canvasHeight: number
+): number
+	if stickY ~= stickY or math.abs(stickY) < GamepadNavLogic.STICK_DEADZONE or dt <= 0 then
+		return canvasY
+	end
+	local maxY = math.max(0, canvasHeight - viewHeight)
+	return math.clamp(canvasY - stickY * GamepadNavLogic.STICK_SCROLL_SPEED * dt, 0, maxY)
 end
 
 return GamepadNavLogic

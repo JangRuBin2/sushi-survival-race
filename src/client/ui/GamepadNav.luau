@@ -6,14 +6,18 @@
 --     GamepadNav.window(options)  닫을 수 있는 창 (탈의실·상점·코드·관리자·방 만들기·뽑기…). 보이면 열린 것으로 보고
 --                                 첫 버튼을 자동 선택, 선택이 창 밖으로 못 나가게 SelectionGroup + Stop, B = close.
 --                                 닫히면 그 창을 연 버튼으로 선택을 돌려놓아요 (없으면 아래 창의 첫 버튼, 그것도 없으면 해제).
---     GamepadNav.page(options)    닫지 않는 기본 화면 (로비·방 대기실). 자동 선택 없음 — 아무것도 선택 안 됐을 때
---                                 방향키·Select(뷰) 한 번으로 첫 버튼. 울타리 없음 (왼쪽 위 "🍣 스킨" 등으로 갈 수 있게).
---     GamepadNav.anchor(button)   창·화면이 없을 때 Select로 고를 버튼 (관전 중 "🍣 스킨" 등)
+--     GamepadNav.page(options)    닫지 않는 기본 화면 (로비·방 대기실). 처음 들어올 때는 자동 선택 없음 — 아무것도 선택 안
+--                                 됐을 때 방향키·Select(뷰) 한 번으로 첫 버튼. 울타리 없음 (왼쪽 위 "🍣 스킨" 등으로 갈 수 있게).
+--                                 다만 고르던 버튼이 화면째 사라지거나(로비 → 방 대기실) 연 버튼이 숨은 채 창이 닫히면
+--                                 새 기본 화면의 첫 버튼으로 이어서 골라요 (QA P3-3).
+--     GamepadNav.anchor(button)   창·화면 밖의 버튼 ("🍣 스킨"·"🎁 상점"·"🎟 코드"·"🛠"·위쪽 바 음소거). 창이 없을 때
+--                                 Select로 읽는 순서대로 하나씩 돌고, 마지막 다음은 선택 끄기 (QA P3-4)
 --   상태: GamepadNav.isGamepad(), onModeChanged(fn), isWindowOpen(), isLocked()
 --   잠금: 라운드 소개·달리는 중·시작 카운트다운·우승 연출(GamepadNavLogic.navAllowed)에는 선택을 지우고
 --         GuiService.GuiNavigationEnabled = false → A·B·X·R2는 게임 조작(점프·다이브·잡기)으로만 가요.
 --   버튼: B = 맨 위 창 하나 닫기(기본 화면에서는 창을 닫지 않고 선택만 끄기 — 캐릭터를 움직일 수 있게),
---         LB/RB = 창의 탭(options.tabs), Select = 선택 켜기/끄기, 방향키 = 아무것도 선택 안 됐을 때 첫 버튼.
+--         LB/RB = 창의 탭(options.tabs), Select = 첫 버튼 → 앵커 차례 → 선택 끄기(창 안에서는 그대로),
+--         방향키 = 아무것도 선택 안 됐을 때 첫 버튼, 오른쪽 스틱 = 창 안의 글만 든 스크롤 목록 굴리기 (QA P3-1).
 --   힌트: 화면 아래 가운데 한 줄 ("Ⓐ 선택 · Ⓑ 닫기" 등, 게임패드 모드일 때만). 관전 힌트는 SpectateScreen이 직접.
 --   선택 테두리: RoomUiKit.selectionImage (굵은 흰 테두리)를 PlayerGui.SelectionImageObject로.
 --   선택한 칸이 스크롤 목록 밖이면 목록을 굴려 보여 줘요 (GamepadNavLogic.scrollToShow).
@@ -68,6 +72,12 @@ local started = false
 local modeListeners: { (boolean) -> () } = {}
 local previousSelected: GuiObject? = nil
 local hintLabel: TextLabel? = nil
+local carryUntil = 0 -- 이 시각(os.clock)까지 새 기본 화면이 보이면 첫 버튼을 이어서 골라요
+local lastGamepad: Enum.UserInputType = Enum.UserInputType.Gamepad1
+
+local MUTE_GUI_NAME = "SoundGui" -- Sfx.buildMuteButton
+local MUTE_BUTTON_NAME = "MuteButton"
+local CARRY_SECONDS = 3 -- 로비 → 방 대기실처럼 서버 응답을 기다려 화면이 바뀌는 시간
 
 local SELECTABLE_CLASSES = { "GuiButton", "TextBox" }
 
@@ -297,21 +307,78 @@ local function scrollIntoView(object: GuiObject)
 	end
 end
 
+-- 오른쪽 스틱: 창 안에서 고를 버튼이 없는(글만 든) 스크롤 목록을 굴려요 (뽑기 ⓘ 확률 상세 등, QA P3-1)
+local function rightStickY(): number
+	for _, input in UserInputService:GetGamepadState(lastGamepad) do
+		if input.KeyCode == Enum.KeyCode.Thumbstick2 then
+			return input.Position.Y
+		end
+	end
+	return 0
+end
+
+local function hasButtons(container: Instance): boolean
+	for _, descendant in container:GetDescendants() do
+		if descendant:IsA("GuiObject") and isSelectableClass(descendant) and canSelect(descendant) then
+			return true
+		end
+	end
+	return false
+end
+
+local function scrollTextWithStick(entry: Entry, dt: number)
+	local stick = rightStickY()
+	if math.abs(stick) < GamepadNavLogic.STICK_DEADZONE then
+		return
+	end
+	for _, descendant in entry.group:GetDescendants() do
+		if
+			descendant:IsA("ScrollingFrame")
+			and descendant.AbsoluteCanvasSize.Y > descendant.AbsoluteWindowSize.Y + 1
+			and isShown(descendant)
+			and not hasButtons(descendant)
+		then
+			local scale = scaleAbove(descendant)
+			local canvasY = descendant.CanvasPosition.Y
+			local y = GamepadNavLogic.stickScroll(
+				canvasY,
+				stick,
+				dt,
+				descendant.AbsoluteWindowSize.Y / scale,
+				descendant.AbsoluteCanvasSize.Y / scale
+			)
+			if math.abs(y - canvasY) > 0.01 then
+				descendant.CanvasPosition = Vector2.new(descendant.CanvasPosition.X, y)
+			end
+		end
+	end
+end
+
 ------------------------------------------------------------------ 한 프레임
 
-local function step()
+-- 창이 속한 화면 층 (ScreenGui DisplayOrder) — 한 번에 여러 창이 열렸을 때 쌓는 순서 (QA P3-2)
+local function layerOf(root: Instance): number
+	local screen = if root:IsA("LayerCollector") then root else root:FindFirstAncestorWhichIsA("LayerCollector")
+	return if screen ~= nil and screen:IsA("ScreenGui") then screen.DisplayOrder else 0
+end
+
+local function step(dt: number)
 	if not gamepad then
 		return
 	end
 	-- 열린 창 맞추기
 	local open: { [string]: boolean } = {}
+	local layers: { [string]: number } = {}
 	for _, entry in entries do
 		if not entry.page then
 			open[entry.id] = isShown(entry.root)
+			if open[entry.id] then
+				layers[entry.id] = layerOf(entry.root)
+			end
 		end
 	end
 	local previousTop = topWindow()
-	local newStack, opened, closed = GamepadNavLogic.reconcile(stack, open, order)
+	local newStack, opened, closed = GamepadNavLogic.reconcile(stack, open, order, layers)
 	stack = newStack
 	local selected = GuiService.SelectedObject
 
@@ -341,7 +408,12 @@ local function step()
 		elseif top ~= nil then
 			setSelection(firstOf(top))
 		else
-			setSelection(nil)
+			-- 연 버튼이 숨었어요 (방 만들기 → 대기실): 기본 화면 첫 버튼, 화면이 바뀌는 중이면 이어서 (QA P3-3)
+			local page = topPage()
+			setSelection(if page then firstOf(page) else nil)
+			if page == nil then
+				carryUntil = os.clock() + CARRY_SECONDS
+			end
 		end
 		selected = GuiService.SelectedObject
 	elseif #opened > 0 and top ~= nil and table.find(opened, top.id) then
@@ -366,14 +438,32 @@ local function step()
 		if selected ~= nil then
 			top.lastPath = pathOf(selected, top.group)
 		end
+		scrollTextWithStick(top, dt)
 	elseif top == nil and not typing then
 		-- 기본 화면: 선택한 버튼이 다시 그려져 사라졌으면(방 목록 갱신) 같은 자리 → 첫 버튼
 		local page = topPage()
 		local lost = previousSelected
-		if page ~= nil and selected == nil and lost ~= nil and inside(lost, page.group) and not canSelect(lost) then
-			local path = page.lastPath
-			local found = if path then findPath(page.group, path) else nil
-			setSelection(if found and canSelect(found) then found else firstOf(page))
+		local now = os.clock()
+		if selected ~= nil and not canSelect(selected) then
+			-- 엔진이 숨은 버튼의 선택을 바로 지우지 않아도 사라진 것으로 봐요
+			lost = selected
+			setSelection(nil)
+			selected = nil
+		end
+		if selected == nil and lost ~= nil and not canSelect(lost) then
+			if page ~= nil and inside(lost, page.group) then
+				local path = page.lastPath
+				local found = if path then findPath(page.group, path) else nil
+				setSelection(if found and canSelect(found) then found else firstOf(page))
+				selected = GuiService.SelectedObject
+			else
+				-- 고르던 버튼이 화면째 사라졌어요 (로비 → 방 대기실): 다음 기본 화면에서 이어서 골라요 (QA P3-3)
+				carryUntil = now + CARRY_SECONDS
+			end
+		end
+		if page ~= nil and selected == nil and carryUntil > now then
+			carryUntil = 0
+			setSelection(firstOf(page))
 			selected = GuiService.SelectedObject
 		end
 		if page ~= nil and selected ~= nil and inside(selected, page.group) then
@@ -423,6 +513,24 @@ local function selectFirstAvailable(includeAnchors: boolean)
 	end
 end
 
+-- 지금 고른 버튼 다음 앵커 (읽는 순서). 고른 것이 앵커가 아니면 첫 앵커, 마지막 앵커 다음은 nil
+local function anchorAfter(current: GuiObject?): GuiObject?
+	local shown: { GuiObject } = {}
+	local points: { GamepadNavLogic.Point } = {}
+	local currentIndex: number? = nil
+	for _, button in anchors do
+		if canSelect(button) then
+			table.insert(shown, button)
+			table.insert(points, { x = button.AbsolutePosition.X, y = button.AbsolutePosition.Y })
+			if button == current then
+				currentIndex = #shown
+			end
+		end
+	end
+	local index = GamepadNavLogic.nextInReadingOrder(points, currentIndex)
+	return if index then shown[index] else nil
+end
+
 local DPAD = {
 	[Enum.KeyCode.DPadUp] = true,
 	[Enum.KeyCode.DPadDown] = true,
@@ -453,10 +561,12 @@ local function onInput(input: InputObject)
 			task.spawn(tabs, if key == Enum.KeyCode.ButtonL1 then -1 else 1)
 		end
 	elseif key == Enum.KeyCode.ButtonSelect then
-		if GuiService.SelectedObject == nil then
+		local current = GuiService.SelectedObject
+		if current == nil then
 			selectFirstAvailable(true)
 		elseif topWindow() == nil then
-			setSelection(nil)
+			-- 기본 화면 → 앵커 차례 (위쪽 바 음소거까지) → 선택 끄기
+			setSelection(anchorAfter(current))
 		end
 	elseif DPAD[key] then
 		if GuiService.SelectedObject == nil then
@@ -481,6 +591,7 @@ local function setMode(value: boolean)
 		stack = {}
 	end
 	previousSelected = nil
+	carryUntil = 0
 	refreshHint()
 	for _, listener in table.clone(modeListeners) do
 		task.spawn(listener, value)
@@ -494,6 +605,7 @@ local function setLocked(value: boolean)
 	locked = value
 	GuiService.GuiNavigationEnabled = not value
 	if value then
+		carryUntil = 0
 		if GuiService.SelectedObject ~= nil then
 			setSelection(nil)
 		end
@@ -583,10 +695,24 @@ function GamepadNav.start(_gui: Instance)
 	-- Select 버튼은 우리가 처리해요 (Roblox 자동 선택이 기본 화면 밖 버튼을 고르지 않게)
 	GuiService.AutoSelectGuiEnabled = false
 	buildHint(gui)
+	-- 위쪽 바 음소거 버튼(Sfx가 만든 SoundGui.MuteButton)도 앵커로 — Select 차례로 꼭 닿게 (QA P3-4)
+	local function adoptMute(child: Instance)
+		local mute = if child.Name == MUTE_GUI_NAME then child:FindFirstChild(MUTE_BUTTON_NAME) else nil
+		if mute ~= nil and mute:IsA("GuiObject") and not table.find(anchors, mute) then
+			table.insert(anchors, mute)
+		end
+	end
+	for _, child in gui:GetChildren() do
+		adoptMute(child)
+	end
+	gui.ChildAdded:Connect(adoptMute)
 
 	setMode(GamepadNavLogic.modeFor(false, UserInputService:GetLastInputType().Name, false))
 	UserInputService.LastInputTypeChanged:Connect(function(inputType: Enum.UserInputType)
 		local typing = UserInputService:GetFocusedTextBox() ~= nil
+		if GamepadNavLogic.isGamepadInput(inputType.Name) then
+			lastGamepad = inputType
+		end
 		setMode(GamepadNavLogic.modeFor(gamepad, inputType.Name, typing))
 	end)
 	UserInputService.InputBegan:Connect(function(input: InputObject, _gameProcessed: boolean)

@@ -26,6 +26,11 @@ local Attributes = {
 	IsAdmin = "IsAdmin",
 	AdminPreview = "AdminPreview", -- string: 미리보기로 입은 스킨 id (끄면 없음). 관리자 패널 강조용 (ShopService.setPreview)
 
+	-- Player (서버 RoundService만 달아요, m6-01 Race 부활). number (workspace:GetServerTimeNow() 기준):
+	-- 출발점에서 다시 달리기 시작하는 시각. 부활을 기다리는 동안만 있고 다시 출발하거나 라운드가 끝나면 지워요.
+	-- 클라이언트 RespawnCountdown이 화면 가운데 카운트다운으로만 써요 — 권한·판정에는 쓰지 않아요.
+	RespawnAt = "RespawnAt",
+
 	-- Player (서버만 달아요, m5-03). 화면 표시용이에요 — 권한·소유 판단에는 쓰지 않아요 (그건 서버 프로필·게임 패스 확인).
 	Vip = "Vip", -- boolean: VIP 게임 패스가 있으면 true (아니면 없음). 이름표 👑·채팅 태그 (m5-08)
 	EliminationFx = "EliminationFx", -- string: 입은 탈락 연출 id (없으면 기본). 모든 클라이언트가 연출을 고를 때 읽어요 (m5-09)

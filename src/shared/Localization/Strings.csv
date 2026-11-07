@@ -78,6 +78,8 @@ hud.standing.place,{place}등,"final standings row place (English 1st, 2nd)",pla
 hud.timer.holdOn,⚡ 버텨요!,overtime timer after the floor is gone,,⚡ Hang on!
 hud.timer.left,⏱ {seconds}초,round timer,seconds=45,⏱ {seconds}s
 hud.timer.overtime,⚡ {seconds}초,overtime countdown timer,seconds=12,⚡ {seconds}s
+hud.respawn.title,다시 출발까지,respawn countdown title above the big number (Race round),,Back in
+hud.respawn.sub,출발점에서 다시 달려요!,respawn countdown subtitle (Race round),,Back to the start line!
 input.dive.btn,🤸 다이브,mobile dive button,,🤸 Dive
 input.grab.btn,✊ 잡기,mobile grab button,,✊ Grab
 input.grabbed,잡혔다!,tag over a grabbed player,,Grabbed!

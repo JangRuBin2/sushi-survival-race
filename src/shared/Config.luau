@@ -43,6 +43,14 @@ Config.TimeLimit = {
 	Final = 90, -- 결승은 끝나는 시각이 아니라 연장전 시작 시각 (Config.Final, m5-01)
 }
 
+-- Race 라운드 부활 (m6-01, GDD 4). 통과 정원이 차기 전에 떨어지거나 리셋하면 탈락 대신
+-- RespawnDelay초 뒤 출발점에서 다시 달려요. 정원이 차는 순간(또는 시간 종료) 아직 못 넘은 사람이 탈락이에요.
+-- Survival·결승에는 부활이 없어요.
+Config.Race = {
+	Respawn = true,
+	RespawnDelay = 3, -- 떨어진 뒤 다시 출발할 때까지(초). 화면 가운데 카운트다운
+}
+
 -- 결승 연장전 (m5-01, GDD 5.2). 연장전 시작 = 결승 맵의 시간 제한(Config.TimeLimit.Final 또는 map.timeLimit)
 Config.Final = {
 	CollapseDuration = 20, -- 연장전 시작부터 맵이 설 곳을 다 없앨 때까지(초)

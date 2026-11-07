@@ -175,6 +175,14 @@ function RoundLogic.activate(round: Round, target: number)
 	round.active = true
 end
 
+-- Race 부활 (m6-01, GDD 4): 이 라운드에서 낙하·리셋이 탈락 대신 출발점 부활인가.
+-- Race 방식(결승이 아닌 Race 맵)이고, 아직 끝나지 않았고, 그 사람이 아직 레이서일 때만이에요.
+-- 정원이 차거나 시간이 끝나면 round.ended라 부활 대신 평소 판정(남은 사람 탈락)이에요.
+-- 방·게임을 나간 사람과 캐릭터가 끝내 안 생긴 사람은 부르는 쪽이 이 함수를 거치지 않고 바로 탈락시켜요.
+function RoundLogic.respawns(round: Round, userId: number, enabled: boolean): boolean
+	return enabled and round.mode == "Race" and not round.ended and round.remaining[userId] == true
+end
+
 function RoundLogic.isRacing(round: Round, userId: number): boolean
 	return round.remaining[userId] == true
 end

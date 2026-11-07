@@ -1,6 +1,7 @@
 --!strict
 -- HUD 리모트 연결: MatchPhase/RoundProgress/PlayerResult를 받아 HudScreen에 반영해요.
 -- 보이고 숨기는 기준은 방 상태(RoomUpdated)예요: InMatch면 보이고, 아니면 숨겨요.
+-- Race 부활 카운트다운(m6-01, RespawnCountdown)도 여기서 같이 켜요 — 그건 서버 속성으로만 보이고 숨어요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +12,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Loc = require(script.Parent.Parent.Loc)
 local Sfx = require(script.Parent.Parent.Sfx)
 local HudScreen = require(script.Parent.HudScreen)
+local RespawnCountdown = require(script.Parent.RespawnCountdown)
 
 local OVERTIME_MUSIC_SPEED = 1.1 -- 결승 연장전 동안 배경음 재생 속도 (m5-01)
 
@@ -34,6 +36,8 @@ function HudController.start(gui: Instance)
 	end
 
 	local hud = HudScreen.new(gui, nameOf, player.UserId)
+	-- Race 부활 카운트다운 (m6-01): 내 RespawnAt 속성이 있는 동안 화면 가운데에 3 → 2 → 1
+	RespawnCountdown.start(gui)
 
 	-- 지금 매치 단계 (우승 글씨를 Victory 동안 띄우지 않으려고)
 	local currentPhase: Types.MatchPhase? = nil

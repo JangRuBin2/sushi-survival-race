@@ -22,6 +22,12 @@
 -- 결승에서 탈락과 우승이 같은 묶음으로 나오면(마지막 낙하 등) 탈락 연출(Config.Match.EliminationCutscene)이
 -- 끝날 때까지 기다렸다가 Won을 보내요. 그 뒤 MatchService가 바로 Victory로 가요 (m3-03 QA B1, m3-09).
 -- 맵 Model에는 Workspace에 넣기 전에 Attributes.RoomId/RoundIndex/MapId를 달아요 (클라이언트가 자기 방 맵을 찾음).
+--
+-- Race 부활 (m6-01, GDD 4): 결승이 아닌 Race 라운드에서는 정원이 차기 전 낙하·리셋·사망이 탈락이 아니에요.
+-- Config.Race.RespawnDelay초 뒤 처음 받은 스폰에서 다시 달려요(낙하는 그동안 출발점에 고정, 리셋은 새 캐릭터를 기다림).
+-- 기다리는 동안 Player 속성 Attributes.RespawnAt(서버 시각)을 달아 화면 카운트다운을 띄우고, 맵(getRacers)·잡기
+-- (activeRoomOf)·이동 감시(placedRoomOf)에는 레이서로 안 보여요. 정원 마감·시간 종료면 평소처럼 남은 사람이 탈락하고
+-- (부활 대기 중이면 출발점 진행도로 순위), 방·게임을 나간 사람과 캐릭터가 끝내 안 생긴 사람은 부활 없이 탈락이에요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -217,12 +223,24 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		local positionOf: { [number]: Vector3 } = {}
 		-- 배치된 레이서가 마지막으로 땅을 밟고 있던 HumanoidRootPart 위치 (GROUND_SAMPLE 간격, 낙하 탈락 연출 위치)
 		local lastGroundOf: { [number]: Vector3 } = {}
+		-- Race 부활 (m6-01): 레이서마다 처음 받은 스폰(부활도 같은 자리), 부활을 기다리는 사람,
+		-- 지금 캐릭터 감시를 끊는 함수(부활 때 새 캐릭터로 바꿔 달아요).
+		local spawnOf: { [number]: BasePart } = {}
+		local respawning: { [number]: boolean } = {}
+		local unwatchOf: { [number]: () -> () } = {}
+		local respawnEnabled = Config.Race.Respawn == true
+		local respawnDelay = Config.Race.RespawnDelay
 
 		-- 점수가 클수록 잘한 거예요. Race 맵은 코스 진행도(origin의 로컬 -Z, MapTypes 문서),
 		-- 그 밖(Survival·결승)은 높이. 캐릭터가 없으면 가장 낮은 점수.
 		local scoreByProgress = map.kind == "Race"
 		local function scoreOf(userId: number): number
 			local player = playersById[userId]
+			local spawnPart = spawnOf[userId]
+			if respawning[userId] and spawnPart and scoreByProgress then
+				-- 부활 대기 중이면 캐릭터가 로비(리셋)나 출발점에 있어요 — 출발점 진행도로 쳐요 (m6-01)
+				return -origin:PointToObjectSpace(spawnPart.Position).Z
+			end
 			local root = player and rootOf(player)
 			if root == nil then
 				return -math.huge
@@ -257,6 +275,23 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		-- 결승 마지막 탈락 연출이 끝난 뒤 보낼 우승자 (playRound가 기다렸다가 보내요)
 		local deferredWonUserId: number? = nil
 
+		-- 부활 대기를 끝내요 (다시 출발·통과·탈락·라운드 닫힘). 화면 카운트다운 속성도 지워요 (m6-01).
+		local function clearRespawn(userId: number)
+			if not respawning[userId] then
+				return
+			end
+			respawning[userId] = nil
+			local player = playersById[userId]
+			if player and player:GetAttribute(Attributes.RespawnAt) ~= nil then
+				player:SetAttribute(Attributes.RespawnAt, nil)
+			end
+		end
+		cleanup:add(function()
+			for userId in respawning do
+				clearRespawn(userId)
+			end
+		end)
+
 		-- RoundLogic 결과를 매치 등수로 바꿔서 발표하고 캐릭터를 옮겨요.
 		local function apply(outcomes: { RoundLogic.Outcome })
 			if #outcomes == 0 then
@@ -278,6 +313,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			end
 			for _, outcome in RoundLogic.applyOutcomes(args.standings, outcomes) do
 				local userId = outcome.userId
+				clearRespawn(userId) -- 부활을 기다리다 정원 마감·시간 종료로 탈락한 사람 (m6-01)
 				local player = playersById[userId]
 				local place = outcome.place :: number
 				local inGame = player ~= nil and player.Parent ~= nil
@@ -339,16 +375,29 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		-- position: 탈락 순간 HumanoidRootPart 위치 (연출용). nil이면 지금 캐릭터 위치를 써요.
 		-- knownCharacter: 이 캐릭터의 감시에서 온 탈락이면 true — 그때는 지금 player.Character(리스폰된 새 캐릭터일 수
 		-- 있음)의 위치로 채우지 않아요 (m3-01 QA B2). 모르면 position nil → 연출은 스탬프만.
+		-- Race 부활 시작 (m6-01). 아래 placeAt 다음에 채워요.
+		local startRespawn: (userId: number, cause: RoundLogic.FallCause) -> ()
+
+		-- force = true: 부활하지 않고 바로 탈락 (방·게임을 나감, 캐릭터가 끝내 안 생김).
 		local function queueFall(
 			userId: number,
 			score: number?,
 			cause: RoundLogic.FallCause,
 			position: Vector3?,
-			knownCharacter: boolean?
+			knownCharacter: boolean?,
+			force: boolean?
 		)
 			if closed or round.ended or pendingIds[userId] or not RoundLogic.isRacing(round, userId) then
 				return
 			end
+			if not force and RoundLogic.respawns(round, userId, respawnEnabled) then
+				-- Race는 정원이 차기 전까지 탈락 대신 출발점에서 다시 달려요 (m6-01)
+				if placed[userId] and not respawning[userId] then
+					startRespawn(userId, cause)
+				end
+				return
+			end
+			clearRespawn(userId)
 			pendingIds[userId] = true
 			causeOf[userId] = cause
 			if position == nil and cause == "Fall" then
@@ -370,41 +419,54 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 
 		-- 라운드 중 캐릭터 사망/제거/교체 = 탈락. 배치가 끝난 뒤부터 봐요
 		-- (라운드 사이에 리셋해서 리스폰 중이던 캐릭터가 나타나는 건 탈락이 아니에요).
+		-- Race 부활(m6-01)로 같은 사람을 다시 감시할 때는 이전 캐릭터 감시를 끊고 새로 달아요.
 		local function watch(player: Player, character: Model)
 			local userId = player.UserId
+			local previous = unwatchOf[userId]
+			if previous then
+				previous()
+			end
 			local humanoid = character:FindFirstChildOfClass("Humanoid")
 			-- 이 캐릭터(새 캐릭터 말고)의 마지막 위치
 			local function lastPosition(): Vector3?
 				local root = character:FindFirstChild("HumanoidRootPart")
 				return if root and root:IsA("BasePart") then root.Position else nil
 			end
+			local connections: { RBXScriptConnection } = {}
 			if humanoid then
-				cleanup:add(humanoid.Died:Connect(function()
-					queueFall(userId, nil, "Reset", lastPosition(), true)
-				end))
+				table.insert(
+					connections,
+					humanoid.Died:Connect(function()
+						queueFall(userId, nil, "Reset", lastPosition(), true)
+					end)
+				)
 			end
-			cleanup:add(character.AncestryChanged:Connect(function()
-				if not character:IsDescendantOf(game) then
+			table.insert(
+				connections,
+				character.AncestryChanged:Connect(function()
+					if not character:IsDescendantOf(game) then
+						queueFall(userId, -math.huge, "Reset", lastPosition(), true)
+					end
+				end)
+			)
+			table.insert(
+				connections,
+				player.CharacterAdded:Connect(function()
 					queueFall(userId, -math.huge, "Reset", lastPosition(), true)
+				end)
+			)
+			for _, connection in connections do
+				cleanup:add(connection)
+			end
+			unwatchOf[userId] = function()
+				for _, connection in connections do
+					connection:Disconnect()
 				end
-			end))
-			cleanup:add(player.CharacterAdded:Connect(function()
-				queueFall(userId, -math.huge, "Reset", lastPosition(), true)
-			end))
+			end
 		end
 
-		local function placeAt(player: Player, spawn: BasePart)
-			local character = waitForCharacter(player, SPAWN_WAIT_TIMEOUT)
-			if closed or not RoundLogic.isRacing(round, player.UserId) then
-				return
-			end
-			if character == nil then
-				-- 캐릭터가 끝내 안 생기면 감시도 배치도 못 하니 탈락이에요 (m2-05 QA F3).
-				-- 그대로 두면 Survival 시간 종료에 "버틴 사람"으로 통과해 버려요.
-				warn(`[RoundService] {player.Name} has no character to place at round start; eliminating`)
-				queueFall(player.UserId, -math.huge, "Reset")
-				return
-			end
+		-- 살아 있는 캐릭터를 스폰 위에 세우고 감시를 달아요 (출발 전이면 잠근 채, 출발 뒤면 바로 달릴 수 있게).
+		local function standOn(player: Player, character: Model, spawn: BasePart)
 			local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
 			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart
 			root.Anchored = false
@@ -422,12 +484,76 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			placed[player.UserId] = true
 		end
 
+		local function placeAt(player: Player, spawn: BasePart)
+			spawnOf[player.UserId] = spawn
+			local character = waitForCharacter(player, SPAWN_WAIT_TIMEOUT)
+			if closed or not RoundLogic.isRacing(round, player.UserId) then
+				return
+			end
+			if character == nil then
+				-- 캐릭터가 끝내 안 생기면 감시도 배치도 못 하니 탈락이에요 (m2-05 QA F3).
+				-- 그대로 두면 Survival 시간 종료에 "버틴 사람"으로 통과해 버려요. 부활도 하지 않아요 (m6-01).
+				warn(`[RoundService] {player.Name} has no character to place at round start; eliminating`)
+				queueFall(player.UserId, -math.huge, "Reset", nil, nil, true)
+				return
+			end
+			standOn(player, character, spawn)
+		end
+
+		-- Race 부활 (m6-01, GDD 4): 낙하는 바로 출발점에 세워 고정하고, 리셋·사망은 리스폰된 새 캐릭터를 기다려요.
+		-- RespawnDelay초 뒤 그 자리에서 다시 달려요. 그동안 맵·잡기·이동 감시에는 레이서로 안 보여요.
+		startRespawn = function(userId: number, cause: RoundLogic.FallCause)
+			local player = playersById[userId]
+			local spawn = spawnOf[userId]
+			if player == nil or spawn == nil then
+				queueFall(userId, -math.huge, cause, nil, nil, true)
+				return
+			end
+			respawning[userId] = true
+			local respawnAt = workspace:GetServerTimeNow() + respawnDelay
+			player:SetAttribute(Attributes.RespawnAt, respawnAt)
+
+			if cause == "Fall" then
+				-- 낙하: 살아 있는 캐릭터를 출발점에 고정해 둬요 (허공에서 계속 떨어지지 않게)
+				local character = player.Character
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				if character and humanoid and root and root:IsA("BasePart") and humanoid.Health > 0 then
+					lockMovement(humanoid)
+					root.AssemblyLinearVelocity = Vector3.zero
+					MoveExempt.mark(character, respawnDelay + 1)
+					character:PivotTo(spawn.CFrame + SPAWN_LIFT)
+					root.Anchored = true
+				end
+			end
+
+			cleanup:add(task.spawn(function()
+				task.wait(respawnDelay)
+				if closed or round.ended or not respawning[userId] or not RoundLogic.isRacing(round, userId) then
+					return
+				end
+				-- 리셋이면 RespawnTime(1초) 뒤 로비에 새 캐릭터가 생겨요. 조금 더 걸려도 기다려요.
+				local character = waitForCharacter(player, SPAWN_WAIT_TIMEOUT)
+				if closed or round.ended or not respawning[userId] or not RoundLogic.isRacing(round, userId) then
+					return
+				end
+				clearRespawn(userId)
+				if character == nil then
+					warn(`[RoundService] {player.Name} has no character to respawn; eliminating`)
+					queueFall(userId, -math.huge, "Reset", nil, nil, true)
+					return
+				end
+				standOn(player, character, spawn)
+			end))
+		end
+
 		-- 이동 감시(m4-10)가 배치 알림 직후부터 물어요: 배치 전에 등록해 둬요.
 		placedRacing[roomId] = function(userId: number): boolean
 			return not round.ended
 				and not closed
 				and placed[userId] == true
 				and not pendingIds[userId]
+				and not respawning[userId]
 				and RoundLogic.isRacing(round, userId)
 		end
 		for i, player in args.players do
@@ -440,7 +566,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 			while not closed do
 				for _, userId in RoundLogic.racers(round) do
 					local player = playersById[userId]
-					if player and placed[userId] and not pendingIds[userId] then
+					if player and placed[userId] and not pendingIds[userId] and not respawning[userId] then
 						local character = player.Character
 						local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 						local root = rootOf(player)
@@ -466,7 +592,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				local list = {}
 				for _, userId in RoundLogic.racers(round) do
 					local player = playersById[userId]
-					if player and placed[userId] and not pendingIds[userId] then
+					if player and placed[userId] and not pendingIds[userId] and not respawning[userId] then
 						table.insert(list, player)
 					end
 				end
@@ -483,7 +609,8 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				apply(RoundLogic.pass(round, player.UserId, scoreOf))
 			end,
 			eliminate = function(player: Player)
-				if placed[player.UserId] then -- 배치 전 캐릭터(로비 위치)의 낙하 판정은 무시해요
+				-- 배치 전 캐릭터(로비 위치)·부활 대기 중(m6-01)의 낙하 판정은 무시해요
+				if placed[player.UserId] and not respawning[player.UserId] then
 					queueFall(player.UserId, nil, "Fall")
 				end
 			end,
@@ -501,7 +628,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 
 		activeRemovers[roomId] = function(player: Player): boolean
 			if RoundLogic.isRacing(round, player.UserId) then
-				queueFall(player.UserId, -math.huge, "Reset")
+				queueFall(player.UserId, -math.huge, "Reset", nil, nil, true) -- 나간 사람은 부활 없이 탈락 (m6-01)
 				return true
 			end
 			return pendingIds[player.UserId] == true
@@ -513,6 +640,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				and not closed
 				and placed[userId] == true
 				and not pendingIds[userId]
+				and not respawning[userId]
 				and RoundLogic.isRacing(round, userId)
 		end
 
@@ -525,7 +653,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				local player = playersById[userId]
 				local character = player and player.Character
 				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-				if humanoid then
+				if humanoid and not respawning[userId] then -- 부활 대기 중이면 카운트다운이 끝날 때 풀어요 (m6-01)
 					CharacterUtil.resetMovement(humanoid)
 				end
 			end

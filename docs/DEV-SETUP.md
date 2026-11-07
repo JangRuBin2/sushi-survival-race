@@ -982,6 +982,18 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 알려진 한계 (P3): `docs/CHANGELOG.md` M5 "알려진 한계 · 보류" 게임패드 줄. 콘솔 출시(지원 기기 켜기)는 이 확인 뒤 USER-TODO C4.
 
+### 3-16. Race 부활 확인 (m6-01: 정원 전 부활 · 부활 카운트다운)
+출처: 스펙 [`docs/specs/m6-01-race-respawn.md`](specs/m6-01-race-respawn.md) AC1~AC6. 혼자 해도 되지만(`minPlayersToStart = 1`) 정원 마감(3번)은 **Test → Clients and Servers → 2~3명**이 편해요. 첫 라운드는 항상 Race라 Play만 하면 돼요.
+
+1. **떨어지기 (AC1)**: 코스 밖으로 뛰어내려요 → 탈락 연출("먹혔다!") 없이 처음 섰던 출발점에 멈춰 서고, 화면 가운데 "다시 출발까지" + 큰 숫자 3 → 2 → 1 + "출발점에서 다시 달려요!". 1 다음에 패널이 사라지고 바로 걷기·점프가 돼요.
+2. **리셋 (AC2)**: 달리다 Esc → R(리셋) → 로비에 잠깐 다시 생겼다가 카운트다운이 끝나면 출발점으로 옮겨져 달릴 수 있어요. 카운트다운 중에 또 리셋해도 한 번만 옮겨져요.
+3. **정원 마감 (AC3)**: 2~3명 테스트에서 한 명이 떨어져 카운트다운을 보는 동안 다른 사람이 결승선을 넘어 정원이 차면 → 카운트다운이 바로 사라지고 그 사람은 탈락 연출 후 관전이 돼요. 90초가 끝나도 마찬가지(더 멀리 간 사람부터 통과).
+4. **Survival·결승은 그대로 (AC4)**: `Config.DEBUG.forceMapPlan`으로 Survival/결승 맵을 먼저 두거나 2라운드까지 가서 떨어지면 → 예전처럼 바로 탈락이에요. 카운트다운 없음.
+5. **이동 감시 (AC5)**: 1·2번 뒤 출력 창에 `[MovementGuard]` 경고나 되돌림(캐릭터가 뒤로 튐)이 없어야 해요.
+6. **휴대폰 (AC6)**: Device 에뮬레이터 휴대폰 가로에서 카운트다운 패널 글씨가 잘리지 않는지, 영어(Player Emulator, 3-14)에서는 "Back in" / "Back to the start line!".
+
+> 기다리는 시간은 `Config.Race.RespawnDelay`(3초, 기본값), 끄려면 `Config.Race.Respawn = false`(예전처럼 탈락).
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|

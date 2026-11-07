@@ -337,9 +337,13 @@ return function(t: Test.Test)
 		t.ok(string.find(guard, "RoundService.placedRoomOf(", 1, true) ~= nil, "watches placed racers")
 		t.ok(string.find(guard, "Logic.passDecision(", 1, true) ~= nil, "pass decision")
 		local round = fs.readFile("src/server/RoundService.luau")
+		-- m6-01: 배치(placeAt)와 Race 부활이 같은 standOn으로 세워요 — standOn이 이동 감시에 알려요
+		local standOn = string.match(round, "local function standOn.-\n\t\tend\n")
+		t.ok(standOn ~= nil, "standOn found")
+		t.ok(string.find(standOn :: string, "notifyPlaced(", 1, true) ~= nil, "standOn notifies the guard")
 		local placeAt = string.match(round, "local function placeAt.-\n\t\tend\n")
 		t.ok(placeAt ~= nil, "placeAt found")
-		t.ok(string.find(placeAt :: string, "notifyPlaced(", 1, true) ~= nil, "placeAt notifies the guard")
+		t.ok(string.find(placeAt :: string, "standOn(", 1, true) ~= nil, "placeAt places through standOn")
 	end)
 
 	-- 위반이 나야 하는 경우

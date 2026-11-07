@@ -90,11 +90,12 @@ return function(t: Test.Test)
 				"WinnerName",
 				"WinnerWins",
 				"LocKey",
+				"RespawnAt",
 			}
 		do
 			t.ok((Attributes :: any)[key] ~= nil, `Attributes.{key}`)
 		end
-		t.eq(count, 19) -- m3-09: KeepVisible·NoClickSfx, m4-01: Title·MoveExemptUntil, m4-11: PlaceRole, m5-02: IsAdmin·AdminPreview, m5-03: Vip·EliminationFx·VictoryFx, m5-26: WinnerName·WinnerWins·LocKey
+		t.eq(count, 20) -- m3-09: KeepVisible·NoClickSfx, m4-01: Title·MoveExemptUntil, m4-11: PlaceRole, m5-02: IsAdmin·AdminPreview, m5-03: Vip·EliminationFx·VictoryFx, m5-26: WinnerName·WinnerWins·LocKey, m6-01: RespawnAt
 	end)
 
 	t.test("AC3: SfxCues에 확정 목록이 모두 있고 중복이 없어요", function()

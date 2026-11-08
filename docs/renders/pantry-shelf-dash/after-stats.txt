@@ -1,0 +1,3 @@
+[render] pantry-shelf-dash decor=568/2200 lights=6/32 (shadowed 1/2) particles=5/20 anim=36/120 tris=36680 void=intro-01:0%,intro-02:0%,intro-03:0%,intro-04:0%,intro-05:0%,overview:85%,eye:0%,mobile:0%,top:81% time=15.8s
+[render]   Race · budget Large · parts 666 (judgment 98, decor 568, hidden 30) · beams 0 · lighting map preset
+[render]   bounds all 192x158x624 · play area 90x73x502 · out build/renders/pantry-shelf-dash/

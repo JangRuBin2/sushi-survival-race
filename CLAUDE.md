@@ -14,7 +14,7 @@
 - **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-15), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
 - **다음 단계**: 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드, 영어 뽑기 등급 이름 결정 m5-26 B7 포함) → 비공개 테스트 → 공개. 콘솔 출시는 3-15 확인 뒤 사용자가 켬(USER-TODO C4).
 - 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 21개(기존 12개 아트 패스 v2, Race 45~55초 길이), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
-- 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
+- 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 large-maps(대형 맵·40명, 제안서 `docs/proposals/large-maps.md` 승인 대기)·map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
 ## 맵 풀 (21개, 전부 랜덤 판 풀)
 | 종류 | id |

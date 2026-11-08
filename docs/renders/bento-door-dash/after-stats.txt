@@ -1,0 +1,3 @@
+[render] bento-door-dash decor=852/2200 lights=3/32 (shadowed 1/2) particles=8/20 anim=6/120 tris=118372 void=intro-01:8%,intro-02:0%,intro-03:3%,intro-04:1%,intro-05:0%,overview:79%,eye:0%,mobile:0%,top:28% time=16.3s
+[render]   Race · budget Large · parts 955 (judgment 103, decor 852, hidden 1) · beams 0 · lighting map preset
+[render]   bounds all 704x148x802 · play area 84x76x502 · out build/renders/bento-door-dash/

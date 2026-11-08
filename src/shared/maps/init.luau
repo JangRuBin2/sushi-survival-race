@@ -32,6 +32,7 @@ local ALL: { MapTypes.MapModule } = {
 	require(script.BentoDoorDash), -- m6-04 대형 Race (capacity 40)
 	require(script.PantryShelfDash), -- m6-05 대형 Race (capacity 40)
 	require(script.LazySusan), -- m6-06 대형 Survival (capacity 40)
+	require(script.BanquetSweep), -- m6-07 대형 Survival (capacity 40)
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

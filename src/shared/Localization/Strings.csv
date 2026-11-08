@@ -142,6 +142,8 @@ map.pantry-shelf-dash.name,팬트리 선반 대질주,map name or one-line rule 
 map.pantry-shelf-dash.rule,옆바람과 굴러오는 통조림을 피해 선반 사이를 뛰어 큰 병뚜껑까지!,map name or one-line rule shown at round intro,,"Dodge the side winds and rolling cans, and leap across the shelves to the giant jar lid!"
 map.lazy-susan.name,중식당 회전 원판,map name or one-line rule shown at round intro,,Lazy Susan Spin
 map.lazy-susan.rule,빙글빙글 도는 원판의 구멍을 피해 끝까지 버텨요! 빨간 칸은 곧 사라져요.,map name or one-line rule shown at round intro,,"Dodge the holes in the spinning rings and hold on to the end! Red tiles vanish soon."
+map.banquet-sweep.name,연회상 쟁반 쓸기,map name or one-line rule shown at round intro,,Banquet Sweep
+map.banquet-sweep.rule,"밀려오는 쟁반 벽! 낮으면 뛰어넘고, 높으면 초록 빈칸으로 피해요!",map name or one-line rule shown at round intro,,"Trays sweep the table! Jump the low ones, slip through the green gaps in the tall ones!"
 map.fish-market.name,수산시장,map name or one-line rule shown at round intro,,Fish Market
 map.fish-market.rule,떨어지는 생선과 밀려오는 얼음을 피해 상자 위에서 버텨요!,map name or one-line rule shown at round intro,,"Dodge falling fish and sliding ice, and hang on atop the crates!"
 map.fish-market.sign,수산시장,big shop sign text inside the Fish Market map,,FISH MARKET

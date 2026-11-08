@@ -134,6 +134,8 @@ map.dessert-fridge.name,디저트 냉장고,map name or one-line rule shown at r
 map.dessert-fridge.rule,미끄러운 얼음을 건너 냉장고 문까지 달려요!,map name or one-line rule shown at round intro,,Slide across the slippery ice and race to the fridge door!
 map.dish-sink.name,깨끗하게! 설거지통,map name or one-line rule shown at round intro,,Squeaky Clean Sink
 map.dish-sink.rule,빙글빙글 접시와 움직이는 수세미를 피해 깨끗한 접시까지 달려요!,map name or one-line rule shown at round intro,,"Dodge the spinning plates and moving sponges, and run to the clean plate!"
+map.sushi-counter-crossing.name,초밥집 카운터 대횡단,map name or one-line rule shown at round intro,,Sushi Counter Crossing
+map.sushi-counter-crossing.rule,세 갈래 길 중 하나를 골라 젓가락을 피해 계산대까지 달려요!,map name or one-line rule shown at round intro,,"Pick one of three paths, dodge the chopsticks, and run to the register!"
 map.fish-market.name,수산시장,map name or one-line rule shown at round intro,,Fish Market
 map.fish-market.rule,떨어지는 생선과 밀려오는 얼음을 피해 상자 위에서 버텨요!,map name or one-line rule shown at round intro,,"Dodge falling fish and sliding ice, and hang on atop the crates!"
 map.fish-market.sign,수산시장,big shop sign text inside the Fish Market map,,FISH MARKET

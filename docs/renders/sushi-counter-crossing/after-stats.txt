@@ -1,0 +1,3 @@
+[render] sushi-counter-crossing decor=1457/2200 lights=16/32 (shadowed 1/2) particles=5/20 anim=47/120 tris=54584 void=intro-01:4%,intro-02:2%,intro-03:5%,intro-04:9%,intro-05:0%,overview:92%,eye:0%,mobile:0%,top:73% time=14.3s
+[render]   Race · budget Large · parts 1557 (judgment 100, decor 1457, hidden 4) · beams 0 · lighting map preset
+[render]   bounds all 291x198x640 · play area 76x108x526 · out build/renders/sushi-counter-crossing/

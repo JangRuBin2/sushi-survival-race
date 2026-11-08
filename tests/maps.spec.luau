@@ -4,6 +4,7 @@
 local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shared = RobloxRequire.root("src/shared")
 local Config = RobloxRequire.require(Shared.Config)
@@ -87,7 +88,7 @@ return function(t: Test.Test)
 				count += 1
 			end
 			-- m5-33: 기존 15개 + 맵 3차 배치 중 풀에 든 것 (배치 3 id는 tests/lib/Batch3 한 곳에)
-			t.eq(count, Batch3.expectedPoolCount(Maps.get))
+			t.eq(#LargeMaps.standard(Maps.infos()), Batch3.expectedPoolCount(Maps.get)) -- m6-02: 대형 맵 빼고
 		end
 	)
 

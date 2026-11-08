@@ -7,6 +7,7 @@
 local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shims = require("../tools/render/Shims")
 local roblox = require("@lune/roblox")
@@ -145,11 +146,11 @@ return function(t: Test.Test)
 	t.test(
 		"AC2: allInfos 21개, infos는 15 + 풀에 든 배치 3, 껍데기는 infos에 없음, get으로 모두 조회",
 		function()
-			t.eq(#Maps.allInfos(), 21)
+			t.eq(#LargeMaps.standard(Maps.allInfos()), 21)
 			-- m5-33 QA P3-1: 배치 3 6개 모두 졸업 — 풀 개수를 숫자로 고정해요
-			t.eq(#Maps.infos(), 21)
+			t.eq(#LargeMaps.standard(Maps.infos()), 21)
 			local kindCount: { [string]: number } = { Race = 0, Survival = 0, Final = 0 }
-			for _, info in Maps.infos() do
+			for _, info in LargeMaps.standard(Maps.infos()) do
 				kindCount[info.kind] += 1
 			end
 			t.eq(kindCount.Race, 8, "Race in pool")
@@ -308,7 +309,7 @@ return function(t: Test.Test)
 			t.eq(Batch3.expectedPoolCount(fakeGet(Batch3.IDS)), 21)
 			t.eq(Batch3.pooledOfKind(fakeGet(Batch3.IDS), "Final"), { "tea-garden", "onsen-claw" })
 			-- 실제 풀은 졸업 뒤 고정값 (m5-33 QA P3-1)
-			t.eq(#Maps.infos(), Batch3.POOL_COUNT)
+			t.eq(#LargeMaps.standard(Maps.infos()), Batch3.POOL_COUNT)
 			t.ok(Batch3.isBatch3("tea-garden") and not Batch3.isBatch3("rotating-belt"))
 		end
 	)

@@ -8,6 +8,7 @@ local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local LocTest = require("./lib/LocTest")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shared = RobloxRequire.root("src/shared")
 local Server = RobloxRequire.root("src/server")
@@ -96,7 +97,7 @@ return function(t: Test.Test)
 				-- tug-of-war-platform m5-18·claw-machine-prize m5-19)는 전부 졸업했어요
 				-- (아래 else 분기에서 "풀에 남아 있다"만 확인)
 			}
-			t.eq(#Maps.allInfos(), 21) -- m5-33: 기존 15 + 맵 3차 배치 6
+			t.eq(#LargeMaps.standard(Maps.allInfos()), 21) -- m5-33: 기존 15 + 맵 3차 배치 6
 			for _, info in Maps.allInfos() do
 				local map = Maps.get(info.id)
 				t.eq(MapTypes.validate(map), nil, info.id)
@@ -130,7 +131,7 @@ return function(t: Test.Test)
 			for _, info in Maps.infos() do
 				ids[info.id] = true
 			end
-			t.eq(#Maps.infos(), 21) -- m5-33 QA P3-1: 배치 3 졸업 뒤 고정
+			t.eq(#LargeMaps.standard(Maps.infos()), 21) -- m5-33 QA P3-1: 배치 3 졸업 뒤 고정
 			t.eq(Batch3.POOL_COUNT, 21)
 			t.ok(ids["ikura-bombs"], "ikura-bombs joined the random pool")
 			t.ok(ids["dessert-fridge"], "dessert-fridge joined the random pool")

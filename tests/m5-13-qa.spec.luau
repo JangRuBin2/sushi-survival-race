@@ -4,6 +4,7 @@
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shared = RobloxRequire.root("src/shared")
 local Maps = RobloxRequire.require(Shared.maps)
@@ -75,7 +76,7 @@ return function(t: Test.Test)
 				seen[info.id] = true
 				t.eq(Maps.get(info.id).kind, info.kind, `{info.id} kind matches module`)
 			end
-			t.eq(#Maps.allInfos(), 21) -- m5-33: 기존 15 + 맵 3차 배치 6 (배치 3 동안 안 바뀜)
+			t.eq(#LargeMaps.standard(Maps.allInfos()), 21) -- m5-33: 기존 15 + 맵 3차 배치 6 (배치 3 동안 안 바뀜)
 			local pooled: { [string]: boolean } = {}
 			for _, info in Maps.infos() do
 				pooled[info.id] = true

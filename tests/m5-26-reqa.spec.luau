@@ -13,6 +13,7 @@ local LocTest = require("./lib/LocTest")
 local RobloxRequire = require("./lib/RobloxRequire")
 local RoomServiceHarness = require("./lib/RoomServiceHarness")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shims = require("../tools/render/Shims")
 
@@ -271,7 +272,7 @@ return function(t: Test.Test)
 			for _, info in Maps.allInfos() do
 				table.insert(ids, info.id)
 			end
-			t.eq(#ids, 21)
+			t.eq(#LargeMaps.standard(Maps.allInfos()), 21) -- m6-02: 대형 맵도 아래에서 같이 확인해요
 			local marked = {}
 			for _, id in ids do
 				local origin = roblox.CFrame.new(Config.Arena.SlotSpacing, Config.Arena.BaseHeight, 0)

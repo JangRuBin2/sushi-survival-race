@@ -7,6 +7,7 @@ local fs = require("@lune/fs")
 local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shared = RobloxRequire.root("src/shared")
 local Config = RobloxRequire.require(Shared.Config)
@@ -323,7 +324,7 @@ return function(t: Test.Test)
 		"AC6: 맵 풀 Race 6(m5-06 dessert-fridge·m5-14 bouncy-castle-maze·m5-15 lantern-bridge 포함) · Survival 5(m5-16 giant-jenga·m5-17 cat-cafe-shelves·m5-05 tempura-pot 포함) · Final 4(m5-18 tug-of-war-platform·m5-19 claw-machine-prize·m5-04 ikura-bombs 포함)",
 		function()
 			local byKind: { [string]: { string } } = { Race = {}, Survival = {}, Final = {} }
-			for _, info in Maps.infos() do
+			for _, info in LargeMaps.standard(Maps.infos()) do
 				table.insert(byKind[info.kind], info.id)
 			end
 			for _, list in byKind do

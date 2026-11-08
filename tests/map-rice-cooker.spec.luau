@@ -5,6 +5,7 @@
 local Batch3 = require("./lib/Batch3")
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shims = require("../tools/render/Shims")
 local roblox = require("@lune/roblox")
@@ -115,7 +116,7 @@ return function(t: Test.Test)
 			end
 		end
 		t.ok(pooled, "random pool has rice-cooker")
-		t.eq(#Maps.infos(), Batch3.expectedPoolCount(Maps.get))
+		t.eq(#LargeMaps.standard(Maps.infos()), Batch3.expectedPoolCount(Maps.get))
 		t.eq(type(map.start), "function")
 		t.eq(map.overtime, nil) -- Survival은 연장전 훅이 없어요
 	end)

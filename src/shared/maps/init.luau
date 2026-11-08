@@ -28,6 +28,7 @@ local ALL: { MapTypes.MapModule } = {
 	require(script.FishMarket), -- m5-33 껍데기 → m5-37
 	require(script.TeaGarden), -- m5-33 껍데기 → m5-38
 	require(script.OnsenClaw), -- m5-33 껍데기 → m5-39
+	require(script.SushiCounterCrossing), -- m6-03 대형 Race (capacity 40)
 }
 
 local byId: { [string]: MapTypes.MapModule } = {}

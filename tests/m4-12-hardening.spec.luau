@@ -7,6 +7,7 @@ local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
+local LargeMaps = require("./lib/LargeMaps") -- m6-02: 예전 21개만 세요
 
 local Shared = RobloxRequire.root("src/shared")
 local Config = RobloxRequire.require(Shared.Config)
@@ -275,8 +276,9 @@ return function(t: Test.Test)
 				seen[id] = true
 			end
 		end
-		for _, info in Maps.infos() do
+		for _, info in LargeMaps.standard(Maps.infos()) do
 			-- m5-33 QA P3-2: 맵 3차 배치(m5-34~39)도 졸업했으니 예외 없이 모두 목록에 있어야 해요
+			-- (대형 맵 m6-03~07은 40명용이라 각자 map-<id>.spec이 확인해요)
 			t.ok(seen[info.id], `map {info.id} in the forced plan set`)
 		end
 	end)

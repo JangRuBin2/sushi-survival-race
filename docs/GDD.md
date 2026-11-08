@@ -4,7 +4,7 @@
 > 회전초밥집의 초밥들이 손님 젓가락을 피해 가게 밖으로 탈출하는 **라운드제 서바이벌 레이스** (로블록스)
 
 ### 변경 이력
-- **v0.9 대형 맵 · 40명 방** (2026-11-08, 사용자 "맵 개발 더 진행해. 좀 큰 맵도 만들어 보자" → 제안서 `docs/proposals/large-maps.md` → "개발 진행해"(Q1~Q5 답 없이 진행 → 권장안 채택)): 방 최대 인원에 **32·40** 추가(3.2), 25~40명은 4라운드 그대로 **통과 0.60·0.45·0.40**(4.1), 맵마다 받을 인원 **capacity·minPlayers**와 인원 맞춤 판 계획(5.1), **대형 맵 5개**(Race 3·Survival 2, 폭 72~96, 스폰 40) 5.2에 추가 예정(m6-03~07), Match 플레이스 최대 인원 40·Lobby 50(11.2). 근거 `docs/REFERENCE-large-maps.md`. 스펙 `docs/specs/m6-02-large-map-foundation.md`.
+- **v0.9 대형 맵 · 40명 방** (2026-11-08, 사용자 "맵 개발 더 진행해. 좀 큰 맵도 만들어 보자" → 제안서 `docs/proposals/large-maps.md` → "개발 진행해"(Q1~Q5 답 없이 진행 → 권장안 채택)): 방 최대 인원에 **32·40** 추가(3.2), 25~40명은 4라운드 그대로 **통과 0.60·0.45·0.40**(4.1), 맵마다 받을 인원 **capacity·minPlayers**와 인원 맞춤 판 계획(5.1), **대형 맵 5개**(Race 3·Survival 2, 폭 72~96, 스폰 40) 5.2에 추가(m6-03~07, 맵 풀 26개), Match 플레이스 최대 인원 40·Lobby 50(11.2). 근거 `docs/REFERENCE-large-maps.md`. 스펙 `docs/specs/m6-02-large-map-foundation.md`.
 - **v0.8 Race 부활** (2026-11-07, 사용자 요청 "정해진 인원이 통과하기 전까지는 다시 살아나서 도전할 수 있도록, 카운트다운도 화면에 표시" + 질문 답변 — Race만, 부활까지 남은 시간, 출발점): 결승이 아닌 **Race 라운드**에서 통과 정원이 차기 전에 떨어지거나 리셋하면 탈락 대신 **3초 뒤 출발점에서 다시 달려요**. 화면 가운데 "다시 출발까지 3 → 2 → 1". 정원이 차는 순간·시간 종료(90초)에 아직 못 넘은 사람이 탈락(진행도 순). Survival·결승은 그대로. 4·4.1·7·10 갱신. 3초는 **기본값** (`docs/specs/m6-01-race-respawn.md`).
 - **v0.7 문서 정합 — 맵 3차 배치·맵 길이 반영** (2026-10-15, 기획 변경 없음 — m5-33~m5-40 구현에 문서를 맞춤. 2026-10-16 보충: 9.2 제목 41종·판매 26종 합계, 11.7 41종, 6절 캐릭터 몸을 m5-25 기준 몸으로): 5.2 제목·목록 21개(Race 8·Survival 7·Final 6), Survival 최대 시간 60 → **75초**(맵 `timeLimit`, 60초부터 서든데스 — 맵별 단계 한 줄), 5.3 3차 배치 "개발 전" → 구현 완료, "m5-40이 끝나면 75초" 예정 문구를 확정으로, 라멘 급류 길이(약 440 studs), 11.3 맵 21개, 12 M5 진행 상황·14 남은 것.
 - **v0.7 모바일 버튼 위치 편집** (2026-10-14, 사용자 요청 + 메인 세션 제안에 "진행해"): 6절에 터치 버튼(점프·다이브·잡기) 끌어 옮기기·크기·프리셋·기본값으로 — 프로필에 비율로 저장(휴대폰/태블릿 묶음별), 금지 구역 클램프, 라운드 중 편집 불가. 왼손잡이 반전은 조이스틱 때문에 제외. 수치는 **기본값** (`docs/specs/m5-41-touch-button-layout.md`, `docs/REFERENCE-touch-button-layout.md`).
@@ -131,9 +131,9 @@
 | 3라운드 | Race → (Race 또는 Survival) → Final |
 | 4라운드 | Race → (Race 또는 Survival) → (Race 또는 Survival, 단 Survival 최소 1번) → Final |
 
-### 5.2 맵 목록 (21개, 전부 구현·랜덤 판 풀)
+### 5.2 맵 목록 (26개, 전부 구현·랜덤 판 풀)
 
-맵은 코드로 만든 판정 지오메트리 + 코드 장식(충돌 없음)이에요. 맵 풀 21개가 모두 랜덤 판에 나와요: Race 8(`rotating-belt`, `soy-swamp`, `ramen-rapids`, `dessert-fridge`, `bouncy-castle-maze`, `lantern-bridge`, `dish-sink`, `space-conveyor`), Survival 7(`hot-plate`, `chef-board`, `tempura-pot`, `giant-jenga`, `cat-cafe-shelves`, `rice-cooker`, `fish-market`), Final 6(`skewer-showdown`, `ikura-bombs`, `tug-of-war-platform`, `claw-machine-prize`, `tea-garden`, `onsen-claw`). 아래 ①~⑥은 M2~M4 맵, M5에 더한 9개는 ⑥ 뒤 표, 3차 배치 6개(`m5-33`~`m5-39`)는 5.3 표에 있어요. 코스 길이·시간은 `m5-40`(맵 길이 늘리기) 뒤 값이에요(5.3 "맵 길이"). ③④의 수치는 **기본값, 플레이테스트 후 조정**이에요 (`docs/specs/m4-04-map-ramen-rapids.md`, `m4-05-map-chef-board.md` 결정 기록).
+맵은 코드로 만든 판정 지오메트리 + 코드 장식(충돌 없음)이에요. 맵 풀 26개가 모두 랜덤 판에 나와요(대형 맵 5개는 예상 인원 12명 이상인 라운드에만, 5.1): Race 8 + 대형 3(`rotating-belt`, `soy-swamp`, `ramen-rapids`, `dessert-fridge`, `bouncy-castle-maze`, `lantern-bridge`, `dish-sink`, `space-conveyor` + `sushi-counter-crossing`, `bento-door-dash`, `pantry-shelf-dash`), Survival 7 + 대형 2(`hot-plate`, `chef-board`, `tempura-pot`, `giant-jenga`, `cat-cafe-shelves`, `rice-cooker`, `fish-market` + `lazy-susan`, `banquet-sweep`), Final 6(`skewer-showdown`, `ikura-bombs`, `tug-of-war-platform`, `claw-machine-prize`, `tea-garden`, `onsen-claw`). 아래 ①~⑥은 M2~M4 맵, M5에 더한 9개는 ⑥ 뒤 표, 3차 배치 6개(`m5-33`~`m5-39`)는 5.3 표에 있어요. 코스 길이·시간은 `m5-40`(맵 길이 늘리기) 뒤 값이에요(5.3 "맵 길이"). ③④의 수치는 **기본값, 플레이테스트 후 조정**이에요 (`docs/specs/m4-04-map-ramen-rapids.md`, `m4-05-map-chef-board.md` 결정 기록).
 
 #### 🏃 Race 맵 — 결승선에 목표 인원이 들어오면 종료 (최대 90초)
 
@@ -216,6 +216,17 @@
 
 - 새 결승 맵 3개도 연장전 훅이 있어요: 연어알은 바깥 고리 → 가운데 고리 → 원판, 줄다리기는 흔들림이 커지다 수직, 인형뽑기는 상자가 기울며 낮은 쪽 줄부터 — 모두 20초 안에 설 곳이 없어져요.
 - 연어알 폭탄 경고 원은 **불투명 빨강 + 흰 테두리**(색으로 깜빡임)라 연어알 주황과 구분돼요.
+
+#### 대형 맵 5개 (v0.9, m6-03~07 — 스폰 40·12~40명, 수치는 **기본값, 플레이테스트 후 조정**)
+폭 72~96(기존 맵 약 1.5~2배). Race는 정원 전 부활(4절, v0.8) 그대로, Survival은 75초(60초부터 서든데스). 배치도·근거는 제안서 `docs/proposals/large-maps.md`·`docs/REFERENCE-large-maps.md`.
+
+| 종류 | 맵 | 소개 규칙 한 줄 | 핵심 | 스펙 |
+|---|---|---|---|---|
+| Race | 초밥집 카운터 대횡단 (`sushi-counter-crossing`) | 세 갈래 길 중 하나를 골라 젓가락을 피해 계산대까지 달려요! | 폭 72 · 약 524. 회전 레일(5초마다 방향 바뀜)·접시·간장병 레인 → 젓가락 내려찍기 들판 → 오르막 4개(영수증 밀기·동전) | `m6-03` |
+| Race | 도시락 뚜껑 대탈출 (`bento-door-dash`) | 진짜 뚜껑 문을 찾아 부수고 도시락 끝까지 달려요! 가짜 문은 튕겨 나와요. | 폭 80 · 500. 문 8개 × 5줄(판마다 진짜 문이 바뀜), 공·간장 웅덩이·회전 막대·와사비 패드 | `m6-04` |
+| Race | 팬트리 선반 대질주 (`pantry-shelf-dash`) | 옆바람과 굴러오는 통조림을 피해 선반 사이를 뛰어 큰 병뚜껑까지! | 폭 96. 선반 섬 5줄(틈 8), 줄마다 환풍기 옆바람(6초 중 4초), 통조림 | `m6-05` |
+| Survival | 중식당 회전 원판 (`lazy-susan`) | 빙글빙글 도는 원판의 구멍을 피해 끝까지 버텨요! 빨간 칸은 곧 사라져요. | 반지름 72. 고리 4개가 번갈아 반대로 돌고 고리와 같이 도는 구멍(0.8초 빨강 예고), 반찬 그릇 넉백, 45초 1.4배, 서든데스 구멍 70°·가운데 유리판 깜빡 | `m6-06` |
+| Survival | 연회상 쟁반 쓸기 (`banquet-sweep`) | 밀려오는 쟁반 벽! 낮으면 뛰어넘고, 높으면 초록 빈칸으로 피해요! | 96 × 96 다다미. 변 전체를 쓰는 쟁반 벽(낮은 벽 점프 / 높은 벽 빈 칸), 1.5초 노랑·초록 예고, 30초부터 수직 두 장, 45초 바깥 줄 무너짐(72 × 72) | `m6-07` |
 
 ### 5.3 추가 맵 아이디어 (업데이트용)
 - ~~디저트 냉장고 (Race, 얼음 바닥 미끄러짐)~~ — `m5-06`으로 구현 (5.2)

@@ -6,24 +6,28 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 **v0.8**(Race 부활, 2026-11-07; v0.7 무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- 기획서 **v0.9**(대형 맵·40명 방, 2026-11-08; v0.8 Race 부활, 2026-11-07; v0.7 무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - **M5 (운영 업데이트) — 개발 스펙 모두 `done`, 사용자 확인 대기** (`ready`·개발 중인 스펙 없음)
   - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), **m5-33~39 맵 3차 배치 6개**(기반 + 새 맵, 풀 21개), **m5-40 맵 길이**(Race 6개 코스 연장, Survival 75초 + 60초 서든데스), m5-41 터치 버튼 위치·크기 편집.
   - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙"), **m5-12 콘솔(게임패드) UI**(2026-10-15 main 병합, 아래 "게임패드 UI 규칙").
 - **M6 (플레이테스트 반영)** — `in-qa`: **m6-01 Race 부활**(GDD v0.8 — 결승이 아닌 Race에서 정원이 차기 전 낙하·리셋은 탈락 대신 `Config.Race.RespawnDelay` 3초 뒤 출발점 부활, Player 속성 `Attributes.RespawnAt` → 클라이언트 `RespawnCountdown` 가운데 3·2·1. Survival·결승 그대로, 나간 사람은 부활 없음). Studio 확인 DEV-SETUP 3-16.
-- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-15), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
+  - `in-qa`(브랜치 `m6-02-large-map-foundation`, main 병합 전): **m6-02 대형 맵 기반**(방 인원 32·40, 25~40명 통과 0.60·0.45·0.40, 맵 `capacity`/`minPlayers` + 인원 맞춤 판 계획 `Rules.buildRoundPlan`, `PlacePayload.MAX_MEMBERS` 40, 장식 예산 `Large`), **m6-03~07 대형 맵 5개**(아래 표). 제안서 Q1~Q5는 답 없이 권장안. Studio 확인 DEV-SETUP 3-17.
+- **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-17), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
 - **다음 단계**: 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드, 영어 뽑기 등급 이름 결정 m5-26 B7 포함) → 비공개 테스트 → 공개. 콘솔 출시는 3-15 확인 뒤 사용자가 켬(USER-TODO C4).
-- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 21개(기존 12개 아트 패스 v2, Race 45~55초 길이), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
-- 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 large-maps(대형 맵·40명, 제안서 `docs/proposals/large-maps.md` 승인 대기)·map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
+- 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 26개(기존 12개 아트 패스 v2, Race 45~55초 길이, 대형 맵 5개·40명 방), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
+- 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 large-maps(대형 맵·40명, 제안서 `docs/proposals/large-maps.md` — 권장안으로 m6-02~07 구현)·map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
-## 맵 풀 (21개, 전부 랜덤 판 풀)
+## 맵 풀 (26개, 전부 랜덤 판 풀 — 대형 5개는 예상 인원 12명 이상 라운드만)
 | 종류 | id |
 |---|---|
 | Race (8) | `rotating-belt` 회전 벨트 · `soy-swamp` 간장 늪 & 와사비 산 · `ramen-rapids` 라멘 국물 급류 · `dessert-fridge` 디저트 냉장고 · `bouncy-castle-maze` 방방 미로 · `lantern-bridge` 등불 다리 건너기 · `dish-sink` 깨끗하게! 설거지통 · `space-conveyor` 우주 회전초밥 |
 | Survival (7) | `hot-plate` 뜨거운 철판 · `chef-board` 셰프의 도마 · `tempura-pot` 튀김 냄비 탈출 · `giant-jenga` 와르르 나무 블록 · `cat-cafe-shelves` 고양이 카페 캣타워 · `rice-cooker` 초대형 밥솥 · `fish-market` 수산시장 |
+| 대형 Race (3, m6) | `sushi-counter-crossing` 초밥집 카운터 대횡단 · `bento-door-dash` 도시락 뚜껑 대탈출 · `pantry-shelf-dash` 팬트리 선반 대질주 |
+| 대형 Survival (2, m6) | `lazy-susan` 중식당 회전 원판 · `banquet-sweep` 연회상 쟁반 쓸기 |
 | Final (6) | `skewer-showdown` 회전 꼬치 쇼다운 · `ikura-bombs` 연어알 폭탄 접시 · `tug-of-war-platform` 줄다리기 발판 · `claw-machine-prize` 인형뽑기 기계 속 · `tea-garden` 찻잎 정원 · `onsen-claw` 온천탕 인형뽑기 |
 
-- 시간 제한(m5-40): Race 90초·Final 90초(+연장전)는 `Config.TimeLimit` 그대로. **Survival 7개는 맵 모듈의 `timeLimit = 75`**(보통 `Logic.TIME_LIMIT`, 수산시장은 숫자 그대로. 기존 5개는 `Logic.SUDDEN_DEATH_AT = 60`부터 서든데스, 새 2개는 자기 일정) — `Config.TimeLimit.Survival` 60은 바꾸지 않았고 지금 그 값을 쓰는 Survival 맵은 없다. 새 Survival 맵도 `timeLimit`을 직접 둔다. Race는 빠른 사람 45~55초 목표(코스 약 240~470 studs, 맵별 `Logic.estimateClearTime`).
+- **대형 맵**(m6-02): 맵 모듈 `capacity = 40`·`minPlayers = 12`(`Config.Maps.LargeCapacity`/`LargeMinPlayers`, 기존 맵은 `StandardCapacity` 24), 스폰 40(전부 판정 바닥 위), 폭 72~96, `Art.BUDGET = "Large"`. 판 계획은 라운드 예상 인원에 맞는 맵만 고른다(`Rules.fitsCount`·`roundCounts`). 서버 start 테스트는 공용 하네스 `tests/lib/LargeMapHarness.luau`.
+- 시간 제한(m5-40): Race 90초·Final 90초(+연장전)는 `Config.TimeLimit` 그대로. **Survival 9개(대형 2 포함)는 맵 모듈의 `timeLimit = 75`**(보통 `Logic.TIME_LIMIT`, 수산시장은 숫자 그대로. 기존 5개는 `Logic.SUDDEN_DEATH_AT = 60`부터 서든데스, 새 2개는 자기 일정) — `Config.TimeLimit.Survival` 60은 바꾸지 않았고 지금 그 값을 쓰는 Survival 맵은 없다. 새 Survival 맵도 `timeLimit`을 직접 둔다. Race는 빠른 사람 45~55초 목표(코스 약 240~470 studs, 맵별 `Logic.estimateClearTime`).
 
 ## 스킨 · 상점 규칙
 - 스킨은 **겉모습만** 바꾼다. 크기·히트박스·속도는 모두 같다(히트박스·발바닥 `SushiBody.GROUND_OFFSET` 하나). 능력치 판매 없음. 초밥이 아닌 음식·캐릭터도 세계관에 맞으면 된다(v0.6).
@@ -71,8 +75,8 @@
 - **세션이 끝날 수 있으니 커밋할 때마다 자기 브랜치를 push하고 인계 메모를 남긴다.** 로컬 세션이 끝나면 클라우드 세션(`claude --cloud`)이 이어받는다 — `docs/WORKFLOW.md` "클라우드 세션으로 인계".
 
 ## 확정된 기획 요약 (자세한 건 GDD)
-- **방 시스템**: 방장이 최대 인원(4/8/12/16/24), 공개/비공개(4자리 코드)를 설정. 최소 4명이면 방장이 시작, 정원이 차면 자동 시작.
-- **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~24명 → 4라운드. 한 판 4~5분.
+- **방 시스템**: 방장이 최대 인원(4/8/12/16/24/32/40), 공개/비공개(4자리 코드)를 설정. 최소 4명이면 방장이 시작, 정원이 차면 자동 시작.
+- **라운드 수**: 시작 인원 4~8명 → 3라운드, 9~40명 → 4라운드(25~40명은 통과 비율 0.60·0.45·0.40, v0.9). 한 판 4~5분.
 - **통과 인원**: `clamp(round(시작 × 비율), 2, 시작 - 1)`. 비율 3라운드 [0.60, 0.50, 결승], 4라운드 [0.65, 0.55, 0.50, 결승]. 결승 전 남은 인원 ≤ 2면 바로 결승. 코드(`Rules.qualifyCount`)는 "시작"을 **그 라운드를 시작할 때 살아 있는 인원**으로 계산한다.
 - **맵**: 라운드마다 맵이 바뀐다. 첫 라운드는 항상 Race, 마지막은 항상 Final, 한 판에 같은 맵 중복 없음, 4라운드면 Survival 최소 1번.
 - **결승**: 생존형. 1명이 남는 순간 우승, 같은 순간 다 떨어지면 더 높이 버틴 사람(리셋·퇴장이 섞이면 그쪽이 더 나쁜 등수). **연장전**(결승 = 마지막 라운드에서만): 90초에 맵의 `overtime` 훅 → `Config.Final.CollapseDuration`(20초) 안에 설 곳이 모두 사라짐 → 늦게 떨어진 사람 우승. 안전 상한 150초(+`HardCapMargin` 40)에 가장 높이 있는 1명 우승. **Survival** 시간 종료(75초)면 버틴 사람 전원 통과. Race 통과자는 대기석(로비 스폰)으로.
@@ -131,9 +135,9 @@ src/
     Localization/Strings.csv   # 문구 카탈로그 → LocalizationTable (클라우드 표에도 같은 파일 업로드)
     maps/
       init.luau  MapTypes.luau                     # 맵 풀(ALL), 공통 인터페이스 + validate
-      MapKit  MapKitLogic  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
-      <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 21개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
-tests/               # 순수 로직·가짜 Roblox 테스트 (163개 파일 2381개, 2026-10-15 main 6b50f8d). init.luau 실행기, lib/, fixtures/
+      MapKit  MapKitLogic(Standard·Extended·Large 예산)  MapKitShapes  MapFxPresets  MapDecorAnimLogic  MapDecorTags  MapLighting  MapLightingLogic  MapSfx  MapSfxLogic
+      <Map>.luau (+ <Map>Layout / <Map>Logic / <Map>Art)   # 맵 26개 (위 표). 판정 상수는 Layout, 순수 계산은 Logic, 장식은 Art
+tests/               # 순수 로직·가짜 Roblox 테스트 (170개 파일 2466개, 2026-11-08 m6-02 브랜치). init.luau 실행기, lib/, fixtures/
 docs/
   GDD.md  WORKFLOW.md  CHANGELOG.md  DEV-SETUP.md  USER-TODO.md  REFERENCE-*.md
   specs/  qa/  proposals/  renders/<mapId>/·renders/characters/(커밋한 before/after PNG)
@@ -150,8 +154,9 @@ export type MapModule = {
   start: (ctx: RoundContext) -> (),          -- 장애물 가동, 판정 → ctx.pass / ctx.eliminate
   cleanup: ((ctx: RoundContext) -> ())?,     -- ctx.cleanup에 안 넣은 것만
   overtime: ((ctx: RoundContext, info: OvertimeInfo) -> ())?,  -- 결승 연장전. kind == "Final"이면 필수
-  inPool: boolean?,                          -- false면 랜덤 판에서 빠짐(강제 플랜·Maps.get만). 지금 21개 모두 풀
+  inPool: boolean?,                          -- false면 랜덤 판에서 빠짐(강제 플랜·Maps.get만). 지금 26개 모두 풀
   lighting: MapLighting.MapLighting?,        -- 맵 조명 분위기 (m5-23). 보통 Art.LIGHTING
+  capacity: number?, minPlayers: number?,    -- 받을 인원(없으면 24)·최소 예상 인원(m6-02, 대형 맵 40·12)
 }
 export type OvertimeInfo = { collapseDuration: number }
 export type RoundContext = {
@@ -161,7 +166,7 @@ export type RoundContext = {
   pass: (player: Player) -> (), eliminate: (player: Player) -> (),
 }
 ```
-- `Spawns` 폴더에 24개 BasePart, **24개 모두 판정 바닥 위**(테스트로 확인). 코스는 `origin`의 앞쪽(로컬 -Z)으로 — 시간 종료 때 Race 순위 축.
+- `Spawns` 폴더에 `capacity`개(기존 24·대형 40) BasePart, **모두 판정 바닥 위**(테스트로 확인). 코스는 `origin`의 앞쪽(로컬 -Z)으로 — 시간 종료 때 Race 순위 축.
 - 라운드 종료 판정은 `RoundLogic`(순수). 맵은 `ctx.pass`/`ctx.eliminate`만 부르고, 한 판정 틱의 탈락은 한 묶음. 결승 여부는 "마지막 라운드인가"로 정한다. 점수: Race 진행도(로컬 -Z), Survival·Final 높이.
 - 맵 상태는 모듈이 아니라 `ctx`/`start` 지역 변수(또는 `ctx` 키 표)에 둔다 — 한 서버에서 여러 방이 같은 맵을 동시에 돌린다. 장애물은 `CollectionService` 태그로, `start`에서 **`ctx.model` 하위의 태그 파츠만** 동작시킨다. 태그 이름은 각 맵 모듈 상단(예: `Conveyor`, `HotTile`, `IkuraTile`, `Ice`·`Jelly`·`ColdFan`, `BounceFloor`, `TugOfWarPlatform` …).
 - **이동 감시 면제**: 서버가 캐릭터를 순간적으로 튕기거나 옮기면(넉백, 와사비·젤리·방방 바닥 튕김, 폭탄·기름·고양이·수세미·운석·밥솥 끓어오름·증기·얼음 블록·생선·찻잔·충격파 넉백, 젓가락 집기·놓기) `MoveExempt.mark(character, seconds?)`. 벨트·급류·기울기·바람(송풍구)·접시 회전·우주 레일 같은 **연속 밀기에는 달지 않는다**.
@@ -173,7 +178,7 @@ export type RoundContext = {
 - 장식은 `<Map>Art.luau`의 `DecorSpec` 목록(순수 데이터) → `MapKit.buildDecor`(Anchored, 충돌·쿼리·터치 없음). 판정 파츠의 크기·위치·CanCollide는 아트 때문에 바꾸지 않는다. 목록에 하나라도 틀린 항목이 있으면 **그 맵 장식 전체를 건너뛴다**.
 - 조명·파티클·움직임은 **선언형**: `light = { kind = "Point"|"Spot"|"Surface", … }`, `particle = "<MapFxPresets 이름>"`(+`particleRate`), `anim = { kind = "Spin"|"Bob"|"Sway"|"Pulse", period, amount?, axis? }`(클라이언트 로컬 — 판정 파츠·판정 파츠와 같이 움직이는 장식에는 금지). 모양은 `MapKitShapes`(roundedBox·bevelBox·rimDisc·ring·capsule·lipTrim·scatter·transform), 색은 `MapKitLogic.PALETTE`·`shades`.
 - **SurfaceLight range ≤ 16**(Roblox가 자름, Point·Spot ≤ 60). 그림자 조명은 좁은 SpotLight에만. 빛은 보이는 원인 파츠(등·램프)에 붙인다.
-- **예산** `MapKitLogic.BUDGETS`: Standard 파츠 600·파티클 8·조명 12·그림자 조명 1·움직임 40(기본), **Extended 1500·16·24·2·80**(아트 패스 맵이 `Art.BUDGET = "Extended"`로 고르고 맵 테스트가 `checkBudget(Art.decor(), "Extended")`). 런타임 경고는 Extended 기준.
+- **예산** `MapKitLogic.BUDGETS`: Standard 파츠 600·파티클 8·조명 12·그림자 조명 1·움직임 40(기본), **Extended 1500·16·24·2·80**(아트 패스 맵이 `Art.BUDGET = "Extended"`로 고르고 맵 테스트가 `checkBudget(Art.decor(), "Extended")`), **Large 2200·20·32·2·120**(대형 맵, m6-02). 런타임 경고는 Large 기준.
 - **맵별 조명**: 맵 모듈의 `lighting`(보통 `Art.LIGHTING`, 기존 맵은 `MapLighting.PRESETS[id]`) → 클라이언트 `MapLightingController`가 카메라가 있는 아레나(판정 파츠 상자 + 40, `IntroCamera` 점 포함) 조명으로 1.2초 섞어 바꾸고, 나오면 로비 조명. 서버 `Lighting`은 로비 값만. **소개 카메라 점은 아레나 상자 + 40 안**에 두고 지오메트리를 뚫지 않게.
 - 새 맵은 안개 패널(큰 반투명 판)을 쓰지 않는다 — Atmosphere는 `lighting`으로. `build` 끝에서 `MapKit.introCamera`와 `MapKit.attachStudioArt(model, id, origin)`.
 

@@ -19,7 +19,7 @@ local MapKit = require(script.Parent.MapKit)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "lantern-bridge"
-local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
+local MAX_PLAYERS = Config.Maps.StandardCapacity -- 기존 맵은 스폰 24개 (m6-02: 방 최대 인원 40과 따로)
 local TAG_PLANK = "LanternBridgePlank"
 
 local function palette()

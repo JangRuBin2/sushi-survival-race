@@ -110,11 +110,12 @@ return function(t: Test.Test)
 	t.test("Config: 방 인원 선택지와 통과 비율이 규칙과 맞아요", function()
 		t.ok(table.find(Config.Room.MaxPlayerOptions, Config.Room.DefaultMaxPlayers), "default not in options")
 		for _, option in Config.Room.MaxPlayerOptions do
-			t.ok(option >= Config.Room.MinPlayersToStart and option <= 24, `option {option}`)
+			t.ok(option >= Config.Room.MinPlayersToStart and option <= Config.Maps.LargeCapacity, `option {option}`) -- m6-02: 40까지
 		end
 		for roundCount, ratios in Config.Rules.PassRatios do
 			t.eq(#ratios, roundCount - 1, `ratios for {roundCount} rounds`)
 		end
+		t.eq(#Config.Rules.LargePassRatios, 3, "large rooms keep 4 rounds") -- m6-02
 	end)
 	t.test("m2-01 AC6: 맵 풀에 Race 2개 이상, Survival·Final 1개 이상", function()
 		local counts = {}

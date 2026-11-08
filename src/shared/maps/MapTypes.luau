@@ -21,12 +21,13 @@
 --                  (훅이 없는 맵이 디버그 강제 플랜으로 결승이 되면 연장전 없이 시간 제한에 높이 순으로 끝나요.)
 --
 -- build()가 돌려주는 Model 안의 약속
---   Spawns (Folder)  시작 위치 BasePart들. 이름순으로 플레이어를 배치해요. 최대 인원(24)만큼 있어야 해요.
+--   Spawns (Folder)  시작 위치 BasePart들. 이름순으로 플레이어를 배치해요. capacity(기본 24, 대형 맵 40)만큼 있어야 해요.
 --   코스는 origin의 앞쪽(LookVector, 로컬 -Z)으로 뻗어요. 시간 종료 때 "가장 멀리 간" 순위도 이 축으로 재요.
 -- 장애물은 CollectionService 태그를 파츠에 달아서 동작시켜요. start에서는 ctx.model 하위의 태그 파츠만 써요.
 -- 태그 이름은 맵마다 다르고 각 맵 모듈 머리 주석에 있어요 (맵 21개 목록은 Shared.maps의 init.luau).
 
 local Cleanup = require(script.Parent.Parent.Cleanup)
+local Config = require(script.Parent.Parent.Config)
 local MapLighting = require(script.Parent.MapLighting)
 local Rules = require(script.Parent.Parent.Rules)
 
@@ -64,6 +65,10 @@ export type MapModule = {
 	-- 맵 조명 분위기 (m5-23). 있으면 그 아레나를 보는 클라이언트가 Lighting을 이 값으로 바꿔요 (빠진 키는 로비 값).
 	-- nil이면 로비 조명 그대로. 기존 맵은 MapLighting.PRESETS[id]
 	lighting: MapLighting.MapLighting?,
+	-- 받을 수 있는 최대 인원 = 스폰 수 (m6-02). nil이면 Config.Maps.StandardCapacity(24). 대형 맵은 Config.Maps.LargeCapacity(40)
+	capacity: number?,
+	-- 이 인원보다 적은 라운드에는 안 나와요 (m6-02). nil이면 제한 없음. 대형 맵은 Config.Maps.LargeMinPlayers(12)
+	minPlayers: number?,
 }
 
 local KINDS = { Race = true, Survival = true, Final = true }
@@ -106,6 +111,15 @@ function MapTypes.validate(map: any): string?
 	end
 	if map.inPool ~= nil and type(map.inPool) ~= "boolean" then
 		return `{id}: inPool must be a boolean`
+	end
+	for _, field in { "capacity", "minPlayers" } do
+		local value = map[field]
+		if value ~= nil and (type(value) ~= "number" or value ~= math.floor(value) or value < 1) then
+			return `{id}: {field} must be a positive integer`
+		end
+	end
+	if map.minPlayers ~= nil and map.minPlayers > (map.capacity or Config.Maps.StandardCapacity) then
+		return `{id}: minPlayers must not exceed capacity`
 	end
 	if map.lighting ~= nil then
 		local problem = MapLighting.validate(map.lighting)

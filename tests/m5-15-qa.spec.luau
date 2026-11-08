@@ -86,7 +86,7 @@ return function(t: Test.Test)
 				if string.match(line, "^local ") and not string.match(line, "^local function ") then
 					local ok = string.find(line, "require(", 1, true)
 						or string.match(line, '^local [%u_]+ = [%d%.%-"]')
-						or string.match(line, "^local MAX_PLAYERS = Config%.Room%.MaxPlayerOptions")
+						or string.match(line, "^local MAX_PLAYERS = Config%.Maps%.StandardCapacity")
 						or string.match(line, "^local map: MapTypes%.MapModule")
 					t.ok(ok, `module-level state? {line}`)
 				end

@@ -165,7 +165,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
 - [ ] **C2. Match 플레이스 만들기** (m4-11)
   1. Creator Dashboard → 이 게임 → Places → 새 플레이스 "Match"
   2. 같은 rojo 빌드를 그 플레이스에도 퍼블리시 (코드가 바뀔 때마다 **두 플레이스 모두** 다시 퍼블리시)
-  3. 최대 인원: Match 24, Lobby 40
+  3. 최대 인원: **Match 40, Lobby 50** (m6-02: 방 최대 40명 — 예전 안내 Match 24·Lobby 40에서 바뀜)
   4. **로비 PlaceId, 매치 PlaceId** 알려 주기 → 에이전트가 `Config.Places`에 넣어요
 - [ ] **C3. 개발자 상품 15개** (m4-14, 맨 마지막)
   - Creator Dashboard → 이 게임 → Monetization → Developer Products
@@ -223,7 +223,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
   - 경험 설문(연령 등급), 공개 범위(비공개 테스트 → 공개)
     - 설문의 **"유료 랜덤 아이템(paid random items)"** 질문: 🎫 우승자 뽑기(m5-31)는 우승으로만 받는 무료 티켓이라 Roblox 문서상 유료 랜덤 아이템이 아니에요 → "없음"으로 답하면 돼요(고등어 [신선]을 로벅스로 팔아도 뽑기 자체는 돈으로 못 하니 그대로 "없음"). 나중에 티켓을 파는 상품이나 확률을 올리는 상품을 만들면 답이 바뀌니(그래서 만들지 않아요) 설문 화면의 문구가 다르면 알려 주세요. 근거: [`docs/REFERENCE-winner-ticket-draw.md`](REFERENCE-winner-ticket-draw.md) §1
   - 지원 기기: PC·휴대폰·태블릿 켬, **콘솔 끔** (콘솔 UI m5-12는 **main에 있음, Studio 확인 필요** — B3의 DEV-SETUP 3-15를 본 뒤 켜요. 켤 때 경험 설문(콘텐츠 성숙도) 완료도 확인 — 콘솔 필수)
-  - 서버 최대 인원: Lobby 40 / Match 24 (C2를 안 했으면 한 플레이스 모드라 40)
+  - 서버 최대 인원: Lobby 50 / Match 40 (m6-02. C2를 안 했으면 한 플레이스 모드라 50)
   - 개인정보 삭제 요청(Right to Erasure)이 오면 두 곳을 지워요. MemoryStore는 곧 만료되니 따로 지울 것 없음.
     1. `PlayerData_v1`: Creator Dashboard → Data Stores에서 키 `u_<UserId>` 삭제
     2. `Purchases_v1`(로벅스 구매 기록): 키가 PurchaseId라 UserId로 바로 찾을 수 없어요. 각 기록에 UserId 메타데이터가 붙어 있으니, Studio Command Bar(퍼블리시된 게임, API 접근 켬)에서 `ListKeysAsync`로 키를 돌며 `GetAsync`의 `KeyInfo:GetUserIds()`에 그 UserId가 있는 키를 `RemoveAsync`로 지워요. 요청이 오면 에이전트에게 스크립트를 달라고 하면 돼요.

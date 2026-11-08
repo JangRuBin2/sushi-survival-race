@@ -58,7 +58,7 @@ return function(t: Test.Test)
 				"start floor top at y=0"
 			)
 			-- 스폰 수는 최대 방 인원과 같아야 해요 (build의 assert)
-			t.eq(#Layout.spawnPositions(), Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions])
+			t.eq(#Layout.spawnPositions(), Config.Maps.StandardCapacity)
 		end
 	)
 

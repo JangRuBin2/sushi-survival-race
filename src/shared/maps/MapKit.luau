@@ -142,7 +142,7 @@ function MapKit.buildDecor(specs: { MapKitLogic.DecorSpec }, origin: CFrame, par
 		warn(`[MapKit] decor skipped: {problem}`)
 		return {}
 	end
-	local over = MapKitLogic.checkBudget(specs, "Extended")
+	local over = MapKitLogic.checkBudget(specs, "Large") -- 가장 큰 단계 기준 (m6-02 대형 맵). 맵별 단계는 테스트가 확인
 	if over then
 		warn(`[MapKit] decor over budget: {over}`)
 	end

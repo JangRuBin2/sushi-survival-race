@@ -17,7 +17,7 @@ local Types = require(script.Parent.Types)
 local PlacePayload = {}
 
 PlacePayload.VERSION = 1
-PlacePayload.MAX_MEMBERS = 24
+PlacePayload.MAX_MEMBERS = 40 -- 가장 큰 방 (Config.Room.MaxPlayerOptions 끝, m6-02)
 PlacePayload.MAX_KEY_LENGTH = 64 -- roomKey, jobId (GUID 36자)
 PlacePayload.MAX_ROOM_ID_LENGTH = 16
 

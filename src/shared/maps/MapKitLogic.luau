@@ -61,7 +61,7 @@ MapKitLogic.DECOR_PART_BUDGET = 600
 MapKitLogic.PARTICLE_BUDGET = 8
 MapKitLogic.LIGHT_BUDGET = 12
 
-export type BudgetTier = "Standard" | "Extended"
+export type BudgetTier = "Standard" | "Extended" | "Large"
 export type Budget = { parts: number, particles: number, lights: number, shadowedLights: number, anim: number }
 
 -- 예산 단계 (m5-23). 기본은 Standard, 아트 패스를 한 맵은 Art 모듈에서 BUDGET = "Extended"를 내보내고
@@ -69,6 +69,8 @@ export type Budget = { parts: number, particles: number, lights: number, shadowe
 MapKitLogic.BUDGETS = {
 	Standard = { parts = 600, particles = 8, lights = 12, shadowedLights = 1, anim = 40 },
 	Extended = { parts = 1500, particles = 16, lights = 24, shadowedLights = 2, anim = 80 },
+	-- 대형 맵 (m6-02, 폭 72~96·40명). 바닥이 2~3배라 장식도 더 들지만 휴대폰을 생각해 2배는 안 넘겨요 (기본값)
+	Large = { parts = 2200, particles = 20, lights = 32, shadowedLights = 2, anim = 120 },
 } :: { [string]: Budget }
 
 function MapKitLogic.budget(tier: BudgetTier?): Budget

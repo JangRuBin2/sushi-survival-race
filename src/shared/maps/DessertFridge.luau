@@ -22,7 +22,7 @@ local MapTypes = require(script.Parent.MapTypes)
 local MoveExempt = require(script.Parent.Parent.MoveExempt)
 
 local ID = "dessert-fridge"
-local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
+local MAX_PLAYERS = Config.Maps.StandardCapacity -- 기존 맵은 스폰 24개 (m6-02: 방 최대 인원 40과 따로)
 local TAG_ICE = IceLogic.TAG
 local TAG_JELLY = "Jelly"
 local TAG_FAN = "ColdFan"

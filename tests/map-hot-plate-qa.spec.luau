@@ -66,7 +66,7 @@ return function(t: Test.Test)
 	end)
 
 	t.test("스폰 수가 최대 방 인원 이상", function()
-		local maxPlayers = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
+		local maxPlayers = Config.Maps.StandardCapacity
 		t.ok(#Logic.spawnOffsets() >= maxPlayers)
 	end)
 

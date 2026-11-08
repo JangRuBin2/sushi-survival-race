@@ -38,7 +38,7 @@ for _, map in ALL do
 	assert(problem == nil, problem)
 	assert(not byId[map.id], `duplicate map id {map.id}`)
 	byId[map.id] = map
-	local info: Rules.MapInfo = { id = map.id, kind = map.kind }
+	local info: Rules.MapInfo = { id = map.id, kind = map.kind, capacity = map.capacity, minPlayers = map.minPlayers }
 	table.insert(allInfos, info)
 	if map.inPool ~= false then
 		table.insert(infos, info)

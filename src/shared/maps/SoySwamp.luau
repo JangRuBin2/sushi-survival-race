@@ -14,7 +14,7 @@ local MapKit = require(script.Parent.MapKit)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "soy-swamp"
-local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
+local MAX_PLAYERS = Config.Maps.StandardCapacity -- 기존 맵은 스폰 24개 (m6-02: 방 최대 인원 40과 따로)
 
 -- 색 표 (m4-02 아트: SoySwampArt.COLORS). Color3는 Roblox API라 build 안에서만 만들어요.
 local function palette(): { [string]: Color3 }

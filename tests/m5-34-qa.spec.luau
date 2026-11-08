@@ -205,7 +205,7 @@ return function(t: Test.Test)
 			if string.match(line, "^local ") and not string.match(line, "^local function") then
 				local ok = string.match(line, "= require%(") ~= nil
 					or string.match(line, '= "[^"]*"$') ~= nil
-					or string.match(line, "Config%.Room%.MaxPlayerOptions") ~= nil
+					or string.match(line, "Config%.Maps%.StandardCapacity") ~= nil
 					or string.match(line, "= {$") ~= nil and string.match(line, "^local map") ~= nil
 				t.ok(ok, `module-level state? {line}`)
 			end

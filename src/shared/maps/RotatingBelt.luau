@@ -18,7 +18,7 @@ local MapKitLogic = require(script.Parent.MapKitLogic)
 local MapTypes = require(script.Parent.MapTypes)
 
 local ID = "rotating-belt"
-local MAX_PLAYERS = Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions]
+local MAX_PLAYERS = Config.Maps.StandardCapacity -- 기존 맵은 스폰 24개 (m6-02: 방 최대 인원 40과 따로)
 
 -- 코스 치수(studs). 로컬 z: 0이 출발선, 음수로 갈수록 결승에 가까워져요.
 local WIDTH_NORMAL = 16

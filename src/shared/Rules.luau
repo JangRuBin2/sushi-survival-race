@@ -12,6 +12,8 @@ export type MapKind = "Race" | "Survival" | "Final"
 export type MapInfo = {
 	id: string,
 	kind: MapKind,
+	capacity: number?, -- 스폰 수 = 받을 수 있는 최대 인원 (없으면 Config.Maps.StandardCapacity, m6-02)
+	minPlayers: number?, -- 이 인원 미만인 라운드에는 안 나와요 (없으면 제한 없음, m6-02)
 }
 
 -- Random과 같은 모양. 테스트에서는 시드를 고정한 가짜 rng를 넘겨요.
@@ -19,7 +21,7 @@ export type Rng = {
 	NextInteger: (self: any, min: number, max: number) -> number,
 }
 
--- 시작 인원으로 라운드 수 결정 (4~8명: 3라운드, 9~24명: 4라운드)
+-- 시작 인원으로 라운드 수 결정 (4~8명: 3라운드, 9~40명: 4라운드 — 25명 이상은 비율만 달라요, m6-02)
 function Rules.roundCount(startCount: number): number
 	if startCount >= Config.Rules.FourRoundMinPlayers then
 		return 4
@@ -27,13 +29,23 @@ function Rules.roundCount(startCount: number): number
 	return 3
 end
 
+-- 라운드별 통과 비율. 시작 인원이 Config.Rules.LargeMinPlayers 이상인 4라운드 판은 대형 비율 (m6-02).
+-- startCount가 없으면 라운드 수만 보고 골라요 (예전 호출과 같아요).
+function Rules.passRatios(roundCount: number, startCount: number?): { number }?
+	if roundCount == 4 and startCount ~= nil and startCount >= Config.Rules.LargeMinPlayers then
+		return Config.Rules.LargePassRatios
+	end
+	return Config.Rules.PassRatios[roundCount]
+end
+
 -- roundIndex(1부터) 라운드의 통과 인원.
 -- 통과 = clamp(round(남은 인원 × 비율), 2, 남은 인원 - 1). 마지막 라운드(결승)는 항상 1명.
-function Rules.qualifyCount(aliveCount: number, roundCount: number, roundIndex: number): number
+-- startCount(판을 시작한 인원)는 비율 구간을 고를 때만 써요 (m6-02).
+function Rules.qualifyCount(aliveCount: number, roundCount: number, roundIndex: number, startCount: number?): number
 	if roundIndex >= roundCount then
 		return 1
 	end
-	local ratios = Config.Rules.PassRatios[roundCount]
+	local ratios = Rules.passRatios(roundCount, startCount)
 	assert(ratios and ratios[roundIndex], `no pass ratio for round {roundIndex} of {roundCount}`)
 	local minimum = Config.Rules.MinQualifiers
 	local target = math.round(aliveCount * ratios[roundIndex])
@@ -105,10 +117,43 @@ function Rules.settleLeftover<T>(entries: { T }, progressOf: (T) -> number, open
 	return qualify, eliminate
 end
 
-local function pick(rng: Rng, pool: { MapInfo }, kind: MapKind?, used: { [string]: boolean }): MapInfo?
+-- 맵이 받을 수 있는 최대 인원 (m6-02)
+function Rules.capacityOf(map: MapInfo): number
+	return map.capacity or Config.Maps.StandardCapacity
+end
+
+-- 그 맵이 이 라운드 인원에 맞는가 (m6-02). upper = 이 라운드에 올 수 있는 최대 인원(스폰이 모자라면 안 돼요),
+-- expected = 예상 인원(대형 맵의 최소 인원과 비교 — 적으면 휑해요).
+function Rules.fitsCount(map: MapInfo, upper: number, expected: number): boolean
+	return Rules.capacityOf(map) >= upper and expected >= (map.minPlayers or 0)
+end
+
+-- 라운드별 인원 예상 (m6-02). expected[i] = 통과 목표대로 줄었을 때 i라운드 시작 인원,
+-- upper[i] = 최대 인원 — Race는 정원이 차면 끝나서 목표만큼만 통과하지만, Survival은 시간 종료 때
+-- 버틴 사람이 전부 통과하니 그 라운드 인원 그대로 다음으로 갈 수 있어요.
+function Rules.roundCounts(startCount: number, kinds: { MapKind }): ({ number }, { number })
+	local roundCount = #kinds
+	local expected: { number } = { startCount }
+	local upper: { number } = { startCount }
+	for i = 1, roundCount - 1 do
+		expected[i + 1] = Rules.qualifyCount(expected[i], roundCount, i, startCount)
+		upper[i + 1] = if kinds[i] == "Survival"
+			then upper[i]
+			else Rules.qualifyCount(upper[i], roundCount, i, startCount)
+	end
+	return expected, upper
+end
+
+type Fit = { upper: number, expected: number }
+
+local function pick(rng: Rng, pool: { MapInfo }, kind: MapKind?, used: { [string]: boolean }, fit: Fit?): MapInfo?
 	local candidates: { MapInfo } = {}
 	for _, map in pool do
-		if (kind == nil or map.kind == kind) and not used[map.id] then
+		if
+			(kind == nil or map.kind == kind)
+			and not used[map.id]
+			and (fit == nil or Rules.fitsCount(map, fit.upper, fit.expected))
+		then
 			table.insert(candidates, map)
 		end
 	end
@@ -189,7 +234,10 @@ end
 
 -- 라운드별 맵 결정. 한 판 안에서 같은 맵은 안 나와요.
 -- 개발 초기처럼 맵 풀이 모자라면 같은 종류에서 중복을 허용하고, 그 종류가 아예 없으면 아무 맵이나 써요.
-function Rules.buildRoundPlan(roundCount: number, pool: { MapInfo }, rng: Rng): { MapInfo }
+-- startCount를 주면(m6-02) 라운드마다 그 인원에 맞는 맵(Rules.fitsCount)을 먼저 골라요: 25명 이상 1라운드는
+-- 스폰 40개 대형 맵만, 대형 맵은 예상 인원이 Config.Maps.LargeMinPlayers 이상인 라운드에만. 맞는 맵이 없으면
+-- 인원(스폰 수)만 맞는 맵 → 예전 규칙 순서로 물러나요(스폰이 모자라면 RoundService가 스폰을 돌려 써요).
+function Rules.buildRoundPlan(roundCount: number, pool: { MapInfo }, rng: Rng, startCount: number?): { MapInfo }
 	assert(#pool > 0, "map pool is empty")
 	local counts: KindCounts = {}
 	for _, map in pool do
@@ -197,8 +245,19 @@ function Rules.buildRoundPlan(roundCount: number, pool: { MapInfo }, rng: Rng): 
 	end
 	local used: { [string]: boolean } = {}
 	local plan = {}
-	for i, kind in Rules.roundKinds(roundCount, rng, counts) do
-		local map = pick(rng, pool, kind, used) or pick(rng, pool, kind, {}) or pick(rng, pool, nil, used)
+	local kinds = Rules.roundKinds(roundCount, rng, counts)
+	local expected, upper = nil :: { number }?, nil :: { number }?
+	if startCount ~= nil then
+		expected, upper = Rules.roundCounts(startCount, kinds)
+	end
+	for i, kind in kinds do
+		local map: MapInfo? = nil
+		if expected and upper then
+			local fit: Fit = { upper = upper[i], expected = expected[i] }
+			local roomOnly: Fit = { upper = upper[i], expected = math.huge }
+			map = pick(rng, pool, kind, used, fit) or pick(rng, pool, kind, used, roomOnly)
+		end
+		map = map or pick(rng, pool, kind, used) or pick(rng, pool, kind, {}) or pick(rng, pool, nil, used)
 		map = map or pick(rng, pool, nil, {})
 		local chosen = map :: MapInfo
 		used[chosen.id] = true

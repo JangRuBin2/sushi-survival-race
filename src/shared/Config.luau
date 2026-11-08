@@ -6,7 +6,7 @@ local Config = {}
 
 -- 방 (GDD 3.2)
 Config.Room = {
-	MaxPlayerOptions = { 4, 8, 12, 16, 24 },
+	MaxPlayerOptions = { 4, 8, 12, 16, 24, 32, 40 }, -- 32·40은 m6-02(GDD v0.9): 대형 맵이 1라운드를 받아요
 	DefaultMaxPlayers = 12,
 	MinPlayersToStart = 4,
 	AutoStartDelay = 10, -- 정원이 다 차면 이 시간(초) 뒤 자동 시작
@@ -24,6 +24,18 @@ Config.Rules = {
 		[3] = { 0.60, 0.50 },
 		[4] = { 0.65, 0.55, 0.50 },
 	} :: { [number]: { number } },
+	-- 대형 방 (m6-02, GDD v0.9 4.1): 시작 인원이 이 이상이면 4라운드 그대로 비율만 이걸 써요.
+	-- 40 → 24 → 11 → 결승 4, 32 → 19 → 9 → 4, 25 → 15 → 7 → 3. 1라운드만 지나면 24명 이하라 2라운드부터 기존 맵이 받아요.
+	LargeMinPlayers = 25,
+	LargePassRatios = { 0.60, 0.45, 0.40 },
+}
+
+-- 맵이 받을 수 있는 인원 (m6-02, GDD v0.9 5.4). 맵 모듈의 capacity(스폰 수)·minPlayers가 없으면 이 기본값이에요.
+-- 판 계획(Rules.buildRoundPlan)은 그 라운드 예상 인원이 minPlayers ~ capacity 안인 맵만 골라요.
+Config.Maps = {
+	StandardCapacity = 24, -- 기존 맵 21개 (스폰 24개)
+	LargeCapacity = 40, -- 대형 맵 (스폰 40개)
+	LargeMinPlayers = 12, -- 대형 맵은 그 라운드 예상 인원이 이 이상일 때만 (너무 휑하지 않게)
 }
 
 -- 매치 진행 시간(초) (GDD 4)

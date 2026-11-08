@@ -185,7 +185,14 @@ return function(t: Test.Test)
 	t.test("MatchService 강제 플랜은 Maps.allInfos()를 써요", function()
 		local match = read("src/server/MatchService.luau")
 		t.ok(string.find(match, "Rules.resolveForcedPlan(ids, Maps.allInfos())", 1, true) ~= nil)
-		t.ok(string.find(match, "pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new())", 1, true) ~= nil)
+		t.ok(
+			string.find(
+				match,
+				"pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new(), startCount)",
+				1,
+				true
+			) ~= nil
+		) -- m6-02: 시작 인원으로 맵 인원 맞춤
 	end)
 
 	---------------------------------------------------------------- AC3 프로필 v2

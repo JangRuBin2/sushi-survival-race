@@ -70,7 +70,7 @@ return function(t: Test.Test)
 		"스폰: 새 위치 24개가 출발 바닥 안쪽, 벨트 구역(z < -14) 밖, 이름순 앞줄부터",
 		function()
 			local positions = BeltArt.spawnPositions()
-			t.eq(#positions, Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions])
+			t.eq(#positions, Config.Maps.StandardCapacity)
 			local half = BeltArt.SPAWN_SIZE / 2
 			for i, pos in positions do
 				t.ok(math.abs(pos.x) + half <= START_HALF - 1, `spawn {i} x {pos.x}`)

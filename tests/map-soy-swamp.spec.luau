@@ -56,7 +56,7 @@ return function(t: Test.Test)
 
 	t.test("스폰: 24개, 출발 구간 안, 겹치지 않아요", function()
 		local spawns = Layout.spawnPositions()
-		t.eq(#spawns, Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions])
+		t.eq(#spawns, Config.Maps.StandardCapacity)
 		local seen = {}
 		for _, pos in spawns do
 			t.ok(math.abs(pos.x) + 1.5 <= Layout.WIDTH / 2, `spawn x {pos.x} outside course`)

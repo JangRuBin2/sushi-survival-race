@@ -264,7 +264,8 @@ local function runMatch(room: RoomService.Room, players: { Player })
 	else
 		roundCount = Rules.roundCount(startCount)
 		-- 맵 풀이 비어 있으면 라운드 없이 바로 결과로 가요.
-		local planOk, planResult = pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new())
+		-- 시작 인원으로 라운드마다 인원에 맞는 맵을 골라요 (m6-02: 25명 이상 1라운드는 대형 맵)
+		local planOk, planResult = pcall(Rules.buildRoundPlan, roundCount, Maps.infos(), Random.new(), startCount)
 		plan = if planOk then planResult else nil
 		if plan == nil then
 			warn(
@@ -332,7 +333,8 @@ local function runMatch(room: RoomService.Room, players: { Player })
 			continue
 		end
 		-- 통과 인원은 출발하는 순간 살아 있는 인원으로 계산해요 (GDD 4.1, Q6)
-		local targetCount = Rules.qualifyCount(aliveCount(ctx), roundCount, roundIndex)
+		-- 25명 이상으로 시작한 판은 대형 비율이에요 (m6-02)
+		local targetCount = Rules.qualifyCount(aliveCount(ctx), roundCount, roundIndex, startCount)
 
 		broadcast(ctx, {
 			phase = "RoundActive",

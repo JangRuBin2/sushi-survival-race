@@ -56,7 +56,7 @@ return function(t: Test.Test)
 
 	t.test("AC1: 스폰 24개가 출발 구간 안에서 서로 3 studs 이상 떨어져 있어요", function()
 		local spawns = Layout.spawnPositions()
-		t.eq(#spawns, Config.Room.MaxPlayerOptions[#Config.Room.MaxPlayerOptions])
+		t.eq(#spawns, Config.Maps.StandardCapacity)
 		t.eq(#spawns, 24)
 		for i, a in spawns do
 			t.ok(math.abs(a.x) + 1.5 <= Layout.START_WIDTH / 2, `spawn {i} x {a.x} outside start`)

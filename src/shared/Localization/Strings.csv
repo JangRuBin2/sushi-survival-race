@@ -433,6 +433,9 @@ skin.diamond-uni.speech.2,이건 정말 귀한 맛이야,skin name or a short li
 skin.dragon-roll.name,용 롤,skin name or a short line the skin says when eaten (playful),,Dragon Roll
 skin.dragon-roll.speech.1,용을 먹다니 대단해!,skin name or a short line the skin says when eaten (playful),,You ate a dragon? Awesome!
 skin.dragon-roll.speech.2,불을 뿜을 것 같은 맛!,skin name or a short line the skin says when eaten (playful),,So spicy I could breathe fire!
+skin.dragon-sushi.name,드래곤 스시,skin name or a short line the skin says when eaten (playful),,Dragon Sushi
+skin.dragon-sushi.speech.1,앗 뜨거! 내 불꽃이 꺼졌어…,skin name or a short line the skin says when eaten (playful),,"Ouch, hot! My flame went out…"
+skin.dragon-sushi.speech.2,전설의 드래곤도 한입이라니!,skin name or a short line the skin says when eaten (playful),,A legendary dragon in one bite?!
 skin.eel.name,장어,skin name or a short line the skin says when eaten (playful),,Eel
 skin.eel.speech.1,소스가 끝내줘!,skin name or a short line the skin says when eaten (playful),,This sauce is amazing!
 skin.eel.speech.2,장어 먹고 힘내자~,skin name or a short line the skin says when eaten (playful),,"Eel power, let's go~"
@@ -457,6 +460,9 @@ skin.ikura.speech.2,알알이 반짝반짝~,skin name or a short line the skin s
 skin.inari.name,유부,skin name or a short line the skin says when eaten (playful),,Inari
 skin.inari.speech.1,달콤한 유부 주머니~,skin name or a short line the skin says when eaten (playful),,A sweet tofu pocket~
 skin.inari.speech.2,속이 꽉 찼네!,skin name or a short line the skin says when eaten (playful),,Packed full of rice!
+skin.jet-sushi.name,제트기 스시,skin name or a short line the skin says when eaten (playful),,Jet Sushi
+skin.jet-sushi.speech.1,비상 탈출 버튼 어디 있어?!,skin name or a short line the skin says when eaten (playful),,Where's the eject button?!
+skin.jet-sushi.speech.2,음속보다 빨리 먹혔어!,skin name or a short line the skin says when eaten (playful),,Eaten faster than the speed of sound!
 skin.kappa-maki.name,오이마키,skin name or a short line the skin says when eaten (playful),,Cucumber Roll
 skin.kappa-maki.speech.1,아삭아삭 오이!,skin name or a short line the skin says when eaten (playful),,"Crunch, crunch, cucumber!"
 skin.kappa-maki.speech.2,상큼하다~,skin name or a short line the skin says when eaten (playful),,So fresh~
@@ -478,9 +484,15 @@ skin.salmon.speech.2,기름기가 살살 녹네~,skin name or a short line the s
 skin.santa-shrimp.name,산타 새우,skin name or a short line the skin says when eaten (playful),,Santa Shrimp
 skin.santa-shrimp.speech.1,메리 크리스마스!,skin name or a short line the skin says when eaten (playful),,Merry Christmas!
 skin.santa-shrimp.speech.2,선물 배달 왔어요~,skin name or a short line the skin says when eaten (playful),,Special gift delivery~
+skin.shadow-jet-sushi.name,섀도 제트 스시,skin name or a short line the skin says when eaten (playful),,Shadow Jet Sushi
+skin.shadow-jet-sushi.speech.1,크윽… 내 계획이 들켰다니!,skin name or a short line the skin says when eaten (playful),,Ugh… my plan was found out!
+skin.shadow-jet-sushi.speech.2,다음엔 그림자처럼 사라질 거야~,skin name or a short line the skin says when eaten (playful),,Next time I'll vanish like a shadow~
 skin.shrimp.name,새우,skin name or a short line the skin says when eaten (playful),,Shrimp
 skin.shrimp.speech.1,꼬리까지 바삭!,skin name or a short line the skin says when eaten (playful),,Crunchy all the way to the tail!
 skin.shrimp.speech.2,탱글탱글 새우다!,skin name or a short line the skin says when eaten (playful),,"Bouncy, bouncy shrimp!"
+skin.sky-dragon-sushi.name,용 스시,skin name or a short line the skin says when eaten (playful),,Sky Dragon Sushi
+skin.sky-dragon-sushi.speech.1,구름 타고 도망가려 했는데~,skin name or a short line the skin says when eaten (playful),,I tried to float away on a cloud~
+skin.sky-dragon-sushi.speech.2,하늘의 용도 맛있었구나!,skin name or a short line the skin says when eaten (playful),,So sky dragons are tasty too!
 skin.slider-burger.name,슬라이더 버거,skin name or a short line the skin says when eaten (playful),,Slider Burger
 skin.slider-burger.speech.1,작아도 한 입 가득 든든해!,skin name or a short line the skin says when eaten (playful),,Small but super filling!
 skin.slider-burger.speech.2,패티 육즙이 살아있어~,skin name or a short line the skin says when eaten (playful),,So juicy~

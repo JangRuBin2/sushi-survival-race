@@ -104,9 +104,10 @@ return function(t: Test.Test)
 				t.ok(string.find(skin.displayName, "콘셉트", 1, true) == nil, `{id} no concept prefix`)
 			end
 			-- 탈의실 "전체" 탭 맨 끝, concept-salmon 바로 다음
-			local last = Skins.LIST[#Skins.LIST - 1]
-			t.eq(last.id, "concept-inari") -- m5-29 4종이 뒤에 붙었어요 (그 뒤 m5-32 고등어 [신선] order 41)
-			t.eq(Skins.LIST[#Skins.LIST].id, "fresh-mackerel")
+			-- m5-29 4종이 뒤에 붙었어요 (그 뒤 m5-32 고등어 [신선] order 41, m6-08 전설 4종 order 42~45)
+			t.eq(Skins.LIST[40].id, "concept-inari")
+			t.eq(Skins.LIST[41].id, "fresh-mackerel")
+			t.eq(Skins.LIST[#Skins.LIST].id, "shadow-jet-sushi")
 			t.eq(Skins.get("concept-ikura").order, 36)
 			t.eq(Skins.get(SALMON).order, 32)
 			local ok, problems = Skins.validate(Skins.LIST)
@@ -127,11 +128,13 @@ return function(t: Test.Test)
 				table.sort(list)
 				return list
 			end
-			t.eq(#expected, 10) -- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차)
+			-- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차) + m6-08 전설 4종 (용 둘 80, 제트기 둘 70)
+			t.eq(#expected, 14)
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
 			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
+			local over80 = { ["fresh-mackerel"] = true, ["dragon-sushi"] = true, ["sky-dragon-sushi"] = true }
 			for _, id in Sample.SKIN_IDS do
-				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if id == "fresh-mackerel" then 80 else BUDGET, id)
+				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if over80[id] then 80 else BUDGET, id)
 				t.eq(SushiBody.CONCEPT_BODY[id].expressions, Sample.EXPRESSIONS, id)
 			end
 		end
@@ -424,15 +427,18 @@ return function(t: Test.Test)
 			local _, count = string.gsub(source, "require%(", "")
 			t.eq(count, 1)
 			t.ok(string.find(source, "SushiConceptSample.SKIN_IDS", 1, true) ~= nil, "ids from the sample module")
-			-- m5-32: 견본은 고등어 토핑(순수 ConceptMackerel) 하나만, 그 모듈은 순수 PartMath 하나만 불러요
+			-- m5-32: 견본은 순수 토핑 모듈(고등어 ConceptMackerel, m6-08 용 ConceptDragon·전투기 ConceptJet)만,
+			-- 그 모듈들은 순수 PartMath 하나만 불러요
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
 			local _, sampleCount = string.gsub(sample, "require%(", "")
-			t.eq(sampleCount, 1, "sample requires only ConceptMackerel")
-			t.ok(string.find(sample, "require(script.Parent.ConceptMackerel)", 1, true) ~= nil)
-			local mackerel = fs.readFile("src/shared/ConceptMackerel.luau")
-			local _, mackerelCount = string.gsub(mackerel, "require%(", "")
-			t.eq(mackerelCount, 1, "ConceptMackerel requires only PartMath")
-			t.ok(string.find(mackerel, "require(script.Parent.PartMath)", 1, true) ~= nil)
+			t.eq(sampleCount, 3, "sample requires only the topping modules")
+			for _, name in { "ConceptMackerel", "ConceptDragon", "ConceptJet" } do
+				t.ok(string.find(sample, `require(script.Parent.{name})`, 1, true) ~= nil, name)
+				local topping = fs.readFile(`src/shared/{name}.luau`)
+				local _, toppingCount = string.gsub(topping, "require%(", "")
+				t.eq(toppingCount, 1, `{name} requires only PartMath`)
+				t.ok(string.find(topping, "require(script.Parent.PartMath)", 1, true) ~= nil, name)
+			end
 			t.eq(string.find(fs.readFile("src/shared/PartMath.luau"), "require(", 1, true), nil, "PartMath is pure")
 		end
 	)

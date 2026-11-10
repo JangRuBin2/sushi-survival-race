@@ -84,10 +84,15 @@ return function(t: Test.Test)
 		"concept-unagi",
 		"concept-uni",
 		"fresh-mackerel", -- m5-32 판매 스킨도 콘셉트 몸
+		-- m6-08 전설 4종 (판매 + 뽑기 전설)
+		"dragon-sushi",
+		"sky-dragon-sushi",
+		"jet-sushi",
+		"shadow-jet-sushi",
 	}
 	table.sort(CONCEPT_IDS)
 	t.test(
-		"예외는 콘셉트 몸 10종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
+		"예외는 콘셉트 몸 14종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do

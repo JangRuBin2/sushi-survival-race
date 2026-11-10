@@ -129,13 +129,13 @@ return function(t: Test.Test)
 				end
 			end
 			local tail = {}
-			-- m5-32 고등어 [신선](order 41)이 맨 끝이라 그 바로 앞 4장
-			for i = #Skins.LIST - 4, #Skins.LIST - 1 do
+			-- m5-32 고등어 [신선](order 41)·m6-08 전설 4종(order 42~45)이 맨 끝이라 그 바로 앞 4장
+			for i = #Skins.LIST - 8, #Skins.LIST - 5 do
 				table.insert(tail, Skins.LIST[i].id)
 			end
 			t.eq(tail, { "concept-unagi", "concept-uni", "concept-tako", "concept-inari" })
-			t.eq(Skins.LIST[#Skins.LIST - 5].id, "concept-ikura")
-			t.eq(#Skins.LIST, 41)
+			t.eq(Skins.LIST[#Skins.LIST - 9].id, "concept-ikura")
+			t.eq(#Skins.LIST, 45)
 			t.eq(#Skins.byTier("Basic"), 10)
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))

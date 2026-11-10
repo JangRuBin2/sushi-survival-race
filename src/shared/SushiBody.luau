@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel = 10종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel + m6-08 전설 4종 = 14종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -1003,6 +1003,22 @@ conceptBody["fresh-mackerel"] = {
 	-- 쉰 꼭대기 ≤ 이름표 − 0.4, 가장 크게 팔딱한 자세(관절 한도 끝까지) ≤ 이름표 (테스트로 고정)
 	nameTagHeight = 4.8,
 }
+-- m6-08 전설 4종 (드래곤·용·제트기·섀도 제트 — 판매 + 뽑기 전설): 고등어와 같은 규칙 표 칸만 써요(스킨 id 분기 없음).
+-- 외곽은 전설 ±25% (concept-salmon 기준), 파츠 상한은 partBudget, 뿔·꼬리날개가 높은 스킨은 nameTagHeight
+local LEGEND_RULES: { [string]: { partBudget: number, nameTagHeight: number? } } = {
+	["dragon-sushi"] = { partBudget = 80 },
+	["sky-dragon-sushi"] = { partBudget = 80 },
+	["jet-sushi"] = { partBudget = 70 },
+	["shadow-jet-sushi"] = { partBudget = 70 },
+}
+for id, rule in LEGEND_RULES do
+	conceptBody[id] = {
+		partBudget = rule.partBudget,
+		expressions = SushiConceptSample.EXPRESSIONS :: any,
+		boundsTolerance = 0.25,
+		nameTagHeight = rule.nameTagHeight,
+	}
+end
 SushiBody.CONCEPT_BOUNDS_BASE = "concept-salmon" -- boundsTolerance 비교 기준 스킨
 SushiBody.CONCEPT_BODY = conceptBody
 -- Body 중심에서 이름표까지 (기본 꼭대기 2.07 + 여유, 에픽·전설 장식(최대 약 3.15) 위로도 떠요)

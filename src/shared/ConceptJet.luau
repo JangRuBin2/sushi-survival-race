@@ -118,7 +118,9 @@ type JetStyle = {
 	finSize: { number }, -- 꼬리날개 쐐기 {두께, 높이, 깊이}
 	finTilt: number, -- 꼬리날개가 바깥으로 기운 각
 	wingSize: { number }, -- 날개 쐐기 {두께, 폭(바깥으로), 깊이(앞뒤)}
-	wingDroop: number, -- 날개가 아래로 처진 각 (섀도 +, 제트기는 살짝 위로 −)
+	wingDroop: number, -- 날개가 아래로 처진 각 (섀도 +, 제트기는 위로 −)
+	pod: { number }, -- 날개 아래 미사일 포드 몸 (사용자 요청 2026-11-10 "날개 키워줘")
+	podTip: { number }, -- 포드 앞 머리
 	visorEyes: { number }?, -- 바이저 위 빛나는 눈 (섀도)
 	visorBrow: { number }?, -- 바이저 위 찌푸린 눈썹 판 (섀도)
 }
@@ -127,7 +129,7 @@ local HULL_Y = 1.14 -- 동체 판 중심 (y 0.97~1.31, 밥 윗면 1.0에 묻혀�
 local HULL_T = 0.34
 local HULL_TOP = HULL_Y + HULL_T / 2
 local SPINE_TOP = HULL_TOP + 0.26
-local WING_Y = 0.62
+local WING_Y = 0.9 -- 어깨 높이 (2026-11-10 날개 키움: 정면 윤곽에서 팔 위로 보이게, 옛 0.62)
 local WING_ROOT_X = 1.55 -- 날개 뿌리 (밥 옆면 1.8 속 — 뒤 모서리가 둥글어도 뿌리가 밥에 묻혀요)
 local WING_Z = 0.25
 local SIDE_X = 1.82 -- 옆 판 중심 (밥 옆면 1.8에 반쯤 묻혀요)
@@ -241,6 +243,23 @@ local function jet(style: JetStyle): { PartSpec }
 			wing.offset, wing.rotation = offset, rotation
 		end
 		add(list, { wing, wedgeTip(wing, `JetWingTip{tag}`, 0.62, style.wingTip) })
+		-- 미사일 포드: 날개 아래 가운데쯤, 앞(-Z)을 향한 원기둥 + 둥근 머리 (정면에서 날개가 두툼해 보여요)
+		local podX = side * (WING_ROOT_X + span * 0.5)
+		local podY = WING_Y - style.wingSize[1] / 2 - 0.13 - math.sin(math.rad(style.wingDroop)) * span * 0.5
+		local podZ = WING_Z + 0.1
+		table.insert(
+			list,
+			piece(`JetPod{tag}`, { 1.25, 0.28, 0.28 }, style.pod, { podX, podY, podZ }, "Metal", {
+				shape = "Cylinder",
+				rotation = { 0, 90, 0 },
+			})
+		)
+		table.insert(
+			list,
+			piece(`JetPodTip{tag}`, { 0.3, 0.3, 0.3 }, style.podTip, { podX, podY, podZ - 0.66 }, nil, {
+				shape = "Ball",
+			})
+		)
 		-- 번개 V자: 날개 윗면에 얇은 막대 둘 (꼭짓점이 바깥)
 		local mx, mz = side * (WING_ROOT_X + span * 0.32), 0.62
 		local markY = WING_Y + style.wingSize[1] / 2 + 0.01 - math.sin(math.rad(style.wingDroop)) * span * 0.32
@@ -327,8 +346,10 @@ ConceptJet.STYLES = {
 		glowOnVisor = false,
 		finSize = { 0.2, 1.05, 1.15 },
 		finTilt = 12,
-		wingSize = { 0.24, 1.34, 2.0 },
-		wingDroop = -6,
+		wingSize = { 0.32, 1.38, 2.75 }, -- 날개 키움 (2026-11-10): 폭은 외곽 한도라 거의 그대로, 앞뒤·두께·들림을 키워요
+		wingDroop = -14,
+		pod = { 240, 242, 248 },
+		podTip = { 222, 40, 52 },
 	} :: JetStyle,
 	shadow = {
 		hull = { 82, 86, 100 },
@@ -352,8 +373,10 @@ ConceptJet.STYLES = {
 		glowOnVisor = true,
 		finSize = { 0.2, 1.3, 1.2 },
 		finTilt = 22,
-		wingSize = { 0.24, 1.36, 2.1 },
-		wingDroop = 10,
+		wingSize = { 0.32, 1.38, 2.8 }, -- 날개 키움 (2026-11-10, 제트기와 같게)
+		wingDroop = 12,
+		pod = { 52, 50, 64 },
+		podTip = { 170, 90, 255 },
 		visorEyes = { 255, 40, 56 },
 		visorBrow = { 60, 36, 96 },
 	} :: JetStyle,

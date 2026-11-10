@@ -23,6 +23,7 @@ export type Style =
 	| "StarRibbon"
 	| "HolyHalo"
 	| "DemonFlame"
+	| "Kaboom"
 export type Vec3 = { x: number, y: number, z: number }
 export type Rgb = { number } -- {r, g, b} 0~255
 export type StyleInfo = {
@@ -62,6 +63,7 @@ AttackFxLogic.STYLE_BY_SKIN = {
 	["magical-girl-sushi"] = "StarRibbon", -- m6-09
 	["angel-sushi"] = "HolyHalo", -- m6-10
 	["devil-sushi"] = "DemonFlame", -- m6-10
+	["dynamite-sushi"] = "Kaboom", -- m6-11
 } :: { [string]: Style }
 
 AttackFxLogic.STYLES = {
@@ -135,6 +137,17 @@ AttackFxLogic.STYLES = {
 		band = true,
 		missiles = false,
 		spin = 1.75,
+	},
+	-- m6-11 다이너마이트 스시: 노랑·주황 폭발 고리 + 불티 조각이 번갈아 빠르게 튀어 오름 + 붉은 주황 조각
+	Kaboom = {
+		duration = 0.8,
+		ring = { 255, 170, 40 },
+		accent = { 255, 240, 120 },
+		particle = { 255, 110, 40 },
+		band = true,
+		missiles = false,
+		spin = 0.75,
+		alternate = true,
 	},
 	ShadowMissile = {
 		duration = 0.9,

@@ -208,6 +208,15 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test(
+		"AC4(m6-11): 다이너마이트 = Kaboom (폭발 고리 + 번갈아 튀는 불티, 가면 없음)",
+		function()
+			t.eq(AttackFxLogic.styleFor("dynamite-sushi"), "Kaboom")
+			local info = AttackFxLogic.info("Kaboom")
+			t.ok(info.band and info.alternate == true and not info.missiles and info.mask == nil, "kaboom")
+		end
+	)
+
 	t.test("AC4: 연출 표의 스킨은 모두 카탈로그의 전설 스킨", function()
 		for skinId in AttackFxLogic.STYLE_BY_SKIN do
 			local skin = Skins.get(skinId)

@@ -92,10 +92,11 @@ return function(t: Test.Test)
 		"magical-girl-sushi", -- m6-09 전설 마법소녀
 		"angel-sushi", -- m6-10 전설 천사·악마
 		"devil-sushi",
+		"dynamite-sushi", -- m6-11 전설 다이너마이트
 	}
 	table.sort(CONCEPT_IDS)
 	t.test(
-		"예외는 콘셉트 몸 17종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
+		"예외는 콘셉트 몸 18종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do

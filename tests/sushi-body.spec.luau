@@ -156,12 +156,12 @@ return function(t: Test.Test)
 			t.eq(count, 1, "SushiBody requires only SushiConceptSample")
 			t.ok(string.find(source, "require(script.Parent.SushiConceptSample)", 1, true) ~= nil, "concept require")
 			-- m5-32: 견본은 순수 토핑 모듈(고등어 ConceptMackerel, m6-08 ConceptDragon·ConceptJet, m6-09 ConceptMagicalGirl,
-			-- m6-10 ConceptAngelDevil
+			-- m6-10 ConceptAngelDevil, m6-11 ConceptDynamite
 			-- → PartMath)만 불러요
 			-- (Roblox API 없음)
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
 			local _, sampleCount = string.gsub(sample, "require%(", "")
-			t.eq(sampleCount, 5, "SushiConceptSample requires only the topping modules")
+			t.eq(sampleCount, 6, "SushiConceptSample requires only the topping modules")
 			for _, path in
 				{
 					"src/shared/ConceptMackerel.luau",
@@ -169,6 +169,7 @@ return function(t: Test.Test)
 					"src/shared/ConceptJet.luau",
 					"src/shared/ConceptMagicalGirl.luau",
 					"src/shared/ConceptAngelDevil.luau",
+					"src/shared/ConceptDynamite.luau",
 					"src/shared/PartMath.luau",
 				}
 			do

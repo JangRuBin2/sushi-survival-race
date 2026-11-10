@@ -1,7 +1,7 @@
 --!strict
 -- m6-10 전설 스킨 2종 "천사 스시"·"악마 스시" (m6-08·m6-09 전설·고등어 [신선]과 같은 규칙):
---   카탈로그(전설 R$ 199 + 뽑기 전설, order 47~48, 대사 2줄, conceptBody)·현지화 행, 콘셉트 몸·뽑기 목록(17종),
---   규칙 표(천사 80·악마 70·외곽 ±25%·이름표 기본 3.6), 뽑기 전설 등급 8종 균등·중복 코인, 탈의실 카드·뽑기 안내,
+--   카탈로그(전설 R$ 199 + 뽑기 전설, order 47~48, 대사 2줄, conceptBody)·현지화 행, 콘셉트 몸·뽑기 목록(m6-11 뒤 18종),
+--   규칙 표(천사 80·악마 70·외곽 ±25%·이름표 기본 3.6), 뽑기 전설 등급(m6-11 뒤 9종) 균등·중복 코인, 탈의실 카드·뽑기 안내,
 --   모양 한도(표정 6종: 파츠·발바닥·꼭대기·효과 2개·겹침·떠 있음·외곽·얼굴 안 가림·공유 몸 그대로·관절 8개),
 --   손에 든 홀·삼지창은 오른팔(ArmRight)에 붙음, 천사는 바이저·빨간 눈 없음 / 악마는 얼굴 위 바이저 + 빨간 눈 둘,
 --   스킨 id 분기 없음, 일반적인 디자인(특정 작품 이름 없음).
@@ -76,6 +76,7 @@ local LEGENDARY_DRAW = {
 	"magical-girl-sushi",
 	"angel-sushi",
 	"devil-sushi",
+	"dynamite-sushi", -- m6-11 (tests/m6-11-dynamite-sushi)
 }
 
 local FACE_PREFIXES = { "Eye", "Lid", "Shine", "Mouth", "Tongue", "Cheek", "Brow", "Sweat", "Bandage", "Anger" }
@@ -133,10 +134,10 @@ local RICE_FRONT = -1.35
 return function(t: Test.Test)
 	---------------------------------------------------------------- 카탈로그·현지화
 	t.test(
-		"카탈로그: 2종 모두 전설 R$ 199 + 뽑기 전설, 코인·상품 id 없음, order 47~48(맨 끝), 대사 2줄, conceptBody",
+		"카탈로그: 2종 모두 전설 R$ 199 + 뽑기 전설, 코인·상품 id 없음, order 47~48(마법소녀 다음), 대사 2줄, conceptBody",
 		function()
-			t.eq(#Skins.LIST, 48)
-			t.eq(#Skins.byTier("Legendary"), 14)
+			t.eq(#Skins.LIST, 49) -- m6-11 다이너마이트(49) 포함
+			t.eq(#Skins.byTier("Legendary"), 15)
 			for index, row in NEW do
 				local skin = Skins.get(row.id) :: any
 				t.ok(skin ~= nil, row.id)
@@ -178,18 +179,18 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 목록·규칙 표
 	t.test(
-		"목록: 콘셉트 몸·견본·뽑기 목록 17종(특 9 + 전설 8), 뽑기 전용은 특 9종 그대로",
+		"목록: 콘셉트 몸·견본·뽑기 목록 18종(특 9 + 전설 9, m6-11 뒤), 뽑기 전용은 특 9종 그대로",
 		function()
 			for _, list in { Skins.CONCEPT_BODY_IDS, SushiBody.CONCEPT_BODY, Skins.DRAW_IDS } do
 				for _, id in NEW_IDS do
 					t.ok((list :: any)[id] ~= nil, `{id} in table`)
 				end
-				t.eq(#keys(list :: any), 17)
+				t.eq(#keys(list :: any), 18)
 			end
 			for _, id in NEW_IDS do
 				t.ok(table.find(Sample.SKIN_IDS, id) ~= nil, `{id} sample skin ids`)
 			end
-			t.eq(#Sample.SKIN_IDS, 17)
+			t.eq(#Sample.SKIN_IDS, 18)
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), sorted(Sample.SKIN_IDS))
 			t.eq(keys(Skins.DRAW_IDS), keys(Skins.CONCEPT_BODY_IDS))
 			local drawOnly = 0
@@ -219,7 +220,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 뽑기
 	t.test(
-		"뽑기: 전설 등급 8종(order 순), 확률 표 그대로 1/5/15/30/49, 스킨마다 0.125%(화면 0.13%), 균등·중복 🍚 300",
+		"뽑기: 전설 등급 9종(order 순, m6-11 뒤), 확률 표 그대로 1/5/15/30/49, 스킨마다 0.111%(화면 0.11%), 균등·중복 🍚 300",
 		function()
 			local rows = DrawLogic.grades()
 			local byGrade = {}
@@ -232,13 +233,13 @@ return function(t: Test.Test)
 			t.ok(math.abs(byGrade.Rare.chance - 0.15) < 1e-9, "rare 15%")
 			t.ok(math.abs(byGrade.Uncommon.chance - 0.30) < 1e-9, "uncommon 30%")
 			t.ok(math.abs(byGrade.Common.chance - 0.49) < 1e-9, "common 49%")
-			t.ok(math.abs(byGrade.Legendary.chance / #byGrade.Legendary.skinIds - 0.00125) < 1e-12, "0.125% each")
+			t.ok(math.abs(byGrade.Legendary.chance / #byGrade.Legendary.skinIds - 0.01 / 9) < 1e-12, "0.111% each")
 			t.eq(DrawLogic.displayPercents(rows).Legendary, "1.0%")
 			local perSkin = DrawLogic.perSkinPercent(rows)
 			for _, id in LEGENDARY_DRAW do
-				t.eq(perSkin[id], "0.13%", id)
+				t.eq(perSkin[id], "0.11%", id)
 			end
-			t.eq(DrawLogic.totalSkins(), 17)
+			t.eq(DrawLogic.totalSkins(), 18)
 			for _, row in NEW do
 				local index = table.find(LEGENDARY_DRAW, row.id) :: number
 				local outcome = DrawLogic.roll({}, fakeRng(0.005, index)) :: any
@@ -278,7 +279,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 탈의실
 	t.test(
-		"탈의실: 전설 탭 맨 끝 2장(천사 → 악마), 다른 전설과 같은 로벅스 카드, 뽑기 안내, 🎫 특 탭엔 없음, 코인 불가",
+		"탈의실: 전설 탭 끝 2장(천사 → 악마, 뒤에 m6-11 다이너마이트), 다른 전설과 같은 로벅스 카드, 뽑기 안내, 🎫 특 탭엔 없음, 코인 불가",
 		function()
 			local view = { coins = 99999, equippedSkin = "tamago", ownedSkins = { "tamago" }, eventTokens = {} }
 			local function tab(id: string): any
@@ -290,7 +291,7 @@ return function(t: Test.Test)
 				return nil
 			end
 			local legendary = ShopLogic.visibleSkins(view :: any, tab("Legendary"))
-			t.eq({ legendary[#legendary - 1].id, legendary[#legendary].id }, NEW_IDS)
+			t.eq({ legendary[#legendary - 2].id, legendary[#legendary - 1].id }, NEW_IDS)
 			for _, skin in ShopLogic.visibleSkins(view :: any, tab("draw")) do
 				t.ok(table.find(NEW_IDS, skin.id) == nil, `{skin.id} not in the special tab`)
 			end

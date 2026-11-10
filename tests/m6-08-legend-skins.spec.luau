@@ -99,9 +99,9 @@ local SPECIAL = {
 	"concept-tako",
 	"concept-inari",
 }
--- 뽑기 전설 등급 (order 순): 고등어 + 이 4종 + m6-09 마법소녀 + m6-10 천사·악마
--- (tests/m6-09-magical-girl-sushi, tests/m6-10-angel-devil-sushi)
-local LATER_LEGENDS = { "magical-girl-sushi", "angel-sushi", "devil-sushi" }
+-- 뽑기 전설 등급 (order 순): 고등어 + 이 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트
+-- (tests/m6-09-magical-girl-sushi, tests/m6-10-angel-devil-sushi, tests/m6-11-dynamite-sushi)
+local LATER_LEGENDS = { "magical-girl-sushi", "angel-sushi", "devil-sushi", "dynamite-sushi" }
 local LEGENDARY_DRAW = { MACKEREL, "dragon-sushi", "sky-dragon-sushi", "jet-sushi", "shadow-jet-sushi" }
 for _, id in LATER_LEGENDS do
 	table.insert(LEGENDARY_DRAW, id)
@@ -165,7 +165,7 @@ return function(t: Test.Test)
 	t.test(
 		"카탈로그: 4종 모두 전설 R$ 199 + 뽑기 전설, 코인·상품 id 없음, order 42~45, 대사 2줄, conceptBody",
 		function()
-			t.eq(#Skins.LIST, 48) -- m6-09 마법소녀(order 46)·m6-10 천사·악마(47~48)가 뒤에 붙었어요
+			t.eq(#Skins.LIST, 49) -- m6-09 마법소녀(order 46)·m6-10 천사·악마(47~48)·m6-11 다이너마이트(49)가 뒤에 붙었어요
 			for index, row in NEW do
 				local skin = Skins.get(row.id) :: any
 				t.ok(skin ~= nil, row.id)
@@ -210,7 +210,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 목록·규칙 표
 	t.test(
-		"목록: 콘셉트 몸 17종 = 세 목록, 뽑기 17종(특 9 + 전설 8, m6-09 +1·m6-10 +2), 뽑기 전용은 특 9종 그대로",
+		"목록: 콘셉트 몸 18종 = 세 목록, 뽑기 18종(특 9 + 전설 9, m6-09 +1·m6-10 +2·m6-11 +1), 뽑기 전용은 특 9종 그대로",
 		function()
 			local concept = sorted({
 				"concept-salmon",
@@ -230,6 +230,7 @@ return function(t: Test.Test)
 				"magical-girl-sushi", -- m6-09
 				"angel-sushi", -- m6-10
 				"devil-sushi",
+				"dynamite-sushi", -- m6-11
 			})
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), concept)
 			t.eq(keys(SushiBody.CONCEPT_BODY), concept)
@@ -279,10 +280,10 @@ return function(t: Test.Test)
 			t.eq(DrawLogic.displayPercents(rows).Legendary, "1.0%")
 			local perSkin = DrawLogic.perSkinPercent(rows)
 			for _, id in LEGENDARY_DRAW do
-				t.eq(perSkin[id], "0.13%", id) -- 전설 1% ÷ 8종 = 0.125% (m6-10 뒤, 화면은 반올림)
+				t.eq(perSkin[id], "0.11%", id) -- 전설 1% ÷ 9종 = 0.111% (m6-11 뒤, 화면은 반올림)
 			end
-			t.eq(DrawLogic.totalSkins(), 17)
-			-- 전설 안에서 NextInteger(1, 8)가 고른 순서 그대로
+			t.eq(DrawLogic.totalSkins(), 18)
+			-- 전설 안에서 NextInteger(1, 9)가 고른 순서 그대로
 			for index, id in LEGENDARY_DRAW do
 				local outcome = DrawLogic.roll({}, fakeRng(0.005, index)) :: any
 				t.eq(outcome.grade, "Legendary", id)
@@ -348,7 +349,7 @@ return function(t: Test.Test)
 			end
 			local legendary = ShopLogic.visibleSkins(view :: any, tab("Legendary"))
 			local tail = {}
-			for i = #legendary - 7, #legendary do
+			for i = #legendary - 8, #legendary do
 				table.insert(tail, legendary[i].id)
 			end
 			t.eq(tail, LEGENDARY_DRAW)

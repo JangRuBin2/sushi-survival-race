@@ -250,7 +250,8 @@ return function(t: Test.Test)
 		end
 	end)
 
-	-- m6-08: 전설 4종(드래곤·용·제트기·섀도 제트)·m6-09 마법소녀·m6-10 천사·악마도 고등어와 같은 "판매 + 뽑기 전설"이라 같이 들어와요
+	-- m6-08: 전설 4종(드래곤·용·제트기·섀도 제트)·m6-09 마법소녀·m6-10 천사·악마·m6-11 다이너마이트도 고등어와 같은
+	-- "판매 + 뽑기 전설"이라 같이 들어와요
 	local LEGENDS = {
 		ID,
 		"dragon-sushi",
@@ -260,9 +261,10 @@ return function(t: Test.Test)
 		"magical-girl-sushi",
 		"angel-sushi",
 		"devil-sushi",
+		"dynamite-sushi",
 	}
 	t.test(
-		"QA: 뽑기 — 확률 합 1, 전설은 고등어 + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마, 판매 + 뽑기도 그 8종뿐",
+		"QA: 뽑기 — 확률 합 1, 전설은 고등어 + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트, 판매 + 뽑기도 그 9종뿐",
 		function()
 			local grades = DrawLogic.grades()
 			local sum = 0

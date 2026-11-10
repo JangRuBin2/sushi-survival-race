@@ -22,6 +22,7 @@
 
 local ConceptAngelDevil = require(script.Parent.ConceptAngelDevil)
 local ConceptDragon = require(script.Parent.ConceptDragon)
+local ConceptDynamite = require(script.Parent.ConceptDynamite)
 local ConceptJet = require(script.Parent.ConceptJet)
 local ConceptMackerel = require(script.Parent.ConceptMackerel)
 local ConceptMagicalGirl = require(script.Parent.ConceptMagicalGirl)
@@ -77,6 +78,8 @@ SushiConceptSample.SKIN_IDS = {
 	-- m6-10 전설 2종 (판매 + 뽑기 전설): 천사·악마
 	"angel-sushi",
 	"devil-sushi",
+	-- m6-11 전설 (판매 + 뽑기 전설): 다이너마이트 묶음 (빨간 막대·숯빛 띠·심지 불꽃)
+	"dynamite-sushi",
 } :: { string }
 
 ---------------------------------------------------------------- 치수
@@ -816,6 +819,9 @@ local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	end,
 	["devil-sushi"] = function(_variant: Variant): { PartSpec }
 		return ConceptAngelDevil.devil()
+	end,
+	["dynamite-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptDynamite.topping()
 	end,
 }
 

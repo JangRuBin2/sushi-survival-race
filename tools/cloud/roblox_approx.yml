@@ -1,0 +1,119 @@
+# 클라우드 세션 전용 근사 Roblox 표준 라이브러리 (selene). 진짜 roblox std는 API 덤프를 받아야 하는데
+# 클라우드 프록시 인증서를 selene이 믿지 않아 못 받아요 — Roblox 전역을 any로만 선언해요. docs/DEV-SETUP.md 6절.
+base: luau
+name: roblox_approx
+globals:
+  game:
+    any: true
+  workspace:
+    any: true
+  script:
+    any: true
+  plugin:
+    any: true
+  shared:
+    any: true
+  Instance:
+    any: true
+  Vector3:
+    any: true
+  Vector2:
+    any: true
+  CFrame:
+    any: true
+  Color3:
+    any: true
+  ColorSequence:
+    any: true
+  ColorSequenceKeypoint:
+    any: true
+  NumberSequence:
+    any: true
+  NumberSequenceKeypoint:
+    any: true
+  NumberRange:
+    any: true
+  UDim:
+    any: true
+  UDim2:
+    any: true
+  Enum:
+    any: true
+  Ray:
+    any: true
+  RaycastParams:
+    any: true
+  OverlapParams:
+    any: true
+  TweenInfo:
+    any: true
+  Random:
+    any: true
+  Rect:
+    any: true
+  Region3:
+    any: true
+  PhysicalProperties:
+    any: true
+  BrickColor:
+    any: true
+  Font:
+    any: true
+  DateTime:
+    any: true
+  Axes:
+    any: true
+  Faces:
+    any: true
+  task:
+    any: true
+  debug:
+    any: true
+  utf8:
+    any: true
+  buffer:
+    any: true
+  settings:
+    any: true
+  UserSettings:
+    any: true
+  tick:
+    any: true
+  time:
+    any: true
+  wait:
+    any: true
+  spawn:
+    any: true
+  delay:
+    any: true
+  warn:
+    any: true
+  typeof:
+    any: true
+  elapsedTime:
+    any: true
+  version:
+    any: true
+  Path2DControlPoint:
+    any: true
+  SharedTable:
+    any: true
+  Content:
+    any: true
+  Region3int16:
+    any: true
+  Vector3int16:
+    any: true
+  Vector2int16:
+    any: true
+  CatalogSearchParams:
+    any: true
+  DockWidgetPluginGuiInfo:
+    any: true
+  FloatCurveKey:
+    any: true
+  RotationCurveKey:
+    any: true
+  PathWaypoint:
+    any: true

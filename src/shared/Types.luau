@@ -110,6 +110,8 @@ export type TouchLayout = {
 	jump: TouchButtonSpot,
 	dive: TouchButtonSpot,
 	grab: TouchButtonSpot,
+	-- 공격 버튼 (m6-08). 선택 칸 — m6-08 전에 저장한 배치(3개)는 없고, 그때는 다이브·잡기 자리에서 정해요
+	attack: TouchButtonSpot?,
 }
 export type TouchLayoutBucket = "phone" | "tablet" -- 짧은 변 ≤ 500이면 phone
 -- 기기 묶음별 배치. 없는 묶음은 기본 배치
@@ -174,6 +176,13 @@ export type DrawResult = {
 	grade: DrawGrade, -- 뽑기 등급
 	coins: number, -- 이번에 받은 밥알 코인 (Skin이면 0)
 	ticketsLeft: number, -- 뽑은 뒤 남은 뽑기권
+}
+
+-- 공격 연출 (m6-08, 서버 → 같은 방 클라이언트 AttackFx). 판정은 이미 서버가 끝냈고 연출에만 써요.
+export type AttackFxInfo = {
+	attacker: number, -- 공격한 사람 userId (스킨은 그 캐릭터의 AppearanceId로 클라이언트가 골라요)
+	position: Vector3, -- 공격 순간 공격자 HumanoidRootPart 위치
+	hits: { number }, -- 맞은 사람 userId (가까운 순)
 }
 
 return {}

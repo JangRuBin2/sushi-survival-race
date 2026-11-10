@@ -14,7 +14,7 @@ local TouchLayoutLogic = RobloxRequire.require(Shared.TouchLayoutLogic)
 local ProfileSchema = RobloxRequire.require(Shared.ProfileSchema)
 local ProfileLogic = RobloxRequire.require(Shared.ProfileLogic)
 
-local NAMES = { "jump", "dive", "grab" }
+local NAMES = { "jump", "dive", "grab", "attack" } -- attack: m6-08
 
 local SIZES = { { 844, 390 }, { 667, 375 }, { 1024, 768 }, { 2400, 1080 } }
 
@@ -669,7 +669,7 @@ return function(t: Test.Test)
 
 	-- AC10 · 소스 연결 ----------------------------------------------------------
 	t.test(
-		"AC10: 리모트 수 그대로(RemoteFunction 16 + RemoteEvent 11), SaveSettings 설명이 새 모양",
+		"AC10: 리모트 수(RemoteFunction 16 + RemoteEvent 13 — m6-08 +2), SaveSettings 설명이 새 모양",
 		function()
 			local src = fs.readFile("src/shared/Remotes.luau")
 			local functions = string.match(src, "local FUNCTIONS = (%b{})") :: string
@@ -682,7 +682,7 @@ return function(t: Test.Test)
 				return n
 			end
 			t.eq(count(functions), 16)
-			t.eq(count(events), 11)
+			t.eq(count(events), 13)
 			t.ok(string.find(src, "SaveSettings(patch: SettingsPatch)", 1, true) ~= nil, "comment")
 			t.ok(string.find(src, "touchLayout?", 1, true) ~= nil, "touchLayout in comment")
 			local types = fs.readFile("src/shared/Types.luau")

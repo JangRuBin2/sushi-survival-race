@@ -80,6 +80,8 @@ hud.timer.left,⏱ {seconds}초,round timer,seconds=45,⏱ {seconds}s
 hud.timer.overtime,⚡ {seconds}초,overtime countdown timer,seconds=12,⚡ {seconds}s
 hud.respawn.title,다시 출발까지,respawn countdown title above the big number (Race round),,Back in
 hud.respawn.sub,출발점에서 다시 달려요!,respawn countdown subtitle (Race round),,Back to the start line!
+input.attack.btn,💥 공격,mobile attack button (m6-08: knocks back nearby players),,💥 Attack
+input.attack.cooldown,{seconds}초,attack button cooldown seconds left,seconds=3,{seconds}s
 input.dive.btn,🤸 다이브,mobile dive button,,🤸 Dive
 input.grab.btn,✊ 잡기,mobile grab button,,✊ Grab
 input.grabbed,잡혔다!,tag over a grabbed player,,Grabbed!

@@ -31,6 +31,10 @@ local Attributes = {
 	-- 클라이언트 RespawnCountdown이 화면 가운데 카운트다운으로만 써요 — 권한·판정에는 쓰지 않아요.
 	RespawnAt = "RespawnAt",
 
+	-- Player (서버 AttackService만 달아요, m6-08). number (workspace:GetServerTimeNow() 기준): 다음 공격을 쓸 수 있는 시각.
+	-- 클라이언트 공격 버튼의 남은 초 표시에만 써요 — 쿨다운 판단은 서버 AttackLogic 북으로만 해요.
+	AttackReadyAt = "AttackReadyAt",
+
 	-- Player (서버만 달아요, m5-03). 화면 표시용이에요 — 권한·소유 판단에는 쓰지 않아요 (그건 서버 프로필·게임 패스 확인).
 	Vip = "Vip", -- boolean: VIP 게임 패스가 있으면 true (아니면 없음). 이름표 👑·채팅 태그 (m5-08)
 	EliminationFx = "EliminationFx", -- string: 입은 탈락 연출 id (없으면 기본). 모든 클라이언트가 연출을 고를 때 읽어요 (m5-09)

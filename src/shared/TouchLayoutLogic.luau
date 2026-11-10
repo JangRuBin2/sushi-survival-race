@@ -39,7 +39,7 @@ export type Panel = {
 local TouchLayoutLogic = {}
 
 TouchLayoutLogic.VERSION = 1
-TouchLayoutLogic.NAMES = { "jump", "dive", "grab" }
+TouchLayoutLogic.NAMES = { "jump", "dive", "grab", "attack" } -- attack: m6-08 (저장 모양 v1 그대로, 선택 칸)
 TouchLayoutLogic.PRESETS = { "default", "large", "compact" } -- 편집 화면 프리셋 단추 (custom은 손으로 바꾼 배치)
 TouchLayoutLogic.BUCKETS = { "phone", "tablet" }
 -- 금지 구역·크기 (기본값, 사용 뒤 조정 — 스펙 D6)
@@ -60,7 +60,8 @@ TouchLayoutLogic.DECIMALS = 1000 -- 소수 셋째 자리
 local NAMES = TouchLayoutLogic.NAMES
 local VALID_PRESET: { [string]: boolean } = { default = true, large = true, compact = true, custom = true }
 local VALID_BUCKET: { [string]: boolean } = { phone = true, tablet = true }
-local LAYOUT_KEYS: { [string]: boolean } = { v = true, preset = true, jump = true, dive = true, grab = true }
+local LAYOUT_KEYS: { [string]: boolean } =
+	{ v = true, preset = true, jump = true, dive = true, grab = true, attack = true }
 local SPOT_KEYS: { [string]: boolean } = { x = true, y = true, s = true }
 local CHANGE_KEYS: { [string]: boolean } = { bucket = true, layout = true, reset = true }
 local LOCKED_PHASES: { [string]: boolean } = { Starting = true, RoundIntro = true, RoundActive = true }
@@ -85,7 +86,7 @@ local function copyRect(r: Rect): Rect
 end
 
 local function copyButtons(b: TouchButtons): TouchButtons
-	return { jump = copyRect(b.jump), dive = copyRect(b.dive), grab = copyRect(b.grab) }
+	return { jump = copyRect(b.jump), dive = copyRect(b.dive), grab = copyRect(b.grab), attack = copyRect(b.attack) }
 end
 
 function TouchLayoutLogic.screen(width: number, height: number, safe: Insets?, topBar: number?): Screen
@@ -117,7 +118,7 @@ end
 -- 버튼별 기본 크기 (기본 배치와 같아요)
 function TouchLayoutLogic.baseSizes(screen: Screen): { [string]: number }
 	local b = UiLayout.touchButtons(screen.width, screen.height)
-	return { jump = b.jump.size, dive = b.dive.size, grab = b.grab.size }
+	return { jump = b.jump.size, dive = b.dive.size, grab = b.grab.size, attack = b.attack.size }
 end
 
 -- 버튼 크기 범위 (실제 픽셀): 44px 이상, 짧은 변 × 0.35 이하, 기본 크기 0.7~1.6배
@@ -202,7 +203,10 @@ function TouchLayoutLogic.toScreen(layout: Types.TouchLayout, screen: Screen): T
 		local cy = sy + spot.y * sh
 		return { x = round(cx - size / 2), y = round(cy - size / 2), size = size }
 	end
-	return { jump = one(layout.jump), dive = one(layout.dive), grab = one(layout.grab) }
+	local dive, grab = one(layout.dive), one(layout.grab)
+	-- m6-08 전에 저장한 배치에는 공격이 없어요: 다이브 위·잡기 높이(기본 배치와 같은 관계)에 두고 fit이 맞춰요
+	local attack = if layout.attack then one(layout.attack) else { x = dive.x, y = grab.y, size = dive.size }
+	return { jump = one(layout.jump), dive = dive, grab = grab, attack = attack }
 end
 
 function TouchLayoutLogic.fromScreen(
@@ -225,6 +229,7 @@ function TouchLayoutLogic.fromScreen(
 		jump = one(buttons.jump),
 		dive = one(buttons.dive),
 		grab = one(buttons.grab),
+		attack = one(buttons.attack),
 	}
 end
 
@@ -243,6 +248,7 @@ function TouchLayoutLogic.quantize(layout: Types.TouchLayout): Types.TouchLayout
 		jump = one(layout.jump),
 		dive = one(layout.dive),
 		grab = one(layout.grab),
+		attack = if layout.attack then one(layout.attack) else nil,
 	}
 end
 
@@ -332,13 +338,15 @@ function TouchLayoutLogic.preset(name: string, screen: Screen): TouchButtons
 		return (TouchLayoutLogic.clamp(shiftGroupInto(scaled, screen), screen))
 	elseif name == "compact" then
 		local b = TouchLayoutLogic.bounds(screen)
-		local js, ds, gs = base.jump.size, base.dive.size, base.grab.size
+		local js, ds, gs, as = base.jump.size, base.dive.size, base.grab.size, base.attack.size
 		local gap = math.max(UiLayout.MIN_TOUCH_GAP, math.ceil(js * UiLayout.TOUCH_GAP_RATIO))
 		local jump = { x = b.right - js, y = b.bottom - js, size = js }
 		local dive = { x = jump.x - gap - ds, y = jump.y + round((js - ds) / 2), size = ds }
 		-- 잡기: 점프 왼쪽 위 대각선 (다이브와 점프 사이 틈 위)
 		local grab = { x = round(jump.x - gap / 2 - gs / 2), y = jump.y - gap - gs, size = gs }
-		return (TouchLayoutLogic.clamp({ jump = jump, dive = dive, grab = grab }, screen))
+		-- 공격: 잡기 왼쪽 (같은 높이, m6-08)
+		local attack = { x = grab.x - gap - as, y = grab.y, size = as }
+		return (TouchLayoutLogic.clamp({ jump = jump, dive = dive, grab = grab, attack = attack }, screen))
 	end
 	return base
 end
@@ -399,7 +407,7 @@ local function sanitizeSpot(value: unknown): Types.TouchButtonSpot?
 end
 
 function TouchLayoutLogic.sanitizeLayout(value: unknown): Types.TouchLayout?
-	if type(value) ~= "table" or not onlyKeys(value :: any, LAYOUT_KEYS, 5) then
+	if type(value) ~= "table" or not onlyKeys(value :: any, LAYOUT_KEYS, 6) then
 		return nil
 	end
 	local t = value :: any
@@ -414,7 +422,22 @@ function TouchLayoutLogic.sanitizeLayout(value: unknown): Types.TouchLayout?
 	if jump == nil or dive == nil or grab == nil then
 		return nil
 	end
-	return { v = TouchLayoutLogic.VERSION, preset = preset :: any, jump = jump, dive = dive, grab = grab }
+	-- 공격은 선택 칸 (m6-08 전 저장값). 있으면 맞아야 해요
+	local attack: Types.TouchButtonSpot? = nil
+	if t.attack ~= nil then
+		attack = sanitizeSpot(t.attack)
+		if attack == nil then
+			return nil
+		end
+	end
+	return {
+		v = TouchLayoutLogic.VERSION,
+		preset = preset :: any,
+		jump = jump,
+		dive = dive,
+		grab = grab,
+		attack = attack,
+	}
 end
 
 -- SaveSettings의 touchLayout 칸: { bucket, layout } 또는 { bucket, reset = true } (둘 다·둘 다 없음은 거절)

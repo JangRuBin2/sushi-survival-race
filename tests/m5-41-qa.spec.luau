@@ -222,7 +222,7 @@ end
 
 ---------------------------------------------------------------- 도우미
 
-local NAMES = { "jump", "dive", "grab" }
+local NAMES = { "jump", "dive", "grab", "attack" } -- attack: m6-08
 
 local function goodLayout(): any
 	return {
@@ -707,6 +707,7 @@ return function(t: Test.Test)
 					jump = { x = b.right - js, y = b.top, size = js },
 					dive = { x = b.right - js * 2 - 20, y = b.top + 20, size = js },
 					grab = { x = b.right - js, y = b.top + js + 20, size = js },
+					attack = { x = b.right - js * 2 - 20, y = b.top + js + 40, size = js }, -- m6-08
 				}
 				local buttons, problem = TouchLayoutLogic.clamp(raw, s)
 				t.eq(problem, nil, `layout ok {w}`)

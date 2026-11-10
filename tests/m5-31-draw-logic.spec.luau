@@ -674,14 +674,14 @@ return function(t: Test.Test)
 	)
 
 	---------------------------------------------------------------- AC13 리모트·타입·설정
-	t.test("AC13: RemoteFunction 16·RemoteEvent 11, Types, Config.Draw", function()
+	t.test("AC13: RemoteFunction 16·RemoteEvent 13(m6-08 +2), Types, Config.Draw", function()
 		local src = fs.readFile("src/shared/Remotes.luau")
 		local functions = string.match(src, "local FUNCTIONS = (%b{})") :: string
 		local events = string.match(src, "local EVENTS = (%b{})") :: string
 		local _, fnCount = string.gsub(functions, '"%w+"', "")
 		local _, evCount = string.gsub(events, '"%w+"', "")
 		t.eq(fnCount, 16)
-		t.eq(evCount, 11)
+		t.eq(evCount, 13) -- m6-08 AttackInput·AttackFx
 		t.ok(string.find(functions, '"DrawTicket"', 1, true) ~= nil)
 		local types = fs.readFile("src/shared/Types.luau")
 		for _, needle in

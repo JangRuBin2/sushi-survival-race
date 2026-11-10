@@ -5,7 +5,7 @@
 --   metrics(w, h)        위 둘을 한 번에 (UiScaleController가 화면들에 나눠 줘요)
 --   px / touchSize / textSize   "배율 적용 뒤 실제 픽셀이 최소 몇"을 UIScale 안 좌표(가상 픽셀)로 바꿔요
 --   gridRows             버튼 n개를 폭에 맞춰 몇 줄로 놓을지 (방 만들기 인원 버튼)
---   touchButtons(w, h)   점프·다이브·잡기 버튼 자리 (화면 픽셀, UIScale 없음)
+--   touchButtons(w, h)   점프·다이브·잡기·공격(m6-08) 버튼 자리 (화면 픽셀, UIScale 없음)
 --   spectateArrows(w, h, buttons?) compact 관전 ◀ ▶ 자리 (화면 픽셀, 터치 버튼 위쪽).
 --                        buttons = 편집한 배치(m5-41, 전체 화면 픽셀). 없으면 기본 배치 (지금과 같음)
 -- UIScale이 붙은 ScreenGui 안에서 Offset 값 v는 실제로 v × scale 픽셀로 그려져요.
@@ -37,7 +37,7 @@ export type Metrics = {
 
 export type Rect = { x: number, y: number, size: number }
 
-export type TouchButtons = { jump: Rect, dive: Rect, grab: Rect }
+export type TouchButtons = { jump: Rect, dive: Rect, grab: Rect, attack: Rect }
 
 export type Arrows = { left: Rect, right: Rect }
 
@@ -111,8 +111,8 @@ function UiLayout.defaultJump(width: number, height: number): Rect
 	return { x = width - spec.right, y = height - spec.bottom, size = spec.size }
 end
 
--- 점프 버튼(실제 위치를 알면 jump, 모르면 기본 위치) 기준 다이브(왼쪽)·잡기(위쪽).
--- 둘 다 점프의 85% 크기, 점프와 가운데 줄을 맞추고 간격은 점프 × 0.15(최소 8px).
+-- 점프 버튼(실제 위치를 알면 jump, 모르면 기본 위치) 기준 다이브(왼쪽)·잡기(위쪽)·공격(왼쪽 위 대각선, m6-08).
+-- 셋 다 점프의 85% 크기, 점프와 가운데 줄을 맞추고 간격은 점프 × 0.15(최소 8px). 공격은 다이브 위·잡기 왼쪽.
 function UiLayout.touchButtons(width: number, height: number, jump: Rect?): TouchButtons
 	local j = jump or UiLayout.defaultJump(width, height)
 	local size = math.floor(j.size * UiLayout.TOUCH_BUTTON_RATIO + 0.5)
@@ -120,7 +120,8 @@ function UiLayout.touchButtons(width: number, height: number, jump: Rect?): Touc
 	local inset = (j.size - size) / 2
 	local dive = { x = math.max(0, j.x - gap - size), y = j.y + inset, size = size }
 	local grab = { x = j.x + inset, y = math.max(0, j.y - gap - size), size = size }
-	return { jump = j, dive = dive, grab = grab }
+	local attack = { x = dive.x, y = grab.y, size = size }
+	return { jump = j, dive = dive, grab = grab, attack = attack }
 end
 
 -- compact 관전 ◀ ▶: 아래쪽 양 끝, 오른쪽 터치 버튼 묶음(가장 위 버튼) 바로 위 높이 (화면 픽셀)
@@ -137,7 +138,7 @@ function UiLayout.spectateArrows(width: number, height: number, buttons: TouchBu
 			right = { x = width - margin - size, y = y, size = size },
 		}
 	end
-	local list = { buttons.jump, buttons.dive, buttons.grab }
+	local list = { buttons.jump, buttons.dive, buttons.grab, buttons.attack }
 	local top, groupLeft = math.huge, math.huge
 	for _, r in list do
 		top = math.min(top, r.y)

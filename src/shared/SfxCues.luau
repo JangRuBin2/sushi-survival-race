@@ -42,6 +42,7 @@ SfxCues.Effects = {
 	"GrabStart",
 	"Grabbed",
 	"Knockdown",
+	"Attack", -- 공격 (m6-08, 연출 스타일과 무관하게 한 소리)
 	-- 장애물 (m3-09가 맵에 붙여요)
 	"ChopstickWarn",
 	"WasabiBoing",

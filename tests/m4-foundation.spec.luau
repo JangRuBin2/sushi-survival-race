@@ -445,9 +445,10 @@ return function(t: Test.Test)
 		-- m5-02가 AdminPreviewSkin을 더해 21개
 		-- m5-03이 BuyWithTokens·RequestOfferPurchase·EquipFx·RedeemCode·AdminCommand를 더해 26개
 		-- m5-31이 DrawTicket을 더해 27개 (RemoteFunction 16 + RemoteEvent 11)
-		t.eq(eventCount + functionCount, 27)
+		-- m6-08이 AttackInput·AttackFx를 더해 29개 (RemoteFunction 16 + RemoteEvent 13)
+		t.eq(eventCount + functionCount, 29)
 		t.eq(functionCount, 16)
-		t.eq(eventCount, 11)
+		t.eq(eventCount, 13)
 	end)
 
 	t.test("Types: Settings·ProfileView·RewardReason·RewardGrant", function()

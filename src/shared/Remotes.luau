@@ -39,9 +39,12 @@
 --   RewardGranted(grant: RewardGrant)        코인을 받을 때, 본인에게만 (m4-08, RewardService)
 --   Notice(message: LocText, kind: NoticeKind)  짧은 안내 한 줄, 본인에게만 (m4-11: 텔레포트 실패·서버 이동 중 등).
 --                                            kind는 항상 보내요 (m5-26, 문구로 색 고르기 폐지)
+--   AttackFx(info: AttackFxInfo)             누군가 공격했을 때 그 방 사람에게 (m6-08, AttackService). 연출만 — 판정은 이미 서버가 했어요.
+--                                            스킨은 보내지 않아요 — 클라이언트가 공격자 캐릭터의 AppearanceId로 연출을 골라요
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
+--   AttackInput()                            공격 버튼 누름 (m6-08, 인자 없음. 서버가 간격 Config.Attack.InputMinInterval·쿨다운·레이서 여부 검증)
 --   SaveSettings(patch: SettingsPatch)       설정 부분 저장 { muteLevel?: 1~3 정수, touchLayout?: { bucket, layout | reset } } (m4-01, m5-41: 틀리면 전체 무시, 칸마다 Config.Data.SettingsMinInterval)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -77,6 +80,8 @@ local EVENTS = {
 	"RewardGranted",
 	"SaveSettings",
 	"Notice",
+	"AttackInput", -- m6-08
+	"AttackFx", -- m6-08
 }
 
 local FOLDER_NAME = "Remotes"

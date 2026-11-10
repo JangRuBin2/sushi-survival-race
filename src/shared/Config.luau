@@ -113,6 +113,22 @@ Config.Grab = {
 	InputMinInterval = 0.1, -- GrabInput 요청 간격 제한(초)
 }
 
+-- 공격 (GDD 6, m6-08). 모든 플레이어가 같은 공격이에요 — 스킨은 연출만 바꿔요(AttackFxLogic, GDD 9.1).
+-- 판정은 서버 AttackService + 순수 AttackLogic. 수치는 기본값, 플레이테스트 후 조정.
+Config.Attack = {
+	Radius = 10, -- 내 주변 이 거리(HumanoidRootPart 사이, 구) 안의 레이서가 맞아요
+	KnockHorizontal = 30, -- 바깥쪽으로 튕기는 수평 속도 (studs/s)
+	KnockUp = 14, -- 위로 튕기는 속도
+	KnockHold = 0.12, -- LinearVelocity를 거는 시간(초)
+	Stun = 1.0, -- 넘어짐(PlatformStand) 시간(초) — 머리 위 "@_@"
+	Cooldown = 8, -- 공격 사이 간격(초)
+	Immunity = 2.0, -- 맞은 뒤 다시 안 맞는 시간(초)
+	InputMinInterval = 0.2, -- AttackInput 요청 간격 제한(초)
+	MoveExempt = 1.5, -- 맞은 사람 이동 감시 면제(초)
+	FxMaxConcurrent = 6, -- 한 화면에서 동시에 그리는 공격 연출 수
+	FxMaxDistance = 150, -- 이보다 먼 공격 연출은 그리지 않아요
+}
+
 -- 연출·소리 튜닝 (m3-09). 친구 테스트 뒤 바꿀 만한 값을 여기 모아요.
 Config.Fx = {
 	EliminationMaxConcurrent = 6, -- 한 화면에서 동시에 재생하는 남의 탈락 연출 수 (본인 연출은 세지 않아요)

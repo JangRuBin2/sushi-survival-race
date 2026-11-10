@@ -34,6 +34,8 @@ local function labelOf(name: string): string
 		return Loc.t("input.jump.btn")
 	elseif name == "dive" then
 		return Loc.t("input.dive.btn")
+	elseif name == "attack" then
+		return Loc.t("input.attack.btn") -- m6-08
 	end
 	return Loc.t("input.grab.btn")
 end

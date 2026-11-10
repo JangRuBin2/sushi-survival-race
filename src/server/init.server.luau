@@ -15,6 +15,7 @@ local SERVICES = {
 	require(script.EliminationService),
 	require(script.AppearanceService),
 	require(script.GrabService),
+	require(script.AttackService), -- m6-08 공격 (모두 같은 공격, 스킨은 연출만)
 	require(script.LobbyService), -- m4-06
 	require(script.RewardService), -- m4-08
 	require(script.MovementGuardService), -- m4-10

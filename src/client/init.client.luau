@@ -26,6 +26,7 @@ local CONTROLLERS = {
 	require(script.input.GrabController),
 	require(script.input.AttackController), -- m6-08 공격 입력 (F·L2·모바일 버튼)
 	require(script.fx.AttackFxController), -- m6-08 공격 연출 (스킨별)
+	require(script.fx.DynamiteFxController), -- m6-12 다이너마이트 (들고 있음·카운트다운·폭발)
 	require(script.ui.UiScaleController), -- m4-09
 	require(script.ui.CoinController), -- m4-08
 	require(script.fx.LobbyFxController), -- m4-06

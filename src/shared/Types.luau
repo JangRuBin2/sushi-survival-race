@@ -185,4 +185,12 @@ export type AttackFxInfo = {
 	hits: { number }, -- 맞은 사람 userId (가까운 순)
 }
 
+-- 다이너마이트 폭발 연출 (m6-12, 서버 → 같은 방 클라이언트 DynamiteFx)
+export type DynamiteFxInfo = {
+	carrier: number?, -- 들고 있던 사람 userId (나갔으면 nil)
+	position: Vector3, -- 폭발 지점
+	hits: { number }, -- 휘말린 사람 userId (들고 있던 사람 포함)
+	effect: "Home" | "Knock", -- Race는 출발점으로, Survival·결승은 튕김
+}
+
 return {}

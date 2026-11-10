@@ -129,6 +129,31 @@ Config.Attack = {
 	FxMaxDistance = 150, -- 이보다 먼 공격 연출은 그리지 않아요
 }
 
+-- 다이너마이트 맵 아이템 (GDD 6, m6-12). 누구나 줍는 아이템 — 스킨과 무관(다이너마이트 스시는 연출만).
+-- 들고 있으면 공격 버튼이 점화 버튼이 돼요. 수치는 기본값, 플레이테스트 후 조정.
+Config.Dynamite = {
+	Enabled = true,
+	-- 유니크 라운드 (사용자 결정 2026-11-10 "매판 폭탄은 짜증나니까"): 결승이 아닌 Race 라운드에서 이 확률로만
+	-- "🧨 다이너마이트 라운드"가 되고, 그 라운드에서만 아이템이 떨어져요. Studio에서 보려면 잠깐 1로.
+	UniqueChance = 0.10,
+	FirstDelay = 12, -- 라운드 시작 뒤 첫 아이템까지(초)
+	Interval = 18, -- 그 뒤 아이템 사이(초)
+	MaxPerRoom = 2, -- 방 하나에 동시에 있는 다이너마이트(바닥·들고 있음·불붙음 합)
+	MinRacers = 2, -- 레이서가 이보다 적으면 안 떨어뜨려요
+	PickupRadius = 4.5, -- 이 거리(HumanoidRootPart ↔ 아이템) 안이면 자동으로 주워요
+	Lifetime = 25, -- 아무도 안 주우면 사라지는 시간(초)
+	DropMinDist = 6, -- 레이서 둘레 이 거리 ~
+	DropMaxDist = 12, -- ~ 이 거리에 떨어뜨려요
+	Fuse = 10, -- 점화 뒤 폭발까지(초) — 사용자 결정 2026-11-10
+	Radius = 12, -- 폭발 반지름 (들고 있던 사람은 늘 포함)
+	KnockHorizontal = 60, -- Survival·결승: 바깥으로 튕기는 수평 속도
+	KnockUp = 35, -- 위로 튕기는 속도
+	KnockHold = 0.15, -- LinearVelocity를 거는 시간(초)
+	Stun = 1.5, -- Survival·결승 넘어짐(초)
+	MoveExempt = 2.5, -- 이동 감시 면제(초)
+	FxMaxDistance = 220, -- 폭발 연출을 그리는 거리
+}
+
 -- 연출·소리 튜닝 (m3-09). 친구 테스트 뒤 바꿀 만한 값을 여기 모아요.
 Config.Fx = {
 	EliminationMaxConcurrent = 6, -- 한 화면에서 동시에 재생하는 남의 탈락 연출 수 (본인 연출은 세지 않아요)

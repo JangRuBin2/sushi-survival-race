@@ -41,6 +41,7 @@
 --                                            kind는 항상 보내요 (m5-26, 문구로 색 고르기 폐지)
 --   AttackFx(info: AttackFxInfo)             누군가 공격했을 때 그 방 사람에게 (m6-08, AttackService). 연출만 — 판정은 이미 서버가 했어요.
 --                                            스킨은 보내지 않아요 — 클라이언트가 공격자 캐릭터의 AppearanceId로 연출을 골라요
+--   DynamiteFx(info: DynamiteFxInfo)         다이너마이트 폭발 (m6-12, DynamiteService) — 그 방 사람에게. 연출만(판정은 서버가 끝냄)
 --
 -- 클라이언트 → 서버 알림 (RemoteEvent, 반환 없음. 서버가 타입·요청 간격을 검증해요)
 --   GrabInput(holding: boolean)              잡기 버튼 누름(true)/뗌(false) (m3-07, Config.Grab.InputMinInterval)
@@ -82,6 +83,7 @@ local EVENTS = {
 	"Notice",
 	"AttackInput", -- m6-08
 	"AttackFx", -- m6-08
+	"DynamiteFx", -- m6-12
 }
 
 local FOLDER_NAME = "Remotes"

@@ -34,6 +34,9 @@ local Attributes = {
 	-- Player (서버 AttackService만 달아요, m6-08). number (workspace:GetServerTimeNow() 기준): 다음 공격을 쓸 수 있는 시각.
 	-- 클라이언트 공격 버튼의 남은 초 표시에만 써요 — 쿨다운 판단은 서버 AttackLogic 북으로만 해요.
 	AttackReadyAt = "AttackReadyAt",
+	-- Player (서버 DynamiteService만 달아요, m6-12). 표시용 — 판단은 서버 표로만 해요.
+	HeldItem = "HeldItem", -- string: 들고 있는 아이템 ("Dynamite"), 없으면 없음. 공격 버튼이 🧨 점화로 바뀌어요
+	DynamiteFuseAt = "DynamiteFuseAt", -- number (서버 시각): 불붙인 다이너마이트가 터지는 시각. 머리 위 카운트다운
 
 	-- Player (서버만 달아요, m5-03). 화면 표시용이에요 — 권한·소유 판단에는 쓰지 않아요 (그건 서버 프로필·게임 패스 확인).
 	Vip = "Vip", -- boolean: VIP 게임 패스가 있으면 true (아니면 없음). 이름표 👑·채팅 태그 (m5-08)
@@ -52,6 +55,8 @@ local Attributes = {
 	RoomId = "RoomId", -- string: 이 맵을 쓰는 방
 	RoundIndex = "RoundIndex", -- number: 몇 번째 라운드인지 (1부터)
 	MapId = "MapId", -- string: 맵 모듈 id
+	-- string: 유니크 라운드 ("Dynamite", m6-12). 보통 라운드면 없음. 클라이언트 표시용 — 판정은 RoundService.modifierOf
+	RoundModifier = "RoundModifier",
 }
 
 return Attributes

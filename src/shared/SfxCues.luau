@@ -43,6 +43,9 @@ SfxCues.Effects = {
 	"Grabbed",
 	"Knockdown",
 	"Attack", -- 공격 (m6-08, 연출 스타일과 무관하게 한 소리)
+	"DynamitePickup", -- 다이너마이트 주움 (m6-12)
+	"DynamiteFuse", -- 다이너마이트 점화·심지 타는 소리 (m6-12)
+	"DynamiteBoom", -- 다이너마이트 폭발 (m6-12)
 	-- 장애물 (m3-09가 맵에 붙여요)
 	"ChopstickWarn",
 	"WasabiBoing",

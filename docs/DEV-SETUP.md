@@ -104,7 +104,7 @@ Explorer 창에서:
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 29개(RemoteFunction 16, RemoteEvent 13 — m5-31 `DrawTicket`, m6-08 `AttackInput`·`AttackFx`까지)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 30개(RemoteFunction 16, RemoteEvent 14 — m5-31 `DrawTicket`, m6-08 `AttackInput`·`AttackFx`, m6-12 `DynamiteFx`까지)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
 - [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼, 왼쪽 가장자리 "🛠"(Studio에서는 관리자)가 떠요 (3-4, 3-9, 3-10)
 - [ ] Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상이에요(코드 목록을 로컬에 안 만들었을 때)
@@ -1020,6 +1020,8 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 6-1. **탈의실 확률**: 뽑기에서 나오는 스킨 카드(전설 판매 스킨·🎫 특) 오른쪽 위 등급 배지 아래 "🎫 0.13%" 같은 확률이 뽑기 화면 ⓘ의 "각 x.xx%"와 같은지, 카드를 누르면 미리보기 등급 줄 끝에 "뽑기 확률 각 x.xx%"가 붙는지, 휴대폰에서 글씨가 잘리지 않는지.
 7. **버튼 위치 편집**: ⚙ → 버튼 위치 편집에 "💥 공격"이 네 번째로 나오고 끌어 옮기기·크기·프리셋(기본·크게·엄지 가까이)이 겹치지 않아요. m6-08 전에 저장한 배치가 있는 계정은 공격 버튼이 다이브 위에 생기거나(겹치면) 기본 배치로 돌아가요.
 8. **소리**: 공격 소리는 임시로 폭발음(작게, 높게)이에요 — 바꾸려면 USER-TODO A2.
+
+9. **🧨 다이너마이트 라운드 (m6-12)**: `src/shared/Config.luau`의 `Config.Dynamite.UniqueChance`를 잠깐 **1**로(커밋 전에 0.10으로 되돌리기) → 첫 Race 출발 때 "🧨 다이너마이트 라운드!" 안내, 12초 뒤 누군가 근처에 다이너마이트(빨간 막대 셋 + 불꽃). 걸어가면 자동으로 줍고 머리 위 "🧨", 모바일 버튼 "🧨 점화"(PC F). 누르면 머리 위 "🧨 10 → 1"(마지막 3초 빨강), 0에서 폭발 → 나와 반지름 12 안 사람이 출발점에 서서 "다시 출발까지 3·2·1". 다이너마이트 스시를 입고 터뜨리면 불덩이가 더 크고 고리가 둘. 결승·Survival 라운드에는 안 나와야 해요. `[MovementGuard]` 경고 없음.
 
 > 수치는 모두 **기본값**이에요(`Config.Attack`: 반지름 10, 튕김 30·14, 넘어짐 1초, 쿨다운 8초, 면역 2초). 플레이테스트 뒤 조정해요.
 

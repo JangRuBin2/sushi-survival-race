@@ -1,7 +1,8 @@
 --!strict
 -- 모바일 "공격" 버튼 (m6-08). 기본 자리는 다이브 위·잡기 왼쪽 대각선 (Shared.UiLayout.touchButtons의 attack).
 -- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 attack을 쓰고, 편집 중에는 숨어요.
---   AttackButton.create(onPress) -> { setCooldown(seconds?), destroy() }?
+--   AttackButton.create(onPress) -> { setCooldown(seconds?), setDynamite(on), destroy() }?
+--     setDynamite(true)면 다이너마이트를 들고 있어 "🧨 점화"(쿨다운 표시보다 먼저, m6-12)
 --     터치 기기가 아니면 nil. 누르는 순간 onPress() 한 번 (누르고 있기 아님).
 --     setCooldown(n)이면 버튼에 남은 초를 쓰고 흐리게, nil이면 원래 글씨.
 --     기본 터치 컨트롤(PlayerGui.TouchGui.TouchControlFrame.JumpButton)이 나타날 때까지 기다렸다가 보여요.
@@ -21,6 +22,7 @@ local COOLDOWN_COLOR = Color3.fromRGB(120, 120, 120)
 
 export type AttackButton = {
 	setCooldown: (seconds: number?) -> (),
+	setDynamite: (on: boolean) -> (),
 	destroy: () -> (),
 }
 
@@ -66,6 +68,20 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 	local jumpConnections: { RBXScriptConnection } = {}
 	local destroyed = false
 	local shownCooldown: number? = nil
+	local dynamite = false
+	local DYNAMITE_COLOR = Color3.fromRGB(255, 120, 60)
+	local function refresh()
+		if dynamite then
+			button.Text = Loc.t("input.dynamite.btn")
+			button.BackgroundColor3 = DYNAMITE_COLOR
+		elseif shownCooldown == nil then
+			button.Text = readyText
+			button.BackgroundColor3 = READY_COLOR
+		else
+			button.Text = Loc.t("input.attack.cooldown", { seconds = shownCooldown })
+			button.BackgroundColor3 = COOLDOWN_COLOR
+		end
+	end
 
 	local function disconnectJump()
 		for _, c in jumpConnections do
@@ -165,13 +181,14 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 				return
 			end
 			shownCooldown = seconds
-			if seconds == nil then
-				button.Text = readyText
-				button.BackgroundColor3 = READY_COLOR
-			else
-				button.Text = Loc.t("input.attack.cooldown", { seconds = seconds })
-				button.BackgroundColor3 = COOLDOWN_COLOR
+			refresh()
+		end,
+		setDynamite = function(on: boolean)
+			if on == dynamite then
+				return
 			end
+			dynamite = on
+			refresh()
 		end,
 		destroy = function()
 			destroyed = true

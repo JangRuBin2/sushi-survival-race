@@ -13,6 +13,7 @@
   - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙"), **m5-12 콘솔(게임패드) UI**(2026-10-15 main 병합, 아래 "게임패드 UI 규칙").
 - **M6 (플레이테스트 반영)** — `in-qa`: **m6-01 Race 부활**(GDD v0.8 — 결승이 아닌 Race에서 정원이 차기 전 낙하·리셋은 탈락 대신 `Config.Race.RespawnDelay` 3초 뒤 출발점 부활, Player 속성 `Attributes.RespawnAt` → 클라이언트 `RespawnCountdown` 가운데 3·2·1. Survival·결승 그대로, 나간 사람은 부활 없음). Studio 확인 DEV-SETUP 3-16.
   - `in-qa`(2026-11-09 main 병합): **m6-02 대형 맵 기반**(방 인원 32·40, 25~40명 통과 0.60·0.45·0.40, 맵 `capacity`/`minPlayers` + 인원 맞춤 판 계획 `Rules.buildRoundPlan`, `PlacePayload.MAX_MEMBERS` 40, 장식 예산 `Large`), **m6-03~07 대형 맵 5개**(아래 표). 제안서 Q1~Q5는 답 없이 권장안. Studio 확인 DEV-SETUP 3-17.
+  - `in-qa`(2026-11-10, 같은 브랜치): **m6-12 🧨 다이너마이트 라운드**(결승 아닌 Race 10% 유니크 라운드, 맵 아이템 → 10초 뒤 폭발 → 출발점). m6-11 다이너마이트 스시(스킨) 개발 중.
   - `in-qa`(2026-11-10, 같은 브랜치): **m6-10 천사·악마 스시**(고등어와 같은 등급 — 전설 R$ 199 + 뽑기, 연출 `HolyHalo`·`DemonFlame`).
   - `in-qa`(2026-11-10, 같은 브랜치): **m6-09 마법소녀 스시**(전설 R$ 199 + 뽑기, 오리지널 디자인, 공격 연출 `StarRibbon`).
   - `in-qa`(2026-11-10, 브랜치 `claude/gracious-curie-tl82em`): **m6-08 모두의 공격 + 전설 스킨 4종**(main PR 리뷰 대기, GDD v0.10 — F·L2·모바일 💥 버튼, 반지름 10 튕김 + 1초 넘어짐, 쿨다운 8·면역 2, 스킨은 연출만. 드래곤·용·제트기·섀도 제트 스시 R$ 199 + 뽑기 전설). 아래 "공격 · 연출 규칙". Studio 확인 DEV-SETUP 3-18.
@@ -52,6 +53,7 @@
 - **공격은 모두 같다**(`Config.Attack`). 판정은 서버 `AttackService` + 순수 `AttackLogic`(대상·튕김·쿨다운·면역), 입력 `AttackInput()`(인자 없음) → 같은 방에 `AttackFx`. 판정 코드에 스킨 id·`AppearanceId` 금지(테스트가 막음) — 스킨별 수치는 GDD 9.1을 바꾸는 결정이라 사용자에게 먼저 묻는다.
 - **특정 작품 캐릭터를 닮은 요청**(메가트론 → 오리지널 제트기 m6-08, 세일러문을 닮은 그림 → 오리지널 마법소녀 m6-09)은 장르만 쓰고 이름·상징·배색을 바꾼 오리지널로 만든다. 그런 그림은 저장소에 넣지 않고, 작품 이름이 없음을 테스트로 고정한다.
 - **스킨은 연출만**: 스킨 → 연출은 `AttackFxLogic.STYLE_BY_SKIN` 표 하나, 그리기는 클라이언트 `AttackFxController`(이 클라이언트 전용 Anchored 파츠, 연출마다 폴더째 정리, 동시 6·거리 150). 넘어짐 "@_@"는 기존 `PlatformStand` 처리가 한다. 캐릭터 실제 비행은 넣지 않는다(판정 붕괴).
+- **🧨 다이너마이트 라운드**(m6-12): 결승 아닌 Race의 `Config.Dynamite.UniqueChance`(10%)만 유니크 라운드(`RoundService.modifierOf`, 맵 속성 `RoundModifier`) → `DynamiteService`가 아이템을 떨어뜨리고, 들고 있으면 `AttackInput`이 점화(`tryLight`가 공격보다 먼저). 폭발은 `RoundService.sendToStart`(Race 부활 흐름) 또는 공용 `Knockback`. 누구나 쓰는 아이템이라 스킨 id는 연출(`DynamiteFxController`)에만. 스펙 `docs/specs/m6-12-dynamite-round.md`.
 - 터치 버튼은 4개(`TouchLayoutLogic.NAMES`에 `attack`, 저장 모양 v1 + 선택 칸 — 예전 3버튼 저장값 호환).
 - 자세한 구조·새 연출 더하는 법: **`docs/REFERENCE-attack-fx.md`**.
 
@@ -117,7 +119,7 @@ src/
     DataService          # 프로필 DataStore(PlayerData_v1), 세션 잠금, update/saveNow/onLoaded/setViewExtra, SaveSettings(칸별 간격)
     PlaceService  PlaceBackend  RoomDirectory  RoomService(forceStart)  MatchService(setNextPlan)  MatchEvents
     RoundService         # prepareRound → run/cancel. 맵 Model에 Arena 태그, 결승 연장전 루프
-    EliminationService  CharacterUtil  AppearanceService  GrabService  AttackService(m6-08)  MovementGuardService
+    EliminationService  CharacterUtil  AppearanceService  GrabService  AttackService(m6-08)  DynamiteService  Knockback(m6-12)  MovementGuardService
     LobbyService         # 로비 건물·조명·단상·시즌 장식 (Match 역할이면 안 지음)
     RewardService        # 코인·승수·칭호·이벤트 재화 (MatchEvents 구독)
     ShopService          # EquipSkin, BuyWithCoins, BuyWithTokens, DrawTicket(🎫 뽑기, m5-31), 장착 resolver, 미리보기 슬롯, isLocked, Studio 전부 입기
@@ -135,16 +137,16 @@ src/
     fx/                  # CharacterFxController(캐릭터 움직임·이름표), FishRig·DollAnimator(고등어 관절·인형 움직임, m5-32),
                          # EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
                          # LobbyFxController(단상 이름표), MapLightingController(맵별 조명), MapDecorFxController(장식 움직임),
-                         # WorldTextController(서버 월드 글씨 → Loc, m5-26), AttackFxController(스킨별 공격 연출, m6-08)
+                         # WorldTextController(서버 월드 글씨 → Loc, m5-26), AttackFxController(스킨별 공격 연출·전투 가면, m6-08), DynamiteFxController(🧨 표시·폭발, m6-12)
     input/               # Dive*, Grab*, Attack*(m6-08), IceController(얼음 관성, m5-06), TouchLayoutController(점프·다이브·잡기·공격 배치, m5-41)
   shared/            -> ReplicatedStorage.Shared
-    Config  Remotes(RemoteFunction 16 + RemoteEvent 13 = 29)  Types  Attributes   # 공용 파일
+    Config  Remotes(RemoteFunction 16 + RemoteEvent 14 = 30)  Types  Attributes   # 공용 파일
     Rules  RoundLogic  RoomLogic  SpectateLogic  Cleanup  CameraPriority
     SushiBody  SushiConceptSample(콘셉트 몸)  ConceptMackerel  SushiPose  PartMath  CharacterAnimLogic   # 캐릭터 몸·움직임
     Skins  ShopLogic  DrawLogic  DrawScreenLayout  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
     ProfileSchema(v3)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
     LobbyLayout  UiLayout  TouchLayoutLogic  GamepadNavLogic(m5-12)  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
-    DiveLogic  GrabLogic  GrabInputLogic  AttackLogic  AttackFxLogic(m6-08)  IceLogic  SfxCues  SfxLibrary
+    DiveLogic  GrabLogic  GrabInputLogic  AttackLogic  AttackFxLogic(m6-08)  DynamiteLogic(m6-12)  IceLogic  SfxCues  SfxLibrary
     LocalizeLogic(순수: 키·CSV·format·choose·동적 키)  WorldText(월드 글씨 키 표시)  PodiumLogic(단상 이름표)
     Localization/Strings.csv   # 문구 카탈로그 → LocalizationTable (클라우드 표에도 같은 파일 업로드)
     maps/

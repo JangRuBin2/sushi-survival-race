@@ -682,7 +682,7 @@ return function(t: Test.Test)
 				return n
 			end
 			t.eq(count(functions), 16)
-			t.eq(count(events), 13)
+			t.eq(count(events), 14) -- m6-12 DynamiteFx
 			t.ok(string.find(src, "SaveSettings(patch: SettingsPatch)", 1, true) ~= nil, "comment")
 			t.ok(string.find(src, "touchLayout?", 1, true) ~= nil, "touchLayout in comment")
 			local types = fs.readFile("src/shared/Types.luau")

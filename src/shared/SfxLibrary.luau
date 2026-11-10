@@ -87,6 +87,9 @@ SfxLibrary.Entries = {
 	Grabbed = sfx(SOUNDS.ouch, 0.7, 1.3, 0.05),
 	Knockdown = sfx(SOUNDS.jumpLand, 0.9, 0.6, 0.05),
 	Attack = sfx(SOUNDS.explosion, 0.5, 1.5, 0.05), -- 공격 (m6-08, 바꾸려면 USER-TODO A2)
+	DynamitePickup = sfx(SOUNDS.jump, 0.6, 1.6, 0.05), -- m6-12 (임시)
+	DynamiteFuse = sfx(nil, 0.6), -- m6-12 심지 (무음 — 사용자가 고름)
+	DynamiteBoom = sfx(SOUNDS.explosion, 1, 0.8, 0.05), -- m6-12 폭발 (임시)
 	-- 장애물 (m3-09가 맵에 붙여요)
 	ChopstickWarn = sfx(nil, 0.7),
 	WasabiBoing = sfx(SOUNDS.jump, 0.8, 1.7, 0.05),

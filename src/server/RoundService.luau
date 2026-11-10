@@ -34,6 +34,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local DynamiteLogic = require(ReplicatedStorage.Shared.DynamiteLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
@@ -120,6 +121,10 @@ local activeRemovers: { [string]: (player: Player) -> boolean } = {}
 local activeRacing: { [string]: (userId: number) -> boolean } = {}
 -- 소개 중 포함, 스폰에 배치돼 아직 통과·탈락하지 않은 레이서인가 (m4-10 이동 감시).
 local placedRacing: { [string]: (userId: number) -> boolean } = {}
+-- 방 → "이 사람을 출발점으로" (m6-12 다이너마이트). Race 부활이 되는 라운드에서만 true를 돌려주고 부활 흐름을 시작해요
+local sendHome: { [string]: (userId: number) -> boolean } = {}
+-- 방 → 지금 라운드의 유니크 규칙 ("Dynamite", m6-12). 보통 라운드면 없음
+local modifiers: { [string]: string } = {}
 
 local function waitForCharacter(player: Player, timeout: number): Model?
 	local deadline = os.clock() + timeout
@@ -176,6 +181,10 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		if placedRacing[roomId] then
 			placedRacing[roomId] = nil
 		end
+		if sendHome[roomId] then
+			sendHome[roomId] = nil
+		end
+		modifiers[roomId] = nil
 		local cleanupOk, cleanupErr = pcall(cleanup.run, cleanup)
 		if not cleanupOk then
 			warn(`[RoundService] round cleanup failed: {cleanupErr}`)
@@ -204,6 +213,16 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		-- 결승은 맵 종류가 아니라 매치의 마지막 라운드예요 (B8).
 		local isFinal = args.roundIndex == args.roundCount
 		local mode = RoundLogic.modeFor(map.kind, isFinal)
+		-- 유니크 라운드 (m6-12): 결승 아닌 Race에서 Config.Dynamite.UniqueChance 확률로 "다이너마이트 라운드"
+		if
+			Config.Dynamite.Enabled
+			and DynamiteLogic.rollUnique(map.kind, isFinal, Random.new():NextNumber(), Config.Dynamite)
+		then
+			modifiers[roomId] = "Dynamite"
+			model:SetAttribute(Attributes.RoundModifier, "Dynamite")
+		else
+			modifiers[roomId] = nil
+		end
 		local playersById: { [number]: Player } = {}
 		local ids: { number } = {}
 		for _, player in args.players do
@@ -548,6 +567,22 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		end
 
 		-- 이동 감시(m4-10)가 배치 알림 직후부터 물어요: 배치 전에 등록해 둬요.
+		-- m6-12: 다이너마이트 폭발로 출발점에 보내기 = 낙하와 같은 Race 부활 흐름(출발점 고정 → RespawnDelay 뒤 다시 달림)
+		sendHome[roomId] = function(userId: number): boolean
+			if
+				closed
+				or round.ended
+				or not placed[userId]
+				or respawning[userId]
+				or pendingIds[userId]
+				or not RoundLogic.isRacing(round, userId)
+				or not RoundLogic.respawns(round, userId, respawnEnabled)
+			then
+				return false
+			end
+			startRespawn(userId, "Fall")
+			return true
+		end
 		placedRacing[roomId] = function(userId: number): boolean
 			return not round.ended
 				and not closed
@@ -827,6 +862,22 @@ function RoundService.placedRoomOf(player: Player): string?
 	return nil
 end
 
+-- 그 방 지금 라운드의 유니크 규칙 ("Dynamite"), 보통 라운드면 nil (m6-12)
+function RoundService.modifierOf(roomId: string): string?
+	return modifiers[roomId]
+end
+
+-- m6-12 다이너마이트: 이 레이서를 출발점으로 보내요 (Race 부활이 되는 라운드만, 낙하와 같은 흐름). 보냈으면 true.
+-- Survival·결승·정원 마감 뒤·부활 대기 중이면 false — 그때는 DynamiteService가 크게 튕겨 내요.
+function RoundService.sendToStart(player: Player): boolean
+	local roomId = RoomService.getRoomIdOf(player)
+	local fn = roomId and sendHome[roomId]
+	if fn == nil then
+		return false
+	end
+	return fn(player.UserId)
+end
+
 -- 디버그 (Config.DEBUG.logArenaStats, m4-12): 아직 정리되지 않은 라운드 훅 수. 다른 방이 매치 중이 아니면 0이어야 해요.
 function RoundService.debugHookCount(): number
 	local n = 0
@@ -837,6 +888,9 @@ function RoundService.debugHookCount(): number
 		n += 1
 	end
 	for _ in placedRacing do
+		n += 1
+	end
+	for _ in sendHome do
 		n += 1
 	end
 	return n

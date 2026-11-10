@@ -82,6 +82,7 @@ hud.respawn.title,다시 출발까지,respawn countdown title above the big numb
 hud.respawn.sub,출발점에서 다시 달려요!,respawn countdown subtitle (Race round),,Back to the start line!
 input.attack.btn,💥 공격,mobile attack button (m6-08: knocks back nearby players),,💥 Attack
 input.attack.cooldown,{seconds}초,attack button cooldown seconds left,seconds=3,{seconds}s
+input.dynamite.btn,🧨 점화,attack button while holding a dynamite (m6-12: lights the fuse),,🧨 Light
 input.dive.btn,🤸 다이브,mobile dive button,,🤸 Dive
 input.grab.btn,✊ 잡기,mobile grab button,,✊ Grab
 input.grabbed,잡혔다!,tag over a grabbed player,,Grabbed!
@@ -290,6 +291,7 @@ room.status.autoStart,정원이 다 찼어요! {seconds}초 뒤 자동 시작,wa
 room.status.needPlayers,{count}명 이상 모이면 시작할 수 있어요,waiting room status,count=4,Need {count}+ players to start
 room.status.ready,준비되면 시작을 눌러 주세요,waiting room status (host),,Press Start when you're ready
 room.status.waitHost,방장이 시작하기를 기다리는 중…,waiting room status,,Waiting for the host to start...
+round.dynamite.notice,🧨 다이너마이트 라운드! 다이너마이트를 주워 공격 버튼으로 불을 붙여요 (10초 뒤 펑),"notice when a rare dynamite round starts (m6-12), long-ok",,"🧨 Dynamite round! Grab a dynamite and light it with the attack button (boom in 10s)"
 season.christmas-2026.name,크리스마스 초밥 축제,seasonal event name or event treat name,,Christmas Sushi Festival
 season.christmas-2026.token,별,seasonal event name or event treat name,,Stars
 season.halloween-2026.name,할로윈 초밥 축제,seasonal event name or event treat name,,Halloween Sushi Festival

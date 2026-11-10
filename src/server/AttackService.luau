@@ -6,6 +6,7 @@
 --   모든 플레이어가 같은 공격이에요 — 스킨은 연출만 바꿔요(클라이언트 AttackFxController, GDD 9.1). 서버는 스킨을 보지 않아요.
 --   쿨다운이 바뀌면 Player 속성 Attributes.AttackReadyAt(서버 시각)을 달아요 — 버튼 표시용, 판단은 AttackLogic 북으로만.
 --   AttackFx는 같은 방 사람에게만 보내요.
+--   m6-12: 다이너마이트를 들고 있으면 같은 입력이 점화예요(DynamiteService.tryLight). 넉백은 공용 Knockback.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,14 +14,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local AttackLogic = require(ReplicatedStorage.Shared.AttackLogic)
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
-local MoveExempt = require(ReplicatedStorage.Shared.MoveExempt)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local DynamiteService = require(script.Parent.DynamiteService)
+local Knockback = require(script.Parent.Knockback)
 local RoomService = require(script.Parent.RoomService)
 local RoundService = require(script.Parent.RoundService)
-
-local PUSH_NAME = "AttackKnock"
-local ATTACHMENT_NAME = "AttackKnockAttachment"
 
 type Body = {
 	character: Model,
@@ -34,8 +33,6 @@ local attackInputEvent: RemoteEvent
 local attackFxEvent: RemoteEvent
 local book = AttackLogic.newBook()
 local lastPress: { [Player]: number } = {}
--- 넘어뜨린 Humanoid → 일으킬 시각. 그 사이 다른 공격·맵이 다시 넘어뜨리면 늦은 쪽만 일으켜요.
-local standUntil: { [Humanoid]: number } = {}
 
 local function bodyOf(player: Player): Body?
 	local character = player.Character
@@ -61,48 +58,11 @@ local function toVec(v: Vector3): AttackLogic.Vec3
 end
 
 local function knock(body: Body, velocity: Vector3)
-	local root = body.root
-	MoveExempt.mark(body.character, Config.Attack.MoveExempt)
-	local attachment = root:FindFirstChild("RootAttachment") or root:FindFirstChildOfClass("Attachment")
-	if attachment == nil then
-		local created = Instance.new("Attachment")
-		created.Name = ATTACHMENT_NAME
-		created.Parent = root
-		attachment = created
-	end
-	local old = root:FindFirstChild(PUSH_NAME)
-	if old then
-		old:Destroy()
-	end
-	local push = Instance.new("LinearVelocity")
-	push.Name = PUSH_NAME
-	push.Attachment0 = attachment :: Attachment
-	push.RelativeTo = Enum.ActuatorRelativeTo.World
-	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	push.VectorVelocity = velocity
-	push.MaxForce = math.huge
-	push.Parent = root
-	root.AssemblyLinearVelocity = velocity
-	task.delay(Config.Attack.KnockHold, function()
-		if push.Parent then
-			push:Destroy()
-		end
-	end)
-
-	local humanoid = body.humanoid
-	humanoid.PlatformStand = true
-	local untilAt = os.clock() + Config.Attack.Stun
-	standUntil[humanoid] = untilAt
-	task.delay(Config.Attack.Stun, function()
-		if standUntil[humanoid] ~= untilAt then
-			return
-		end
-		standUntil[humanoid] = nil
-		-- 그 사이 탈락 고정(Anchored + PlatformStand)이 됐으면 손대지 않아요
-		if humanoid.Parent and not root.Anchored then
-			humanoid.PlatformStand = false
-		end
-	end)
+	Knockback.apply(body.character, body.humanoid, body.root, velocity, {
+		hold = Config.Attack.KnockHold,
+		stun = Config.Attack.Stun,
+		exempt = Config.Attack.MoveExempt,
+	})
 end
 
 local function sendFx(roomId: string, info: Types.AttackFxInfo)
@@ -178,6 +138,10 @@ local function onInput(player: Player, ...: unknown)
 		return
 	end
 	lastPress[player] = now
+	-- 다이너마이트를 들고 있으면 공격 대신 점화 (m6-12) — 공격 쿨다운은 쓰지 않아요
+	if DynamiteService.tryLight(player) then
+		return
+	end
 	attack(player)
 end
 
@@ -186,7 +150,7 @@ local function onPlayerRemoving(player: Player)
 	lastPress[player] = nil
 	local body = bodyOf(player)
 	if body then
-		standUntil[body.humanoid] = nil
+		Knockback.forget(body.humanoid)
 	end
 end
 

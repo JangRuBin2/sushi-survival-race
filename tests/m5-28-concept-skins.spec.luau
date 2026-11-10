@@ -108,7 +108,8 @@ return function(t: Test.Test)
 			t.eq(Skins.LIST[40].id, "concept-inari")
 			t.eq(Skins.LIST[41].id, "fresh-mackerel")
 			t.eq(Skins.LIST[45].id, "shadow-jet-sushi")
-			t.eq(Skins.LIST[#Skins.LIST].id, "magical-girl-sushi")
+			t.eq(Skins.LIST[46].id, "magical-girl-sushi")
+			t.eq(Skins.LIST[#Skins.LIST].id, "devil-sushi") -- m6-10 천사(47)·악마(48)
 			t.eq(Skins.get("concept-ikura").order, 36)
 			t.eq(Skins.get(SALMON).order, 32)
 			local ok, problems = Skins.validate(Skins.LIST)
@@ -130,8 +131,8 @@ return function(t: Test.Test)
 				return list
 			end
 			-- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차) + m6-08 전설 4종 (용 둘 80, 제트기 둘 70)
-			-- + m6-09 마법소녀 (80)
-			t.eq(#expected, 15)
+			-- + m6-09 마법소녀 (80) + m6-10 천사 (80)·악마 (70)
+			t.eq(#expected, 17)
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
 			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
 			local over80 = {
@@ -139,6 +140,7 @@ return function(t: Test.Test)
 				["dragon-sushi"] = true,
 				["sky-dragon-sushi"] = true,
 				["magical-girl-sushi"] = true,
+				["angel-sushi"] = true,
 			}
 			for _, id in Sample.SKIN_IDS do
 				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if over80[id] then 80 else BUDGET, id)
@@ -435,11 +437,13 @@ return function(t: Test.Test)
 			t.eq(count, 1)
 			t.ok(string.find(source, "SushiConceptSample.SKIN_IDS", 1, true) ~= nil, "ids from the sample module")
 			-- m5-32: 견본은 순수 토핑 모듈(고등어 ConceptMackerel, m6-08 용 ConceptDragon·전투기 ConceptJet,
-			-- m6-09 마법소녀 ConceptMagicalGirl)만, 그 모듈들은 순수 PartMath 하나만 불러요
+			-- m6-09 마법소녀 ConceptMagicalGirl, m6-10 천사·악마 ConceptAngelDevil)만, 그 모듈들은 순수 PartMath 하나만 불러요
 			local sample = fs.readFile("src/shared/SushiConceptSample.luau")
 			local _, sampleCount = string.gsub(sample, "require%(", "")
-			t.eq(sampleCount, 4, "sample requires only the topping modules")
-			for _, name in { "ConceptMackerel", "ConceptDragon", "ConceptJet", "ConceptMagicalGirl" } do
+			t.eq(sampleCount, 5, "sample requires only the topping modules")
+			for _, name in
+				{ "ConceptMackerel", "ConceptDragon", "ConceptJet", "ConceptMagicalGirl", "ConceptAngelDevil" }
+			do
 				t.ok(string.find(sample, `require(script.Parent.{name})`, 1, true) ~= nil, name)
 				local topping = fs.readFile(`src/shared/{name}.luau`)
 				local _, toppingCount = string.gsub(topping, "require%(", "")

@@ -89,10 +89,13 @@ return function(t: Test.Test)
 		"sky-dragon-sushi",
 		"jet-sushi",
 		"shadow-jet-sushi",
+		"magical-girl-sushi", -- m6-09 전설 마법소녀
+		"angel-sushi", -- m6-10 전설 천사·악마
+		"devil-sushi",
 	}
 	table.sort(CONCEPT_IDS)
 	t.test(
-		"예외는 콘셉트 몸 14종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
+		"예외는 콘셉트 몸 17종뿐: LIST의 conceptBody·CONCEPT_BODY_IDS·SushiBody.CONCEPT_BODY이 같아요",
 		function()
 			local flagged = {}
 			for _, skin in Skins.LIST do

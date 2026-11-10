@@ -24,15 +24,18 @@ local ReceiptLogic = RobloxRequire.require(Shared.ReceiptLogic)
 local UiLayout = RobloxRequire.require(Shared.UiLayout)
 local DrawScreenLayout = RobloxRequire.require(Shared.DrawScreenLayout)
 
--- m5-31 때 카탈로그 (전설 없음): 판매 + 뽑기 전설 스킨(m5-32 고등어 [신선], m6-08 전설 4종)을 뺀 목록 —
+-- m5-31 때 카탈로그 (전설 없음): 판매 + 뽑기 전설 스킨(m5-32 고등어 [신선], m6-08 전설 4종, m6-09 마법소녀, m6-10 천사·악마)을 뺀 목록 —
 -- 빈 등급 나누기를 그대로 검사해요. 전설이 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)·
--- tests/m6-08-legend-skins.spec.luau
+-- tests/m6-08-legend-skins.spec.luau·tests/m6-09-magical-girl-sushi.spec.luau·tests/m6-10-angel-devil-sushi.spec.luau
 local SOLD_LEGENDS = {
 	["fresh-mackerel"] = true,
 	["dragon-sushi"] = true,
 	["sky-dragon-sushi"] = true,
 	["jet-sushi"] = true,
 	["shadow-jet-sushi"] = true,
+	["magical-girl-sushi"] = true,
+	["angel-sushi"] = true,
+	["devil-sushi"] = true,
 }
 local M531 = {}
 for _, skin in Skins.LIST do

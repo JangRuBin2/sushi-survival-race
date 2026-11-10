@@ -64,6 +64,11 @@ local EXPECTED = {
 	{ "sky-dragon-sushi", "용 스시", "Legendary", 199, nil },
 	{ "jet-sushi", "제트기 스시", "Legendary", 199, nil },
 	{ "shadow-jet-sushi", "섀도 제트 스시", "Legendary", 199, nil },
+	-- m6-09 전설 (판매 + 뽑기 전설, 콘셉트 몸)
+	{ "magical-girl-sushi", "마법소녀 스시", "Legendary", 199, nil },
+	-- m6-10 전설 2종 (판매 + 뽑기 전설, 콘셉트 몸)
+	{ "angel-sushi", "천사 스시", "Legendary", 199, nil },
+	{ "devil-sushi", "악마 스시", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -154,8 +159,8 @@ return function(t: Test.Test)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
-			t.eq(#Skins.byTier("Legendary"), 11) -- m5-32 고등어 [신선] + m6-08 전설 4종
-			t.eq(#Skins.byTier(nil), 45)
+			t.eq(#Skins.byTier("Legendary"), 14) -- m5-32 고등어 [신선] + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마
+			t.eq(#Skins.byTier(nil), 48)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -344,6 +349,11 @@ return function(t: Test.Test)
 				["sky-dragon-sushi"] = { "Glow", "Sparkles" },
 				["jet-sushi"] = { "Glow", "Smoke" },
 				["shadow-jet-sushi"] = { "Glow", "Smoke" },
+				-- m6-09 마법소녀: 지팡이 별 Glow + 별 끝 분홍 Sparkles
+				["magical-girl-sushi"] = { "Glow", "Sparkles" },
+				-- m6-10 천사(고리 Glow + 홀 별 Sparkles)·악마(바이저 Glow + 삼지창 Smoke)
+				["angel-sushi"] = { "Glow", "Sparkles" },
+				["devil-sushi"] = { "Glow", "Smoke" },
 			}
 			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do

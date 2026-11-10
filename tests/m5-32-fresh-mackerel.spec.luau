@@ -193,7 +193,7 @@ return function(t: Test.Test)
 			t.eq(Cutscene.SKIN_LINES[ID], skin.speech, "elimination lines")
 			t.eq(skin.conceptBody, true)
 			t.eq(skin.drawGrade, "Legendary")
-			t.eq(#Skins.LIST, 45) -- m6-08 전설 4종(order 42~45)이 뒤에 붙었어요
+			t.eq(#Skins.LIST, 48) -- m6-08 전설 4종(order 42~45)·m6-09 마법소녀(46)·m6-10 천사·악마(47~48)가 뒤에 붙었어요
 			t.eq(Skins.LIST[41].id, ID, "right after the special skins")
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))
@@ -218,8 +218,8 @@ return function(t: Test.Test)
 				return nil
 			end
 			local legendary = ShopLogic.visibleSkins(view :: any, tab("Legendary"))
-			-- m6-08 전설 4종(order 42~45)이 뒤에 붙어서 끝에서 다섯 번째
-			t.eq(legendary[#legendary - 4].id, ID, "legendary tab, before the m6-08 legends")
+			-- m6-08 전설 4종(order 42~45)·m6-09 마법소녀(46)·m6-10 천사·악마(47~48)가 뒤에 붙어서 끝에서 여덟 번째
+			t.eq(legendary[#legendary - 7].id, ID, "legendary tab, before the m6-08 legends")
 			for _, skin in ShopLogic.visibleSkins(view :: any, tab("draw")) do
 				t.ok(skin.id ~= ID, "not in the special tab")
 			end
@@ -250,7 +250,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- AC2 예외 이름
 	t.test(
-		"AC2: experimental 식별자가 남지 않고, 콘셉트 몸 14종 = 세 목록, 뽑기 14종 / 뽑기 전용 9종 (명시 목록, m6-08 +4)",
+		"AC2: experimental 식별자가 남지 않고, 콘셉트 몸 17종 = 세 목록, 뽑기 17종 / 뽑기 전용 9종 (명시 목록, m6-08 +4, m6-09 +1, m6-10 +2)",
 		function()
 			local function scan(dir: string)
 				for _, name in fs.readDir(dir) do
@@ -282,6 +282,9 @@ return function(t: Test.Test)
 				"sky-dragon-sushi",
 				"jet-sushi",
 				"shadow-jet-sushi",
+				"magical-girl-sushi", -- m6-09 전설
+				"angel-sushi", -- m6-10 전설
+				"devil-sushi",
 			})
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), concept)
 			t.eq(keys(SushiBody.CONCEPT_BODY), concept)
@@ -302,6 +305,9 @@ return function(t: Test.Test)
 				"sky-dragon-sushi",
 				"jet-sushi",
 				"shadow-jet-sushi",
+				"magical-girl-sushi", -- m6-09 전설
+				"angel-sushi", -- m6-10 전설
+				"devil-sushi",
 			})
 			t.eq(keys(Skins.DRAW_IDS), draw)
 			local drawOnly = {}
@@ -332,7 +338,17 @@ return function(t: Test.Test)
 				byGrade[row.grade] = row
 			end
 			-- m6-08 전설 4종이 같은 전설 등급에 들어와요 (등급 확률 1%는 그대로, 등급 안에서 균등 — tests/m6-08-legend-skins)
-			t.eq(byGrade.Legendary.skinIds, { ID, "dragon-sushi", "sky-dragon-sushi", "jet-sushi", "shadow-jet-sushi" })
+			-- m6-09 마법소녀·m6-10 천사·악마도 (tests/m6-09-magical-girl-sushi, tests/m6-10-angel-devil-sushi)
+			t.eq(byGrade.Legendary.skinIds, {
+				ID,
+				"dragon-sushi",
+				"sky-dragon-sushi",
+				"jet-sushi",
+				"shadow-jet-sushi",
+				"magical-girl-sushi",
+				"angel-sushi",
+				"devil-sushi",
+			})
 			near(t, byGrade.Legendary.chance, 0.01, 1e-9, "Legendary")
 			near(t, byGrade.Epic.chance, 0.05, 1e-9, "Epic")
 			near(t, byGrade.Rare.chance, 0.15, 1e-9, "Rare")
@@ -345,7 +361,7 @@ return function(t: Test.Test)
 				Uncommon = "30.0%",
 				Common = "49.0%",
 			})
-			t.eq(DrawLogic.perSkinPercent(rows)[ID], "0.20%") -- 전설 1% ÷ 5종
+			t.eq(DrawLogic.perSkinPercent(rows)[ID], "0.13%") -- 전설 1% ÷ 8종 = 0.125% (화면은 반올림)
 			t.eq((DrawLogic.roll({}, fakeRng(0.0099)) :: any).skinId, ID)
 			t.eq((DrawLogic.roll({}, fakeRng(0.0099)) :: any).grade, "Legendary")
 			t.eq((DrawLogic.roll({}, fakeRng(0.01)) :: any).grade, "Epic")
@@ -356,7 +372,7 @@ return function(t: Test.Test)
 			t.eq(dup.coins, 300)
 			t.eq(Config.Draw.DuplicateCoins.Legendary, 300)
 			t.eq(DrawLogic.featured({}), ID)
-			t.eq(DrawLogic.totalSkins(), 14)
+			t.eq(DrawLogic.totalSkins(), 17)
 			-- 안 가진 사람: ownedSkins에 넣고 장착은 그대로
 			local wallet: any = ProfileSchema.new()
 			wallet.drawTickets = 2
@@ -807,12 +823,15 @@ return function(t: Test.Test)
 		"AC5: 다른 40종(콘셉트 9종 × 표정 4종 포함) 레이아웃이 main(8f700a4)과 바이트 단위로 같아요",
 		function()
 			local entries = {}
-			-- 스냅숏은 m5-32 때 다른 40종: 고등어와 그 뒤에 들어온 m6-08 전설 4종은 빼요
+			-- 스냅숏은 m5-32 때 다른 40종: 고등어와 그 뒤에 들어온 m6-08 전설 4종·m6-09 마법소녀는 빼요
 			local later = {
 				["dragon-sushi"] = true,
 				["sky-dragon-sushi"] = true,
 				["jet-sushi"] = true,
 				["shadow-jet-sushi"] = true,
+				["magical-girl-sushi"] = true,
+				["angel-sushi"] = true,
+				["devil-sushi"] = true,
 			}
 			for _, skin in Skins.LIST do
 				if skin.id == ID or later[skin.id] then

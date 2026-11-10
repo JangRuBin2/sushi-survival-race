@@ -20,9 +20,11 @@
 --   얼굴: 밥 앞면에 작은 타원 눈(원판 두 개를 겹친 캡슐) + 하이라이트, 작게 벌린 웃는 입(진한 입 + 분홍 혀), 분홍 볼
 --   팔: 옆에 작은 네모 흰 손(벙어리장갑), 다리: 짧은 네모 흰 발 두 개. 팔·다리는 Motor6D(나중에 흔들 수 있게)
 
+local ConceptAngelDevil = require(script.Parent.ConceptAngelDevil)
 local ConceptDragon = require(script.Parent.ConceptDragon)
 local ConceptJet = require(script.Parent.ConceptJet)
 local ConceptMackerel = require(script.Parent.ConceptMackerel)
+local ConceptMagicalGirl = require(script.Parent.ConceptMagicalGirl)
 
 local SushiConceptSample = {}
 
@@ -70,6 +72,11 @@ SushiConceptSample.SKIN_IDS = {
 	"sky-dragon-sushi",
 	"jet-sushi",
 	"shadow-jet-sushi",
+	-- m6-09 전설 (판매 + 뽑기 전설): 오리지널 마법소녀 (분홍 트윈테일·프릴 망토·별 지팡이)
+	"magical-girl-sushi",
+	-- m6-10 전설 2종 (판매 + 뽑기 전설): 천사·악마
+	"angel-sushi",
+	"devil-sushi",
 } :: { string }
 
 ---------------------------------------------------------------- 치수
@@ -800,6 +807,15 @@ local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	end,
 	["shadow-jet-sushi"] = function(_variant: Variant): { PartSpec }
 		return ConceptJet.shadowJet()
+	end,
+	["magical-girl-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptMagicalGirl.topping()
+	end,
+	["angel-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptAngelDevil.angel()
+	end,
+	["devil-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptAngelDevil.devil()
 	end,
 }
 

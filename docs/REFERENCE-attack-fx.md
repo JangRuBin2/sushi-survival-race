@@ -38,6 +38,8 @@
 | `DemonFlame` | `devil-sushi` (m6-10) | 보라 고리 + 보라 불꽃 띠 1.75바퀴(머리 조각 빨강) | 보라 / 빨강 / 진보라 |
 | `ShadowMissile` | `shadow-jet-sushi` | 같은 미사일, 보라 꼬리·폭발 | 보라 / 보라 / 진보라 |
 
+**전투 가면**(`mask`, 제트기 2종 — 사용자 요청 2026-11-10): 공격 순간 얼굴 위 띠에서 철컥 내려와(0.15초) **얼굴 전체**를 덮고(빛나는 눈 구멍·눈썹·콧날·숨구멍·테두리, `AttackFxLogic.MASK_PARTS`) 1.1초 뒤 올라가며 사라져요(`maskPose`). 공격자 SushiBody의 `Body`를 매 프레임 따라가는 이 클라이언트 전용 파츠라 판정과 무관해요. 제트기 흰·남색 판 + 빨간 눈, 섀도 건메탈·보라 + 빨간 눈.
+
 스타일 플래그: `band`(감아 오르는 띠), `missiles`(쫓아가는 미사일), `spin`(띠 바퀴 수), `ringSpin`(고리도 돌기 — Storm), `alternate`(띠 조각 색 번갈아 — StarRibbon).
 
 순수 계산(테스트됨): `ringRadius`(ease-out), `fade`(끝 40%에서 사라짐), `helixPoint`(띠 조각 위치), `bandColor`(띠 조각 색), `missilePoint`(위로 휜 2차 베지어), `missileTargets`(최대 6발, 없으면 4방향).

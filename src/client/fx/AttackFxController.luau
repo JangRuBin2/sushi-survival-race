@@ -4,6 +4,8 @@
 --   RiceBurst 하얀 충격파 + 밥알 / Flame 불꽃 고리 + 감아 오르는 불꽃 용 띠 / Storm 회오리 고리 + 물보라 띠
 --   StarRibbon(m6-09) 분홍 고리 + 분홍·노랑 별 조각이 번갈아 감아 오르는 리본
 --   HolyHalo(m6-10) 금빛 도는 고리 + 금·흰 조각 띠 / DemonFlame(m6-10) 보라 고리 + 보라 불꽃 띠(머리 빨강)
+-- 전투 가면(StyleInfo.mask, 제트기 2종): 공격 순간 얼굴 위 띠에서 철컥 내려와 얼굴 전체를 덮고(빛나는 눈 구멍) 1.1초 뒤 올라가요.
+--   공격자 SushiBody의 Body를 매 프레임 따라가는 이 클라이언트 전용 파츠예요(캐릭터 아래에 넣지 않아요 — AppearanceService가 숨김).
 --   Missile·ShadowMissile 위로 휘며 맞은 사람을 쫓아가는(매 프레임 대상 위치로 다시 겨눔) 미사일 + 폭발
 -- 파츠는 모두 이 클라이언트에만 있는 Anchored·충돌 없음이고, 동시 연출 Config.Attack.FxMaxConcurrent개·
 -- 거리 Config.Attack.FxMaxDistance까지만 그려요.
@@ -18,6 +20,7 @@ local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
 local Sfx = require(script.Parent.Parent.Sfx)
 
 local FOLDER_NAME = "AttackFx"
@@ -205,6 +208,58 @@ local function missiles(origin: Vector3, hits: { number }, info: AttackFxLogic.S
 	end
 end
 
+-- 공격자 얼굴에 전투 마스크 (StyleInfo.mask). 연출 폴더와 따로 살고 MASK_HOLD + MASK_UP 뒤 지워요
+local masks: { [Model]: Folder } = {}
+local function wearMask(character: Model, style: AttackFxLogic.MaskStyle)
+	local sushi = character:FindFirstChild(SushiBody.MODEL_NAME)
+	local body = sushi and sushi:FindFirstChild("Body")
+	if body == nil or not body:IsA("BasePart") then
+		return
+	end
+	local old = masks[character]
+	if old then
+		old:Destroy()
+	end
+	local holder = Instance.new("Folder")
+	holder.Name = "AttackMask"
+	holder.Parent = folder
+	masks[character] = holder
+	local pieces: { { part: Part, offset: CFrame } } = {}
+	for _, spec in AttackFxLogic.MASK_PARTS do
+		local p = part({
+			Name = spec.name,
+			Size = Vector3.new(spec.size[1], spec.size[2], spec.size[3]),
+			Color = rgb(
+				if spec.color == "plate" then style.plate elseif spec.color == "trim" then style.trim else style.accent
+			),
+			Material = if spec.neon then Enum.Material.Neon else Enum.Material.Metal,
+			Transparency = 1,
+			CFrame = body.CFrame,
+		}, holder)
+		local offset = CFrame.new(spec.offset[1], spec.offset[2], spec.offset[3])
+			* CFrame.Angles(0, 0, math.rad(spec.roll or 0))
+		table.insert(pieces, { part = p, offset = offset })
+	end
+	local started = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function()
+		local lift, alpha, done = AttackFxLogic.maskPose(os.clock() - started)
+		if done or body.Parent == nil or holder.Parent == nil then
+			connection:Disconnect()
+			if masks[character] == holder then
+				masks[character] = nil
+			end
+			holder:Destroy()
+			return
+		end
+		local base = body.CFrame * CFrame.new(0, lift, 0)
+		for _, piece in pieces do
+			piece.part.CFrame = base * piece.offset
+			piece.part.Transparency = 1 - alpha
+		end
+	end)
+end
+
 local function play(info: Types.AttackFxInfo)
 	if typeof(info) ~= "table" or typeof(info.position) ~= "Vector3" or type(info.attacker) ~= "number" then
 		return
@@ -231,6 +286,10 @@ local function play(info: Types.AttackFxInfo)
 	local style = AttackFxLogic.styleFor(skinId)
 	local styleInfo = AttackFxLogic.info(style)
 	local origin = info.position
+
+	if styleInfo.mask and character and character:IsA("Model") then
+		wearMask(character, styleInfo.mask)
+	end
 
 	current = Instance.new("Folder")
 	current.Name = "Attack"

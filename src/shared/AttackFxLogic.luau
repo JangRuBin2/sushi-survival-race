@@ -9,6 +9,8 @@
 --   missilePoint(from, to, t, arc)        미사일 위치: 위로 휜 2차 베지어 (from → 위 → to)
 --   helixPoint(center, i, n, t, radius, height, turns)  불꽃 용·회오리 띠의 i번째 조각 위치
 --   bandColor(info, i, n)                 띠 i번째 조각 색 (머리 = accent, alternate면 번갈아)
+--   maskPose(seconds)                     전투 마스크 내려옴·유지·올라감 (StyleInfo.mask가 있는 스타일, 사용자 요청 2026-11-10)
+--   MASK_PARTS                            마스크 조각 (공격자 Body 기준 오프셋 — 콘셉트 몸 얼굴 아래쪽·입·볼을 덮어요)
 
 local AttackFxLogic = {}
 
@@ -33,6 +35,22 @@ export type StyleInfo = {
 	spin: number, -- 띠가 도는 바퀴 수 (연출 동안)
 	ringSpin: boolean?, -- 고리도 spin만큼 도나 (회오리)
 	alternate: boolean?, -- 띠 조각 색을 ring·accent로 번갈아 (별빛 리본, m6-09)
+	mask: MaskStyle?, -- 공격하는 동안 얼굴 아래를 덮는 전투 마스크 (제트기 2종, 사용자 요청 2026-11-10 "간지나게")
+}
+
+export type MaskStyle = {
+	plate: Rgb, -- 가면 판 색
+	trim: Rgb, -- 테두리·콧날·눈썹 색
+	accent: Rgb, -- 빛나는 눈 구멍·숨구멍 색 (Neon)
+}
+
+export type MaskPart = {
+	name: string,
+	size: { number },
+	offset: { number }, -- Body 기준 {x, y, z} (앞 = -Z). 내려온 자리
+	color: "plate" | "trim" | "accent",
+	neon: boolean?,
+	roll: number?, -- 앞에서 볼 때 기울기(도, Z축) — 눈 구멍·눈썹을 사납게
 }
 
 -- 스킨 → 연출. 여기 없는 스킨(기본 계란초밥 포함)은 RiceBurst.
@@ -83,6 +101,7 @@ AttackFxLogic.STYLES = {
 		band = false,
 		missiles = true,
 		spin = 0,
+		mask = { plate = { 205, 210, 224 }, trim = { 54, 48, 124 }, accent = { 255, 60, 70 } }, -- 흰·남색 가면, 빨간 눈
 	},
 	-- m6-09 마법소녀 스시: 분홍 고리 + 분홍·노랑 별 조각이 번갈아 감아 오르는 리본 + 민트 별빛
 	StarRibbon = {
@@ -125,6 +144,7 @@ AttackFxLogic.STYLES = {
 		band = false,
 		missiles = true,
 		spin = 0,
+		mask = { plate = { 52, 50, 64 }, trim = { 110, 56, 170 }, accent = { 255, 40, 60 } }, -- 건메탈·보라 가면, 빨간 눈
 	},
 } :: { [Style]: StyleInfo }
 
@@ -199,6 +219,59 @@ function AttackFxLogic.missilePoint(from: Vec3, to: Vec3, t: number, arc: number
 		y = a * from.y + b * cy + c * to.y,
 		z = a * from.z + b * cz + c * to.z,
 	}
+end
+
+-- 전투 가면 (공격자 Body 기준, 콘셉트 몸: 앞면 z -1.35, 밥 y -1.0~1.0, 눈 x ±0.52·y -0.12, 입 y -0.42).
+-- 얼굴 전체를 덮는 판(제트기 얼굴 위 띠 0.875 바로 아래까지) + 눈 자리의 빛나는 눈 구멍 + 콧날·숨구멍·테두리.
+AttackFxLogic.MASK_PARTS = {
+	{ name = "MaskFace", size = { 2.9, 1.5, 0.1 }, offset = { 0, -0.13, -1.43 }, color = "plate" },
+	{ name = "MaskRimTop", size = { 2.96, 0.12, 0.14 }, offset = { 0, 0.62, -1.44 }, color = "trim" },
+	{ name = "MaskRimBottom", size = { 2.4, 0.1, 0.14 }, offset = { 0, -0.88, -1.44 }, color = "trim" },
+	{ name = "MaskRidge", size = { 0.16, 1.1, 0.08 }, offset = { 0, -0.22, -1.51 }, color = "trim" },
+	{
+		name = "MaskEyeL",
+		size = { 0.6, 0.13, 0.04 },
+		offset = { -0.55, -0.08, -1.5 },
+		color = "accent",
+		neon = true,
+		roll = -12,
+	},
+	{
+		name = "MaskEyeR",
+		size = { 0.6, 0.13, 0.04 },
+		offset = { 0.55, -0.08, -1.5 },
+		color = "accent",
+		neon = true,
+		roll = 12,
+	},
+	{ name = "MaskBrowL", size = { 0.7, 0.1, 0.06 }, offset = { -0.55, 0.12, -1.5 }, color = "trim", roll = -16 },
+	{ name = "MaskBrowR", size = { 0.7, 0.1, 0.06 }, offset = { 0.55, 0.12, -1.5 }, color = "trim", roll = 16 },
+	{ name = "MaskVentL1", size = { 0.46, 0.06, 0.04 }, offset = { -0.6, -0.55, -1.5 }, color = "accent", neon = true },
+	{ name = "MaskVentL2", size = { 0.46, 0.06, 0.04 }, offset = { -0.6, -0.68, -1.5 }, color = "accent", neon = true },
+	{ name = "MaskVentR1", size = { 0.46, 0.06, 0.04 }, offset = { 0.6, -0.55, -1.5 }, color = "accent", neon = true },
+	{ name = "MaskVentR2", size = { 0.46, 0.06, 0.04 }, offset = { 0.6, -0.68, -1.5 }, color = "accent", neon = true },
+} :: { MaskPart }
+AttackFxLogic.MASK_DOWN = 0.15 -- 내려오는 시간(초)
+AttackFxLogic.MASK_HOLD = 1.1 -- 이때까지 쓰고 있어요(초, 공격 순간부터 — 연출 0.9초보다 조금 길게)
+AttackFxLogic.MASK_UP = 0.2 -- 올라가며 사라지는 시간(초)
+AttackFxLogic.MASK_RISE = 1.0 -- 숨어 있을 때 위로 올라가 있는 거리 (얼굴 위 띠 쪽에서 내려와요)
+
+-- 공격 뒤 seconds초의 마스크: lift(0 = 제자리, MASK_RISE = 위에 숨음), alpha(1 보임 ~ 0 안 보임), done
+function AttackFxLogic.maskPose(seconds: number): (number, number, boolean)
+	local down, hold, up = AttackFxLogic.MASK_DOWN, AttackFxLogic.MASK_HOLD, AttackFxLogic.MASK_UP
+	local rise = AttackFxLogic.MASK_RISE
+	if seconds < 0 then
+		return rise, 0, false
+	elseif seconds < down then
+		local u = seconds / down
+		return rise * (1 - u) * (1 - u), math.clamp(u * 2, 0, 1), false -- 툭 내려와 딱 닫혀요 (ease-in)
+	elseif seconds < hold then
+		return 0, 1, false
+	elseif seconds < hold + up then
+		local u = (seconds - hold) / up
+		return rise * u * u, 1 - u, false
+	end
+	return rise, 0, true
 end
 
 -- 띠 i번째(1..n) 조각 색: 머리(i = n)는 accent, alternate면 짝수 조각도 accent, 나머지는 ring

@@ -155,6 +155,59 @@ return function(t: Test.Test)
 		t.ok(demon.band and not demon.ringSpin and not demon.alternate and not demon.missiles, "demon")
 	end)
 
+	t.test(
+		"마스크(사용자 요청 2026-11-10): 제트기 2종만, 내려옴 → 유지 → 올라감 → 끝",
+		function()
+			t.ok(AttackFxLogic.info("Missile").mask ~= nil, "jet mask")
+			t.ok(AttackFxLogic.info("ShadowMissile").mask ~= nil, "shadow jet mask")
+			for _, style in { "RiceBurst", "Flame", "Storm", "StarRibbon", "HolyHalo", "DemonFlame" } do
+				t.eq(AttackFxLogic.info(style :: any).mask, nil, style)
+			end
+			local lift0, alpha0, done0 = AttackFxLogic.maskPose(0)
+			t.eq(lift0, AttackFxLogic.MASK_RISE)
+			t.eq(alpha0, 0)
+			t.eq(done0, false)
+			local lift1, alpha1 = AttackFxLogic.maskPose(0.5)
+			t.eq(lift1, 0, "on face")
+			t.eq(alpha1, 1)
+			local _, alphaUp = AttackFxLogic.maskPose(AttackFxLogic.MASK_HOLD + AttackFxLogic.MASK_UP / 2)
+			t.ok(alphaUp > 0 and alphaUp < 1, "fading")
+			local _, _, done = AttackFxLogic.maskPose(AttackFxLogic.MASK_HOLD + AttackFxLogic.MASK_UP + 0.01)
+			t.eq(done, true)
+			t.ok(AttackFxLogic.MASK_HOLD > AttackFxLogic.info("Missile").duration, "mask outlasts the effect")
+		end
+	)
+
+	t.test(
+		"가면: 얼굴 전체(눈·입·볼)를 덮고, 눈 자리에 빛나는 눈 구멍, 모두 얼굴 앞",
+		function()
+			local face: any = nil
+			for _, spec in AttackFxLogic.MASK_PARTS do
+				if spec.name == "MaskFace" then
+					face = spec
+				end
+				t.ok(spec.offset[3] - spec.size[3] / 2 < -1.35, `{spec.name} in front of the face`)
+				t.ok(spec.offset[2] + spec.size[2] / 2 < 0.8, `{spec.name} below the jet visor band`)
+			end
+			t.ok(face ~= nil, "face plate")
+			local top, bottom = face.offset[2] + face.size[2] / 2, face.offset[2] - face.size[2] / 2
+			t.ok(top > 0.2 and bottom < -0.7, "covers eyes (y -0.12) and mouth (y -0.42)")
+			t.ok(face.size[1] / 2 > 1.15, "covers both cheeks (x ±0.98)")
+			local eyes = 0
+			for _, spec in AttackFxLogic.MASK_PARTS do
+				if string.find(spec.name, "MaskEye", 1, true) then
+					eyes += 1
+					t.ok(spec.neon == true, `{spec.name} glows`)
+					t.ok(
+						math.abs(math.abs(spec.offset[1]) - 0.52) < 0.1 and math.abs(spec.offset[2] + 0.12) < 0.1,
+						`{spec.name} over the eye`
+					)
+				end
+			end
+			t.eq(eyes, 2)
+		end
+	)
+
 	t.test("AC4: 연출 표의 스킨은 모두 카탈로그의 전설 스킨", function()
 		for skinId in AttackFxLogic.STYLE_BY_SKIN do
 			local skin = Skins.get(skinId)

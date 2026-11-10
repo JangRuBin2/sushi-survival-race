@@ -33,9 +33,12 @@
 | `Flame` | `dragon-sushi` | 고리 + 12조각 불꽃 띠가 1.25바퀴 돌며 감아 오름(머리 조각 금색) | 주황 / 금 / 붉은 주황 |
 | `Storm` | `sky-dragon-sushi` | 도는 고리(2바퀴) + 회오리 띠 2바퀴 | 하늘 / 흰 파랑 / 파랑 |
 | `Missile` | `jet-sushi` | 미사일(흰 몸 + 빨간 머리 + Trail)이 0.55초 동안 위로 휘며 맞은 사람을 **매 프레임 다시 겨눠** 쫓아감 → 도착하면 폭발 조각. 맞은 사람이 없으면 바깥 4방향 | 흰 / 빨강 / 주황 |
+| `StarRibbon` | `magical-girl-sushi` (m6-09) | 분홍 고리 + 분홍·노랑 별 조각이 **번갈아**(`alternate`) 1.5바퀴 감아 오름 + 민트 별빛 조각 | 분홍 / 연노랑 / 민트 |
 | `ShadowMissile` | `shadow-jet-sushi` | 같은 미사일, 보라 꼬리·폭발 | 보라 / 보라 / 진보라 |
 
-순수 계산(테스트됨): `ringRadius`(ease-out), `fade`(끝 40%에서 사라짐), `helixPoint`(띠 조각 위치), `missilePoint`(위로 휜 2차 베지어), `missileTargets`(최대 6발, 없으면 4방향).
+스타일 플래그: `band`(감아 오르는 띠), `missiles`(쫓아가는 미사일), `spin`(띠 바퀴 수), `ringSpin`(고리도 돌기 — Storm), `alternate`(띠 조각 색 번갈아 — StarRibbon).
+
+순수 계산(테스트됨): `ringRadius`(ease-out), `fade`(끝 40%에서 사라짐), `helixPoint`(띠 조각 위치), `bandColor`(띠 조각 색), `missilePoint`(위로 휜 2차 베지어), `missileTargets`(최대 6발, 없으면 4방향).
 
 그리기 규칙(`client/fx/AttackFxController.luau`):
 - 파츠는 전부 이 클라이언트에만 있는 Anchored·CanCollide/CanQuery/CanTouch false·그림자 없음, `Workspace.AttackFx/Attack` 폴더에 연출마다 따로 넣고 끝나면 폴더째 지워요. 폭발 조각(ParticleEmitter)은 `Workspace.AttackFx` 바로 아래에서 1초 뒤 스스로 지워요.

@@ -8,10 +8,11 @@
 --   missileTargets(origin, hits, radius)  미사일 도착점: 맞은 사람 위치들, 없으면 바깥쪽 4방향
 --   missilePoint(from, to, t, arc)        미사일 위치: 위로 휜 2차 베지어 (from → 위 → to)
 --   helixPoint(center, i, n, t, radius, height, turns)  불꽃 용·회오리 띠의 i번째 조각 위치
+--   bandColor(info, i, n)                 띠 i번째 조각 색 (머리 = accent, alternate면 번갈아)
 
 local AttackFxLogic = {}
 
-export type Style = "RiceBurst" | "Flame" | "Storm" | "Missile" | "ShadowMissile"
+export type Style = "RiceBurst" | "Flame" | "Storm" | "Missile" | "ShadowMissile" | "StarRibbon"
 export type Vec3 = { x: number, y: number, z: number }
 export type Rgb = { number } -- {r, g, b} 0~255
 export type StyleInfo = {
@@ -22,6 +23,8 @@ export type StyleInfo = {
 	band: boolean, -- 감아 오르는 띠(불꽃 용·회오리)를 그리나
 	missiles: boolean, -- 쫓아가는 미사일을 쏘나
 	spin: number, -- 띠가 도는 바퀴 수 (연출 동안)
+	ringSpin: boolean?, -- 고리도 spin만큼 도나 (회오리)
+	alternate: boolean?, -- 띠 조각 색을 ring·accent로 번갈아 (별빛 리본, m6-09)
 }
 
 -- 스킨 → 연출. 여기 없는 스킨(기본 계란초밥 포함)은 RiceBurst.
@@ -30,6 +33,7 @@ AttackFxLogic.STYLE_BY_SKIN = {
 	["sky-dragon-sushi"] = "Storm",
 	["jet-sushi"] = "Missile",
 	["shadow-jet-sushi"] = "ShadowMissile",
+	["magical-girl-sushi"] = "StarRibbon", -- m6-09
 } :: { [string]: Style }
 
 AttackFxLogic.STYLES = {
@@ -59,6 +63,7 @@ AttackFxLogic.STYLES = {
 		band = true,
 		missiles = false,
 		spin = 2,
+		ringSpin = true,
 	},
 	Missile = {
 		duration = 0.9,
@@ -68,6 +73,17 @@ AttackFxLogic.STYLES = {
 		band = false,
 		missiles = true,
 		spin = 0,
+	},
+	-- m6-09 마법소녀 스시: 분홍 고리 + 분홍·노랑 별 조각이 번갈아 감아 오르는 리본 + 민트 별빛
+	StarRibbon = {
+		duration = 0.9,
+		ring = { 255, 140, 200 },
+		accent = { 255, 230, 120 },
+		particle = { 170, 245, 220 },
+		band = true,
+		missiles = false,
+		spin = 1.5,
+		alternate = true,
 	},
 	ShadowMissile = {
 		duration = 0.9,
@@ -151,6 +167,14 @@ function AttackFxLogic.missilePoint(from: Vec3, to: Vec3, t: number, arc: number
 		y = a * from.y + b * cy + c * to.y,
 		z = a * from.z + b * cz + c * to.z,
 	}
+end
+
+-- 띠 i번째(1..n) 조각 색: 머리(i = n)는 accent, alternate면 짝수 조각도 accent, 나머지는 ring
+function AttackFxLogic.bandColor(info: StyleInfo, i: number, n: number): Rgb
+	if i == n or (info.alternate == true and i % 2 == 0) then
+		return info.accent
+	end
+	return info.ring
 end
 
 -- 띠(불꽃 용·회오리)의 i번째(1..n) 조각: 중심 둘레를 돌며 올라가요. 머리(i = n)가 가장 앞·위.

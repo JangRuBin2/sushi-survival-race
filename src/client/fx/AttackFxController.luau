@@ -2,6 +2,7 @@
 -- 공격 연출 (m6-08). 서버 AttackFx를 받아 그 자리에 그려요 — 판정(튕김·넘어짐)은 이미 서버가 했어요.
 -- 연출 스타일은 공격자 캐릭터의 AppearanceId로 AttackFxLogic.styleFor가 골라요 (스킨 id 분기는 그 표 하나).
 --   RiceBurst 하얀 충격파 + 밥알 / Flame 불꽃 고리 + 감아 오르는 불꽃 용 띠 / Storm 회오리 고리 + 물보라 띠
+--   StarRibbon(m6-09) 분홍 고리 + 분홍·노랑 별 조각이 번갈아 감아 오르는 리본
 --   Missile·ShadowMissile 위로 휘며 맞은 사람을 쫓아가는(매 프레임 대상 위치로 다시 겨눔) 미사일 + 폭발
 -- 파츠는 모두 이 클라이언트에만 있는 Anchored·충돌 없음이고, 동시 연출 Config.Attack.FxMaxConcurrent개·
 -- 거리 Config.Attack.FxMaxDistance까지만 그려요.
@@ -109,7 +110,7 @@ local function band(origin: Vector3, info: AttackFxLogic.StyleInfo): Updater
 			pieces,
 			part({
 				Shape = Enum.PartType.Ball,
-				Color = if i == n then rgb(info.accent) else rgb(info.ring),
+				Color = rgb(AttackFxLogic.bandColor(info, i, n)),
 				Size = Vector3.one * scale,
 				Transparency = 0.2,
 				CFrame = CFrame.new(origin),
@@ -236,7 +237,7 @@ local function play(info: Types.AttackFxInfo)
 	Sfx.play("Attack", origin)
 	burst(origin, rgb(styleInfo.particle), if styleInfo.missiles then 8 else 22, 22, 0.8)
 
-	local updaters: { Updater } = { ring(origin, styleInfo, if style == "Storm" then styleInfo.spin else 0) }
+	local updaters: { Updater } = { ring(origin, styleInfo, if styleInfo.ringSpin then styleInfo.spin else 0) }
 	if styleInfo.band then
 		table.insert(updaters, band(origin, styleInfo))
 	end

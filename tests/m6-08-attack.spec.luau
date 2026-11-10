@@ -130,6 +130,23 @@ return function(t: Test.Test)
 		end
 	end)
 
+	t.test(
+		"AC4(m6-09): 마법소녀 스시 = StarRibbon — 띠, 조각 색 번갈아, 고리는 안 돌아요",
+		function()
+			t.eq(AttackFxLogic.styleFor("magical-girl-sushi"), "StarRibbon")
+			local info = AttackFxLogic.info("StarRibbon")
+			t.ok(info.band and not info.missiles, "band only")
+			t.ok(not info.ringSpin, "ring still")
+			local n = AttackFxLogic.BAND_PIECES
+			t.eq(AttackFxLogic.bandColor(info, 1, n), info.ring)
+			t.eq(AttackFxLogic.bandColor(info, 2, n), info.accent)
+			t.eq(AttackFxLogic.bandColor(info, n, n), info.accent)
+			local flame = AttackFxLogic.info("Flame")
+			t.eq(AttackFxLogic.bandColor(flame, 2, n), flame.ring, "flame not alternating")
+			t.ok(AttackFxLogic.info("Storm").ringSpin == true, "storm ring spins")
+		end
+	)
+
 	t.test("AC4: 연출 표의 스킨은 모두 카탈로그의 전설 스킨", function()
 		for skinId in AttackFxLogic.STYLE_BY_SKIN do
 			local skin = Skins.get(skinId)

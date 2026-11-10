@@ -214,6 +214,7 @@ M4-12부터 타입 검사 도구(luau-lsp)가 추가됐어요. pull 뒤 처음 �
     | pumpkin-sushi | 호박 초밥 (할로윈 한정) | 99 |
     | santa-shrimp | 산타 새우 (크리스마스 한정) | 99 |
   - **m5-32 전설 스킨 1개 더** (main에 들어왔어요 — 지금 만들어도 돼요): `fresh-mackerel` · 고등어 초밥 [신선] · **199** (🎫 뽑기 전설로도 나오지만 판매도 해요). id는 `src/shared/Skins.luau`의 `fresh-mackerel` `productId`에(지금 비어 있어서 버튼이 "곧 열려요"). 특 스킨 9종(`concept-*`)은 뽑기 전용이라 상품을 만들지 않아요. 스펙 [`docs/specs/m5-32-fresh-mackerel.md`](specs/m5-32-fresh-mackerel.md)
+  - **m6-09 전설 스킨 1개 더**: `magical-girl-sushi` 마법소녀 스시 · **199** (뽑기 전설로도). 상품 이미지·설명에 특정 작품(세일러문 등) 이름·로고·초승달 지팡이 같은 상징을 쓰지 마세요. 스펙 [`docs/specs/m6-09-magical-girl-sushi.md`](specs/m6-09-magical-girl-sushi.md)
   - **m6-08 전설 스킨 4개 더**: `dragon-sushi` 드래곤 스시 · `sky-dragon-sushi` 용 스시 · `jet-sushi` 제트기 스시 · `shadow-jet-sushi` 섀도 제트 스시 — 모두 **199** (🎫 뽑기 전설로도 나와요). id는 `src/shared/Skins.luau`의 각 스킨 `productId`에. 상품 이미지·설명에 "메가트론"·트랜스포머·디셉티콘 이름이나 문양을 쓰지 마세요(상표). 스펙 [`docs/specs/m6-08-attack-and-legend-skins.md`](specs/m6-08-attack-and-legend-skins.md)
 - [ ] **C3-1. 특별 상품 5개 + 게임 패스 1개** (m5-08) — 스킨 상품 id와 겹치면 안 돼요
   - Developer Products 5개 → id를 `src/shared/Offers.luau`의 각 상품 `productId`에

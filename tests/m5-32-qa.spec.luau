@@ -250,16 +250,17 @@ return function(t: Test.Test)
 		end
 	end)
 
-	-- m6-08: 전설 4종(드래곤·용·제트기·섀도 제트)도 고등어와 같은 "판매 + 뽑기 전설"이라 같이 들어와요
+	-- m6-08: 전설 4종(드래곤·용·제트기·섀도 제트)·m6-09 마법소녀도 고등어와 같은 "판매 + 뽑기 전설"이라 같이 들어와요
+	local LEGENDS = { ID, "dragon-sushi", "sky-dragon-sushi", "jet-sushi", "shadow-jet-sushi", "magical-girl-sushi" }
 	t.test(
-		"QA: 뽑기 — 확률 합 1, 전설은 고등어 + m6-08 전설 4종, 판매 + 뽑기도 그 5종뿐",
+		"QA: 뽑기 — 확률 합 1, 전설은 고등어 + m6-08 전설 4종 + m6-09 마법소녀, 판매 + 뽑기도 그 6종뿐",
 		function()
 			local grades = DrawLogic.grades()
 			local sum = 0
 			for _, grade in grades do
 				sum += grade.chance
 				if grade.grade == "Legendary" then
-					t.eq(grade.skinIds, { ID, "dragon-sushi", "sky-dragon-sushi", "jet-sushi", "shadow-jet-sushi" })
+					t.eq(grade.skinIds, LEGENDS)
 				end
 			end
 			t.ok(math.abs(sum - 1) <= 1e-9, `sum {sum}`)
@@ -272,7 +273,7 @@ return function(t: Test.Test)
 					t.ok(Skins.isDraw(skin.id), `{skin.id} conceptBody is a draw skin`)
 				end
 			end
-			t.eq(both, { ID, "dragon-sushi", "sky-dragon-sushi", "jet-sushi", "shadow-jet-sushi" })
+			t.eq(both, LEGENDS)
 			local skin = Skins.get(ID)
 			t.eq(skin and skin.coins, nil)
 		end

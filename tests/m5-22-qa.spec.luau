@@ -109,7 +109,7 @@ return function(t: Test.Test)
 			end
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.eq(ok, true, table.concat(problems, "; "))
-			t.eq(#Skins.LIST, 45) -- m5-27·m5-28·m5-29 콘셉트 몸 concept-* 9종 + m5-32 고등어 [신선] + m6-08 전설 4종 포함
+			t.eq(#Skins.LIST, 46) -- m5-27·m5-28·m5-29 콘셉트 몸 concept-* 9종 + m5-32 고등어 [신선] + m6-08 전설 4종 + m6-09 마법소녀 포함
 		end
 	)
 
@@ -195,7 +195,7 @@ return function(t: Test.Test)
 		t.eq(#Skins.byTier("Common"), 8)
 		t.eq(#Skins.byTier("Rare"), 9)
 		t.eq(#Skins.byTier("Epic"), 7)
-		t.eq(#Skins.byTier("Legendary"), 11) -- m5-32 고등어 [신선] + m6-08 전설 4종
+		t.eq(#Skins.byTier("Legendary"), 12) -- m5-32 고등어 [신선] + m6-08 전설 4종 + m6-09 마법소녀
 	end)
 
 	t.test("QA AC4: 새 10종 대사 1~2줄, 빈 줄 없음, 세 변형 모두에 섞여요", function()

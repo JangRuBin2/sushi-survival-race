@@ -23,6 +23,7 @@
 local ConceptDragon = require(script.Parent.ConceptDragon)
 local ConceptJet = require(script.Parent.ConceptJet)
 local ConceptMackerel = require(script.Parent.ConceptMackerel)
+local ConceptMagicalGirl = require(script.Parent.ConceptMagicalGirl)
 
 local SushiConceptSample = {}
 
@@ -70,6 +71,8 @@ SushiConceptSample.SKIN_IDS = {
 	"sky-dragon-sushi",
 	"jet-sushi",
 	"shadow-jet-sushi",
+	-- m6-09 전설 (판매 + 뽑기 전설): 오리지널 마법소녀 (분홍 트윈테일·프릴 망토·별 지팡이)
+	"magical-girl-sushi",
 } :: { string }
 
 ---------------------------------------------------------------- 치수
@@ -800,6 +803,9 @@ local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	end,
 	["shadow-jet-sushi"] = function(_variant: Variant): { PartSpec }
 		return ConceptJet.shadowJet()
+	end,
+	["magical-girl-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptMagicalGirl.topping()
 	end,
 }
 

@@ -140,8 +140,8 @@ return function(t: Test.Test)
 				if tab.id == "all" then
 					-- m5-29가 그 뒤에 4종을 더 붙여요 → 맨 끝 4종 바로 앞
 					local tail = {}
-					-- m5-32 고등어 [신선](order 41)·m6-08 전설 4종(order 42~45)이 맨 끝이라 다섯 칸 더 앞
-					for i = #list - 12, #list - 9 do
+					-- m5-32 고등어 [신선](order 41)·m6-08 전설 4종(order 42~45)·m6-09 마법소녀(46)가 맨 끝이라 여섯 칸 더 앞
+					for i = #list - 13, #list - 10 do
 						table.insert(tail, list[i].id)
 					end
 					t.eq(tail, NEW, "four right before the m5-29 batch in the all tab")

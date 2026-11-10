@@ -355,7 +355,7 @@ return function(t: Test.Test)
 	t.test(
 		"AC5: 40종(m5-22 10종·m5-27 실험 1종·m5-28 실험 4종·m5-29 실험 4종 포함), order 1~40 연속, 새 5종의 얻는 길·시즌",
 		function()
-			t.eq(#Skins.LIST, 45) -- m5-32 고등어 [신선] order 41, m6-08 전설 4종 order 42~45
+			t.eq(#Skins.LIST, 46) -- m5-32 고등어 [신선] order 41, m6-08 전설 4종 order 42~45, m6-09 마법소녀 order 46
 			for i, skin in Skins.LIST do
 				t.eq(skin.order, i)
 			end

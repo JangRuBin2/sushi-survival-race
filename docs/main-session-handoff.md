@@ -2,6 +2,11 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-11-10 (3) — 제트기 날개·전투 가면, 브랜치 전략, 다이너마이트 라운드·스킨
+
+같은 브랜치, PR #1은 **`develop` 대상**(브랜치 전략 develop/main/release — `docs/WORKFLOW.md`). 제트기 날개 키움 + 공격 때 얼굴 전체 전투 가면(`AttackFxLogic.MASK_PARTS`). m6-12 다이너마이트 라운드(결승 아닌 Race 10% 유니크, 맵 아이템 → 10초 뒤 출발점). m6-11 다이너마이트 스시(developer worktree → 병합).
+- 5단계(병합 뒤): rojo OK · stylua OK · selene 근사 std 0/0/0 · `lune run tests` **2561 passed, 0 failed (177개 파일)** · luau-lsp 0.
+
 ## 2026-11-10 (2) — m6-09 마법소녀 · m6-10 천사·악마 · 탈의실 확률
 
 같은 브랜치·PR. 사용자 그림 2장. 마법소녀 그림은 세일러문 특징 그대로 → 장르만 쓴 오리지널(그림은 저장소에 안 넣음). 천사·악마는 "고등어와 같은 등급"(전설 판매 + 뽑기 전설). 공격 연출 `StarRibbon`·`HolyHalo`·`DemonFlame`(메인), 스킨은 developer 서브에이전트 worktree → `--no-ff` 병합. 탈의실 카드·미리보기에 🎫 뽑기 확률(`DrawLogic.drawOdds`, 사용자 요청). 스킨 48종, 뽑기 17, 전설 8종(각 0.125% → 화면 "0.13%").

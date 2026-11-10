@@ -30,5 +30,8 @@ status: in-qa
 - AC2 연결: 리모트 `DynamiteFx`(16 + 14 = 30), 속성 `HeldItem`·`DynamiteFuseAt`·`RoundModifier`, 서비스·컨트롤러 등록, 공격 입력이 점화를 먼저, `sendToStart`, 문구·소리.
 - Studio(사용자, DEV-SETUP 3-18 9번): `Config.Dynamite.UniqueChance = 1`로 잠깐 바꿔 Race에서 확인.
 
+## 개발 메모
+- 다이너마이트 스시(m6-11) 병합 뒤 5단계: 2561 passed, 0 failed · selene 근사 std · luau-lsp 0.
+
 ## 결정 기록
 - 2026-11-10 사용자: 위 표. 메인: 버튼을 늘리지 않으려 공격 버튼을 점화로(들고 있을 때만), 아이템 자리는 맵 모양을 몰라도 되게 "땅에 선 레이서 근처", 출발점 보내기는 m6-01 부활 흐름 재사용.

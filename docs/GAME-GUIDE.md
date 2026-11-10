@@ -2,7 +2,7 @@
 
 > 초밥이 되어 거대한 주방을 달리고 버티는 로블록스 파티 서바이벌. 3~4라운드 뒤 **딱 1명**만 가게 문을 박차고 탈출해요.
 
-- 기준: 2026-11-10 브랜치 `claude/gracious-curie-tl82em` (기획서 GDD v0.10, 맵 26개, 스킨 48종, 공격)
+- 기준: 2026-11-10 브랜치 `claude/gracious-curie-tl82em` (기획서 GDD v0.10, 맵 26개, 스킨 49종, 공격·다이너마이트 라운드)
 - 이 문서는 **한눈에 보는 소개서**예요. 규칙·수치의 원본은 [`GDD.md`](GDD.md), 바뀐 내역은 [`CHANGELOG.md`](CHANGELOG.md), Studio 확인 방법은 [`DEV-SETUP.md`](DEV-SETUP.md).
 - 캡처는 저장소의 **미리보기 렌더러**(`tools/render-map`, `tools/render-character`)로 Studio 없이 찍은 이미지예요. 근사 렌더라 실제 Studio·게임 화면과 빛·재질이 조금 달라요. 맵 캡처에는 움직이는 장애물(젓가락·벽·구멍 등)이 대부분 안 보여요(라운드가 시작돼야 움직여요).
 - 수치는 모두 **기본값, 플레이테스트 후 조정**이에요.
@@ -93,11 +93,11 @@
 ![스킨 라인업](renders/characters/concept-skins-lineup.png)
 
 - 기본 캐릭터는 **계란초밥**. 숨쉬기·눈 깜빡임·걸음 같은 작은 움직임이 있어요.
-- 스킨 **48종**: 기본 1 · 판매 33(일반·레어·에픽·전설) · 시즌 4 · VIP 전용 1 · 뽑기 전용 특 스킨 9.
+- 스킨 **49종**: 기본 1 · 판매 34(일반·레어·에픽·전설) · 시즌 4 · VIP 전용 1 · 뽑기 전용 특 스킨 9.
 - 스킨은 **겉모습만** 바꿔요. 크기·히트박스·속도는 모두 같아요.
 - 특 스킨(아래 줄 "(특)")은 넓은 밥 + 작은 팔다리 몸에 표정 6가지(기본·기쁨·당황·아픔·화남·슬픔).
 - 전설 **고등어 초밥 [신선]**은 팔딱거리는 생선 몸이에요(R$ 199 판매 + 뽑기 전설).
-- 전설 **드래곤 스시 · 용 스시 · 제트기 스시 · 섀도 제트 스시 · 마법소녀 스시 · 천사 스시 · 악마 스시**(v0.10, R$ 199 + 뽑기 전설). 공격할 때 연출이 달라요(불꽃 용 · 회오리 · 쫓아가는 미사일 · 별빛 리본 · 금빛 고리 · 보라 불꽃) — 공격 효과는 모든 스킨이 같아요.
+- 전설 **드래곤 스시 · 용 스시 · 제트기 스시 · 섀도 제트 스시 · 마법소녀 스시 · 천사 스시 · 악마 스시 · 다이너마이트 스시**(v0.10, R$ 199 + 뽑기 전설). 공격할 때 연출이 달라요(불꽃 용 · 회오리 · 쫓아가는 미사일 + 전투 가면 · 별빛 리본 · 금빛 고리 · 보라 불꽃 · 폭발) — 공격 효과는 모든 스킨이 같아요.
 
 <p>
 <img src="renders/characters/dragon-sushi/after-closeup.png" width="49%" alt="드래곤 스시">
@@ -107,6 +107,7 @@
 <img src="renders/characters/magical-girl-sushi/after-closeup.png" width="49%" alt="마법소녀 스시">
 <img src="renders/characters/angel-sushi/after-closeup.png" width="49%" alt="천사 스시">
 <img src="renders/characters/devil-sushi/after-closeup.png" width="49%" alt="악마 스시">
+<img src="renders/characters/dynamite-sushi/after-closeup.png" width="49%" alt="다이너마이트 스시">
 </p>
 
 <p>

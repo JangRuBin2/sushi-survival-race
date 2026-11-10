@@ -54,7 +54,7 @@
 ### 진행·상점
 
 - 라운드 통과, 결승 진출, 우승, 하루 첫 판에 밥알 코인을 준다. 승수에 따라 칭호가 붙는다.
-- 스킨 48종. 스킨은 겉모습만 바꾸고 크기·판정·속도는 같다. 일반·레어 스킨은 코인으로도 열 수 있고, 나머지는 로벅스(29~199)로 산다. 능력치 판매는 없다.
+- 스킨 49종. 스킨은 겉모습만 바꾸고 크기·판정·속도는 같다. 일반·레어 스킨은 코인으로도 열 수 있고, 나머지는 로벅스(29~199)로 산다. 능력치 판매는 없다.
 - 우승하면 🎫 뽑기권 1장을 받아 무료로 뽑는다. 꽝은 없고 등급 확률(전설 1% ~ 일반 49%)은 뽑기 화면에 공개한다. 뽑기권은 우승으로만 얻고 로벅스나 재화로 팔지 않는다(유료 뽑기 없음). 특 스킨 9종은 뽑기로만 나오고, 전설 고등어 초밥 [신선]은 뽑기와 판매 둘 다 된다.
 - 그 밖에 시즌 이벤트(이벤트 재화로 한정 스킨 교환), 스킨 묶음과 탈락·우승 연출 팩, VIP 패스(겉모습 혜택만), 보상 코드가 있다.
 
@@ -81,7 +81,7 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 2533개(175개 파일, 2026-11-10). spec 하나만: lune run tests/run-one <이름>.spec. 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
+lune run tests     # 2561개(177개 파일, 2026-11-10). spec 하나만: lune run tests/run-one <이름>.spec. 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```

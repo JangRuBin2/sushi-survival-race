@@ -312,4 +312,31 @@ function DrawLogic.ticketText(tickets: number): string
 	return `×{validCount(tickets)}`
 end
 
+-- 🎫 뽑기 확률 (탈의실 카드·미리보기, 사용자 요청 2026-11-10). 뽑기 화면 ⓘ와 같은 계산
+-- (DrawLogic.grades → perSkinPercent, 서버 roll과 같은 값). 뽑기에서 안 나오는 스킨이면 nil. list는 테스트용
+function DrawLogic.drawOdds(skinId: string, list: { Skins.Skin }?): string?
+	if Skins.drawGradeOf(skinId) == nil and list == nil then
+		return nil
+	end
+	return DrawLogic.perSkinPercent(DrawLogic.grades(list))[skinId]
+end
+
+-- 카드 구석 확률 표 "🎫 0.13%" (뽑기 스킨만)
+function DrawLogic.drawOddsTag(skinId: string): Types.LocText?
+	local percent = DrawLogic.drawOdds(skinId)
+	if percent == nil then
+		return nil
+	end
+	return LocalizeLogic.text("shop.drawOddsTag", { percent = percent })
+end
+
+-- 미리보기 등급 줄에 붙는 "뽑기 확률 각 0.13%" (뽑기 스킨만)
+function DrawLogic.drawOddsLine(skinId: string): Types.LocText?
+	local percent = DrawLogic.drawOdds(skinId)
+	if percent == nil then
+		return nil
+	end
+	return LocalizeLogic.text("shop.drawOddsLine", { percent = percent })
+end
+
 return DrawLogic

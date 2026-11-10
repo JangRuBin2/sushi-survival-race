@@ -353,6 +353,8 @@ shop.drawGrade.Epic,영웅,"skin draw grade name (draw odds table, badge)",,Epic
 shop.drawGrade.Legendary,전설,"skin draw grade name (draw odds table, badge)",,Legendary
 shop.drawGrade.Rare,희귀,"skin draw grade name (draw odds table, badge)",,Rare
 shop.drawGrade.Uncommon,고급,"skin draw grade name (draw odds table, badge)",,Uncommon
+shop.drawOddsLine,뽑기 확률 각 {percent},wardrobe preview: this skin's chance in one draw (same as the draw screen),percent=0.13%,Draw odds: {percent} each
+shop.drawOddsTag,🎫 {percent},wardrobe card corner: this skin's chance in one draw,percent=0.13%,🎫 {percent}
 shop.drawHint,🎫 뽑기 {grade}에서도 나와요,wardrobe preview note: this skin can also come from draws,grade=Legendary,🎫 Also in {grade} draws
 shop.drawTierLine,🎫 특 · {grade},wardrobe preview grade line for a draw-only skin,grade=Rare,🎫 Special · {grade}
 shop.err.AlreadyOwned,이미 가진 스킨이에요,wardrobe error line,,You already have this skin

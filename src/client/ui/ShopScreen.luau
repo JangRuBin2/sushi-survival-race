@@ -17,6 +17,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local DrawLogic = require(ReplicatedStorage.Shared.DrawLogic)
 local ShopLogic = require(ReplicatedStorage.Shared.ShopLogic)
 local Skins = require(ReplicatedStorage.Shared.Skins)
 local SushiBody = require(ReplicatedStorage.Shared.SushiBody)
@@ -366,6 +367,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		status: TextLabel,
 		limited: TextLabel,
 		special: TextLabel?,
+		odds: TextLabel?,
 	}
 	local cards: { [string]: Card } = {}
 	for _, skin in Skins.LIST do
@@ -416,6 +418,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Kit.corner(6).Parent = limited
 		-- 특 스킨 구석 표시 (m5-31)
 		local special: TextLabel? = nil
+		local odds: TextLabel? = nil
 		local drawGrade = Skins.drawGradeOf(skin.id)
 		if drawGrade ~= nil then
 			local gradeInfo = Skins.DRAW_GRADE_INFO[drawGrade]
@@ -436,6 +439,26 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			})
 			Kit.corner(6).Parent = tag
 			special = tag
+			-- 뽑기 확률 (등급 배지 바로 아래, 뽑기 화면 ⓘ와 같은 값 — 사용자 요청 2026-11-10)
+			local oddsText = DrawLogic.drawOddsTag(skin.id)
+			if oddsText then
+				odds = Kit.label({
+					Name = "DrawOdds",
+					Parent = button,
+					AnchorPoint = Vector2.new(1, 0),
+					Position = UDim2.new(1, 2, 0, 16),
+					Size = UDim2.fromOffset(42, 14),
+					Text = Loc.text(oddsText),
+					TextSize = 10,
+					TextScaled = true,
+					TextColor3 = rgb(gradeInfo.color),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					BackgroundColor3 = Color.White,
+					BackgroundTransparency = 0.1,
+					ZIndex = 2,
+				})
+				Kit.corner(6).Parent = odds
+			end
 		end
 		local id = skin.id
 		Kit.onClick(button, function()
@@ -447,8 +470,15 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 				actions.select(id)
 			end
 		end)
-		cards[skin.id] =
-			{ button = button, stroke = stroke, name = name, status = status, limited = limited, special = special }
+		cards[skin.id] = {
+			button = button,
+			stroke = stroke,
+			name = name,
+			status = status,
+			limited = limited,
+			special = special,
+			odds = odds,
+		}
 	end
 
 	local selectedId = Skins.DEFAULT_ID
@@ -644,7 +674,9 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		local info = skinInfo(skin)
 		-- 뽑기에서도 나오는 판매 스킨이면 안내를 붙여요 (m5-32)
 		local hint = ShopLogic.drawHint(skin)
-		tierLabel.Text = if hint then `{info.displayName} · {Loc.text(hint)}` else info.displayName
+		local oddsLine = DrawLogic.drawOddsLine(skin.id) -- 뽑기 확률 (사용자 요청 2026-11-10)
+		local tierText = if hint then `{info.displayName} · {Loc.text(hint)}` else info.displayName
+		tierLabel.Text = if oddsLine then `{tierText} · {Loc.text(oddsLine)}` else tierText
 		tierLabel.TextColor3 = rgb(info.color)
 		setPreview(skin.id)
 		currentState = ShopLogic.cardState(skin, view, robux, now)

@@ -44,7 +44,7 @@ local function fromVec(v: AttackFxLogic.Vec3): Vector3
 	return Vector3.new(v.x, v.y, v.z)
 end
 
-local function part(props: { [string]: any }): Part
+local function part(props: { [string]: any }, parent: Instance?): Part
 	local p = Instance.new("Part")
 	p.Anchored = true
 	p.CanCollide = false
@@ -57,13 +57,13 @@ local function part(props: { [string]: any }): Part
 	for key, value in props do
 		(p :: any)[key] = value
 	end
-	p.Parent = current
+	p.Parent = parent or current
 	return p
 end
 
 local function burst(at: Vector3, color: Color3, count: number, speed: number, size: number)
-	local holder = part({ Size = Vector3.one * 0.2, Transparency = 1, CFrame = CFrame.new(at) })
-	holder.Parent = folder -- 연출 폴더보다 오래 남아요 (조각이 다 날아갈 때까지)
+	-- 연출 폴더보다 오래 남아요 (조각이 다 날아갈 때까지) — 그래서 연출 폴더가 아니라 바깥 폴더에
+	local holder = part({ Size = Vector3.one * 0.2, Transparency = 1, CFrame = CFrame.new(at) }, folder)
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Color = ColorSequence.new(color)
 	emitter.LightEmission = 0.6

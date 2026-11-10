@@ -147,6 +147,14 @@ return function(t: Test.Test)
 		end
 	)
 
+	t.test("AC4(m6-10): 천사 = HolyHalo(고리 돎·번갈아), 악마 = DemonFlame(띠만)", function()
+		t.eq(AttackFxLogic.styleFor("angel-sushi"), "HolyHalo")
+		t.eq(AttackFxLogic.styleFor("devil-sushi"), "DemonFlame")
+		local holy, demon = AttackFxLogic.info("HolyHalo"), AttackFxLogic.info("DemonFlame")
+		t.ok(holy.band and holy.ringSpin == true and holy.alternate == true, "holy")
+		t.ok(demon.band and not demon.ringSpin and not demon.alternate and not demon.missiles, "demon")
+	end)
+
 	t.test("AC4: 연출 표의 스킨은 모두 카탈로그의 전설 스킨", function()
 		for skinId in AttackFxLogic.STYLE_BY_SKIN do
 			local skin = Skins.get(skinId)

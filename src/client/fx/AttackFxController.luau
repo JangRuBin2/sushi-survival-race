@@ -3,6 +3,7 @@
 -- 연출 스타일은 공격자 캐릭터의 AppearanceId로 AttackFxLogic.styleFor가 골라요 (스킨 id 분기는 그 표 하나).
 --   RiceBurst 하얀 충격파 + 밥알 / Flame 불꽃 고리 + 감아 오르는 불꽃 용 띠 / Storm 회오리 고리 + 물보라 띠
 --   StarRibbon(m6-09) 분홍 고리 + 분홍·노랑 별 조각이 번갈아 감아 오르는 리본
+--   HolyHalo(m6-10) 금빛 도는 고리 + 금·흰 조각 띠 / DemonFlame(m6-10) 보라 고리 + 보라 불꽃 띠(머리 빨강)
 --   Missile·ShadowMissile 위로 휘며 맞은 사람을 쫓아가는(매 프레임 대상 위치로 다시 겨눔) 미사일 + 폭발
 -- 파츠는 모두 이 클라이언트에만 있는 Anchored·충돌 없음이고, 동시 연출 Config.Attack.FxMaxConcurrent개·
 -- 거리 Config.Attack.FxMaxDistance까지만 그려요.

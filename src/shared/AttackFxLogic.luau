@@ -12,7 +12,15 @@
 
 local AttackFxLogic = {}
 
-export type Style = "RiceBurst" | "Flame" | "Storm" | "Missile" | "ShadowMissile" | "StarRibbon"
+export type Style =
+	"RiceBurst"
+	| "Flame"
+	| "Storm"
+	| "Missile"
+	| "ShadowMissile"
+	| "StarRibbon"
+	| "HolyHalo"
+	| "DemonFlame"
 export type Vec3 = { x: number, y: number, z: number }
 export type Rgb = { number } -- {r, g, b} 0~255
 export type StyleInfo = {
@@ -34,6 +42,8 @@ AttackFxLogic.STYLE_BY_SKIN = {
 	["jet-sushi"] = "Missile",
 	["shadow-jet-sushi"] = "ShadowMissile",
 	["magical-girl-sushi"] = "StarRibbon", -- m6-09
+	["angel-sushi"] = "HolyHalo", -- m6-10
+	["devil-sushi"] = "DemonFlame", -- m6-10
 } :: { [string]: Style }
 
 AttackFxLogic.STYLES = {
@@ -84,6 +94,28 @@ AttackFxLogic.STYLES = {
 		missiles = false,
 		spin = 1.5,
 		alternate = true,
+	},
+	-- m6-10 천사 스시: 금빛 고리(천천히 돎) + 금·흰 깃털빛 조각이 번갈아 감아 오름 + 금 별빛
+	HolyHalo = {
+		duration = 0.9,
+		ring = { 255, 215, 110 },
+		accent = { 255, 250, 235 },
+		particle = { 255, 235, 150 },
+		band = true,
+		missiles = false,
+		spin = 1,
+		ringSpin = true,
+		alternate = true,
+	},
+	-- m6-10 악마 스시: 보라 고리 + 보라 불꽃 띠(머리 빨강)가 빠르게 감아 오름 + 진보라 조각
+	DemonFlame = {
+		duration = 0.9,
+		ring = { 150, 60, 210 },
+		accent = { 255, 60, 90 },
+		particle = { 90, 30, 140 },
+		band = true,
+		missiles = false,
+		spin = 1.75,
 	},
 	ShadowMissile = {
 		duration = 0.9,

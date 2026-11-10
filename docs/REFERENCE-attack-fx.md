@@ -34,6 +34,8 @@
 | `Storm` | `sky-dragon-sushi` | 도는 고리(2바퀴) + 회오리 띠 2바퀴 | 하늘 / 흰 파랑 / 파랑 |
 | `Missile` | `jet-sushi` | 미사일(흰 몸 + 빨간 머리 + Trail)이 0.55초 동안 위로 휘며 맞은 사람을 **매 프레임 다시 겨눠** 쫓아감 → 도착하면 폭발 조각. 맞은 사람이 없으면 바깥 4방향 | 흰 / 빨강 / 주황 |
 | `StarRibbon` | `magical-girl-sushi` (m6-09) | 분홍 고리 + 분홍·노랑 별 조각이 **번갈아**(`alternate`) 1.5바퀴 감아 오름 + 민트 별빛 조각 | 분홍 / 연노랑 / 민트 |
+| `HolyHalo` | `angel-sushi` (m6-10) | 금빛 고리가 1바퀴 돌고 금·흰 조각이 번갈아 감아 오름 | 금 / 크림 흰 / 연금 |
+| `DemonFlame` | `devil-sushi` (m6-10) | 보라 고리 + 보라 불꽃 띠 1.75바퀴(머리 조각 빨강) | 보라 / 빨강 / 진보라 |
 | `ShadowMissile` | `shadow-jet-sushi` | 같은 미사일, 보라 꼬리·폭발 | 보라 / 보라 / 진보라 |
 
 스타일 플래그: `band`(감아 오르는 띠), `missiles`(쫓아가는 미사일), `spin`(띠 바퀴 수), `ringSpin`(고리도 돌기 — Storm), `alternate`(띠 조각 색 번갈아 — StarRibbon).

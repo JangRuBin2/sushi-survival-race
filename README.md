@@ -81,7 +81,7 @@ rojo serve         # Studio의 Rojo 플러그인에서 Connect 후 Play
 rojo build -o build.rbxl
 stylua --check src tests tools
 selene src
-lune run tests     # 2381개(163개 파일, 2026-10-15). 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
+lune run tests     # 2499개(172개 파일, 2026-11-10). spec 하나만: lune run tests/run-one <이름>.spec. 실패가 있으면 종료 코드 1. 마지막 줄 "0 failed"도 확인할 것
 rojo sourcemap default.project.json -o sourcemap.json
 luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@roblox=types/globalTypes.None.d.luau" --flag:LuauSolverV2=true src
 ```

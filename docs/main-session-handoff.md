@@ -2,6 +2,13 @@
 
 최신 내용을 맨 위에 둔다.
 
+## 2026-11-10 — m6-08 모두의 공격 + 전설 스킨 4종 (클라우드 세션)
+
+브랜치 `claude/gracious-curie-tl82em` → main PR. 사용자 시트 `docs/드래곤·용 스시 공격 시트.png` + 질문 3개 답(공격은 모두 같고 스킨은 연출만 / 밀려남 + 1초 넘어짐 / 전설 R$ 199 + 뽑기). "메가트론"은 상표 문제로 오리지널 제트기, 캐릭터 실제 비행은 판정 붕괴라 미사일 연출로.
+- 메인 세션이 공격(공용 파일 포함)을, developer 서브에이전트가 별도 worktree에서 스킨 4종(`ConceptDragon`·`ConceptJet`)을 만들고 메인이 `--no-ff` 병합. 병합에서 스킨 테스트의 "스킨 id는 카탈로그·규칙 표·견본만" 규칙에 `AttackFxLogic`(연출 표)을 허용 목록으로 더함.
+- 5단계(병합 뒤): rojo OK · stylua OK · selene **근사 std** 0/0/0(진짜 std는 클라우드 프록시 인증서 때문에 못 받음 — DEV-SETUP 6절) · `lune run tests` **2499 passed, 0 failed (172개 파일)** · luau-lsp 끝 코드 0.
+- QA 에이전트 리포트 없음(스펙 `in-qa`). 사용자: DEV-SETUP 3-18, 상품 4개, 공격 소리, "섀도 제트 스시" 이름 확인. 기록 `docs/developer/m6-08-attack.md`·`m6-08-legend-skins.md`.
+
 ## 2026-10-16 — 사용자 확인 대기 중 정리 (막지 않는 P3·문서)
 
 M5 개발 스펙은 모두 `done`, 사용자 Studio 확인 대기 그대로. 기다리는 동안 사용자 결정·플레이테스트가 필요 없는 것만 main에서 고침. 5단계: rojo OK · stylua OK · selene 0/0/0 · `lune run tests` **2381 passed, 0 failed** · luau-lsp 끝 코드 0.

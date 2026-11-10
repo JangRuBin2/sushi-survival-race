@@ -69,3 +69,7 @@ status: in-qa
 ## 결정 기록
 - 2026-11-10 사용자: 위 "사용자 결정" 표.
 - 2026-11-10 메인: 키 F·L2(비어 있는 키), 연출은 서버가 방 사람에게만 `AttackFx`, 공격자 스킨은 클라이언트가 `AppearanceId`로 고름(서버는 스킨을 보내지 않음).
+- 2026-11-10 메인: 스킨 4종은 developer가 별도 worktree에서 만들어 병합(`docs/developer/m6-08-legend-skins.md`). 드래곤 2종은 파츠 상한 80(고등어와 같은 예외 표), 제트기 2종은 70. 이름표 높이 예외 없음(꼭대기 ≤ 3.2).
+
+## 개발 메모
+- 공격 쪽 기록·인계: `docs/developer/m6-08-attack.md`. 검증(병합 뒤): 2499 passed, 0 failed · selene 근사 std(클라우드) · luau-lsp 0. QA 리포트는 아직 없음.

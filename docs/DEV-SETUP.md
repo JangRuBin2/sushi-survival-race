@@ -104,7 +104,7 @@ Explorer 창에서:
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 27개(RemoteFunction 16, RemoteEvent 11 — m5-31 `DrawTicket`까지)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 29개(RemoteFunction 16, RemoteEvent 13 — m5-31 `DrawTicket`, m6-08 `AttackInput`·`AttackFx`까지)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
 - [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼, 왼쪽 가장자리 "🛠"(Studio에서는 관리자)가 떠요 (3-4, 3-9, 3-10)
 - [ ] Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상이에요(코드 목록을 로컬에 안 만들었을 때)

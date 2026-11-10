@@ -89,7 +89,7 @@ Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `3487
 
 **클라우드 세션이 받으면**
 - 그 브랜치를 체크아웃하고 `CLAUDE.md`, 이 문서, 역할 정의, `docs/<역할>/<스펙>.md`의 인계 메모 순서로 읽고 시작한다.
-- 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 도구(rojo, stylua, selene, lune, luau-lsp)를 설치할 수 없으면 검증하지 못한 단계를 보고에 분명히 적는다 (예: "타입 검사 못 함").
+- 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 대신 `bash tools/cloud/install-tools.sh`로 같은 버전 도구를 받는다. 프록시 인증서 때문에 selene은 진짜 Roblox std를 못 받으니 `tools/cloud/selene.toml` 근사 std로 돌리고 보고에 그렇게 적는다 (`docs/DEV-SETUP.md` 6절). 그래도 설치할 수 없는 도구가 있으면 검증하지 못한 단계를 보고에 분명히 적는다 (예: "타입 검사 못 함").
 - 사용량 한도는 계정 단위라서, 한도 때문에 로컬이 멈췄다면 클라우드 세션도 한도가 풀린 뒤에 돈다.
 
 ## 스펙 ID

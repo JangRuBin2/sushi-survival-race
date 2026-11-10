@@ -59,6 +59,11 @@ local EXPECTED = {
 	{ "concept-inari", "유부초밥 (특)", "Basic", nil, nil },
 	-- m5-32 전설 (뽑기 전설에서도 나와요)
 	{ "fresh-mackerel", "고등어 초밥 [신선]", "Legendary", 199, nil },
+	-- m6-08 전설 4종 (판매 + 뽑기 전설, 콘셉트 몸)
+	{ "dragon-sushi", "드래곤 스시", "Legendary", 199, nil },
+	{ "sky-dragon-sushi", "용 스시", "Legendary", 199, nil },
+	{ "jet-sushi", "제트기 스시", "Legendary", 199, nil },
+	{ "shadow-jet-sushi", "섀도 제트 스시", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -149,8 +154,8 @@ return function(t: Test.Test)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
-			t.eq(#Skins.byTier("Legendary"), 7) -- m5-32 고등어 [신선]
-			t.eq(#Skins.byTier(nil), 41)
+			t.eq(#Skins.byTier("Legendary"), 11) -- m5-32 고등어 [신선] + m6-08 전설 4종
+			t.eq(#Skins.byTier(nil), 45)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -334,6 +339,11 @@ return function(t: Test.Test)
 				["vip-gold-tamago"] = { "Sparkles" },
 				-- m5-32 전설: 꼬리지느러미 물빛 반짝이 하나 (첨벙은 물방울 파츠)
 				["fresh-mackerel"] = { "Sparkles" },
+				-- m6-08 전설 4종 (전설 예산 2개씩)
+				["dragon-sushi"] = { "Fire", "Glow" },
+				["sky-dragon-sushi"] = { "Glow", "Sparkles" },
+				["jet-sushi"] = { "Glow", "Smoke" },
+				["shadow-jet-sushi"] = { "Glow", "Smoke" },
 			}
 			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do

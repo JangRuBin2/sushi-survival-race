@@ -20,6 +20,8 @@
 --   얼굴: 밥 앞면에 작은 타원 눈(원판 두 개를 겹친 캡슐) + 하이라이트, 작게 벌린 웃는 입(진한 입 + 분홍 혀), 분홍 볼
 --   팔: 옆에 작은 네모 흰 손(벙어리장갑), 다리: 짧은 네모 흰 발 두 개. 팔·다리는 Motor6D(나중에 흔들 수 있게)
 
+local ConceptDragon = require(script.Parent.ConceptDragon)
+local ConceptJet = require(script.Parent.ConceptJet)
 local ConceptMackerel = require(script.Parent.ConceptMackerel)
 
 local SushiConceptSample = {}
@@ -63,6 +65,11 @@ SushiConceptSample.SKIN_IDS = {
 	"concept-inari",
 	-- m5-32 전설 판매 스킨 (뽑기 전설에서도 나와요): 밥 위에 통고등어 한 마리
 	"fresh-mackerel",
+	-- m6-08 전설 4종 (판매 + 뽑기 전설): 용 두 마리·전투기 두 대
+	"dragon-sushi",
+	"sky-dragon-sushi",
+	"jet-sushi",
+	"shadow-jet-sushi",
 } :: { string }
 
 ---------------------------------------------------------------- 치수
@@ -781,6 +788,18 @@ local TOPPINGS: { [string]: (Variant) -> { PartSpec } } = {
 	["concept-inari"] = inariTopping,
 	["fresh-mackerel"] = function(_variant: Variant): { PartSpec }
 		return ConceptMackerel.topping()
+	end,
+	["dragon-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptDragon.dragon()
+	end,
+	["sky-dragon-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptDragon.skyDragon()
+	end,
+	["jet-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptJet.jet()
+	end,
+	["shadow-jet-sushi"] = function(_variant: Variant): { PartSpec }
+		return ConceptJet.shadowJet()
 	end,
 }
 

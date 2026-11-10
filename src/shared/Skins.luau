@@ -10,13 +10,13 @@
 --   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥만, m5-31). 보유 판단은 이걸로 해요
 --   Skins.isDraw(id)        🎫 뽑기에서 나오는 스킨인가 (drawGrade가 있는가, m5-31)
 --   Skins.isDrawOnly(id)    뽑기로만 얻는 스킨인가 (drawGrade + 다른 얻는 길 없음 — 특 9종)
---   Skins.DRAW_IDS          drawGrade를 달 수 있는 id (명시 목록, validate가 같은지 확인. m5-32가 fresh-mackerel을 더해요)
+--   Skins.DRAW_IDS          drawGrade를 달 수 있는 id (명시 목록, validate가 같은지 확인. m5-32가 fresh-mackerel, m6-08이 전설 4종을 더해요)
 --   Skins.drawGradeOf(id)   그 스킨의 뽑기 등급 (없으면 nil)
 --   Skins.DRAW_GRADES       뽑기 등급 순서 (전설 → 일반). 상점 등급(tier)과 별개예요
 --   Skins.DRAW_GRADE_INFO   뽑기 등급 이름·영어 이름·색 (확률표·배지)
 --   Skins.DRAW_INFO         탈의실 카드 구석 "🎫 특" 표시 이름·색 (뽑기 스킨)
 --   Skins.CONCEPT_BODY_IDS  콘셉트 몸 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari,
---                           m5-32 fresh-mackerel). conceptBody = true(몸 모양 예외 — SushiBody.CONCEPT_BODY 파츠 상한·외곽 규칙)는
+--                           m5-32 fresh-mackerel, m6-08 dragon·sky-dragon·jet·shadow-jet). conceptBody = true(몸 모양 예외 — SushiBody.CONCEPT_BODY 파츠 상한·외곽 규칙)는
 --                           여기 있는 id만 쓸 수 있어요. 콘셉트 몸은 등급과 무관해요(특 = Basic + 뽑기 전용, 고등어 = 전설 판매 + 뽑기)
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
@@ -88,6 +88,11 @@ Skins.CONCEPT_BODY_IDS = {
 	["concept-inari"] = true,
 	-- m5-32 판매 스킨도 콘셉트 몸을 써요
 	["fresh-mackerel"] = true,
+	-- m6-08 전설 4종 (판매 + 뽑기 전설)
+	["dragon-sushi"] = true,
+	["sky-dragon-sushi"] = true,
+	["jet-sushi"] = true,
+	["shadow-jet-sushi"] = true,
 } :: { [string]: boolean }
 
 -- 🎫 drawGrade가 있는 id (m5-31, 명시 목록 — validate가 카탈로그와 같은지 봐요). 특 9종 + m5-32 고등어 [신선]
@@ -102,6 +107,11 @@ Skins.DRAW_IDS = {
 	["concept-tako"] = true,
 	["concept-inari"] = true,
 	["fresh-mackerel"] = true, -- m5-32 전설 (판매 + 뽑기)
+	-- m6-08 전설 4종 (판매 + 뽑기 전설, 고등어와 같은 규칙)
+	["dragon-sushi"] = true,
+	["sky-dragon-sushi"] = true,
+	["jet-sushi"] = true,
+	["shadow-jet-sushi"] = true,
 } :: { [string]: boolean }
 
 -- drawGrade + robux 스킨(m5-32 고등어)이 지켜야 하는 등급별 로벅스 가격 (가격 A안)
@@ -499,6 +509,48 @@ Skins.LIST = {
 		drawGrade = "Legendary", -- 뽑기 전설 (m5-32 2차 결정)
 		speech = { "아직 팔딱팔딱 살아 있다고!", "오늘 아침에 잡힌 몸이야~" },
 		order = 41,
+	},
+	-- m6-08 전설 4종 (사용자 시트 docs/드래곤·용 스시 공격 시트.png + 제트기 설명): 콘셉트 몸 위에 용·전투기.
+	-- 고등어 [신선]처럼 R$ 199로 사도 되고 🎫 뽑기 전설로도 나와요 (전설 등급 안에서 균등). 겉모습만 바뀌어요
+	{
+		id = "dragon-sushi",
+		displayName = "드래곤 스시",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary",
+		speech = { "앗 뜨거! 내 불꽃이 꺼졌어…", "전설의 드래곤도 한입이라니!" },
+		order = 42,
+	},
+	{
+		id = "sky-dragon-sushi",
+		displayName = "용 스시",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary",
+		speech = { "구름 타고 도망가려 했는데~", "하늘의 용도 맛있었구나!" },
+		order = 43,
+	},
+	{
+		id = "jet-sushi",
+		displayName = "제트기 스시",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary",
+		speech = { "비상 탈출 버튼 어디 있어?!", "음속보다 빨리 먹혔어!" },
+		order = 44,
+	},
+	{
+		id = "shadow-jet-sushi",
+		displayName = "섀도 제트 스시",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary",
+		speech = { "크윽… 내 계획이 들켰다니!", "다음엔 그림자처럼 사라질 거야~" },
+		order = 45,
 	},
 } :: { Skin }
 

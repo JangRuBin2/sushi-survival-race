@@ -24,11 +24,19 @@ local ReceiptLogic = RobloxRequire.require(Shared.ReceiptLogic)
 local UiLayout = RobloxRequire.require(Shared.UiLayout)
 local DrawScreenLayout = RobloxRequire.require(Shared.DrawScreenLayout)
 
--- m5-31 때 카탈로그 (전설 없음): 고등어 [신선](m5-32)을 뺀 목록 — 빈 등급 나누기를 그대로 검사해요.
--- 고등어가 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)
+-- m5-31 때 카탈로그 (전설 없음): 판매 + 뽑기 전설 스킨(m5-32 고등어 [신선], m6-08 전설 4종)을 뺀 목록 —
+-- 빈 등급 나누기를 그대로 검사해요. 전설이 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)·
+-- tests/m6-08-legend-skins.spec.luau
+local SOLD_LEGENDS = {
+	["fresh-mackerel"] = true,
+	["dragon-sushi"] = true,
+	["sky-dragon-sushi"] = true,
+	["jet-sushi"] = true,
+	["shadow-jet-sushi"] = true,
+}
 local M531 = {}
 for _, skin in Skins.LIST do
-	if skin.id ~= "fresh-mackerel" then
+	if not SOLD_LEGENDS[skin.id] then
 		table.insert(M531, skin)
 	end
 end
@@ -495,7 +503,7 @@ return function(t: Test.Test)
 			t.eq((Offers.validate(pass)), false, "pass with a draw-only skin")
 			for id in Skins.DRAW_IDS do
 				if not Skins.isDrawOnly(id) then
-					continue -- m5-32 고등어 [신선]은 뽑기 + 로벅스 판매 (tests/m5-32-fresh-mackerel.spec.luau)
+					continue -- m5-32 고등어 [신선]·m6-08 전설 4종은 뽑기 + 로벅스 판매 (tests/m5-32·m6-08 spec)
 				end
 				t.eq(
 					select(2, ReceiptLogic.canRequest(id, { tamago = true }, { canSave = true, fake = true })),

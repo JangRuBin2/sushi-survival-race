@@ -136,9 +136,13 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"QA: 게임에서 쓰는 모습(기본·우승 Happy·탈락 Hurt + 견본 당황 Flustered, m5-30 B1)에서 콘셉트 9종 모두 토핑이 얼굴 파츠를 앞에서 안 가려요",
+		"QA: 게임에서 쓰는 모습(기본·우승 Happy·탈락 Hurt + 견본 당황 Flustered, m5-30 B1)에서 콘셉트 9종 모두 토핑이 얼굴 파츠를 앞에서 안 가려요 (faceHidden 예외만 빼고)",
 		function()
 			for _, id in Sample.SKIN_IDS do
+				-- m6-11: 규칙 표에 faceHidden이 있는 스킨(다이너마이트만, tests/m6-11-dynamite-sushi가 고정)은 얼굴을 덮는 게 디자인
+				if SushiBody.CONCEPT_BODY[id].faceHidden then
+					continue
+				end
 				for _, expression in { nil :: string?, "Default", "Happy", "Hurt", "Flustered" } do
 					local layout = SushiBody.layout(id, expression)
 					for _, spec in layout do

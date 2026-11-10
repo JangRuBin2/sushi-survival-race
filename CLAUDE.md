@@ -7,12 +7,13 @@
 - 사용자와는 **한국어**로 대화한다. 코드 식별자·커밋 메시지는 영어.
 
 ## 현재 상태
-- 기획서 **v0.9**(대형 맵·40명 방, 2026-11-08; v0.8 Race 부활, 2026-11-07; v0.7 무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
+- 기획서 **v0.10**(모두의 공격·전설 스킨 4종, 2026-11-10; v0.9 대형 맵·40명 방, 2026-11-08; v0.8 Race 부활, 2026-11-07; v0.7 무료 뽑기·고등어 전설·맵 3차 배치·맵 길이·버튼 위치 편집, 2026-10-14). M0~M4 개발 완료. 마일스톤별 내역·알려진 한계는 **`docs/CHANGELOG.md`**, 진행 상황은 `grep -H "^status:" docs/specs/*.md`.
 - **M5 (운영 업데이트) — 개발 스펙 모두 `done`, 사용자 확인 대기** (`ready`·개발 중인 스펙 없음)
   - `done`: m5-01 결승 연장전, m5-02 관리자 스킨 미리보기, m5-03 기반(프로필 v2·시즌·상품·코드 틀), m5-04~06 새 맵 3개, m5-07 시즌 이벤트, m5-08 특별 상품·VIP, m5-09 연출 팩, m5-10 코드 보상, m5-11 관리자 명령, m5-13~19 맵 확장 6개, m5-20 기존 맵 장식 다듬기, m5-21 스킨 기반 v2, m5-22 스킨 10종, m5-24 맵 12개 아트 패스 v2, m5-25 캐릭터 퀄리티(새 기준 몸·얼굴·움직임), m5-28·m5-29 콘셉트 몸 스킨 8종(+ m5-27 견본 연어), m5-30 콘셉트 토핑 퀄리티(상한 70), m5-31 우승자 뽑기권(🎫, 프로필 v3), m5-32 고등어 초밥 [신선](전설·팔딱), **m5-33~39 맵 3차 배치 6개**(기반 + 새 맵, 풀 21개), **m5-40 맵 길이**(Race 6개 코스 연장, Survival 75초 + 60초 서든데스), m5-41 터치 버튼 위치·크기 편집.
   - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙"), **m5-12 콘솔(게임패드) UI**(2026-10-15 main 병합, 아래 "게임패드 UI 규칙").
 - **M6 (플레이테스트 반영)** — `in-qa`: **m6-01 Race 부활**(GDD v0.8 — 결승이 아닌 Race에서 정원이 차기 전 낙하·리셋은 탈락 대신 `Config.Race.RespawnDelay` 3초 뒤 출발점 부활, Player 속성 `Attributes.RespawnAt` → 클라이언트 `RespawnCountdown` 가운데 3·2·1. Survival·결승 그대로, 나간 사람은 부활 없음). Studio 확인 DEV-SETUP 3-16.
   - `in-qa`(2026-11-09 main 병합): **m6-02 대형 맵 기반**(방 인원 32·40, 25~40명 통과 0.60·0.45·0.40, 맵 `capacity`/`minPlayers` + 인원 맞춤 판 계획 `Rules.buildRoundPlan`, `PlacePayload.MAX_MEMBERS` 40, 장식 예산 `Large`), **m6-03~07 대형 맵 5개**(아래 표). 제안서 Q1~Q5는 답 없이 권장안. Studio 확인 DEV-SETUP 3-17.
+  - `in-qa`(2026-11-10, 브랜치 `claude/gracious-curie-tl82em`): **m6-08 모두의 공격 + 전설 스킨 4종**(GDD v0.10 — F·L2·모바일 💥 버튼, 반지름 10 튕김 + 1초 넘어짐, 쿨다운 8·면역 2, 스킨은 연출만. 드래곤·용·제트기·섀도 제트 스시 R$ 199 + 뽑기 전설). 아래 "공격 · 연출 규칙". Studio 확인 DEV-SETUP 3-18.
 - **사용자 차례**: Studio 확인(`docs/DEV-SETUP.md` 3-7~3-17), Future 조명·R15 고정 확인, 기본값 결정, 소리 고르기, Race 완주·한 판 시간 실측(m5-40 AC9·AC12), 코드 목록, 퍼블리시·Match 플레이스·상품 만들기(고등어 R$ 199 포함)·현지화 CSV 업로드, 비공개 테스트. 전체는 **[`docs/USER-TODO.md`](docs/USER-TODO.md)**(결정은 그 파일 "답변 기록").
 - **다음 단계**: 사용자 Studio 확인·플레이테스트 결과 반영(planner가 스펙·GDD, developer가 Config·코드, 영어 뽑기 등급 이름 결정 m5-26 B7 포함) → 비공개 테스트 → 공개. 콘솔 출시는 3-15 확인 뒤 사용자가 켬(USER-TODO C4).
 - 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 26개(기존 12개 아트 패스 v2, Race 45~55초 길이, 대형 맵 5개·40명 방), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
@@ -44,6 +45,12 @@
 - 이벤트 재화(🍬/⭐)는 `Shared.Seasons` 기간에만 서버가 지급·차감(`BuyWithTokens`). "지금 시각"은 서버 `Seasons.now` — `DEBUG.eventNow`는 Studio에서만.
 - 달리는 중(소개 포함)·탈락 연출·우승 연출 중에는 장착·해금·연출 장착·뽑기를 거절한다(`ShopService.isLocked`). 터치 버튼 위치 편집(m5-41)도 레이서로 배치된 동안은 클라이언트가 막는다.
 - Studio 가짜 결제(`fakeRobuxInStudio`)·가짜 VIP(`fakeVipInStudio`)는 `persistDataInStudio`와 같이 켜면 꺼진다(운영 저장소에 가짜 기록 금지).
+
+## 공격 · 연출 규칙 (m6-08)
+- **공격은 모두 같다**(`Config.Attack`). 판정은 서버 `AttackService` + 순수 `AttackLogic`(대상·튕김·쿨다운·면역), 입력 `AttackInput()`(인자 없음) → 같은 방에 `AttackFx`. 판정 코드에 스킨 id·`AppearanceId` 금지(테스트가 막음) — 스킨별 수치는 GDD 9.1을 바꾸는 결정이라 사용자에게 먼저 묻는다.
+- **스킨은 연출만**: 스킨 → 연출은 `AttackFxLogic.STYLE_BY_SKIN` 표 하나, 그리기는 클라이언트 `AttackFxController`(이 클라이언트 전용 Anchored 파츠, 연출마다 폴더째 정리, 동시 6·거리 150). 넘어짐 "@_@"는 기존 `PlatformStand` 처리가 한다. 캐릭터 실제 비행은 넣지 않는다(판정 붕괴).
+- 터치 버튼은 4개(`TouchLayoutLogic.NAMES`에 `attack`, 저장 모양 v1 + 선택 칸 — 예전 3버튼 저장값 호환).
+- 자세한 구조·새 연출 더하는 법: **`docs/REFERENCE-attack-fx.md`**.
 
 ## 코드 보상 규칙 (m5-10)
 - **진짜 코드는 커밋하지 않는다**(저장소 공개). 서버 전용 로더 `src/server/CodeConfig.luau`(커밋)가 로컬 `src/server/CodeList.luau`(`.gitignore`, 형식은 `CodeList.example.luau`)를 읽는다. 없으면 빈 목록 + 경고. 문서·테스트의 예시 코드(`SUSHI2026`, `SPOOKYSUSHI`, `EXAMPLE2026` 등)는 실제 코드로 쓰지 않는다.
@@ -104,7 +111,7 @@ src/
     DataService          # 프로필 DataStore(PlayerData_v1), 세션 잠금, update/saveNow/onLoaded/setViewExtra, SaveSettings(칸별 간격)
     PlaceService  PlaceBackend  RoomDirectory  RoomService(forceStart)  MatchService(setNextPlan)  MatchEvents
     RoundService         # prepareRound → run/cancel. 맵 Model에 Arena 태그, 결승 연장전 루프
-    EliminationService  CharacterUtil  AppearanceService  GrabService  MovementGuardService
+    EliminationService  CharacterUtil  AppearanceService  GrabService  AttackService(m6-08)  MovementGuardService
     LobbyService         # 로비 건물·조명·단상·시즌 장식 (Match 역할이면 안 지음)
     RewardService        # 코인·승수·칭호·이벤트 재화 (MatchEvents 구독)
     ShopService          # EquipSkin, BuyWithCoins, BuyWithTokens, DrawTicket(🎫 뽑기, m5-31), 장착 resolver, 미리보기 슬롯, isLocked, Studio 전부 입기
@@ -122,16 +129,16 @@ src/
     fx/                  # CharacterFxController(캐릭터 움직임·이름표), FishRig·DollAnimator(고등어 관절·인형 움직임, m5-32),
                          # EliminationCutscene*, Intro*, VictoryCutscene*, CutsceneProps, VictoryProps,
                          # LobbyFxController(단상 이름표), MapLightingController(맵별 조명), MapDecorFxController(장식 움직임),
-                         # WorldTextController(서버 월드 글씨 → Loc, m5-26)
-    input/               # Dive*, Grab*, IceController(얼음 관성, m5-06), TouchLayoutController(점프·다이브·잡기 배치, m5-41)
+                         # WorldTextController(서버 월드 글씨 → Loc, m5-26), AttackFxController(스킨별 공격 연출, m6-08)
+    input/               # Dive*, Grab*, Attack*(m6-08), IceController(얼음 관성, m5-06), TouchLayoutController(점프·다이브·잡기·공격 배치, m5-41)
   shared/            -> ReplicatedStorage.Shared
-    Config  Remotes(RemoteFunction 16 + RemoteEvent 11 = 27)  Types  Attributes   # 공용 파일
+    Config  Remotes(RemoteFunction 16 + RemoteEvent 13 = 29)  Types  Attributes   # 공용 파일
     Rules  RoundLogic  RoomLogic  SpectateLogic  Cleanup  CameraPriority
     SushiBody  SushiConceptSample(콘셉트 몸)  ConceptMackerel  SushiPose  PartMath  CharacterAnimLogic   # 캐릭터 몸·움직임
     Skins  ShopLogic  DrawLogic  DrawScreenLayout  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic
     ProfileSchema(v3)  ProfileLogic  RewardLogic  PlaceRole  PlacePayload  RoomDirectoryLogic  MoveExempt  MovementGuardLogic
     LobbyLayout  UiLayout  TouchLayoutLogic  GamepadNavLogic(m5-12)  IntroLayout  EliminationCutsceneLogic  IntroCameraLogic  VictoryCutsceneLogic
-    DiveLogic  GrabLogic  GrabInputLogic  IceLogic  SfxCues  SfxLibrary
+    DiveLogic  GrabLogic  GrabInputLogic  AttackLogic  AttackFxLogic(m6-08)  IceLogic  SfxCues  SfxLibrary
     LocalizeLogic(순수: 키·CSV·format·choose·동적 키)  WorldText(월드 글씨 키 표시)  PodiumLogic(단상 이름표)
     Localization/Strings.csv   # 문구 카탈로그 → LocalizationTable (클라우드 표에도 같은 파일 업로드)
     maps/
@@ -206,6 +213,7 @@ luau-lsp analyze --platform roblox --sourcemap sourcemap.json --definitions "@ro
 - 캐릭터 모습 확인(Studio 없이): `lune run tools/render-character <skinId|all> [--view …] [--light studio|lobby|both]` → `build/renders/characters/`(DEV-SETUP 2-2).
 - 맵 모습 확인(Studio 없이): `lune run tools/render-map <mapId|all> [--view intro|overview|eye|top|mobile|all] [--quality fast|high]` → `build/renders/<mapId>/*.png` + `stats.txt`(예산·`void%`). 근사 렌더러라 최종 판단은 Studio. 사용법·한계는 `docs/DEV-SETUP.md` 2-1.
 - **도구를 받을 수 없는 환경(클라우드 세션 등)에서는 돌리지 못한 단계를 "타입 검사 못 함"처럼 보고에 분명히 적는다.** 돌려 보지 않은 것을 통과로 적지 않는다.
+- **클라우드 세션**: `bash tools/cloud/install-tools.sh`로 같은 버전 도구를 받는다. 프록시 인증서 때문에 `selene src`가 Roblox API 덤프를 못 받으니(`error when getting API dump`) `(cd tools/cloud && selene --config selene.toml ../../src)` 근사 std로 돌리고 보고에 "근사 std(Roblox API 검사 없음)"라고 적는다. 프록시 해제·TLS 검증 끄기 금지. 자세한 건 **`docs/DEV-SETUP.md` 6절**. spec 하나만: `lune run tests/run-one <이름>.spec`.
 - 스튜디오에서 직접 확인이 필요한 부분은 **사용자에게 무엇을 어떻게 테스트하면 되는지** 구체적으로 알려준다. 마일스톤별 확인 목록은 `docs/DEV-SETUP.md`, 사용자가 손으로 할 일은 `docs/USER-TODO.md`.
 
 ## 병렬 개발

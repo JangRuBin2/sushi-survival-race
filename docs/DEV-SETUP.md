@@ -1008,6 +1008,20 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 
 > 수치는 모두 **기본값**이에요. 바꿀 곳은 각 맵의 `<Map>Layout.luau`, 인원·비율은 `Config.Maps`·`Config.Rules.LargePassRatios`.
 
+### 3-18. 공격 확인 (m6-08: 모두의 공격 · 스킨별 연출)
+출처: 스펙 [`docs/specs/m6-08-attack-and-legend-skins.md`](specs/m6-08-attack-and-legend-skins.md), 연출 구조 [`docs/REFERENCE-attack-fx.md`](REFERENCE-attack-fx.md). 맞는 쪽이 필요하니 **Test → Clients and Servers → 2~3명**으로 봐요(`minPlayersToStart = 1`이면 1명도 출발은 돼요). 공격은 출발한 라운드에서만 돼요.
+
+1. **입력 (AC 입력)**: 달리는 중 **F**(PC) / **L2**(게임패드) / 모바일 **💥 공격** 버튼(다이브 위·잡기 왼쪽) → 내 주변에 하얀 충격파 고리 + 밥알. 로비·소개 카운트다운·관전 중에는 아무 일도 없어야 해요.
+2. **맞음**: 다른 클라이언트를 반지름 10 안에 두고 공격 → 그 초밥이 바깥쪽으로 튕기고 약 1초 누워서 "@_@". 반지름 밖(약 11 이상)은 안 맞아요. 출력 창에 `[MovementGuard]` 경고·되돌림이 없어야 해요.
+3. **쿨다운·면역**: 공격 직후 모바일 버튼이 회색 + "8초 → 1초" 카운트다운, 그동안 F를 눌러도 안 나가요. 2명이 서로 바로 공격하면 방금 맞은 사람은 2초 동안 다시 안 맞아요.
+4. **잡기와**: A가 B를 잡은 채 B가 공격 → 잡기가 풀리고 A가 넘어져요. 넘어진 사람은 공격도 못 해요.
+5. **낙하**: 낭떠러지 옆에서 맞으면 떨어질 수 있어요 — Race는 3초 뒤 부활(m6-01), Survival·결승은 탈락이 맞아요.
+6. **스킨별 연출** (`Config.DEBUG.unlockAllSkinsInStudio = true`라 탈의실에서 바로 입어 볼 수 있어요): 드래곤 스시 = 주황 불꽃 고리 + 위로 감아 오르는 불꽃 띠, 용 스시 = 파랑 회오리(고리가 돌아요), 제트기 스시 = 위로 휘어 맞은 사람을 **쫓아가는** 미사일(빨간 꼬리) + 폭발(아무도 안 맞으면 4방향), 섀도 제트 스시 = 같은 미사일 보라. 그 밖의 스킨은 기본 충격파. 연출은 같은 방 사람 화면에 다 보여야 해요.
+7. **버튼 위치 편집**: ⚙ → 버튼 위치 편집에 "💥 공격"이 네 번째로 나오고 끌어 옮기기·크기·프리셋(기본·크게·엄지 가까이)이 겹치지 않아요. m6-08 전에 저장한 배치가 있는 계정은 공격 버튼이 다이브 위에 생기거나(겹치면) 기본 배치로 돌아가요.
+8. **소리**: 공격 소리는 임시로 폭발음(작게, 높게)이에요 — 바꾸려면 USER-TODO A2.
+
+> 수치는 모두 **기본값**이에요(`Config.Attack`: 반지름 10, 튕김 30·14, 넘어짐 1초, 쿨다운 8초, 면역 2초). 플레이테스트 뒤 조정해요.
+
 ## 4. 문제가 생기면
 | 증상 | 해결 |
 |---|---|
@@ -1031,3 +1045,23 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 ## Windows 메모
 - Rokit은 [릴리스 페이지](https://github.com/rojo-rbx/rokit/releases)에서 `windows-x86_64.zip`을 받아 `rokit.exe self-install` 하면 사용자 PATH에 `%USERPROFILE%\.rokit\bin`이 추가돼요. 터미널을 새로 열어야 적용돼요.
 - 나머지 명령어는 macOS와 같아요.
+
+## 6. 클라우드 세션(claude --cloud)에서 검증하기
+클라우드 컨테이너에는 rokit도 Roblox Studio도 없어요. 아래로 5단계 검증을 거의 그대로 돌릴 수 있어요 (2026-11-10 m6-08에서 확인).
+
+**도구 받기** — rokit 대신 GitHub 릴리스에서 같은 버전을 받아요 (`rokit.toml` 버전을 바꾸면 `tools/cloud/install-tools.sh`의 주소도 같이 바꿔요):
+```bash
+bash tools/cloud/install-tools.sh        # 기본 설치 폴더 ~/.sushi-tools, 마지막 줄에 export PATH=... 를 출력
+export PATH=$HOME/.sushi-tools/bin:$PATH # 셸이 명령마다 새로 뜨는 에이전트는 매번 붙여요
+```
+
+**selene (린트)** — 클라우드의 HTTPS는 에이전트 프록시가 TLS를 다시 맺어서(인증서 `/root/.ccr/ca-bundle.crt`) **selene이 Roblox API 덤프를 못 받아요**: `ERROR: Could not collect standard library ... error when getting API dump` (원인: `raw.githubusercontent.com/CloneTrooper1019/Roblox-Client-Tracker/.../API-Dump.json` 요청이 `invalid peer certificate: UnknownIssuer`). selene은 자체 내장 루트 인증서만 믿어서 `SSL_CERT_FILE`도 듣지 않아요. 프록시를 끄거나(`HTTPS_PROXY` 해제) TLS 검증을 끄는 우회는 하지 않아요. 대신 Roblox 전역을 `any`로만 선언한 **근사 표준 라이브러리**로 돌려요:
+```bash
+(cd tools/cloud && selene --config selene.toml ../../src)   # "0 errors" 확인
+```
+근사 std는 안 쓰는 변수·정의 안 된 전역·Luau 표준 라이브러리 오용은 잡지만, Roblox API 인자 개수·없는 멤버·deprecated 같은 Roblox 전용 검사는 못 해요 → 보고에 **"selene: 클라우드 근사 std로 통과(Roblox API 검사 없음)"**라고 적고, 로컬(`selene src`)에서 한 번 더 돌려요. 쓸 Roblox 전역이 새로 생기면(`tools/cloud/roblox_approx.yml`에 없어서 `undefined_variable`) 그 파일에 한 줄 더해요.
+
+**나머지** — `rojo build`, `stylua --check`, `lune run tests`(약 3분), `luau-lsp analyze`(저장소에 커밋된 `types/globalTypes.None.d.luau`라 네트워크 없이 돼요)는 로컬과 똑같이 돼요. spec 하나만 빨리 볼 때는 `lune run tests/run-one <이름>.spec` (예: `lune run tests/run-one m6-08-attack.spec`, `lune run tests <이름>`은 인자를 무시하고 전체를 돌려요).
+
+**안 되는 것** — Studio 확인(3-x절)은 사용자 몫으로 남겨요. 렌더러(`tools/render-map`·`render-character`)는 Lune만 쓰니 클라우드에서도 돼요.
+

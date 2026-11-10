@@ -68,7 +68,7 @@ docs-writer 에이전트로 qa-passed 된 것 문서에 반영해줘
 ```bash
 claude --worktree m2-survival   # 그 세션에서 developer 에이전트로 해당 스펙 구현
 ```
-`claude --worktree`는 로컬 `main`이 아니라 **`origin/main`에서 브랜치를 만든다.** 로컬 `main`을 먼저 push하거나, 만든 직후 worktree에서 `git merge --ff-only main`으로 맞춘다.
+`claude --worktree`는 로컬 `main`이 아니라 **`origin/main`에서 브랜치를 만든다.** (브랜치 전략 뒤로는 기능 브랜치를 `develop`에서 따요 — 아래 "브랜치 전략".) 로컬 `main`을 먼저 push하거나, 만든 직후 worktree에서 `git merge --ff-only main`으로 맞춘다.
 Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `34873`, ...). 머지는 QA 통과 후 메인 세션에서 한다.
 
 ## 세션이 끝날 때: 클라우드 세션으로 인계
@@ -91,6 +91,19 @@ Rojo 포트는 worktree마다 다르게 쓴다 (`rojo serve --port 34872`, `3487
 - 그 브랜치를 체크아웃하고 `CLAUDE.md`, 이 문서, 역할 정의, `docs/<역할>/<스펙>.md`의 인계 메모 순서로 읽고 시작한다.
 - 클라우드에는 Roblox Studio가 없다. Studio 확인 항목은 "사용자 확인 필요"로 남긴다. rokit 대신 `bash tools/cloud/install-tools.sh`로 같은 버전 도구를 받는다. 프록시 인증서 때문에 selene은 진짜 Roblox std를 못 받으니 `tools/cloud/selene.toml` 근사 std로 돌리고 보고에 그렇게 적는다 (`docs/DEV-SETUP.md` 6절). 그래도 설치할 수 없는 도구가 있으면 검증하지 못한 단계를 보고에 분명히 적는다 (예: "타입 검사 못 함").
 - 사용량 한도는 계정 단위라서, 한도 때문에 로컬이 멈췄다면 클라우드 세션도 한도가 풀린 뒤에 돈다.
+
+## 브랜치 전략 (2026-11-10 사용자 결정)
+| 브랜치 | 뜻 | 들어오는 길 |
+|---|---|---|
+| `develop` | **개발 통합.** 기능·스펙 브랜치(`claude/…`, `m6-xx-…`)의 PR은 모두 여기로 | 기능 브랜치 PR (QA·5단계 검증 뒤) |
+| `main` | **개발 완료·퍼블리시 가능.** 다음 퍼블리시 후보 | `develop` → `main` PR (사용자 Studio 확인을 마친 묶음만) |
+| `release` | **지금 Roblox에 퍼블리시된 것.** Studio 퍼블리시는 이 브랜치를 Rojo로 연결해서 해요 | `main` → `release` 병합(퍼블리시 직전) + 퍼블리시 날짜 태그 `live-YYYY-MM-DD`(같은 날 두 번이면 `-2`) |
+
+- **기능 브랜치는 `develop`에서 따고 `develop`으로 PR.** 에이전트는 `main`·`release`에 직접 push하지 않는다(사용자가 합침).
+- **핫픽스**(라이브 버그): `release`에서 `hotfix/<이름>`을 따서 고치고 → `release`에 PR·퍼블리시·태그 → 같은 커밋을 `main`·`develop`에도 PR(cherry-pick)해 어긋나지 않게.
+- 퍼블리시할 때: ① `main` → `release` PR 병합 ② `release`를 체크아웃해 `rojo serve` → Studio 퍼블리시 ③ 태그 `git tag live-YYYY-MM-DD && git push origin live-YYYY-MM-DD` ④ `docs/CHANGELOG.md`에 퍼블리시 날짜.
+- 2026-11-10 시작점: 세 브랜치 모두 그때의 `main`(`a85fd66`). 아직 공개 전이라 `release`는 기준점일 뿐이고, 첫 퍼블리시 때 처음으로 의미가 생겨요.
+- 예전 문서의 "main에 병합"은 이제 "develop에 병합"으로 읽는다(병합 뒤 5단계 재실행 규칙은 그대로).
 
 ## 스펙 ID
 `<마일스톤>-<두 자리 번호>-<slug>.md`. 예: `m2-01-survival-hot-tiles.md`. QA 리포트는 같은 이름을 `docs/qa/`에 쓴다.

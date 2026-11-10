@@ -83,6 +83,11 @@
 
 ---
 
+### A4. GitHub 설정 (브랜치 전략 2026-11-10)
+- [ ] 저장소 **Settings → General → Default branch**를 `develop`으로 (새 PR이 자동으로 develop을 향해요)
+- [ ] **Settings → Rules → Rulesets**: `main`·`release`에 "Restrict deletions" + "Block force pushes" (+ 원하면 "Require a pull request before merging"). 승인 인원(Required approvals)은 켜지 마세요 — 혼자면 자기 PR을 승인 못 해서 못 합쳐요
+- [ ] 퍼블리시는 `release` 브랜치를 Rojo로 연결해서. 순서는 [`docs/WORKFLOW.md`](WORKFLOW.md) "브랜치 전략"
+
 ## B. 집에서 (Roblox Studio 필요)
 
 ### B1. 코드 받기·연결 (매번)

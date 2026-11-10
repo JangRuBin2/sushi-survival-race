@@ -79,6 +79,9 @@
 - 패드 모드에서는 **⚙ 버튼·터치 버튼 편집을 숨긴다**(`SettingsButton`, `TouchLayoutEditor.open()` 거절, 편집 중 패드를 쓰면 저장 없이 취소 — GDD 6 "게임패드 해당 없음").
 - **새 화면·창은 `GamepadNav`에 등록**: 만들 때 한 번 `GamepadNav.window`(B로 닫히는 창)·`page`(로비·대기실 같은 기본 화면)·`anchor`(Select로 고를 버튼), 탭이 있으면 LB/RB(`GamepadNavLogic.nextTab`, 끝에서 멈춤). render·루프 안에서 부르지 않는다. 창 열림은 "조상까지 보이는가"로 판단하고 B = 맨 위 창 닫기 → 연 버튼으로 선택 복귀. 힌트 문구는 `gamepad.hint.*` 키.
 
+## 브랜치 전략 (2026-11-10)
+- **`develop`**(개발 통합 — 기능 브랜치 PR은 여기로) → **`main`**(개발 완료·퍼블리시 가능) → **`release`**(지금 Roblox에 퍼블리시된 것, 퍼블리시마다 태그 `live-YYYY-MM-DD`). 핫픽스는 `release`에서 따서 세 곳에 모두 반영. 에이전트는 `main`·`release`에 직접 push하지 않는다. 자세한 건 `docs/WORKFLOW.md` "브랜치 전략".
+
 ## 역할 분담 (에이전트 협업)
 기획 `planner` · 개발 `developer` · QA `qa` · 문서화 `docs-writer` 서브에이전트가 `.claude/agents/`에 있다.
 작업은 **스펙 파일(`docs/specs/`) → 구현 → QA 리포트(`docs/qa/`) → 문서 반영** 순서로 파일을 통해 넘긴다.

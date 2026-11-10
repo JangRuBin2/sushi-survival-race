@@ -132,7 +132,7 @@ return function(t: Test.Test)
 				return list
 			end
 			-- m5-32 고등어 [신선] (판매 스킨, 상한 80 — 사용자 결정 3차) + m6-08 전설 4종 (용 둘 80, 제트기 둘 70)
-			-- + m6-09 마법소녀 (80) + m6-10 천사 (80)·악마 (70) + m6-11 다이너마이트 (70)
+			-- + m6-09 마법소녀 (80) + m6-10 천사 (80)·악마 (70) + m6-11 다이너마이트 (80)
 			t.eq(#expected, 18)
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), expected)
 			t.eq(keys(SushiBody.CONCEPT_BODY), expected)
@@ -142,6 +142,7 @@ return function(t: Test.Test)
 				["sky-dragon-sushi"] = true,
 				["magical-girl-sushi"] = true,
 				["angel-sushi"] = true,
+				["dynamite-sushi"] = true, -- m6-11 얼굴 없이 막대로만 채운 묶음
 			}
 			for _, id in Sample.SKIN_IDS do
 				t.eq(SushiBody.CONCEPT_BODY[id].partBudget, if over80[id] then 80 else BUDGET, id)
@@ -316,9 +317,13 @@ return function(t: Test.Test)
 	end
 
 	t.test(
-		"토핑이 얼굴을 안 가려요: 얼굴 높이(입 -0.75 ~ 눈 위 0.3)에서 토핑 파츠는 밥 앞면보다 앞으로 안 나와요",
+		"토핑이 얼굴을 안 가려요: 얼굴 높이(입 -0.75 ~ 눈 위 0.3)에서 토핑 파츠는 밥 앞면보다 앞으로 안 나와요 (faceHidden 예외만 빼고)",
 		function()
 			for _, id in Sample.SKIN_IDS do
+				-- m6-11: 규칙 표에 faceHidden이 있는 스킨(다이너마이트만, tests/m6-11-dynamite-sushi가 고정)은 얼굴을 덮는 게 디자인
+				if SushiBody.CONCEPT_BODY[id].faceHidden then
+					continue
+				end
 				for _, spec in SushiBody.layout(id) do
 					if not isFace(spec.name) and table.find(SHARED_BODY, spec.name) == nil then
 						for step = 0, 21 do

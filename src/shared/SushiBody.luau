@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트 = 18종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트 = 18종, 다이너마이트만 faceHidden): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -983,11 +983,15 @@ assert(SushiConceptSample.GAME_GROUND_OFFSET == SushiBody.GROUND_OFFSET, "concep
 -- 없으면 비교하지 않아요(특 9종). 효과 예산·발바닥(GROUND_OFFSET)·충돌 없음은 다른 스킨과 똑같아요.
 -- 콘셉트 몸 스킨(SushiConceptSample.SKIN_IDS)만 들어가요.
 -- nameTagHeight가 있으면 그 스킨만 이름표를 그 높이에 띄워요 (m5-32 고등어 — 사용자 결정 2026-10-14 4차). 없으면 NAME_TAG_HEIGHT
+-- faceHidden = true면 토핑이 얼굴을 덮어도 돼요 (m6-11 다이너마이트 — 사용자 결정 2026-11-10 "얼굴도 없이 다이너마이트만").
+-- 공유 얼굴 파츠(깜빡임 관절 포함)는 그대로 있고 토핑 뒤에 숨어요. 게임 코드는 이 칸을 읽지 않고, 테스트의 "얼굴 안 가림"
+-- 검사만 이 칸으로 건너뛰어요 (대신 얼굴이 정말 가려지는지를 따로 봐요)
 export type ConceptBodyRule = {
 	partBudget: number,
 	expressions: { string },
 	boundsTolerance: number?,
 	nameTagHeight: number?,
+	faceHidden: boolean?,
 }
 local conceptBody: { [string]: ConceptBodyRule } = {}
 for id in CONCEPT_IDS do
@@ -1005,7 +1009,7 @@ conceptBody["fresh-mackerel"] = {
 }
 -- m6-08 전설 4종 (드래곤·용·제트기·섀도 제트 — 판매 + 뽑기 전설): 고등어와 같은 규칙 표 칸만 써요(스킨 id 분기 없음).
 -- 외곽은 전설 ±25% (concept-salmon 기준), 파츠 상한은 partBudget, 뿔·꼬리날개가 높은 스킨은 nameTagHeight
-local LEGEND_RULES: { [string]: { partBudget: number, nameTagHeight: number? } } = {
+local LEGEND_RULES: { [string]: { partBudget: number, nameTagHeight: number?, faceHidden: boolean? } } = {
 	["dragon-sushi"] = { partBudget = 80 },
 	["sky-dragon-sushi"] = { partBudget = 80 },
 	["jet-sushi"] = { partBudget = 70 },
@@ -1015,8 +1019,9 @@ local LEGEND_RULES: { [string]: { partBudget: number, nameTagHeight: number? } }
 	-- m6-10 천사(왕관 별·고리·깃털 날개·별 홀이라 80)·악마(70)
 	["angel-sushi"] = { partBudget = 80 },
 	["devil-sushi"] = { partBudget = 70 },
-	-- m6-11 다이너마이트(막대 8·띠 둘·심지 불꽃, 70)
-	["dynamite-sushi"] = { partBudget = 70 },
+	-- m6-11 다이너마이트: 얼굴 없이 막대로만 채운 묶음(막대 12 + 안쪽 끝 5·밥을 덮는 판 5·띠 둘·심지 불꽃)이라 80,
+	-- 얼굴을 덮어도 되는 유일한 스킨 (사용자 결정 2026-11-10)
+	["dynamite-sushi"] = { partBudget = 80, faceHidden = true },
 }
 for id, rule in LEGEND_RULES do
 	conceptBody[id] = {
@@ -1024,6 +1029,7 @@ for id, rule in LEGEND_RULES do
 		expressions = SushiConceptSample.EXPRESSIONS :: any,
 		boundsTolerance = 0.25,
 		nameTagHeight = rule.nameTagHeight,
+		faceHidden = rule.faceHidden,
 	}
 end
 SushiBody.CONCEPT_BOUNDS_BASE = "concept-salmon" -- boundsTolerance 비교 기준 스킨

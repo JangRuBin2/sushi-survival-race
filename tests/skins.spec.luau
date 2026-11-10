@@ -69,6 +69,8 @@ local EXPECTED = {
 	-- m6-10 전설 2종 (판매 + 뽑기 전설, 콘셉트 몸)
 	{ "angel-sushi", "천사 스시", "Legendary", 199, nil },
 	{ "devil-sushi", "악마 스시", "Legendary", 199, nil },
+	-- m6-11 전설 (판매 + 뽑기 전설, 콘셉트 몸)
+	{ "dynamite-sushi", "다이너마이트 스시", "Legendary", 199, nil },
 }
 
 local TOLERANCE = 0.15
@@ -159,8 +161,8 @@ return function(t: Test.Test)
 			t.eq(#Skins.byTier("Common"), 8)
 			t.eq(#Skins.byTier("Rare"), 9)
 			t.eq(#Skins.byTier("Epic"), 7)
-			t.eq(#Skins.byTier("Legendary"), 14) -- m5-32 고등어 [신선] + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마
-			t.eq(#Skins.byTier(nil), 48)
+			t.eq(#Skins.byTier("Legendary"), 15) -- m5-32 고등어 [신선] + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트
+			t.eq(#Skins.byTier(nil), 49)
 			for _, tier in Skins.TIERS do
 				t.ok(Skins.TIER_INFO[tier] ~= nil, tier)
 			end
@@ -354,6 +356,8 @@ return function(t: Test.Test)
 				-- m6-10 천사(고리 Glow + 홀 별 Sparkles)·악마(바이저 Glow + 삼지창 Smoke)
 				["angel-sushi"] = { "Glow", "Sparkles" },
 				["devil-sushi"] = { "Glow", "Smoke" },
+				-- m6-11 다이너마이트(심지 끝 Smoke + 불꽃 Sparkles)
+				["dynamite-sushi"] = { "Smoke", "Sparkles" },
 			}
 			local VALID_EFFECTS = { Fire = true, Sparkles = true, Smoke = true, Glow = true }
 			for _, skin in Skins.LIST do

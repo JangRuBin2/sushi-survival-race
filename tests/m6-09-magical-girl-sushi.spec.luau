@@ -38,9 +38,10 @@ local LEGENDARY_DRAW = {
 	"jet-sushi",
 	"shadow-jet-sushi",
 	ID,
-	-- m6-10 천사·악마가 뒤에 붙었어요 (tests/m6-10-angel-devil-sushi)
+	-- m6-10 천사·악마·m6-11 다이너마이트가 뒤에 붙었어요 (tests/m6-10-angel-devil-sushi, tests/m6-11-dynamite-sushi)
 	"angel-sushi",
 	"devil-sushi",
+	"dynamite-sushi",
 }
 
 local FACE_PREFIXES = { "Eye", "Lid", "Shine", "Mouth", "Tongue", "Cheek", "Brow", "Sweat", "Bandage", "Anger" }
@@ -100,7 +101,7 @@ return function(t: Test.Test)
 	t.test(
 		"카탈로그: 전설 R$ 199 + 뽑기 전설, 코인·상품 id 없음, order 46(섀도 제트 다음), 대사 2줄, conceptBody",
 		function()
-			t.eq(#Skins.LIST, 48) -- m6-10 천사·악마(47~48) 포함
+			t.eq(#Skins.LIST, 49) -- m6-10 천사·악마(47~48)·m6-11 다이너마이트(49) 포함
 			local skin = Skins.get(ID) :: any
 			t.ok(skin ~= nil, ID)
 			t.eq(skin.displayName, KO)
@@ -122,7 +123,7 @@ return function(t: Test.Test)
 			t.eq(Skins.isFree(ID), false)
 			t.eq(Skins.LIST[46].id, ID, "after shadow-jet-sushi")
 			t.eq(Skins.LIST[45].id, "shadow-jet-sushi")
-			t.eq(#Skins.byTier("Legendary"), 14)
+			t.eq(#Skins.byTier("Legendary"), 15) -- m6-11 다이너마이트 포함
 			local ok, problems = Skins.validate(Skins.LIST)
 			t.ok(ok, table.concat(problems, "; "))
 		end
@@ -142,14 +143,14 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 목록·규칙 표
 	t.test(
-		"목록: 콘셉트 몸·견본·뽑기 목록에 들어가요 (m6-10 뒤 17종), 뽑기 전용은 특 9종 그대로",
+		"목록: 콘셉트 몸·견본·뽑기 목록에 들어가요 (m6-11 뒤 18종), 뽑기 전용은 특 9종 그대로",
 		function()
 			for _, list in { Skins.CONCEPT_BODY_IDS, SushiBody.CONCEPT_BODY, Skins.DRAW_IDS } do
 				t.ok((list :: any)[ID] ~= nil, "in table")
-				t.eq(#keys(list :: any), 17)
+				t.eq(#keys(list :: any), 18)
 			end
 			t.ok(table.find(Sample.SKIN_IDS, ID) ~= nil, "sample skin ids")
-			t.eq(#Sample.SKIN_IDS, 17)
+			t.eq(#Sample.SKIN_IDS, 18)
 			t.eq(keys(Skins.CONCEPT_BODY_IDS), sorted(Sample.SKIN_IDS))
 			local drawOnly = 0
 			for _, skin in Skins.LIST do
@@ -173,7 +174,7 @@ return function(t: Test.Test)
 
 	---------------------------------------------------------------- 뽑기
 	t.test(
-		"뽑기: 전설 등급 8종(order 순, m6-10 뒤), 확률 표 그대로 1%, 스킨마다 0.125%(화면 0.13%), 전설 안에서 균등·중복 🍚 300",
+		"뽑기: 전설 등급 9종(order 순, m6-11 뒤), 확률 표 그대로 1%, 스킨마다 0.111%(화면 0.11%), 전설 안에서 균등·중복 🍚 300",
 		function()
 			local rows = DrawLogic.grades()
 			local byGrade = {}
@@ -185,9 +186,9 @@ return function(t: Test.Test)
 			t.eq(DrawLogic.displayPercents(rows).Legendary, "1.0%")
 			local perSkin = DrawLogic.perSkinPercent(rows)
 			for _, id in LEGENDARY_DRAW do
-				t.eq(perSkin[id], "0.13%", id)
+				t.eq(perSkin[id], "0.11%", id)
 			end
-			t.eq(DrawLogic.totalSkins(), 17)
+			t.eq(DrawLogic.totalSkins(), 18)
 			local index = table.find(LEGENDARY_DRAW, ID) :: number
 			local outcome = DrawLogic.roll({}, fakeRng(0.005, index)) :: any
 			t.eq(outcome.grade, "Legendary")
@@ -235,7 +236,7 @@ return function(t: Test.Test)
 				return nil
 			end
 			local legendary = ShopLogic.visibleSkins(view :: any, tab("Legendary"))
-			t.eq(legendary[#legendary - 2].id, ID) -- 뒤에 m6-10 천사·악마
+			t.eq(legendary[#legendary - 3].id, ID) -- 뒤에 m6-10 천사·악마·m6-11 다이너마이트
 			for _, skin in ShopLogic.visibleSkins(view :: any, tab("draw")) do
 				t.ok(skin.id ~= ID, "not in the special tab")
 			end

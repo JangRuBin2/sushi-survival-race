@@ -14,7 +14,7 @@
 --   NAME_TAG_HEIGHT       Body 중심에서 이름표까지 (CharacterFxController, 렌더러)
 --   MODEL_NAME / JOINT_NAME  캐릭터 아래 초밥 Model 이름, HumanoidRootPart에 붙이는 Motor6D 이름
 --   PART_JOINT_NAME       움직이는 파츠(눈·감은 눈·발)를 Body에 붙이는 Motor6D 이름 (m5-25, 클라이언트가 Transform만 바꿔요)
---   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 = 17종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
+--   CONCEPT_BODY[id]      실험 스킨의 명시적 예외 (m5-27·m5-28·m5-29 concept-* 9종 + m5-32 fresh-mackerel + m6-08 전설 4종 + m6-09 마법소녀 + m6-10 천사·악마 + m6-11 다이너마이트 = 18종): 기준 몸(BASE_NAMES)·외곽 허용치 대신
 --                         자기 모양을 쓰고, 파츠 상한은 partBudget. 발바닥은 모든 스킨과 같은 GROUND_OFFSET이에요.
 --
 -- m5-25 기준 몸 (사용자 확정 2026-10-13): 넓고 낮고 둥근 밥 덩어리. 위에서 보면 알약(가운데 상자 + 양 끝 원기둥) 모양,
@@ -1015,6 +1015,8 @@ local LEGEND_RULES: { [string]: { partBudget: number, nameTagHeight: number? } }
 	-- m6-10 천사(왕관 별·고리·깃털 날개·별 홀이라 80)·악마(70)
 	["angel-sushi"] = { partBudget = 80 },
 	["devil-sushi"] = { partBudget = 70 },
+	-- m6-11 다이너마이트(막대 8·띠 둘·심지 불꽃, 70)
+	["dynamite-sushi"] = { partBudget = 70 },
 }
 for id, rule in LEGEND_RULES do
 	conceptBody[id] = {

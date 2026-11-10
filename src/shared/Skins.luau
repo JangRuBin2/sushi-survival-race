@@ -10,13 +10,13 @@
 --   Skins.isFree(id)        모두가 처음부터 가진 무료 스킨인가 (계란초밥만, m5-31). 보유 판단은 이걸로 해요
 --   Skins.isDraw(id)        🎫 뽑기에서 나오는 스킨인가 (drawGrade가 있는가, m5-31)
 --   Skins.isDrawOnly(id)    뽑기로만 얻는 스킨인가 (drawGrade + 다른 얻는 길 없음 — 특 9종)
---   Skins.DRAW_IDS          drawGrade를 달 수 있는 id (명시 목록, validate가 같은지 확인. m5-32가 fresh-mackerel, m6-08이 전설 4종, m6-09가 마법소녀, m6-10이 천사·악마를 더해요)
+--   Skins.DRAW_IDS          drawGrade를 달 수 있는 id (명시 목록, validate가 같은지 확인. m5-32가 fresh-mackerel, m6-08이 전설 4종, m6-09가 마법소녀, m6-10이 천사·악마, m6-11이 다이너마이트를 더해요)
 --   Skins.drawGradeOf(id)   그 스킨의 뽑기 등급 (없으면 nil)
 --   Skins.DRAW_GRADES       뽑기 등급 순서 (전설 → 일반). 상점 등급(tier)과 별개예요
 --   Skins.DRAW_GRADE_INFO   뽑기 등급 이름·영어 이름·색 (확률표·배지)
 --   Skins.DRAW_INFO         탈의실 카드 구석 "🎫 특" 표시 이름·색 (뽑기 스킨)
 --   Skins.CONCEPT_BODY_IDS  콘셉트 몸 스킨 id (m5-27 concept-salmon, m5-28 concept-tuna·shrimp·tamago·ikura, m5-29 unagi·uni·tako·inari,
---                           m5-32 fresh-mackerel, m6-08 dragon·sky-dragon·jet·shadow-jet, m6-09 magical-girl, m6-10 angel·devil). conceptBody = true(몸 모양 예외 — SushiBody.CONCEPT_BODY 파츠 상한·외곽 규칙)는
+--                           m5-32 fresh-mackerel, m6-08 dragon·sky-dragon·jet·shadow-jet, m6-09 magical-girl, m6-10 angel·devil, m6-11 dynamite). conceptBody = true(몸 모양 예외 — SushiBody.CONCEPT_BODY 파츠 상한·외곽 규칙)는
 --                           여기 있는 id만 쓸 수 있어요. 콘셉트 몸은 등급과 무관해요(특 = Basic + 뽑기 전용, 고등어 = 전설 판매 + 뽑기)
 -- 생김새는 Shared.SushiBody.layout(id), 탈락 말풍선은 speech → EliminationCutsceneLogic.SKIN_LINES.
 -- 모든 스킨은 겉모습만 바꿔요 (GDD 9.1 Pay-to-Win 금지): 크기·판정·속도는 같아요.
@@ -98,6 +98,8 @@ Skins.CONCEPT_BODY_IDS = {
 	-- m6-10 전설 천사·악마 (판매 + 뽑기 전설)
 	["angel-sushi"] = true,
 	["devil-sushi"] = true,
+	-- m6-11 전설 다이너마이트 (판매 + 뽑기 전설)
+	["dynamite-sushi"] = true,
 } :: { [string]: boolean }
 
 -- 🎫 drawGrade가 있는 id (m5-31, 명시 목록 — validate가 카탈로그와 같은지 봐요). 특 9종 + m5-32 고등어 [신선]
@@ -122,6 +124,8 @@ Skins.DRAW_IDS = {
 	-- m6-10 전설 천사·악마 (판매 + 뽑기 전설)
 	["angel-sushi"] = true,
 	["devil-sushi"] = true,
+	-- m6-11 전설 다이너마이트 (판매 + 뽑기 전설)
+	["dynamite-sushi"] = true,
 } :: { [string]: boolean }
 
 -- drawGrade + robux 스킨(m5-32 고등어)이 지켜야 하는 등급별 로벅스 가격 (가격 A안)
@@ -595,6 +599,18 @@ Skins.LIST = {
 		drawGrade = "Legendary",
 		speech = { "크크, 날 먹으면 배탈 날걸?", "악마도 간장엔 약하다고…!" },
 		order = 48,
+	},
+	-- m6-11 전설: 콘셉트 몸을 빨간 다이너마이트 막대 묶음(숯빛 띠 둘·꼰 심지·불꽃)이 감싸요. 일반적인 만화 다이너마이트.
+	-- m6-08~10 전설과 같은 얻는 길 (R$ 199 + 🎫 뽑기 전설)
+	{
+		id = "dynamite-sushi",
+		displayName = "다이너마이트 스시",
+		tier = "Legendary",
+		robux = 199,
+		conceptBody = true,
+		drawGrade = "Legendary",
+		speech = { "한 입 먹으면 맛이 펑! 터질걸?", "심지에 불도 안 붙었는데 먹혔어…!" },
+		order = 49,
 	},
 } :: { Skin }
 

@@ -21,9 +21,10 @@ local RewardLogic = RobloxRequire.require(Shared.RewardLogic)
 local AdminLogic = RobloxRequire.require(Shared.AdminLogic)
 local SushiBody = RobloxRequire.require(Shared.SushiBody)
 
--- m5-31 때 카탈로그 (전설 없음): 판매 + 뽑기 전설 스킨(m5-32 고등어 [신선], m6-08 전설 4종, m6-09 마법소녀, m6-10 천사·악마)을 뺀 목록 —
+-- m5-31 때 카탈로그 (전설 없음): 판매 + 뽑기 전설 스킨(m5-32 고등어 [신선], m6-08 전설 4종, m6-09 마법소녀, m6-10 천사·악마, m6-11 다이너마이트)을 뺀 목록 —
 -- 빈 등급 나누기를 그대로 검사해요. 전설이 들어온 실제 카탈로그 값은 tests/m5-32-fresh-mackerel.spec.luau (AC2-1)·
--- tests/m6-08-legend-skins.spec.luau·tests/m6-09-magical-girl-sushi.spec.luau·tests/m6-10-angel-devil-sushi.spec.luau
+-- tests/m6-08-legend-skins.spec.luau·tests/m6-09-magical-girl-sushi.spec.luau·tests/m6-10-angel-devil-sushi.spec.luau·
+-- tests/m6-11-dynamite-sushi.spec.luau
 local SOLD_LEGENDS = {
 	["fresh-mackerel"] = true,
 	["dragon-sushi"] = true,
@@ -33,6 +34,7 @@ local SOLD_LEGENDS = {
 	["magical-girl-sushi"] = true,
 	["angel-sushi"] = true,
 	["devil-sushi"] = true,
+	["dynamite-sushi"] = true,
 }
 local M531 = {}
 for _, skin in Skins.LIST do
@@ -200,12 +202,12 @@ return function(t: Test.Test)
 				end
 			end
 			t.eq(keys(drawIds), keys(Skins.DRAW_IDS))
-			-- m5-32: 고등어 [신선]이 뽑기 전설 + 콘셉트 몸으로 들어와 10, m6-08 전설 4종으로 14, m6-09 마법소녀로 15, m6-10 천사·악마로 17
+			-- m5-32: 고등어 [신선]이 뽑기 전설 + 콘셉트 몸으로 들어와 10, m6-08 전설 4종으로 14, m6-09 마법소녀로 15, m6-10 천사·악마로 17, m6-11 다이너마이트로 18
 			-- (뜻이 다른 두 목록이라 명시 목록은 m5-32·m6-08 테스트에서)
 			t.eq(keys(Skins.DRAW_IDS), keys(Skins.CONCEPT_BODY_IDS))
 			t.eq(keys(Skins.DRAW_IDS), keys(SushiBody.CONCEPT_BODY))
-			t.eq(#keys(Skins.DRAW_IDS), 17)
-			t.eq(DrawLogic.totalSkins(), 17)
+			t.eq(#keys(Skins.DRAW_IDS), 18)
+			t.eq(DrawLogic.totalSkins(), 18)
 			for _, id in { "tamago", "salmon", "no-such" } do
 				t.eq(Skins.isDraw(id), false, id)
 				t.eq(Skins.isDrawOnly(id), false, id)

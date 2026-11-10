@@ -13,6 +13,7 @@ local AttackFxLogic = RobloxRequire.require(Shared.AttackFxLogic)
 local Config = RobloxRequire.require(Shared.Config)
 local TouchLayoutLogic = RobloxRequire.require(Shared.TouchLayoutLogic)
 local UiLayout = RobloxRequire.require(Shared.UiLayout)
+local Skins = RobloxRequire.require(Shared.Skins)
 
 local cfg = Config.Attack
 
@@ -126,6 +127,14 @@ return function(t: Test.Test)
 		end
 		for _, style in AttackFxLogic.STYLE_BY_SKIN do
 			t.ok(AttackFxLogic.STYLES[style] ~= nil, `{style} defined`)
+		end
+	end)
+
+	t.test("AC4: 연출 표의 스킨은 모두 카탈로그의 전설 스킨", function()
+		for skinId in AttackFxLogic.STYLE_BY_SKIN do
+			local skin = Skins.get(skinId)
+			t.ok(skin ~= nil, `{skinId} in catalog`)
+			t.eq(skin and skin.tier, "Legendary", `{skinId} tier`)
 		end
 	end)
 

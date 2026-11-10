@@ -517,7 +517,8 @@ return function(t: Test.Test)
 			end
 			scan("src/client")
 			scan("src/server")
-			-- 공유 코드에서 새 id를 쓰는 곳은 카탈로그·콘셉트 몸 표·견본 토핑 표뿐
+			-- 공유 코드에서 새 id를 쓰는 곳은 카탈로그·콘셉트 몸 표·견본 토핑 표, 그리고 공격 연출 표
+			-- (AttackFxLogic.STYLE_BY_SKIN — m6-08 공격 연출의 유일한 스킨 → 연출 연결, docs/REFERENCE-attack-fx.md)
 			for _, name in fs.readDir("src/shared") do
 				local path = `src/shared/{name}`
 				if fs.isFile(path) and string.match(name, "%.luau$") then
@@ -525,7 +526,10 @@ return function(t: Test.Test)
 					for _, id in NEW_IDS do
 						if string.find(source, `"{id}"`, 1, true) ~= nil then
 							t.ok(
-								name == "Skins.luau" or name == "SushiBody.luau" or name == "SushiConceptSample.luau",
+								name == "Skins.luau"
+									or name == "SushiBody.luau"
+									or name == "SushiConceptSample.luau"
+									or name == "AttackFxLogic.luau",
 								`{path} mentions {id}`
 							)
 						end

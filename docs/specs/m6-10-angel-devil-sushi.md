@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-10 — 전설 스킨 "천사 스시" · "악마 스시"
@@ -20,6 +20,9 @@ status: in-dev
 ## 수용 기준
 - AC1 카탈로그·CSV·`CONCEPT_BODY_IDS`·`DRAW_IDS`·`LEGEND_RULES`, `Skins.validate` 통과. AC2 고정 수 테스트 갱신. AC3 표정 6개 레이아웃 검사. AC4 렌더 3회 이상 before/after `docs/renders/characters/<id>/`. AC5 `HolyHalo`·`DemonFlame` 연출 표(테스트 `m6-08-attack` AC4(m6-10)).
 - Studio(사용자): 탈의실 전설 탭·뽑기 화면(전설 각 0.125%, 보유 n/17), 날개·고리·연기 밝기, 이름표, 공격 연출(DEV-SETUP 3-18).
+
+## 개발 메모
+- developer 기록 `docs/developer/m6-10-angel-devil-sushi.md`(천사 75/79·상한 80, 악마 54/58·상한 70, 들고 있는 지팡이·삼지창은 `ArmRight`에 붙어 팔과 함께 흔들림). 병합 뒤 2533 passed, 0 failed.
 
 ## 결정 기록
 - 2026-11-10 사용자: 고등어와 같은 등급(전설 판매 + 뽑기 전설).

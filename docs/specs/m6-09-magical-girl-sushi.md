@@ -1,4 +1,4 @@
-status: in-dev
+status: in-qa
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-09 — 전설 스킨 "마법소녀 스시" (오리지널 마법소녀)
@@ -40,6 +40,9 @@ status: in-dev
 - AC5 특정 작품 이름·표식이 소스·문서·CSV에 없음(테스트).
 - AC6 `StarRibbon` 연출이 표에 있고 공격 판정 코드에는 스킨 id 없음(기존 테스트).
 - Studio(사용자): 탈의실 전설 탭·뽑기 화면, 지팡이·리본 효과 밝기, 이름표 위치, 공격 연출(DEV-SETUP 3-18).
+
+## 개발 메모
+- developer 기록 `docs/developer/m6-09-magical-girl-sushi.md`(파츠 76/80, Glow + Sparkles, 렌더 4회). 병합 뒤 5단계: 2533 passed, 0 failed · selene 근사 std · luau-lsp 0.
 
 ## 결정 기록
 - 2026-11-10 메인: 그림이 세일러문 특징 그대로 → 장르만 쓰고 오리지널(위 표). 얻는 길은 m6-08 전설과 같게(사용자 m6-08 결정 따름).

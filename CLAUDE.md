@@ -18,6 +18,11 @@
 - 들어간 것: 방 시스템, 한 판 흐름, 관전, 계란초밥 캐릭터(새 기준 몸·작은 움직임), 탈락·우승·소개 연출, 다이브·잡기, 소리(대부분 무음 — 사용자가 id를 고름), 회전초밥집 로비·우승자 단상, DataStore 저장(세션 잠금, 프로필 v3), 밥알 코인·승수·칭호, 휴대폰 UI(터치 버튼 위치 편집), 서버 이동 감시, 로비/매치 플레이스 분리, 스킨 41종·탈의실, 🎫 우승자 뽑기(무료), 로벅스 결제, 결승 연장전, 맵 26개(기존 12개 아트 패스 v2, Race 45~55초 길이, 대형 맵 5개·40명 방), 맵별 조명(Future), 시즌 이벤트·이벤트 재화, 🎁 특별 상품·VIP 패스, 연출 팩 2종, 🎟 코드 보상, 관리자 "🛠" 패널(미리보기·명령), 한국어·영어 현지화(관리자 패널 제외), 게임패드·콘솔 UI(방향키·A·B로 모든 창, TV 안전 여백).
 - 검토 대기 제안서는 `docs/proposals/`(사용자 승인 전, GDD 미반영). 참고 자료 `docs/REFERENCE-*.md` — 맵 아트는 **`docs/REFERENCE-map-art-direction.md`(필수)**, 그 밖에 large-maps(대형 맵·40명, 제안서 `docs/proposals/large-maps.md` — 권장안으로 m6-02~07 구현)·map-production·m5-maps·party-royale·roblox-monetization·final-overtime·console-ui·emotes.
 
+## 스시 파이트 (브랜치 `sushi-fight`, 2026-11-11~)
+- 스시런 캐릭터·맵을 재활용하는 장외 난투 후속작. 기획서 **`docs/fight/GDD.md`**(v0.1 draft), 재활용 표 `docs/fight/REUSE.md`, 레퍼런스 사본 `docs/fight/references/`(원본 `docs/REFERENCE-*`는 스시런용으로 그대로).
+- 코드는 `src/shared/fight/`(순수 로직 `FightLogic`·수치 `FightConfig`)부터. 스시런 모듈은 옮기거나 지우지 않고 require만 한다. 스펙 id는 `f<마일스톤>-<번호>` (`docs/specs/f1-01-fight-core-logic.md`).
+- 결정 대기: GDD 11절 Q1(같은 유니버스 플레이스 vs 별도 게임)·Q2·Q3.
+
 ## 맵 풀 (26개, 전부 랜덤 판 풀 — 대형 5개는 예상 인원 12명 이상 라운드만)
 | 종류 | id |
 |---|---|

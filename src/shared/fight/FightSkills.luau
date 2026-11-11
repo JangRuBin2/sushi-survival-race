@@ -1,8 +1,10 @@
 --!strict
 -- 스시 파이트 특수 스킬 (f1-02, GDD 5.1). 순수 로직.
--- 원칙: 스킬 6종은 누구나 하나 골라 쓴다(공짜). 에픽·전설 스킨은 "시그니처 스킬"의 **연출만** 다르다
--- (색·효과 종류). 수치·판정에 스킨 id는 절대 들어가지 않는다 — 테스트가 고정.
---   카탈로그:  IDS · isSkill · SIGNATURES · signatureFor · defaultSkillFor · resolveLoadout
+-- 원칙: 스킬은 고르지 않는다. 목숨마다(첫 목숨 포함) 서버가 회전초밥 룰렛으로 6종 중 하나를 뽑는다(직전 스킬 제외).
+-- 에픽·전설 스킨은 "시그니처 스킬"이 뽑혔을 때 **연출만** 다르다(색·효과 종류).
+-- 뽑기·수치·판정에 스킨 id는 절대 들어가지 않는다 — 테스트가 고정.
+--   카탈로그:  IDS · isSkill · indexOf · SIGNATURES · signatureFor · signatureRoll
+--   룰렛:      roll · rouletteSteps · rouletteLength
 --   스킬 게이지: newMeter · charge · tick · isReady · consume
 --   판정 도우미: burstTargets · shieldGuard · dashEnd · stickySpeed · cleanse
 
@@ -34,8 +36,6 @@ local SKILL_SET: { [string]: boolean } = {}
 for _, id in FightSkills.IDS do
 	SKILL_SET[id] = true
 end
-
-FightSkills.DEFAULT = "WasabiBurst" :: SkillId
 
 function FightSkills.isSkill(value: unknown): boolean
 	return type(value) == "string" and SKILL_SET[value] == true
@@ -69,18 +69,59 @@ function FightSkills.signatureFor(skinId: unknown): Signature?
 	return FightSkills.SIGNATURES[skinId]
 end
 
--- 처음 입장했을 때 골라 둘 스킬: 시그니처가 있으면 그 스킬, 없으면 기본. 바꾸는 건 자유.
-function FightSkills.defaultSkillFor(skinId: unknown): SkillId
+-- 이 스킨이 이번에 뽑힌 스킬로 시그니처 연출을 쓰면 그 시그니처, 아니면 nil(기본 연출).
+function FightSkills.signatureRoll(skinId: unknown, skill: SkillId): Signature?
 	local sig = FightSkills.signatureFor(skinId)
-	return if sig then sig.skill else FightSkills.DEFAULT
+	if sig and sig.skill == skill then
+		return sig
+	end
+	return nil
 end
 
--- 클라이언트가 보낸 스킬 선택을 검증. 이상한 값이면 스킨 기본값.
-function FightSkills.resolveLoadout(requested: unknown, skinId: unknown): SkillId
-	if FightSkills.isSkill(requested) then
-		return requested :: SkillId
+function FightSkills.indexOf(skill: SkillId): number
+	local index = table.find(FightSkills.IDS, skill)
+	assert(index, `unknown skill {skill}`)
+	return index
+end
+
+------------------------------------------------------------------------
+-- 회전초밥 룰렛
+------------------------------------------------------------------------
+
+-- 이번 목숨 스킬. nextInt(1, n)은 1~n 정수를 주는 함수(서버는 Random:NextInteger).
+-- 직전 목숨 스킬(previous)은 빼고 남은 5종에서 고르게 뽑아요. 스킨은 보지 않아요.
+function FightSkills.roll(nextInt: (number, number) -> number, previous: SkillId?): SkillId
+	local pool = {}
+	for _, id in FightSkills.IDS do
+		if id ~= previous then
+			table.insert(pool, id)
+		end
 	end
-	return FightSkills.defaultSkillFor(skinId)
+	local pick = math.clamp(math.floor(nextInt(1, #pool)), 1, #pool)
+	return pool[pick]
+end
+
+export type RouletteStep = { index: number, at: number }
+
+-- 룰렛이 몇 칸 도는지: Laps바퀴 + fromIndex에서 result까지 앞으로 남은 칸.
+function FightSkills.rouletteLength(fromIndex: number, result: SkillId): number
+	local n = #FightSkills.IDS
+	local forward = (FightSkills.indexOf(result) - fromIndex) % n
+	return FightConfig.Skills.Roulette.Laps * n + forward
+end
+
+-- 정면 칸을 지나는 접시 순서와 시각(초). 클라이언트는 이 표대로 접시를 돌리고 칸마다 "딸깍" 소리.
+-- 위치 = 칸수 × (1 - (1 - t/Spin)^Ease)라서 처음엔 빠르고 끝에서 느려져요. 마지막 칸 = result, 시각 = Spin.
+function FightSkills.rouletteSteps(fromIndex: number, result: SkillId): { RouletteStep }
+	local r = FightConfig.Skills.Roulette
+	local n = #FightSkills.IDS
+	local total = FightSkills.rouletteLength(fromIndex, result)
+	local steps: { RouletteStep } = {}
+	for k = 1, total do
+		local t = r.Spin * (1 - (1 - k / total) ^ (1 / r.Ease))
+		table.insert(steps, { index = (fromIndex - 1 + k) % n + 1, at = t })
+	end
+	return steps
 end
 
 ------------------------------------------------------------------------

@@ -1,5 +1,7 @@
 --!strict
--- f1-02 스시 파이트 특수 스킬: FightSkills (카탈로그·시그니처·스킬 게이지·판정 도우미) + FightLogic guard
+-- f1-02 스시 파이트 특수 스킬: FightSkills (카탈로그·시그니처·회전초밥 룰렛·스킬 게이지·판정 도우미) + FightLogic guard
+
+local fs = require("@lune/fs")
 
 local RobloxRequire = require("./lib/RobloxRequire")
 local Test = require("./lib/Test")
@@ -19,13 +21,12 @@ local function near(t: Test.Test, actual: number, expected: number, message: str
 end
 
 return function(t: Test.Test)
-	t.test("AC1: 스킬은 6종이고 기본 스킬도 그중 하나", function()
+	t.test("AC1: 스킬은 6종", function()
 		t.eq(#FightSkills.IDS, 6, "six skills")
 		for _, id in FightSkills.IDS do
 			t.ok(FightSkills.isSkill(id), id)
 			t.ok(FightConfig.Skills[id] ~= nil, `{id} has numbers in FightConfig.Skills`)
 		end
-		t.ok(FightSkills.isSkill(FightSkills.DEFAULT), "default")
 		t.eq(FightSkills.isSkill("Hadouken"), false, "unknown")
 		t.eq(FightSkills.isSkill(3), false, "non-string")
 	end)
@@ -69,14 +70,69 @@ return function(t: Test.Test)
 		end
 	end)
 
-	t.test("AC5: 처음 고르는 스킬 = 시그니처, 없으면 기본. 선택 검증", function()
-		t.eq(FightSkills.defaultSkillFor("dragon-roll"), "SoyDash", "signature")
-		t.eq(FightSkills.defaultSkillFor("tamago"), FightSkills.DEFAULT, "basic skin")
-		t.eq(FightSkills.defaultSkillFor(nil), FightSkills.DEFAULT, "nil skin")
-		t.eq(FightSkills.resolveLoadout("NoriShield", "dragon-roll"), "NoriShield", "free choice")
-		t.eq(FightSkills.resolveLoadout("SoyDash", "tamago"), "SoyDash", "basic skin may pick any")
-		t.eq(FightSkills.resolveLoadout("Nope", "diamond-uni"), "NoriShield", "bad value falls back")
-		t.eq(FightSkills.resolveLoadout({}, "tamago"), FightSkills.DEFAULT, "table falls back")
+	t.test("AC5: 룰렛 뽑기 — 직전 스킬은 빼고 남은 5종에서 고르게, 스킨은 안 봄", function()
+		local seen: { [string]: number } = {}
+		for i = 1, 5 do
+			local skill = FightSkills.roll(function(lo, hi)
+				t.eq(lo, 1, "lo")
+				t.eq(hi, 5, "five left")
+				return i
+			end, "SoyDash")
+			t.ok(skill ~= "SoyDash", "previous excluded")
+			seen[skill] = (seen[skill] or 0) + 1
+		end
+		local distinct = 0
+		for _ in seen do
+			distinct += 1
+		end
+		t.eq(distinct, 5, "every other skill reachable")
+		local first = FightSkills.roll(function(_, hi)
+			t.eq(hi, 6, "first life: all six")
+			return hi
+		end, nil)
+		t.eq(first, FightSkills.IDS[6], "last of six")
+		t.eq(
+			FightSkills.roll(function()
+				return 99
+			end, nil),
+			FightSkills.IDS[6],
+			"out-of-range clamps"
+		)
+	end)
+
+	t.test("AC5b: roll은 스킨 정보를 받지 않아요 (시그니처는 연출만)", function()
+		local text = fs.readFile("src/shared/fight/FightSkills.luau")
+		local body = string.match(text, "function FightSkills%.roll%((.-)%)") :: string
+		t.ok(body ~= nil, "roll found")
+		t.eq(string.find(body, "skin", 1, true), nil, "roll has no skin parameter")
+		t.eq(FightSkills.signatureRoll("dragon-roll", "SoyDash") ~= nil, true, "signature when matched")
+		t.eq(FightSkills.signatureRoll("dragon-roll", "NoriShield"), nil, "plain when not matched")
+		t.eq(FightSkills.signatureRoll("tamago", "SoyDash"), nil, "basic skin plain")
+	end)
+
+	t.test("AC5c: 룰렛 순서 — 2바퀴 + 남은 칸, 마지막 칸이 결과, 점점 느려짐", function()
+		local r = FightConfig.Skills.Roulette
+		for from = 1, 6 do
+			for _, result in FightSkills.IDS do
+				local steps = FightSkills.rouletteSteps(from, result)
+				t.eq(#steps, FightSkills.rouletteLength(from, result), "length")
+				t.ok(#steps >= r.Laps * 6 and #steps < (r.Laps + 1) * 6, "laps")
+				t.eq(steps[#steps].index, FightSkills.indexOf(result), `ends on {result}`)
+				near(t, steps[#steps].at, r.Spin, "ends at Spin")
+				t.eq(steps[1].index, from % 6 + 1, "starts after from")
+				for k = 2, #steps do
+					t.eq(steps[k].index, (steps[k - 1].index % 6) + 1, "one plate at a time")
+					local gap = steps[k].at - steps[k - 1].at
+					local prev = steps[k - 1].at - (if k > 2 then steps[k - 2].at else 0)
+					t.ok(gap >= prev - 1e-9, "slows down")
+				end
+			end
+		end
+	end)
+
+	t.test("AC5d: 룰렛 전체(돌기 + 뚜껑 열림)는 부활 대기 안에 끝나요", function()
+		local r = FightConfig.Skills.Roulette
+		t.ok(r.Spin + r.Reveal <= FightConfig.Respawn.Delay + 1e-9, "fits respawn delay")
 	end)
 
 	t.test("AC6: 스킬 게이지 — 가만히 50초, 맞히기 +6, 맞기 +4, KO +20, 상한 100", function()

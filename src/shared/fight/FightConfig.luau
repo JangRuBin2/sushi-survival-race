@@ -64,7 +64,7 @@ FightConfig.Match = {
 	SuddenDeathCap = 30,
 }
 
--- 특수 스킬 (f1-02, GDD 5.1). 스킬은 누구나 하나 고르고, 스킨은 연출만 바꿔요.
+-- 특수 스킬 (f1-02, GDD 5.1). 스킬은 목숨마다 회전초밥 룰렛이 정하고(고르기 없음), 스킨은 연출만 바꿔요.
 FightConfig.Skills = {
 	Meter = {
 		Max = 100,
@@ -74,6 +74,13 @@ FightConfig.Skills = {
 		Ko = 20, -- KO 점수를 받았을 때
 	},
 	HoldToUse = 0.5, -- 게이지가 차 있을 때 때리기 버튼을 이만큼 누르고 있으면 발동
+	-- 회전초밥 룰렛: 부활 대기(Respawn.Delay) 안에 끝나요. 접시가 Laps바퀴 + 남은 칸을 돌다 감속해서 멈춤
+	Roulette = {
+		Laps = 2,
+		Spin = 1.6, -- 돌기 시작 → 멈출 때까지 (초)
+		Reveal = 0.4, -- 멈춘 뒤 뚜껑 열림 · 이름 배너까지
+		Ease = 3, -- 감속 곡선 지수 (위치 = 1 - (1 - t)^Ease)
+	},
 	WasabiBurst = { radius = 9 },
 	NoriShield = { duration = 2.5, knockbackMul = 0.35, gaugeMul = 0.5 },
 	SoyDash = { distance = 18, duration = 0.3, hitRadius = 3.5 }, -- 대시 중 무적

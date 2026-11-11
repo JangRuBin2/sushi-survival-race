@@ -1,5 +1,5 @@
 --!strict
--- f1-02 스시 파이트 특수 스킬: FightSkills (카탈로그·시그니처·회전초밥 룰렛·스킬 게이지·판정 도우미) + FightLogic guard
+-- f1-02 스시 파이트 특수 스킬: FightSkills (카탈로그·시그니처·스킬 배정·스킬 게이지·판정 도우미) + FightLogic guard
 
 local fs = require("@lune/fs")
 
@@ -70,33 +70,32 @@ return function(t: Test.Test)
 		end
 	end)
 
-	t.test("AC5: 룰렛 뽑기 — 직전 스킬은 빼고 남은 5종에서 고르게, 스킨은 안 봄", function()
-		local seen: { [string]: number } = {}
-		for i = 1, 5 do
+	t.test("AC5: 스킬 배정 — 6종에서 고르게, 범위 밖 값은 잘라냄", function()
+		local seen: { [string]: boolean } = {}
+		for i = 1, 6 do
 			local skill = FightSkills.roll(function(lo, hi)
 				t.eq(lo, 1, "lo")
-				t.eq(hi, 5, "five left")
+				t.eq(hi, 6, "six")
 				return i
-			end, "SoyDash")
-			t.ok(skill ~= "SoyDash", "previous excluded")
-			seen[skill] = (seen[skill] or 0) + 1
+			end)
+			seen[skill] = true
 		end
-		local distinct = 0
-		for _ in seen do
-			distinct += 1
+		for _, id in FightSkills.IDS do
+			t.ok(seen[id], `{id} reachable`)
 		end
-		t.eq(distinct, 5, "every other skill reachable")
-		local first = FightSkills.roll(function(_, hi)
-			t.eq(hi, 6, "first life: all six")
-			return hi
-		end, nil)
-		t.eq(first, FightSkills.IDS[6], "last of six")
 		t.eq(
 			FightSkills.roll(function()
 				return 99
-			end, nil),
+			end),
 			FightSkills.IDS[6],
-			"out-of-range clamps"
+			"clamps high"
+		)
+		t.eq(
+			FightSkills.roll(function()
+				return 0
+			end),
+			FightSkills.IDS[1],
+			"clamps low"
 		)
 	end)
 
@@ -108,31 +107,6 @@ return function(t: Test.Test)
 		t.eq(FightSkills.signatureRoll("dragon-roll", "SoyDash") ~= nil, true, "signature when matched")
 		t.eq(FightSkills.signatureRoll("dragon-roll", "NoriShield"), nil, "plain when not matched")
 		t.eq(FightSkills.signatureRoll("tamago", "SoyDash"), nil, "basic skin plain")
-	end)
-
-	t.test("AC5c: 룰렛 순서 — 2바퀴 + 남은 칸, 마지막 칸이 결과, 점점 느려짐", function()
-		local r = FightConfig.Skills.Roulette
-		for from = 1, 6 do
-			for _, result in FightSkills.IDS do
-				local steps = FightSkills.rouletteSteps(from, result)
-				t.eq(#steps, FightSkills.rouletteLength(from, result), "length")
-				t.ok(#steps >= r.Laps * 6 and #steps < (r.Laps + 1) * 6, "laps")
-				t.eq(steps[#steps].index, FightSkills.indexOf(result), `ends on {result}`)
-				near(t, steps[#steps].at, r.Spin, "ends at Spin")
-				t.eq(steps[1].index, from % 6 + 1, "starts after from")
-				for k = 2, #steps do
-					t.eq(steps[k].index, (steps[k - 1].index % 6) + 1, "one plate at a time")
-					local gap = steps[k].at - steps[k - 1].at
-					local prev = steps[k - 1].at - (if k > 2 then steps[k - 2].at else 0)
-					t.ok(gap >= prev - 1e-9, "slows down")
-				end
-			end
-		end
-	end)
-
-	t.test("AC5d: 룰렛 전체(돌기 + 뚜껑 열림)는 부활 대기 안에 끝나요", function()
-		local r = FightConfig.Skills.Roulette
-		t.ok(r.Spin + r.Reveal <= FightConfig.Respawn.Delay + 1e-9, "fits respawn delay")
 	end)
 
 	t.test("AC6: 스킬 게이지 — 가만히 50초, 맞히기 +6, 맞기 +4, KO +20, 상한 100", function()

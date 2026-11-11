@@ -1,10 +1,11 @@
 --!strict
 -- 스시 파이트 특수 스킬 (f1-02, GDD 5.1). 순수 로직.
--- 원칙: 스킬은 고르지 않는다. 목숨마다(첫 목숨 포함) 서버가 회전초밥 룰렛으로 6종 중 하나를 뽑는다(직전 스킬 제외).
--- 에픽·전설 스킨은 "시그니처 스킬"이 뽑혔을 때 **연출만** 다르다(색·효과 종류).
+-- 원칙: 스킬은 **스킬 모드에서만** 쓴다(기본 모드 오마카세 난투는 스킬 없이 순수 격투).
+-- 스킬 모드는 판 시작 때 서버가 각자에게 6종 중 하나를 랜덤으로 주고 그 판 내내 유지한다(고르기 없음).
+-- 에픽·전설 스킨은 "시그니처 스킬"이 걸렸을 때 **연출만** 다르다(색·효과 종류).
 -- 뽑기·수치·판정에 스킨 id는 절대 들어가지 않는다 — 테스트가 고정.
 --   카탈로그:  IDS · isSkill · indexOf · SIGNATURES · signatureFor · signatureRoll
---   룰렛:      roll · rouletteSteps · rouletteLength
+--   배정:      roll
 --   스킬 게이지: newMeter · charge · tick · isReady · consume
 --   판정 도우미: burstTargets · shieldGuard · dashEnd · stickySpeed · cleanse
 
@@ -85,43 +86,15 @@ function FightSkills.indexOf(skill: SkillId): number
 end
 
 ------------------------------------------------------------------------
--- 회전초밥 룰렛
+-- 스킬 배정 (스킬 모드, 판 시작 때 1번)
 ------------------------------------------------------------------------
 
--- 이번 목숨 스킬. nextInt(1, n)은 1~n 정수를 주는 함수(서버는 Random:NextInteger).
--- 직전 목숨 스킬(previous)은 빼고 남은 5종에서 고르게 뽑아요. 스킨은 보지 않아요.
-function FightSkills.roll(nextInt: (number, number) -> number, previous: SkillId?): SkillId
-	local pool = {}
-	for _, id in FightSkills.IDS do
-		if id ~= previous then
-			table.insert(pool, id)
-		end
-	end
-	local pick = math.clamp(math.floor(nextInt(1, #pool)), 1, #pool)
-	return pool[pick]
-end
-
-export type RouletteStep = { index: number, at: number }
-
--- 룰렛이 몇 칸 도는지: Laps바퀴 + fromIndex에서 result까지 앞으로 남은 칸.
-function FightSkills.rouletteLength(fromIndex: number, result: SkillId): number
+-- 이 사람의 이번 판 스킬. nextInt(1, n)은 1~n 정수를 주는 함수(서버는 Random:NextInteger).
+-- 6종에서 고르게 뽑아요. 스킨은 보지 않아요.
+function FightSkills.roll(nextInt: (number, number) -> number): SkillId
 	local n = #FightSkills.IDS
-	local forward = (FightSkills.indexOf(result) - fromIndex) % n
-	return FightConfig.Skills.Roulette.Laps * n + forward
-end
-
--- 정면 칸을 지나는 접시 순서와 시각(초). 클라이언트는 이 표대로 접시를 돌리고 칸마다 "딸깍" 소리.
--- 위치 = 칸수 × (1 - (1 - t/Spin)^Ease)라서 처음엔 빠르고 끝에서 느려져요. 마지막 칸 = result, 시각 = Spin.
-function FightSkills.rouletteSteps(fromIndex: number, result: SkillId): { RouletteStep }
-	local r = FightConfig.Skills.Roulette
-	local n = #FightSkills.IDS
-	local total = FightSkills.rouletteLength(fromIndex, result)
-	local steps: { RouletteStep } = {}
-	for k = 1, total do
-		local t = r.Spin * (1 - (1 - k / total) ^ (1 / r.Ease))
-		table.insert(steps, { index = (fromIndex - 1 + k) % n + 1, at = t })
-	end
-	return steps
+	local pick = math.clamp(math.floor(nextInt(1, n)), 1, n)
+	return FightSkills.IDS[pick]
 end
 
 ------------------------------------------------------------------------

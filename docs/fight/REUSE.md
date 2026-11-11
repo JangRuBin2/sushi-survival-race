@@ -44,7 +44,7 @@
 | 스시런 | 파이트에서 | 비고 |
 |---|---|---|
 | `server/RoomService`·`RoomDirectory`·`shared/RoomLogic` | 그대로 | 방 만들기·인원·코드 |
-| `server/PlaceService`·`shared/PlaceRole`·`PlacePayload` | 고쳐서 | `"Fight"` 역할 추가(F1-02, 결정 Q1) |
+| `server/PlaceService`·`shared/PlaceRole`·`PlacePayload` | 고쳐서 | `"Fight"` 역할 추가(F1-03, Q1 확정 — 같은 유니버스) |
 | `server/RoundService`·`shared/RoundLogic`·`Rules` | 참고만 | 라운드 구조가 달라서 `FightService`·`FightLogic`을 새로 |
 | `server/EliminationService` + `client/fx/EliminationCutscene*` | 고쳐서 | 장외 KO = 젓가락 집기 연출 |
 | `client/fx/Intro*`·`shared/IntroLayout`·`IntroCameraLogic` | 그대로 | 아레나 소개 플라이스루 |
@@ -56,7 +56,7 @@
 
 | 스시런 | 파이트에서 | 비고 |
 |---|---|---|
-| `server/DataService`·`shared/ProfileSchema`(v3)·`ProfileLogic` | 그대로 | 같은 유니버스면 프로필 공유(결정 Q1) |
+| `server/DataService`·`shared/ProfileSchema`(v3)·`ProfileLogic` | 그대로 | 같은 유니버스라 프로필 공유(Q1 확정) |
 | `server/RewardService`·`shared/RewardLogic` | 고쳐서 | 파이트 보상 사유 추가(참가·KO·우승) |
 | `ShopService`·`RobuxShopService`·`OfferService`·`DrawLogic`·`CodeService`·`Seasons` | 그대로 | 탈의실·상점·🎫 뽑기·코드·시즌 |
 | `AdminService`·`AdminCommands`·`AdminLogic` | 고쳐서 | `fight` 명령(강제 시작·게이지 설정) 추가 |

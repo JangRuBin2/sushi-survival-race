@@ -11,7 +11,7 @@ export type Move = {
 	cooldown: number, -- 같은 사람이 이 기술을 다시 쓰기까지 (초)
 }
 
-export type MoveName = "Slap" | "Ram" | "Throw" | "Wasabi" | "Ikura"
+export type MoveName = "Slap" | "Ram" | "Throw" | "Wasabi" | "Ikura" | "Burst" | "DashHit" | "SpinTick"
 
 local FightConfig = {}
 
@@ -34,6 +34,10 @@ FightConfig.Moves = {
 	Throw = { gauge = 9, base = 25, scale = 0.30, lift = 0.45, cooldown = 1.5 } :: Move,
 	Wasabi = { gauge = 15, base = 40, scale = 0.45, lift = 0.30, cooldown = 0 } :: Move,
 	Ikura = { gauge = 14, base = 35, scale = 0.40, lift = 0.40, cooldown = 0 } :: Move,
+	-- 특수 스킬 타격 (f1-02, 쿨다운은 스킬 게이지가 대신해서 0)
+	Burst = { gauge = 10, base = 30, scale = 0.30, lift = 0.40, cooldown = 0 } :: Move, -- 와사비 폭발
+	DashHit = { gauge = 8, base = 22, scale = 0.25, lift = 0.30, cooldown = 0 } :: Move, -- 간장 대시
+	SpinTick = { gauge = 3, base = 14, scale = 0.15, lift = 0.20, cooldown = 0 } :: Move, -- 회전 초밥 한 틱
 } :: { [string]: Move }
 
 FightConfig.RingOut = {
@@ -58,6 +62,24 @@ FightConfig.Match = {
 	SuddenDeathGauge = 150,
 	SuddenDeathCollapse = 20,
 	SuddenDeathCap = 30,
+}
+
+-- 특수 스킬 (f1-02, GDD 5.1). 스킬은 누구나 하나 고르고, 스킨은 연출만 바꿔요.
+FightConfig.Skills = {
+	Meter = {
+		Max = 100,
+		PerSecond = 2, -- 가만히 있어도 50초면 참
+		DealtHit = 6, -- 내가 맞혔을 때
+		TakenHit = 4, -- 내가 맞았을 때
+		Ko = 20, -- KO 점수를 받았을 때
+	},
+	HoldToUse = 0.5, -- 게이지가 차 있을 때 때리기 버튼을 이만큼 누르고 있으면 발동
+	WasabiBurst = { radius = 9 },
+	NoriShield = { duration = 2.5, knockbackMul = 0.35, gaugeMul = 0.5 },
+	SoyDash = { distance = 18, duration = 0.3, hitRadius = 3.5 }, -- 대시 중 무적
+	RiceSticky = { speed = 80, range = 50, slowMul = 0.5, slowDuration = 2.5, gauge = 6 },
+	SushiSpin = { duration = 1.5, radius = 5, tick = 0.3 },
+	GingerCleanse = { heal = 25, invincible = 0.6 },
 }
 
 FightConfig.Items = {

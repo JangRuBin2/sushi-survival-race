@@ -9,11 +9,11 @@ status: in-qa
 - 공용 파일 수정 담당: 없음 (파이트 수치는 `src/shared/fight/FightConfig.luau`에 따로 둠 — 스시런 `Config.luau`는 안 건드림)
 
 ## 목표
-서버가 스시 파이트 판정에 쓸 순수 로직을 Roblox API 없이 만들고 테스트로 고정한다. 플레이어가 보는 것은 아직 없다(F1-02부터).
+서버가 스시 파이트 판정에 쓸 순수 로직을 Roblox API 없이 만들고 테스트로 고정한다. 플레이어가 보는 것은 아직 없다(F1-03부터).
 
 ## 범위
 - 포함: 간장 게이지(더하기·상한·회복·색 진하기), 넉백 속도·방향·경직, 장외 판정, 타격 장부(무적·같은 기술 잠금·KO 점수), 매치(목숨·탈락 순서·우승·순위·시간 종료 1등·서든데스 시작), 젓가락 소환 대상.
-- 제외: 서버 서비스·리모트·플레이스 역할(F1-02), 조작·버튼(F1-03), 아레나 연결(F1-04), 연출·UI(F1-05), 아이템 생성·물리(F1-06).
+- 제외: 서버 서비스·리모트·플레이스 역할(F1-03), 조작·버튼(F1-04), 아레나 연결(F1-05), 연출·UI(F1-07), 아이템 생성·물리(F1-08). 특수 스킬은 F1-02.
 
 ## 수용 기준
 ### 순수 로직 (lune 테스트로 확인 — `tests/fight-logic.spec.luau`)
@@ -41,9 +41,9 @@ status: in-qa
 
 ## 결정 기록
 - 2026-11-11 · 시간 종료 동점 처리 · 목숨이 같으면 게이지와 상관없이 서든데스(게이지는 2등 아래 순위에만) — GDD 7.2 · 메인 세션 (기본값, 사용자 확인 필요)
-- 2026-11-11 · 파이트 수치 위치 · 공용 `Config.luau` 대신 `shared/fight/FightConfig.luau` — 스시런 병렬 작업과 충돌을 피하려고. F1-02에서 `Config.Fight`로 옮길지 결정 · 메인 세션
+- 2026-11-11 · 파이트 수치 위치 · 공용 `Config.luau` 대신 `shared/fight/FightConfig.luau` — 스시런 병렬 작업과 충돌을 피하려고. F1-03에서 `Config.Fight`로 옮길지 결정 · 메인 세션
 
 ## 개발 메모
 - 새 파일: `src/shared/fight/FightConfig.luau`, `src/shared/fight/FightLogic.luau`, `tests/fight-logic.spec.luau` (19 케이스).
-- 서버가 쓸 흐름(F1-02): 타격 요청 → `FightLogic.hit(book, input)` → `applied`면 `fighter.gauge = result.gauge`, `AssemblyLinearVelocity = result.velocity`, `MoveExempt.mark`, 경직 `result.hitstun`. 매 틱 `isRingOut` → `koCredit` → `ringOut` → `removeFromBook` → 부활 뒤 `setInvincible(now + Respawn.Invincible)`.
+- 서버가 쓸 흐름(F1-03): 타격 요청 → `FightLogic.hit(book, input)` → `applied`면 `fighter.gauge = result.gauge`, `AssemblyLinearVelocity = result.velocity`, `MoveExempt.mark`, 경직 `result.hitstun`. 매 틱 `isRingOut` → `koCredit` → `ringOut` → `removeFromBook` → 부활 뒤 `setInvincible(now + Respawn.Invincible)`.
 - 검증(2026-11-11, 클라우드 세션): rojo build 통과, stylua 통과, lune 2485 passed 0 failed, luau-lsp 끝 코드 0. **selene `src` 전체는 못 돌림**(Roblox API 덤프 다운로드가 프록시 인증서 때문에 실패) — 새 파일 2개만 `luau` 표준 + `script` 전역으로 따로 돌려 0 errors 0 warnings.

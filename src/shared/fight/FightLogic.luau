@@ -159,7 +159,11 @@ export type HitInput = {
 	facing: Vec3?,
 	gauge: number, -- 맞기 전 target 게이지
 	now: number,
+	guard: Guard?, -- target이 김 방패 같은 막기 상태면 (f1-02)
 }
+
+-- 맞는 쪽의 막기 배율. 게이지 증가와 넉백 속도에 곱해요.
+export type Guard = { gaugeMul: number, knockbackMul: number }
 
 export type HitResult = {
 	applied: boolean,
@@ -177,9 +181,13 @@ function FightLogic.hit(book: Book, input: HitInput): HitResult
 	end
 	local move = FightConfig.Moves[input.moveName]
 	assert(move, `unknown move {input.moveName}`)
-	local gauge = FightLogic.applyGauge(input.gauge, move.gauge)
+	local guard = input.guard
+	local gaugeMul = if guard then math.clamp(guard.gaugeMul, 0, 1) else 1
+	local knockMul = if guard then math.clamp(guard.knockbackMul, 0, 1) else 1
+	local gauge = FightLogic.applyGauge(input.gauge, move.gauge * gaugeMul)
 	local velocity = FightLogic.knockbackVelocity(input.attackerPos, input.targetPos, gauge, move, input.facing)
-	local speed = FightLogic.knockbackSpeed(gauge, move)
+	velocity = { x = velocity.x * knockMul, y = velocity.y * knockMul, z = velocity.z * knockMul }
+	local speed = FightLogic.knockbackSpeed(gauge, move) * knockMul
 	book.lastHit[input.target] = { attacker = input.attacker, at = input.now }
 	book.lockUntil[lockKey(input.attacker, input.target, input.moveName)] = input.now
 		+ FightConfig.Knockback.SameMoveLockout

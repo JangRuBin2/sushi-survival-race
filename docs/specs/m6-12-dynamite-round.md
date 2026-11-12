@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-12 — 🧨 다이너마이트 라운드 (유니크 라운드 + 맵 아이템)
@@ -38,3 +38,4 @@ status: in-qa
 
 ## QA
 - 2026-11-12 QA: **보류(in-qa 유지)** — P2-1 불붙인 다이너마이트를 든 사람이 결승선 통과·리셋으로 레이서가 아니게 되면 마지막 자리에 안 보이는 폭탄이 남아 다른 레이서를 출발점으로 보냄(`DynamiteService.luau:165-171`, `:243-257`). [`docs/qa/m6-12-dynamite-round.md`](../qa/m6-12-dynamite-round.md).
+- 2026-11-12 재QA(메인 세션): P2-1 수정 확인 — 불붙인 사람이 레이서가 아니게 되면(결승선 통과·부활 대기·탈락·리셋) 터지지 않고 꺼짐(`DynamiteService` tick의 불붙음 루프, 회귀 테스트 `tests/m6-12-qa.spec.luau`). **`qa-passed`**. 예전 "부활 대기·탈락이면 마지막 자리에서 터짐" 동작은 없어졌어요.

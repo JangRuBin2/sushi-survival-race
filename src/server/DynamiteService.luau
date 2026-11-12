@@ -7,6 +7,7 @@
 --   폭발: 들고 있던 사람 + 반지름 안 레이서. Race 부활 라운드면 출발점으로(RoundService.sendToStart, 낙하와 같은 흐름),
 --   아니면(Survival·결승) 크게 튕겨 넘어뜨려요(Knockback). 연출은 같은 방 사람에게 DynamiteFx.
 --   라운드가 끝나거나 방을 나가면 바닥 아이템·들고 있음·불붙음을 모두 지워요(터지지 않아요).
+--   불붙인 사람이 터지기 전에 레이서가 아니게 되면(결승선 통과·부활 대기·탈락·리셋) 그 다이너마이트도 꺼져요.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -240,17 +241,16 @@ local function tick()
 		end
 	end
 
-	-- 불붙은 것: 위치 기억, 시간이 되면 폭발 (들고 있던 사람이 부활 대기·탈락이면 마지막 자리에서 터져요)
+	-- 불붙은 것: 위치 기억, 시간이 되면 폭발. 들고 있던 사람이 레이서가 아니게 되면(결승선 통과·부활 대기·탈락·리셋)
+	-- 터지지 않고 꺼져요 — 보이지 않는 폭탄이 남아 결승선 함정이 되지 않게 (m6-12 QA P2-1)
 	for player, info in lit do
 		local racers = byRoom[info.roomId]
-		if racers == nil then
+		local body = racers and racers[player]
+		if racers == nil or body == nil then
 			clearPlayer(player)
 			continue
 		end
-		local body = racers[player]
-		if body then
-			info.lastPosition = body.root.Position
-		end
+		info.lastPosition = body.root.Position
 		if DynamiteLogic.fuseLeft(info.litAt, now, Config.Dynamite) <= 0 then
 			explode(player, info, racers)
 		end

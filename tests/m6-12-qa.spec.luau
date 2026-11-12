@@ -176,4 +176,15 @@ return function(t: Test.Test)
 			t.ok(string.find(service, 'LocalizeLogic.text("round.dynamite.notice"), "info"', 1, true) ~= nil)
 		end
 	)
+
+	t.test(
+		"P2-1 회귀: 불붙인 사람이 레이서가 아니게 되면 폭탄이 꺼져요 (보이지 않는 폭탄 없음)",
+		function()
+			local service = fs.readFile("src/server/DynamiteService.luau")
+			t.ok(string.find(service, "local body = racers and racers[player]", 1, true) ~= nil)
+			t.ok(string.find(service, "if racers == nil or body == nil then", 1, true) ~= nil)
+			-- 폭발 중심은 들고 있던 사람의 지금 자리 (마지막 자리 폴백은 레이서일 때만 쓰임)
+			t.ok(string.find(service, "explode(player, info, racers)", 1, true) ~= nil)
+		end
+	)
 end

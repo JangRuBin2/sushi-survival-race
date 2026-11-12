@@ -35,12 +35,14 @@ Layout.COLLAPSE_WARN = 1.5
 Layout.WALL_START = Layout.HALF + 4 -- 상 가장자리보다 4 바깥에서 출발, 반대편 바깥 4까지
 Layout.WALL_THICKNESS = 2
 Layout.WARN = 1.5 -- 예고 줄
-export type KindSpec = { height: number, speed: number }
+-- hitPad: 벽 두께 반 + 이만큼 안이면 닿음. 낮은 벽은 점프로 넘어야 해서 좁게(0.5 — 서서 점프 여유 약 0.18초,
+-- 1.5였을 때 약 0.06초라 서버 지연에 운이었음, m6-07 QA P2-1). 높은 벽은 넘을 수 없으니 그대로 1.5.
+export type KindSpec = { height: number, speed: number, hitPad: number }
 Layout.KINDS = {
-	Low = { height = 3, speed = 16 },
-	High = { height = 14, speed = 10 },
+	Low = { height = 3, speed = 16, hitPad = 0.5 },
+	High = { height = 14, speed = 10, hitPad = 1.5 },
 } :: { [string]: KindSpec }
-Layout.HIT_PAD = 1.5 -- 벽 두께 반 + 이만큼 안이면 닿음
+Layout.HIT_PAD = Layout.KINDS.High.hitPad -- 예전 이름 (높은 벽 값)
 Layout.KNOCK = 26
 Layout.KNOCK_UP = 10
 Layout.KNOCK_EXEMPT = 0.8

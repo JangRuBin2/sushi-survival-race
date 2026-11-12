@@ -161,10 +161,11 @@ end
 
 -- along = 벽 진행 축 좌표, perp = 수직 축 좌표, foot = 발 높이(바닥 기준)
 function Logic.wallHit(sweep: Sweep, pos: number, along: number, perp: number, foot: number): boolean
-	if math.abs(along - pos) > Layout.WALL_THICKNESS / 2 + Layout.HIT_PAD then
+	local kind = Layout.KINDS[sweep.kind]
+	if math.abs(along - pos) > Layout.WALL_THICKNESS / 2 + kind.hitPad then
 		return false
 	end
-	if foot >= Layout.KINDS[sweep.kind].height then
+	if foot >= kind.height then
 		return false
 	end
 	local lane = Logic.laneOf(perp)

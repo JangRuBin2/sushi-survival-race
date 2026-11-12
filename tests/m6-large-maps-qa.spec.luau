@@ -414,13 +414,17 @@ return function(t: Test.Test)
 	)
 
 	t.test(
-		"점프 창: 연회상 낮은 벽은 마주 달려 점프하면 0.2초 이상 (가만히 서서는 0.06초 — 리포트 P2-1)",
+		"점프 창: 연회상 낮은 벽은 서서 0.15초·마주 달려 0.2초 이상 (P2-1 고침: 낮은 벽 hitPad 0.5)",
 		function()
-			local half = BLayout.WALL_THICKNESS / 2 + BLayout.HIT_PAD
 			local low = BLayout.KINDS.Low
+			local half = BLayout.WALL_THICKNESS / 2 + low.hitPad
 			local running = jumpWindow(half, low.speed + WALK, low.height)
 			t.ok(running >= 0.2, `running toward {running}`)
-			-- 가만히 서서 넘는 여유(지금 약 0.06초)는 단정하지 않아요 — 리포트 m6-07 P2-1. 고친 뒤 하한(예: ≥ 0.15)을 더해요.
+			local standing = jumpWindow(half, low.speed, low.height)
+			t.ok(standing >= 0.15, `standing {standing}`)
+			-- 높은 벽은 넘을 수 없으니 판정 띠를 넓게 그대로 둬요
+			t.eq(BLayout.KINDS.High.hitPad, 1.5)
+			t.eq(BLayout.HIT_PAD, BLayout.KINDS.High.hitPad)
 			-- 등지고 달아나면(벽 16 = 걷기 16) 절대 못 넘어요: 낮은 벽은 점프 말고 피할 길이 없어요
 			t.eq(jumpWindow(half, low.speed - WALK, low.height), 0)
 		end

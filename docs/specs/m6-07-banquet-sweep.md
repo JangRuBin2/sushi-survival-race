@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-07 — 대형 Survival "연회상 쟁반 쓸기" (`banquet-sweep`)
@@ -28,3 +28,4 @@ status: in-qa
 
 ## QA
 - 2026-11-12 QA 보류(`docs/qa/m6-07-banquet-sweep.md`): **P2-1 낮은 벽 점프 여유가 너무 좁음** — 맞는 띠 ±2.5(두께/2 + `HIT_PAD` 1.5) vs 발 3 이상 체공 0.371초 → 가만히 서서 약 0.06초·마주 달려 0.22초·등지고는 0. 낮은 벽은 점프 말고 피할 길이 없어 실패 = 탈락. 권장: 낮은 벽 `HIT_PAD` 1.5 → 0.5(서서 약 0.18초) 등 — 수치 결정 뒤 재QA. P3 2개. 상태 `in-qa` 유지.
+- 2026-11-12 재QA(메인 세션): P2-1 고침 — 벽 종류별 `hitPad`(낮은 벽 0.5, 높은 벽 1.5 그대로). 낮은 벽 서서 점프 여유 ≥ 0.15초·마주 달려 ≥ 0.2초를 `tests/m6-large-maps-qa.spec.luau`가 고정. **`qa-passed`**. 실제 손맛은 Studio 확인.

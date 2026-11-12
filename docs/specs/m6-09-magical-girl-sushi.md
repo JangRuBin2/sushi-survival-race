@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-09 — 전설 스킨 "마법소녀 스시" (오리지널 마법소녀)
@@ -46,3 +46,6 @@ status: in-qa
 
 ## 결정 기록
 - 2026-11-10 메인: 그림이 세일러문 특징 그대로 → 장르만 쓰고 오리지널(위 표). 얻는 길은 m6-08 전설과 같게(사용자 m6-08 결정 따름).
+
+## QA
+- 2026-11-12 QA: 통과(P3 2건) — [`docs/qa/m6-09-magical-girl-sushi.md`](../qa/m6-09-magical-girl-sushi.md). Studio 확인은 사용자.

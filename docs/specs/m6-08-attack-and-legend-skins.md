@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-08 — 모두의 "공격" + 전설 스킨 4종 (드래곤·용·제트기·섀도 제트)
@@ -73,3 +73,6 @@ status: in-qa
 
 ## 개발 메모
 - 공격 쪽 기록·인계: `docs/developer/m6-08-attack.md`. 검증(병합 뒤): 2499 passed, 0 failed · selene 근사 std(클라우드) · luau-lsp 0. QA 리포트는 아직 없음.
+
+## QA
+- 2026-11-12 QA: 통과(P3 5건) — [`docs/qa/m6-08-attack-and-legend-skins.md`](../qa/m6-08-attack-and-legend-skins.md). Studio 확인은 사용자(DEV-SETUP 3-18).

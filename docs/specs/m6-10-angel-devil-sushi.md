@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-10 — 전설 스킨 "천사 스시" · "악마 스시"
@@ -27,3 +27,6 @@ status: in-qa
 ## 결정 기록
 - 2026-11-10 사용자: 고등어와 같은 등급(전설 판매 + 뽑기 전설).
 - 2026-11-10 메인: 천사의 검은 바이저·빨간 눈(그림)은 천사답지 않아 빼고 기본 얼굴. 악마만 바이저 + 빨간 눈.
+
+## QA
+- 2026-11-12 QA: 통과(P3 1건) — [`docs/qa/m6-10-angel-devil-sushi.md`](../qa/m6-10-angel-devil-sushi.md). Studio 확인은 사용자.

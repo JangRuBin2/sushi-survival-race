@@ -172,6 +172,9 @@ local function loadEnv(options: EnvOptions?): Env
 			placedRoomOf = function(player)
 				return if env.placed[player] then "room-1" else nil
 			end,
+			racingRoomOf = function(player)
+				return if env.placed[player] then "room-1" else nil
+			end,
 		},
 		AdminConfig = env.adminConfig,
 	}

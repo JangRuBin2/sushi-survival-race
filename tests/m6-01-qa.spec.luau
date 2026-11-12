@@ -251,4 +251,19 @@ return function(t: Test.Test)
 			t.ok(en ~= nil and #en > 0, `{key} en`)
 		end
 	end)
+
+	t.test("P3-1 회귀: 상점 잠금은 Race 부활 대기도 레이서로 쳐요 (racingRoomOf)", function()
+		local shop = fs.readFile("src/server/ShopService.luau")
+		t.ok(
+			string.find(shop, "RoundService.racingRoomOf(player) ~= nil", 1, true) ~= nil,
+			"isLocked uses racingRoomOf"
+		)
+		local round = fs.readFile("src/server/RoundService.luau")
+		local body = string.match(round, "roundRacing%[roomId%] = function%(userId: number%): boolean(.-)\n\t\tend")
+		t.ok(body ~= nil, "roundRacing defined")
+		-- placedRacing과 달리 respawning을 빼지 않아요
+		t.eq(string.find(body :: string, "respawning", 1, true), nil, "respawn-waiting still counts")
+		t.ok(string.find(body :: string, "RoundLogic.isRacing(round, userId)", 1, true) ~= nil)
+		t.ok(string.find(round, "roundRacing[roomId] = nil", 1, true) ~= nil, "cleared when round closes")
+	end)
 end

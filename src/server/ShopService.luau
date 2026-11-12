@@ -82,8 +82,8 @@ local unlockAll = ShopLogic.unlockAllActive(
 local VICTORY_MARGIN = 1
 
 function ShopService.isLocked(player: Player): boolean
-	if RoundService.placedRoomOf(player) ~= nil then
-		return true -- 이번 라운드 레이서 (소개 중 포함)
+	if RoundService.racingRoomOf(player) ~= nil then
+		return true -- 이번 라운드 레이서 (소개 중·Race 부활 대기 포함, m6-01 QA P3-1)
 	end
 	local untilAt = lockedUntil[player.UserId]
 	return untilAt ~= nil and os.clock() < untilAt

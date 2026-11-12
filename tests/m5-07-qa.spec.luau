@@ -145,6 +145,9 @@ local function newEnv(): any
 			placedRoomOf = function(player)
 				return if env.placed[player] then "room-1" else nil
 			end,
+			racingRoomOf = function(player)
+				return if env.placed[player] then "room-1" else nil
+			end,
 		},
 		RoomService = {
 			getPlayers = function()

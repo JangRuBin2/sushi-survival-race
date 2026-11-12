@@ -50,7 +50,7 @@
 - [x] 부활 여부·순서·탈락·통과 판정은 전부 서버(`RoundLogic.respawns`·`RoundService`). 시간 종료 순위는 부활 대기자를 출발점 진행도로 서버가 계산.
 - [x] 부활 상태(`respawning`·`spawnOf`·`unwatchOf`)는 `prepareRound` 지역 상태 — 여러 방이 동시에 돌아도 섞이지 않음.
 - [x] 부활 스레드·감시 연결은 `cleanup`에 등록, 라운드가 닫히면 `RespawnAt`을 모두 지움. 닫힌 뒤 깨어난 부활 스레드는 `closed`·`round.ended`를 보고 아무것도 안 함.
-- [ ] 장착 잠금이 부활 대기 3초 동안 풀림 — P3-1.
+- [x] 장착 잠금이 부활 대기 3초 동안 풀림 — P3-1 (메인 세션에서 고침, 아래 "재확인").
 
 ## 사용자 Studio 확인 체크리스트 (`docs/DEV-SETUP.md` 3-16 + 상호작용)
 1. **떨어지기 (AC1)**: Play → 첫 Race에서 코스 밖으로 뛰어내림 → 탈락 연출 없이 처음 섰던 출발점에 멈춤, 화면 가운데 "다시 출발까지 / 3 → 2 → 1 / 출발점에서 다시 달려요!" → 패널이 사라지는 순간 걷기·점프 가능.
@@ -72,6 +72,10 @@
 ## 인계 메모
 - 브랜치: `claude/m6-01-07-qa` (QA 커밋, push 안 함 — 지시).
 - 끝난 것: 코드 리뷰(부활 흐름·m6-08~12 상호작용·보안), 순수/소스 계약 테스트 11개, 리포트, 스펙 `qa-passed`.
-- 남은 것: 사용자 Studio 확인 1~9(DEV-SETUP 3-16에 7~9번 추가 권장 — docs-writer). P3-1은 developer가 다음 기회에.
+- 남은 것: 사용자 Studio 확인 1~9(DEV-SETUP 3-16에 7~9번 추가 권장 — docs-writer). P3-1은 메인 세션에서 고침.
 - 다음 첫 단계: 메인 세션이 전체 `lune run tests` 확인 → docs-writer가 DEV-SETUP 3-16에 상호작용 항목 반영.
 - 막힌 점: 없음. 클라우드라 `selene`은 근사 std만.
+
+## 재확인 (2026-11-12, 메인 세션)
+- P3-1 고침: `RoundService.racingRoomOf`(새 `roundRacing` — `placedRacing`과 같지만 부활 대기를 빼지 않음, 라운드가 닫히면 지움)를 두고 `ShopService.isLocked`가 그걸 써요. 이동 감시·공격·잡기·다이너마이트는 그대로 `placedRoomOf`/`activeRoomOf`(부활 대기 제외).
+- 테스트: `tests/m6-01-qa.spec.luau` "P3-1 회귀", ShopService를 싣는 가짜 RoundService 8곳에 `racingRoomOf` 추가.

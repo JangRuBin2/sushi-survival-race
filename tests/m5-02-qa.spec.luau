@@ -138,6 +138,9 @@ local function loadEnv(options: { [string]: any }?): any
 			placedRoomOf = function(player)
 				return if env.placed[player] or env.lockAll then "room-1" else nil
 			end,
+			racingRoomOf = function(player)
+				return if env.placed[player] or env.lockAll then "room-1" else nil
+			end,
 		},
 		AdminConfig = env.adminConfig,
 	}

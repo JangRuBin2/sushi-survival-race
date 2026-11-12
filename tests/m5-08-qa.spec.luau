@@ -385,6 +385,9 @@ local function loadServer(opts: Options?): any
 			placedRoomOf = function(player: any): string?
 				return if env.locked[player] then "room1" else nil
 			end,
+			racingRoomOf = function(player: any): string?
+				return if env.locked[player] then "room1" else nil
+			end,
 		},
 	}
 	local parent = setmetatable({}, {

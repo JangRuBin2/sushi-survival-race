@@ -121,6 +121,8 @@ local activeRemovers: { [string]: (player: Player) -> boolean } = {}
 local activeRacing: { [string]: (userId: number) -> boolean } = {}
 -- 소개 중 포함, 스폰에 배치돼 아직 통과·탈락하지 않은 레이서인가 (m4-10 이동 감시).
 local placedRacing: { [string]: (userId: number) -> boolean } = {}
+-- placedRacing과 같지만 Race 부활 대기(m6-01)도 레이서로 쳐요 (상점 잠금 ShopService.isLocked, m6-01 QA P3-1).
+local roundRacing: { [string]: (userId: number) -> boolean } = {}
 -- 방 → "이 사람을 출발점으로" (m6-12 다이너마이트). Race 부활이 되는 라운드에서만 true를 돌려주고 부활 흐름을 시작해요
 local sendHome: { [string]: (userId: number) -> boolean } = {}
 -- 방 → 지금 라운드의 유니크 규칙 ("Dynamite", m6-12). 보통 라운드면 없음
@@ -180,6 +182,9 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		end
 		if placedRacing[roomId] then
 			placedRacing[roomId] = nil
+		end
+		if roundRacing[roomId] then
+			roundRacing[roomId] = nil
 		end
 		if sendHome[roomId] then
 			sendHome[roomId] = nil
@@ -591,6 +596,13 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 				and not respawning[userId]
 				and RoundLogic.isRacing(round, userId)
 		end
+		roundRacing[roomId] = function(userId: number): boolean
+			return not round.ended
+				and not closed
+				and placed[userId] == true
+				and not pendingIds[userId]
+				and RoundLogic.isRacing(round, userId)
+		end
 		for i, player in args.players do
 			local spawn = spawns[((i - 1) % #spawns) + 1] :: BasePart
 			cleanup:add(task.spawn(placeAt, player, spawn))
@@ -862,6 +874,20 @@ function RoundService.placedRoomOf(player: Player): string?
 	return nil
 end
 
+-- placedRoomOf와 같지만 Race 부활 대기(출발점에서 3·2·1 기다림, m6-01)도 이번 라운드 레이서로 쳐요.
+-- 상점 잠금(ShopService.isLocked)이 써요 — 이동 감시·공격·잡기는 부활 대기자를 빼야 하니 placedRoomOf·activeRoomOf를 써요.
+function RoundService.racingRoomOf(player: Player): string?
+	local roomId = RoomService.getRoomIdOf(player)
+	if roomId == nil then
+		return nil
+	end
+	local isRacing = roundRacing[roomId]
+	if isRacing and isRacing(player.UserId) then
+		return roomId
+	end
+	return nil
+end
+
 -- 그 방 지금 라운드의 유니크 규칙 ("Dynamite"), 보통 라운드면 nil (m6-12)
 function RoundService.modifierOf(roomId: string): string?
 	return modifiers[roomId]
@@ -888,6 +914,9 @@ function RoundService.debugHookCount(): number
 		n += 1
 	end
 	for _ in placedRacing do
+		n += 1
+	end
+	for _ in roundRacing do
 		n += 1
 	end
 	for _ in sendHome do

@@ -114,6 +114,9 @@ local function harness(): Harness
 		placedRoomOf = function(player: any): string?
 			return if h.placed[player] then "room1" else nil
 		end,
+		racingRoomOf = function(player: any): string?
+			return if h.placed[player] then "room1" else nil
+		end,
 	}
 	local Remotes = { fn = fn }
 

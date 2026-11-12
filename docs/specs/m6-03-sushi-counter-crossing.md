@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-03 — 대형 Race "초밥집 카운터 대횡단" (`sushi-counter-crossing`)
@@ -30,3 +30,6 @@ status: in-qa
 
 ## Studio 확인 (DEV-SETUP 3-17)
 - 40명 출발이 한 줄로 막히지 않는지(Clients and Servers 여러 명), 레일 색이 바뀌는 게 보이는지, 간장병·동전 맞음이 억울하지 않은지(점프로 넘기), 젓가락 원이 휴대폰에서도 잘 보이는지, 완주 시간 실측(목표 50~60초).
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-03-sushi-counter-crossing.md`): P1/P2 없음, P3 4개(before 렌더 없음, 들판 끝 넉백이 오르막 틈으로, 다이너마이트 갈림길 허공 약 31%, 간장병·동전은 마주 달려야 점프로 넘음). Studio 확인 대기.

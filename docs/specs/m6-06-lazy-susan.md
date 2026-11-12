@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-06 — 대형 Survival "중식당 회전 원판" (`lazy-susan`)
@@ -22,3 +22,6 @@ status: in-qa
 
 ## Studio 확인 (DEV-SETUP 3-17)
 - 밀기 세기(바깥 고리에서 서 있기 힘든지), 고리 사이 틈 1.5에 걸려 넘어지는지, 빨강 예고 0.8초가 충분한지, 서든데스 15초 안에 인원이 충분히 줄어드는지, 40명일 때 조각 상태 바꾸기 비용(Heartbeat 마이크로프로파일러).
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-06-lazy-susan.md`): P1/P2 없음, P3 4개(GO 순간 스폰 3곳이 그릇 판정 안, 그릇은 점프로 못 넘음 — 스펙 문구와 다름, 조각 바깥 쐐기 틈 최대 0.78, 조각 144개 상태 계산 비용). Studio 확인 대기.

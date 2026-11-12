@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-04 — 대형 Race "도시락 뚜껑 대탈출" (`bento-door-dash`)
@@ -23,3 +23,6 @@ status: in-qa
 
 ## Studio 확인 (DEV-SETUP 3-17)
 - 40명이 첫 문 줄에서 진짜 문을 찾는 모습(앞사람이 길을 여는지), 가짜 문 튕김이 억울하지 않은지, 회전 막대 점프 타이밍, 튕김판 착지가 벽 밖으로 넘어가지 않는지, 완주 시간.
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-04-bento-door-dash.md`): P1/P2 없음, P3 4개(소개 ① z 50이 판정 상자 + 40 밖, 튕김판 + 다이브로 옆 벽 위 우회 가능성, 우메보시가 벽 밖에서 나옴, 다이너마이트 벽 밖 아이템). Studio 확인 대기.

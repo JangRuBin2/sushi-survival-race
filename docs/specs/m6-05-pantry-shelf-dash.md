@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-05 — 대형 Race "팬트리 선반 대질주" (`pantry-shelf-dash`)
@@ -20,3 +20,6 @@ status: in-qa
 
 ## Studio 확인 (DEV-SETUP 3-17)
 - 틈 8을 걷기 점프로 넘을 수 있는지(다이브 없이도), 바람이 켜질 때 줄무늬가 잘 보이는지, 바람에 밀려 억울하게 떨어지는 비율, 통조림 점프 타이밍, 완주 시간.
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-05-pantry-shelf-dash.md`): P1/P2 없음, P3 3개(통조림 넉백이 뒤 틈으로, 통조림은 마주 달려야 점프로 넘음, 다이너마이트 허공 약 26%). Studio 확인 대기.

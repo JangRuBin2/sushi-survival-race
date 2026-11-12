@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-01 — Race 부활 + 부활 카운트다운
@@ -35,3 +35,6 @@ status: in-qa
 - AC4 Survival·결승에서는 예전처럼 떨어지면 탈락이다.
 - AC5 부활 직후 이동 감시 경고·되돌림이 없다(출력 창 `[MovementGuard]`).
 - AC6 휴대폰 배치에서도 카운트다운 글씨가 잘리지 않는다.
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-01-race-respawn.md`): P0~P2 없음, P3 1개(부활 대기 3초 동안 `ShopService.isLocked`가 풀림 — 겉모습만). m6-08~12(공격·다이너마이트·잡기) 상호작용 확인, 테스트 `tests/m6-01-qa.spec.luau` 11개. AC1~AC6 Studio 사용자 확인 필요(DEV-SETUP 3-16 + 리포트 7~9번).

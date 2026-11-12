@@ -1,4 +1,4 @@
-status: in-qa
+status: qa-passed
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-02 — 대형 맵 기반 (방 32·40명, 인원 맞춤 판 계획)
@@ -31,3 +31,6 @@ status: in-qa
 - AC3 11명 이하 예상 라운드에는 대형 맵이 안 나옴, 24명 방 1·2라운드에는 나올 수 있음 (테스트)
 - AC4 기존 맵 21개 스폰 24개 그대로 (기존 테스트)
 - AC5 40명 텔레포트 매니페스트 통과 (`PlacePayload.MAX_MEMBERS`)
+
+## QA
+- 2026-11-12 QA 통과(`docs/qa/m6-02-large-map-foundation.md`): P0~P2 없음, P3 2개(강제 플랜이 맵 인원을 안 봄, 다이너마이트 방 상한 튜닝 메모). AC2~AC5 테스트 통과(`tests/m6-02-qa.spec.luau` 7개 — 실제 풀 판 계획 4~40명, 26개 맵 build 스폰 수 = capacity), AC1 Studio 사용자 확인 필요.

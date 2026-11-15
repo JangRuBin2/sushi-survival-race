@@ -58,6 +58,8 @@ export type Round = {
 	remaining: { [number]: boolean },
 	passedCount: number,
 	rng: Rules.Rng?,
+	-- 1인 연습 (m6-13): 결승 진출 2명 보장(구제)을 하지 않아요 — 혼자 떨어지면 통과가 아니라 탈락이에요
+	noRescue: boolean?,
 }
 
 export type Standing = {
@@ -409,7 +411,7 @@ function RoundLogic.eliminate(round: Round, falls: { Fall }, scoreOf: (number) -
 
 	-- 결승 진출 2명 보장: 이 묶음을 다 빼면 살아남을 사람이 2명 아래인지 봐요.
 	local survivableAfter = round.passedCount + RoundLogic.remainingCount(round) - #worstFirst
-	local rescueSlots = math.max(MIN_FINALISTS - survivableAfter, 0)
+	local rescueSlots = if round.noRescue then 0 else math.max(MIN_FINALISTS - survivableAfter, 0)
 	local rescued: { [number]: boolean } = {}
 	if rescueSlots > 0 then
 		for i = #worstFirst, 1, -1 do -- 점수가 큰 사람부터

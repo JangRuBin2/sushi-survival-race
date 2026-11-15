@@ -67,6 +67,7 @@ export type PrepareArgs = {
 	roundCount: number,
 	standings: RoundLogic.Standings, -- 매치 등수 기록 (MatchService 소유)
 	onEliminated: (userId: number) -> (), -- 탈락 즉시 불려요 (MatchService가 생존자에서 빼요)
+	practice: boolean?, -- 1인 연습 (m6-13): 마지막 라운드여도 결승이 아니에요 (Race 부활, 우승 없음)
 }
 
 export type PreparedRound = {
@@ -216,7 +217,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		model.Parent = workspace
 
 		-- 결승은 맵 종류가 아니라 매치의 마지막 라운드예요 (B8).
-		local isFinal = args.roundIndex == args.roundCount
+		local isFinal = args.roundIndex == args.roundCount and not args.practice
 		local mode = RoundLogic.modeFor(map.kind, isFinal)
 		-- 유니크 라운드 (m6-12): 결승 아닌 Race에서 Config.Dynamite.UniqueChance 확률로 "다이너마이트 라운드"
 		if
@@ -236,6 +237,7 @@ function RoundService.prepareRound(args: PrepareArgs): PreparedRound
 		end
 		local roundRng: Rules.Rng = Random.new()
 		local round = RoundLogic.newRound(mode, ids, roundRng)
+		round.noRescue = args.practice == true -- 연습 (m6-13): 혼자 떨어지면 구제 없이 탈락
 		local released = false -- 출발했으면 늦게 배치되는 사람도 잠그지 않아요
 		local qualified: { number } = {}
 		local eliminated: { number } = {}

@@ -383,7 +383,12 @@ function HudScreen.new(parent: Instance, nameOf: (userId: number) -> string, myU
 			clearStandings()
 		end
 
-		if info.roundIndex and info.roundCount then
+		if info.practice then
+			-- 1인 연습 (m6-13): 라운드 번호 대신 "연습"
+			roundLabel.Text = Loc.t("hud.practice")
+			roundText = Loc.t("hud.practice")
+			refreshTitle()
+		elseif info.roundIndex and info.roundCount then
 			roundLabel.Text = Loc.t("hud.round", { index = info.roundIndex, count = info.roundCount })
 			roundText = Loc.t("hud.roundShort", { index = info.roundIndex, count = info.roundCount })
 			refreshTitle()

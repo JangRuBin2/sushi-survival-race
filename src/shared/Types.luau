@@ -67,6 +67,7 @@ export type MatchPhaseInfo = {
 	winnerUserId: number?, -- Victory
 	aliveUserIds: { number }?, -- 이 매치에서 아직 탈락하지 않은 플레이어 (모든 단계, 값은 m2-05가 채움)
 	standings: { Standing }?, -- Victory: 최종 순위 (1등부터, 값은 m2-05가 채움)
+	practice: boolean?, -- 1인 연습 (m6-13): 라운드 번호 대신 "연습" 표시, 보상·순위 없음
 }
 
 -- 매치 최종 순위 한 줄

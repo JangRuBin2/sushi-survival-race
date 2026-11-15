@@ -694,7 +694,7 @@ return function(t: Test.Test)
 		local events = string.match(src, "local EVENTS = (%b{})") :: string
 		local _, fnCount = string.gsub(functions, '"%w+"', "")
 		local _, evCount = string.gsub(events, '"%w+"', "")
-		t.eq(fnCount, 16)
+		t.eq(fnCount, 17) -- m6-13 StartPractice
 		t.eq(evCount, 14) -- m6-08 AttackInput·AttackFx, m6-12 DynamiteFx
 		t.ok(string.find(functions, '"DrawTicket"', 1, true) ~= nil)
 		local types = fs.readFile("src/shared/Types.luau")

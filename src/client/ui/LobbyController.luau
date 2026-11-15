@@ -118,6 +118,11 @@ function LobbyController.start(): ScreenGui
 				lobby:closeCreateDialog()
 			end
 		end,
+		startPractice = function(mapId)
+			if request("StartPractice", mapId) then
+				lobby:closePracticeDialog()
+			end
+		end,
 	})
 
 	roomScreen = RoomScreen.new(gui, player.UserId, RoomLogic.minPlayersToStart(RunService:IsStudio()), {

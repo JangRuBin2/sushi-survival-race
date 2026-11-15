@@ -13,6 +13,7 @@
   - `done`(추가): m5-23 맵 비주얼 키트·미리보기 렌더러(재QA 통과, 2026-10-15 — 예산이 거의 찬 맵: 튀김 냄비 장식 1495·회전 벨트 1492·등불 다리 조명 24/24), **m5-26 현지화**(키 기반 한국어 + 영어, 그 밖 언어는 자동 번역 → 영어 폴백, 2026-10-15 main 병합. 아래 "현지화 규칙"), **m5-12 콘솔(게임패드) UI**(2026-10-15 main 병합, 아래 "게임패드 UI 규칙").
 - **M6 (플레이테스트 반영)** — `in-qa`: **m6-01 Race 부활**(GDD v0.8 — 결승이 아닌 Race에서 정원이 차기 전 낙하·리셋은 탈락 대신 `Config.Race.RespawnDelay` 3초 뒤 출발점 부활, Player 속성 `Attributes.RespawnAt` → 클라이언트 `RespawnCountdown` 가운데 3·2·1. Survival·결승 그대로, 나간 사람은 부활 없음). Studio 확인 DEV-SETUP 3-16.
   - `in-qa`(2026-11-09 main 병합): **m6-02 대형 맵 기반**(방 인원 32·40, 25~40명 통과 0.60·0.45·0.40, 맵 `capacity`/`minPlayers` + 인원 맞춤 판 계획 `Rules.buildRoundPlan`, `PlacePayload.MAX_MEMBERS` 40, 장식 예산 `Large`), **m6-03~07 대형 맵 5개**(아래 표). 제안서 Q1~Q5는 답 없이 권장안. Studio 확인 DEV-SETUP 3-17.
+  - `in-qa`(2026-11-15, 브랜치 `claude/practice-mode`): **m6-13 🏃 1인 연습 모드** — 로비 "연습" → 맵 고르기(`ui/PracticeDialog`) → 리모트 `StartPractice` → 비공개 1인 방(`room.practiceMapId`, 텔레포트 없이 이 서버) → `MatchService.runPractice` 한 라운드(결승 아님·구제 없음 `round.noRescue`, **MatchEvents 없음 = 보상·뽑기권·단상 없음**) → 방 닫힘. Studio 확인 DEV-SETUP 3-19.
   - `in-qa`(2026-11-10, 같은 브랜치): **m6-12 🧨 다이너마이트 라운드**(결승 아닌 Race 10% 유니크 라운드, 맵 아이템 → 10초 뒤 폭발 → 출발점). m6-11 다이너마이트 스시(스킨, 연출 `Kaboom`).
   - `in-qa`(2026-11-10, 같은 브랜치): **m6-10 천사·악마 스시**(고등어와 같은 등급 — 전설 R$ 199 + 뽑기, 연출 `HolyHalo`·`DemonFlame`).
   - `in-qa`(2026-11-10, 같은 브랜치): **m6-09 마법소녀 스시**(전설 R$ 199 + 뽑기, 오리지널 디자인, 공격 연출 `StarRibbon`).
@@ -140,7 +141,7 @@ src/
                          # WorldTextController(서버 월드 글씨 → Loc, m5-26), AttackFxController(스킨별 공격 연출·전투 가면, m6-08), DynamiteFxController(🧨 표시·폭발, m6-12)
     input/               # Dive*, Grab*, Attack*(m6-08), IceController(얼음 관성, m5-06), TouchLayoutController(점프·다이브·잡기·공격 배치, m5-41)
   shared/            -> ReplicatedStorage.Shared
-    Config  Remotes(RemoteFunction 16 + RemoteEvent 14 = 30)  Types  Attributes   # 공용 파일
+    Config  Remotes(RemoteFunction 17 + RemoteEvent 14 = 31)  Types  Attributes   # 공용 파일
     Rules  RoundLogic  RoomLogic  SpectateLogic  Cleanup  CameraPriority
     SushiBody  SushiConceptSample(콘셉트 몸)  ConceptMackerel  SushiPose  PartMath  CharacterAnimLogic   # 캐릭터 몸·움직임
     Skins  ShopLogic  DrawLogic  DrawScreenLayout  ReceiptLogic  Seasons  Offers  OfferLogic  FxCatalog  CodeLogic  AdminLogic

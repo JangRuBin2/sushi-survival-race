@@ -104,7 +104,7 @@ Explorer 창에서:
 - [ ] `Workspace`에 바닥판 `Baseplate`와 `LobbySpawn`. Play하면 `Workspace.Lobby`(회전초밥집 로비, m4-06)가 생겨요
 
 **Play**(F5)를 눌러서:
-- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 30개(RemoteFunction 16, RemoteEvent 14 — m5-31 `DrawTicket`, m6-08 `AttackInput`·`AttackFx`, m6-12 `DynamiteFx`까지)가 있어요
+- [ ] `ReplicatedStorage`에 `Remotes` 폴더가 생기고 안에 리모트 31개(RemoteFunction 17, RemoteEvent 14 — m5-31 `DrawTicket`, m6-08 `AttackInput`·`AttackFx`, m6-12 `DynamiteFx`, m6-13 `StartPractice`까지)가 있어요
 - [ ] **Output** 창(View → Output)에 빨간 에러가 없어요. 한 플레이스 모드라 `[PlaceService]`·`[RoomDirectory]` 줄도 없어요
 - [ ] 캐릭터가 회전초밥집 로비의 스폰에 계란초밥(또는 입은 스킨) 모습으로 서 있고, 화면에 로비 UI, 왼쪽 위 "🍚 0 (저장 안 됨)" 배지와 "🍣 스킨"·"🎁 상점"·"🎟 코드" 버튼, 왼쪽 가장자리 "🛠"(Studio에서는 관리자)가 떠요 (3-4, 3-9, 3-10)
 - [ ] Output에 `[CodeConfig] no src/server/CodeList.luau …` 경고 한 줄은 정상이에요(코드 목록을 로컬에 안 만들었을 때)
@@ -1024,6 +1024,15 @@ character:PivotTo(model.Spawns.Spawn01.CFrame + Vector3.new(0, 3, 0))
 9. **🧨 다이너마이트 라운드 (m6-12)**: `src/shared/Config.luau`의 `Config.Dynamite.UniqueChance`를 잠깐 **1**로(커밋 전에 0.10으로 되돌리기) → 첫 Race 출발 때 "🧨 다이너마이트 라운드!" 안내, 12초 뒤 누군가 근처에 다이너마이트(빨간 막대 셋 + 불꽃). 걸어가면 자동으로 줍고 머리 위 "🧨", 모바일 버튼 "🧨 점화"(PC F). 누르면 머리 위 "🧨 10 → 1"(마지막 3초 빨강), 0에서 폭발 → 나와 반지름 12 안 사람이 출발점에 서서 "다시 출발까지 3·2·1". 다이너마이트 스시를 입고 터뜨리면 불덩이가 더 크고 고리가 둘. 결승·Survival 라운드에는 안 나와야 해요. `[MovementGuard]` 경고 없음.
 
 > 수치는 모두 **기본값**이에요(`Config.Attack`: 반지름 10, 튕김 30·14, 넘어짐 1초, 쿨다운 8초, 면역 2초). 플레이테스트 뒤 조정해요.
+
+### 3-19. 1인 연습 확인 (m6-13: 맵 고르기 · 보상 없음)
+출처: 스펙 [`docs/specs/m6-13-practice-mode.md`](specs/m6-13-practice-mode.md). **Play(혼자)**로 충분해요.
+
+1. 로비 위쪽 줄에 **연습** 버튼(빠른 참가·방 만들기 다음). 누르면 "🏃 혼자 연습하기" 창 — 레이스·서바이벌·결승 맵 세 묶음, 맵 26개 버튼. 휴대폰 크기에서 버튼 글씨가 잘리지 않고 창이 스크롤되는지, 게임패드로 B를 누르면 닫히는지.
+2. Race 맵(예: 회전 벨트) 선택 → 바로 맵 소개 → 출발. 위쪽 바에 "라운드 1/1" 대신 **"연습"**. 떨어지면 3초 뒤 출발점에서 다시, 결승선을 넘으면 결과 → 로비로 돌아와요.
+3. Survival 맵(예: 뜨거운 철판) → 떨어지면 탈락 연출 후 로비, 75초 버티면 통과 후 로비. Final 맵(예: 회전 꼬치 쇼다운)도 버티기 — 90초에 끝나고 **연장전·우승 연출이 없어야** 해요.
+4. **보상 없음**: 연습 전후 코인·🎫 뽑기권·승수가 그대로, 로비 단상도 바뀌지 않아야 해요(출력 창에 RewardGranted 없음).
+5. 방 목록: 다른 클라이언트(Test → Clients and Servers 2명)에서 연습 중인 방이 **공개 방 목록에 안 보이고** 빠른 참가로 들어가지지 않아야 해요. 연습 중 "로비로"/방 나가기 → 맵이 정리되고 로비로.
 
 ## 4. 문제가 생기면
 | 증상 | 해결 |

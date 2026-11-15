@@ -66,6 +66,7 @@ hud.banner.start,매치 시작!,HUD banner title,,Match Start!
 hud.banner.startSub,곧 첫 라운드가 시작돼요,HUD banner subtitle,,The first round starts soon
 hud.banner.victory,🏆 우승!,HUD banner title,,🏆 Winner!
 hud.banner.victorySub,{name}님이 우승했어요!,HUD banner subtitle,name=Mina,{name} wins!
+hud.practice,연습,HUD round label during solo practice,,Practice
 hud.progress.left,남은 인원 {count},HUD top-left counter (survival),count=7,Players left: {count}
 hud.progress.race,통과 {passed}/{target} · 남은 인원 {count},HUD top-left counter (race),passed=3; target=8; count=9,Qualified {passed}/{target} · Left: {count}
 hud.result.out,🥢 탈락했어요… ({place}등),HUD personal result (English place is 5th),place=5th,🥢 You're out! ({place} place)
@@ -118,6 +119,13 @@ lobby.noRooms,열린 방이 없어요. 방을 만들거나 빠른 참가를 눌�
 lobby.podium.empty,다음 우승자는 누구?,lobby winner podium sign (no winner yet),,Who's the next winner?
 lobby.podium.winner,🏆 {name},lobby winner podium sign: the latest winner's display name,name=Mina,🏆 {name}
 lobby.podium.wins,{wins}승,lobby winner podium sign: total wins of the latest winner,wins=12,Wins: {wins}
+lobby.practice.btn,연습,lobby button (solo practice),,Practice
+lobby.practice.close.btn,닫기,practice map picker button,,Close
+lobby.practice.desc,맵을 골라 혼자 한 판 뛰어요. 연습에서는 코인·승수·뽑기권을 받지 않아요.,practice map picker description,,"Pick a map and run it alone. Practice runs don't give coins, wins, or draw tickets."
+lobby.practice.kind.Final,결승 맵 — 시간이 끝날 때까지 버텨요,practice map picker section title,,Final maps — last until time runs out
+lobby.practice.kind.Race,레이스 — 결승선까지 (떨어지면 다시 출발),practice map picker section title,,Race — reach the finish (respawn if you fall)
+lobby.practice.kind.Survival,서바이벌 — 시간이 끝날 때까지 버텨요,practice map picker section title,,Survival — last until time runs out
+lobby.practice.title,🏃 혼자 연습하기,practice map picker title,,🏃 Solo Practice
 lobby.publicRooms,공개 방,lobby list title,,Public Rooms
 lobby.quickJoin.btn,빠른 참가,lobby button,,Quick Join
 lobby.room.count,{count}/{max}명,room list player count,count=3; max=8,{count}/{max}
@@ -263,6 +271,7 @@ room.err.AlreadyStarted,이미 게임 중이에요,room error line,,The game alr
 room.err.BadCode,방 코드는 숫자 {count}자리예요,room error line,count=4,Room codes are {count} digits
 room.err.BadMaxPlayers,최대 인원을 다시 골라 주세요,room error line,,Please pick the max players again
 room.err.BadName,방 이름이 올바르지 않아요,room error line,,That room name doesn't work
+room.err.BadPracticeMap,그 맵으로는 연습할 수 없어요,room error line,,You can't practice on that map
 room.err.BadPrivacy,공개 여부를 다시 골라 주세요,room error line,,Please pick Public or Private again
 room.err.BadSettings,잘못된 방 설정이에요,room error line,,Those room settings don't work
 room.err.CreateFailed,방을 만들 수 없어요. 잠시 뒤 다시 시도해 주세요,room error line,,Couldn't make a room. Try again in a moment

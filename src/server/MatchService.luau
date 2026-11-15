@@ -8,6 +8,8 @@
 -- runMatch를 불러주기 때문에, 여기서는 그 스레드를 그냥 끝까지 쓰면 돼요.
 -- 매치 흐름 훅(MatchEvents): matchStart = Starting 방송 직후, roundStart = 출발 직전, matchEnd = 승부가 정해진 순간
 -- (우승자가 있으면 Victory 방송 직후), winnerShowcase = Victory가 끝나고 로비로 보내기 직전 (m4-01).
+-- 1인 연습 방(room.practiceMapId, m6-13)은 runPractice: 고른 맵 한 라운드만, 결승 아님(RoundService practice),
+-- MatchEvents를 하나도 보내지 않아요 → 코인·승수·하루 첫 판·뽑기권·단상 없음. 방송에 practice = true.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -218,8 +220,84 @@ function MatchService.setNextPlan(roomId: string, plan: { Rules.MapInfo })
 	nextPlans[roomId] = table.clone(plan)
 end
 
+-- 1인 연습 (m6-13): 고른 맵 한 라운드 → 결과 → 로비. 보상·순위·우승이 없어서 MatchEvents를 부르지 않아요
+-- (RewardService는 matchStart 없이 온 결과에서 Won만 주는데, 결승이 아니라 Won이 생기지 않아요).
+local function runPractice(room: RoomService.Room, players: { Player }, mapId: string)
+	local roomId = room.id
+	local entries = {}
+	for _, player in players do
+		table.insert(entries, { userId = player.UserId, name = player.DisplayName })
+	end
+	local ctx: MatchContext = {
+		roomId = roomId,
+		aliveUserIds = {},
+		standings = RoundLogic.newStandings(entries),
+		round = nil,
+		participants = {},
+		endFired = true, -- 매치 끝 훅을 보내지 않아요 (보상 없음)
+		appearances = {},
+	}
+	for _, player in players do
+		ctx.aliveUserIds[player.UserId] = true
+		table.insert(ctx.participants, player.UserId)
+	end
+	matches[roomId] = ctx
+
+	local map = Maps.get(mapId)
+	local timeLimit = Maps.timeLimit(map)
+	local function phaseInfo(phase: Types.MatchPhase, duration: number): Types.MatchPhaseInfo
+		return {
+			phase = phase,
+			endsAt = workspace:GetServerTimeNow() + duration,
+			roundIndex = 1, -- 소개 카메라가 맵 Model을 roundIndex로 찾아요. roundCount는 비워서 "결승" 표시가 안 나요
+			mapId = map.id,
+			mapName = map.displayName,
+			mapKind = map.kind,
+			rule = map.rule,
+			practice = true,
+		}
+	end
+
+	broadcast(ctx, phaseInfo("RoundIntro", Config.Match.IntroDuration))
+	local prepared = RoundService.prepareRound({
+		roomId = roomId,
+		players = alivePlayers(ctx),
+		map = map,
+		roundIndex = 1,
+		roundCount = 1,
+		standings = ctx.standings,
+		onEliminated = function(userId: number)
+			ctx.aliveUserIds[userId] = nil
+		end,
+		practice = true,
+	})
+	ctx.round = prepared
+	task.wait(Config.Match.IntroDuration)
+	if aliveCount(ctx) < 1 then
+		prepared.cancel() -- 소개 중에 나갔어요
+		ctx.round = nil
+		finish(roomId, nil)
+		return
+	end
+
+	broadcast(ctx, phaseInfo("RoundActive", timeLimit))
+	prepared.run(1)
+	ctx.round = nil
+
+	if #RoomService.getPlayers(roomId) > 0 then
+		broadcast(ctx, phaseInfo("RoundResults", Config.Match.ResultsDuration))
+		task.wait(Config.Match.ResultsDuration)
+	end
+	finish(roomId, nil)
+end
+
 local function runMatch(room: RoomService.Room, players: { Player })
 	local roomId = room.id
+	local practiceMapId = room.practiceMapId
+	if practiceMapId then
+		runPractice(room, players, practiceMapId)
+		return
+	end
 	-- 다음 판 맵 순서는 이 매치를 시작할 때 꺼내고 지워요 (한 번만)
 	local adminPlan = nextPlans[roomId]
 	nextPlans[roomId] = nil

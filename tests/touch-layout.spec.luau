@@ -681,7 +681,7 @@ return function(t: Test.Test)
 				end
 				return n
 			end
-			t.eq(count(functions), 16)
+			t.eq(count(functions), 17) -- m6-13 StartPractice
 			t.eq(count(events), 14) -- m6-12 DynamiteFx
 			t.ok(string.find(src, "SaveSettings(patch: SettingsPatch)", 1, true) ~= nil, "comment")
 			t.ok(string.find(src, "touchLayout?", 1, true) ~= nil, "touchLayout in comment")

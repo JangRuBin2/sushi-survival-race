@@ -35,6 +35,7 @@ export type Reason =
 	| "TooFast"
 	| "ServerError"
 	| "RemoteUnavailable"
+	| "BadPracticeMap" -- m6-13 연습 모드: 고를 수 없는 맵
 
 local MESSAGES: { [Reason]: LocText } = {
 	BadSettings = { key = "room.err.BadSettings" },
@@ -59,6 +60,7 @@ local MESSAGES: { [Reason]: LocText } = {
 	TooFast = { key = "room.err.TooFast" },
 	ServerError = { key = "room.err.ServerError" },
 	RemoteUnavailable = { key = "room.err.RemoteUnavailable" },
+	BadPracticeMap = { key = "room.err.BadPracticeMap" },
 }
 RoomLogic.REASONS = {} :: { Reason }
 for reason in MESSAGES do
@@ -93,6 +95,9 @@ export type Room = {
 	key: string?,
 	-- 이름 없이 만든 방 (m5-26): name은 방장 DisplayName이고 클라이언트가 "{name}의 초밥집"으로 보여 줘요
 	nameIsDefault: boolean?,
+	-- 1인 연습 방 (m6-13): 이 맵 하나만 혼자 뛰어요. 비공개·코드 없음이라 목록·참가·빠른 참가에 안 보이고,
+	-- 매치가 끝나면 대기실 대신 방을 닫아요 (RoomService). 보상·순위 없음 (MatchService.runPractice)
+	practiceMapId: string?,
 }
 
 export type NewRoomParams = {

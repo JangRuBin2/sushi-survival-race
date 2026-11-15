@@ -4,6 +4,7 @@
 -- 화면 크기 대응 (m4-09): 버튼은 배율 적용 뒤 Config.Ui.MinTouchSize 이상, compact(휴대폰 가로)에서는
 -- 패널·방 만들기 창을 위쪽에 붙이고(키보드가 올라와도 입력칸이 보이게) 글씨를 실제 14px 이상으로 키워요.
 -- 게임패드 (m5-12): 로비는 GamepadNav.page(첫 버튼 = 빠른 참가), 방 만들기 창은 GamepadNav.window(B = 취소).
+-- 1인 연습 (m6-13): "연습" 버튼 → PracticeDialog(맵 고르기) → actions.startPractice(mapId).
 -- TODO(M4): 스킨 상점, 탈의실, 코인 표시, 방 목록을 벨트 위 접시로
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,6 +14,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
 local GamepadNav = require(script.Parent.GamepadNav)
+local PracticeDialog = require(script.Parent.PracticeDialog)
 local Kit = require(script.Parent.RoomUiKit)
 local UiScaleController = require(script.Parent.UiScaleController)
 
@@ -23,6 +25,7 @@ export type Actions = {
 	joinRoom: (roomId: string) -> (),
 	joinByCode: (code: string) -> (),
 	createRoom: (settings: Types.RoomSettings) -> (),
+	startPractice: (mapId: string) -> (),
 }
 
 export type LobbyScreen = {
@@ -31,6 +34,7 @@ export type LobbyScreen = {
 	setBusy: (self: LobbyScreen, busy: boolean) -> (),
 	showMessage: (self: LobbyScreen, text: string, isError: boolean?) -> (),
 	closeCreateDialog: (self: LobbyScreen) -> (),
+	closePracticeDialog: (self: LobbyScreen) -> (),
 }
 
 local LobbyScreen = {}
@@ -96,25 +100,30 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local quickButton = Kit.button(Loc.t("lobby.quickJoin.btn"), Color.Salmon, {
 		Parent = actionRow,
 		LayoutOrder = 1,
-		Size = UDim2.new(0.27, -6, 1, 0),
+		Size = UDim2.new(0.22, -6, 1, 0),
 	})
 	local createButton = Kit.button(Loc.t("lobby.create.btn"), Color.Egg, {
 		Parent = actionRow,
 		LayoutOrder = 2,
-		Size = UDim2.new(0.27, -6, 1, 0),
+		Size = UDim2.new(0.22, -6, 1, 0),
 		TextColor3 = Color.Text,
+	})
+	local practiceButton = Kit.button(Loc.t("lobby.practice.btn"), Color.Nori, {
+		Parent = actionRow,
+		LayoutOrder = 3,
+		Size = UDim2.new(0.16, -6, 1, 0),
 	})
 	local codeBox = Kit.textBox({
 		Parent = actionRow,
-		LayoutOrder = 3,
+		LayoutOrder = 4,
 		PlaceholderText = Loc.t("lobby.codePlaceholder", { count = Config.Room.CodeLength }),
-		Size = UDim2.new(0.26, -6, 1, 0),
+		Size = UDim2.new(0.22, -6, 1, 0),
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	local codeButton = Kit.button(Loc.t("lobby.joinCode.btn"), Color.Nori, {
 		Parent = actionRow,
-		LayoutOrder = 4,
-		Size = UDim2.new(0.2, -6, 1, 0),
+		LayoutOrder = 5,
+		Size = UDim2.new(0.18, -6, 1, 0),
 		TextSize = 16,
 	})
 	codeBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -290,6 +299,9 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	})
 	local showDialogMessage, dialogMessageLabel = Kit.messageLabel(dialogPanel, 9)
 
+	-- 1인 연습 맵 고르기 창 (m6-13)
+	local practiceDialog = PracticeDialog.new(root, actions.startPractice)
+
 	local function openDialog()
 		selectedMax = Config.Room.DefaultMaxPlayers
 		selectedPrivate = false
@@ -424,7 +436,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		titleLabel.TextSize = text(26)
 		titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
 		actionRow.Size = UDim2.new(1, 0, 0, touch)
-		for _, button in { quickButton, createButton } do
+		for _, button in { quickButton, createButton, practiceButton } do
 			button.TextSize = text(18)
 		end
 		codeBox.TextSize = text(18)
@@ -488,16 +500,20 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			nameBox.LayoutOrder = 7
 		end
 		dialogPanel.Size = UDim2.new(0.9, 0, 0, math.min(content, virtualHeight * 0.9 - 8))
+		practiceDialog:applyLayout(m, virtualWidth, virtualHeight)
 
 		renderRooms()
 	end
 
 	------------------------------------------------------------------
 
-	busyButtons = { quickButton, createButton, codeButton, confirmButton }
+	busyButtons = { quickButton, createButton, practiceButton, codeButton, confirmButton }
 
 	Kit.onClick(quickButton, actions.quickJoin)
 	Kit.onClick(createButton, openDialog)
+	Kit.onClick(practiceButton, function()
+		practiceDialog:open()
+	end)
 	Kit.onClick(codeButton, function()
 		if #codeBox.Text ~= Config.Room.CodeLength then
 			showMessage(Loc.t("lobby.codeNeeded", { count = Config.Room.CodeLength }), true)
@@ -543,6 +559,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		root.Visible = visible
 		if not visible then
 			dialog.Visible = false
+			practiceDialog:close()
 		end
 	end
 
@@ -556,6 +573,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		for _, button in busyButtons do
 			Kit.setEnabled(button, not busy)
 		end
+		practiceDialog:setBusy(busy)
 		for _, row in list:GetChildren() do
 			for _, child in row:GetChildren() do
 				if child:IsA("TextButton") then
@@ -569,6 +587,8 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		-- 방 만들기 창이 열려 있으면 창 안에 보여줘요 (뒤 화면 문구는 가려져요)
 		if dialog.Visible then
 			showDialogMessage(text, isError)
+		elseif practiceDialog:isOpen() then
+			practiceDialog:showMessage(text, isError)
 		else
 			showMessage(text, isError)
 		end
@@ -576,6 +596,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 
 	function screen.closeCreateDialog(_self: LobbyScreen)
 		dialog.Visible = false
+	end
+
+	function screen.closePracticeDialog(_self: LobbyScreen)
+		practiceDialog:close()
 	end
 
 	return (screen :: any) :: LobbyScreen

@@ -17,6 +17,9 @@
 --   RoomService.addLateMember(roomId, player)    이미 출발한 방에 늦게 온 멤버 (매치 서버: 관전자)
 --   RoomService.removeFromRoom(player)           방에서 빼요 (텔레포트 실패 등)
 --   RoomService.joinLocalById / joinLocalByCode  다른 서버에서 넘어온 참가 티켓 처리 (이 서버 방만)
+--
+-- 1인 연습 (m6-13): StartPractice(mapId)가 비공개·코드 없는 1인 방(room.practiceMapId)을 만들고 바로 출발해요.
+--   로비 역할이어도 텔레포트하지 않고 이 서버에서 돌려요. 매치가 끝나면(endMatch) 대기실 대신 방을 닫아요.
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -25,7 +28,9 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Maps = require(ReplicatedStorage.Shared.maps)
 local PlacePayload = require(ReplicatedStorage.Shared.PlacePayload)
+local PracticeLogic = require(ReplicatedStorage.Shared.PracticeLogic)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RoomDirectoryLogic = require(ReplicatedStorage.Shared.RoomDirectoryLogic)
 local RoomLogic = require(ReplicatedStorage.Shared.RoomLogic)
@@ -200,6 +205,9 @@ local function beginMatch(room: Room)
 
 	local players = playersOf(room)
 	local launch = hooks.launchMatch
+	if room.practiceMapId then
+		launch = nil -- 연습 방(m6-13)은 매치 서버로 보내지 않고 이 서버에서 돌려요
+	end
 	if launch then
 		task.spawn(launch, room, players) -- 로비 역할: 매치 서버로 텔레포트 (m4-11)
 		return
@@ -540,6 +548,31 @@ function handlers.QuickJoin(player: Player): (boolean, LocText?)
 	return true, nil
 end
 
+-- 1인 연습 (m6-13): 맵 하나를 골라 혼자 뛰어요. 방이 없을 때만, 맵은 랜덤 판 풀(Maps.infos)에서만.
+function handlers.StartPractice(player: Player, rawMapId: any): (boolean, LocText?)
+	local blocked = requireNoRoom(player)
+	if blocked then
+		return false, blocked
+	end
+	local info, reason = PracticeLogic.resolveMap(rawMapId, Maps.infos())
+	if info == nil then
+		return false, RoomLogic.message(reason or "BadPracticeMap")
+	end
+	-- 여기서부터 yield하지 않아요 (insertRoom → beginMatch)
+	local room = insertRoom({
+		roomId = reserveRoomId(),
+		settings = { maxPlayers = 1, isPrivate = true },
+		name = RoomLogic.defaultName(player.DisplayName),
+		nameIsDefault = true,
+		code = nil,
+		key = nil,
+		players = { player },
+	})
+	room.practiceMapId = info.id
+	beginMatch(room)
+	return true, nil
+end
+
 function handlers.LeaveRoom(player: Player): (boolean, LocText?)
 	if roomIdByUser[player.UserId] == nil then
 		return false, RoomLogic.message("NotInRoom")
@@ -629,6 +662,21 @@ function RoomService.endMatch(roomId: string)
 		return
 	end
 	room.state = "Waiting"
+	if room.practiceMapId then
+		-- 연습 방(m6-13)은 대기실이 없어요: 멤버를 빼면 마지막 사람과 함께 방이 닫혀요 (로비 화면으로)
+		for _, player in playersOf(room) do
+			leaveRoom(player)
+		end
+		if rooms[room.id] == room then
+			for _, member in room.members do
+				if roomIdByUser[member.userId] == room.id then
+					roomIdByUser[member.userId] = nil
+				end
+			end
+			closeRoom(room)
+		end
+		return
+	end
 	refreshAutoStart(room)
 	markChanged(room)
 end

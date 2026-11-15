@@ -50,6 +50,7 @@ function RoomScreen.new(parent: Instance, localUserId: number, minPlayers: numbe
 		Kit.list(Enum.FillDirection.Vertical, 8),
 		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(560, 560) }),
 	})
+	Kit.woodFrame(panel) -- UI 개선 P1: 나무 카운터 테두리
 
 	local title = Kit.label({ Parent = panel, LayoutOrder = 1, TextSize = 24, Size = UDim2.new(1, 0, 0, 32) })
 	local info = Kit.label({ Parent = panel, LayoutOrder = 2, TextColor3 = Color.SubText, TextSize = 16 })

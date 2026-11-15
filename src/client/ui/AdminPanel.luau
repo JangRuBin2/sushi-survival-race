@@ -290,6 +290,10 @@ function AdminPanel.new(playerGui: Instance, actions: Actions, options: Options)
 	section("상태")
 	row({ { text = "ℹ info", color = Color.Nori, onClick = send("info", nil) } })
 
+	-- 실서버에서는 Studio 전용 칸(매치·내 재화)을 숨겨요 — 눌러도 서버가 거절해서 헷갈리기만 해요 (UI 개선 P0).
+	-- 만들기는 그대로 하고(레이아웃 코드가 참조) 아래에서 LayoutOrder 범위로 감춰요. showReset = Studio
+	local studioOnlyRanges: { { number } } = {}
+	local studioStart = order + 1
 	section("매치 (Studio 전용)")
 	row({ { text = "▶ 바로 시작 (혼자여도)", color = Color.Salmon, onClick = send("start", nil) } })
 
@@ -361,7 +365,9 @@ function AdminPanel.new(playerGui: Instance, actions: Actions, options: Options)
 		},
 	})
 	paintPlan()
+	table.insert(studioOnlyRanges, { studioStart, order })
 
+	studioStart = order + 1
 	section("내 재화 (Studio 전용)")
 	row({
 		{ text = "코인 +100", color = Color.Egg, onClick = send("coins", 100) },
@@ -378,6 +384,19 @@ function AdminPanel.new(playerGui: Instance, actions: Actions, options: Options)
 		{ text = "+98", color = Color.Egg, onClick = send("tickets", 98) },
 		{ text = "0으로", color = Color.Neutral, onClick = send("tickets", -99) },
 	})
+
+	table.insert(studioOnlyRanges, { studioStart, order })
+	if not options.showReset then
+		for _, child in commandList:GetChildren() do
+			if child:IsA("GuiObject") then
+				for _, range in studioOnlyRanges do
+					if child.LayoutOrder >= range[1] and child.LayoutOrder <= range[2] then
+						child.Visible = false
+					end
+				end
+			end
+		end
+	end
 
 	section("연출 미리보기 (저장 안 됨)")
 	for _, slot in FxCatalog.SLOTS do

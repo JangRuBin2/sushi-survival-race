@@ -89,6 +89,7 @@ function PracticeDialog.new(parent: Instance, onPick: (mapId: string) -> ()): Pr
 		Kit.list(Enum.FillDirection.Vertical, GAP),
 		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(MAX_WIDTH, math.huge) }),
 	})
+	Kit.woodFrame(panel) -- UI 개선 P1: 나무 카운터 테두리
 
 	local title = Kit.label({
 		Parent = panel,

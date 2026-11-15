@@ -193,16 +193,17 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	}, {
 		Kit.corner(18),
 		Kit.new("UISizeConstraint", { MaxSize = WINDOW_MAX }),
-		-- 하늘 → 크림 (샘플 배경의 밝은 가게 느낌)
+		-- 히노키 카운터 (UI 개선 P1: 위 하늘색 ↔ 아래 남색이 따로 놀던 것을 한 테마로)
 		Kit.new("UIGradient", {
 			Rotation = 90,
 			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 205, 245)),
-				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(255, 232, 200)),
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(240, 200, 160)),
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(250, 236, 212)),
+				ColorSequenceKeypoint.new(0.6, Color3.fromRGB(236, 212, 174)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(214, 182, 140)),
 			}),
 		}),
 	}) :: Frame
+	Kit.new("UIStroke", { Parent = window, Color = Kit.Color.Wood, Thickness = 4 })
 
 	-- 휴대폰 탭
 	local tabBar = Kit.new("Frame", {
@@ -232,7 +233,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 	local band = Kit.new("Frame", {
 		Name = "Band",
 		Parent = content,
-		BackgroundColor3 = NAVY,
+		BackgroundColor3 = Kit.Color.Nori, -- 노렌 남색 띠
 		Position = UDim2.fromScale(0, 0.6),
 		Size = UDim2.fromScale(1, 0.4),
 	})
@@ -243,7 +244,6 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		Name = "Board",
 		Parent = signCol,
 		BackgroundColor3 = WOOD,
-		Rotation = -3,
 	}, {
 		Kit.corner(18),
 		Kit.new("UIStroke", { Color = WOOD_DARK, Thickness = 4 }),
@@ -324,13 +324,13 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0.6),
 		Size = UDim2.fromScale(0.78, 0.16),
-		BackgroundColor3 = Color3.fromRGB(205, 130, 75),
+		BackgroundColor3 = Color3.fromRGB(252, 246, 236), -- 도자기 접시 (UI 개선 P1)
 	}, {
 		Kit.corner(999),
-		Kit.new("UIStroke", { Color = WOOD_DARK, Thickness = 3 }),
+		Kit.new("UIStroke", { Color = Color3.fromRGB(226, 164, 26), Thickness = 4 }), -- 금 접시 테두리
 		Kit.new("UIGradient", {
 			Rotation = 90,
-			Color = ColorSequence.new(Color3.fromRGB(230, 160, 100), Color3.fromRGB(165, 95, 50)),
+			Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(214, 206, 196)),
 		}),
 	})
 	local featuredView = newViewport({
@@ -352,7 +352,6 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		BackgroundTransparency = 0.1,
 		TextColor3 = Color3.fromRGB(40, 60, 120),
 		TextXAlignment = Enum.TextXAlignment.Center,
-		Rotation = -6,
 		ZIndex = 3,
 	}, 16)
 	Kit.corner(12).Parent = bubble
@@ -577,7 +576,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 
 	---------------------------------------------------------------- 닫기
 	-- 휴대폰에서 겹치는 상세 창 닫기 (QA B1·B3)
-	local detailClose = scaledButton("✕", Color3.fromRGB(50, 60, 90), {
+	local detailClose = scaledButton(Kit.CLOSE_TEXT, Color3.fromRGB(50, 60, 90), {
 		Name = "DetailClose",
 		Parent = detailPanel,
 		AnchorPoint = Vector2.new(1, 0),
@@ -587,7 +586,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		ZIndex = 3,
 	}, 22)
 
-	local closeButton = scaledButton("✕", Color3.fromRGB(50, 60, 90), {
+	local closeButton = scaledButton(Kit.CLOSE_TEXT, Color3.fromRGB(50, 60, 90), {
 		Name = "Close",
 		Parent = window,
 		AnchorPoint = Vector2.new(1, 0),
@@ -621,7 +620,7 @@ function DrawScreen.new(playerGui: Instance, actions: Actions): DrawScreen
 		TextColor3 = Color3.fromRGB(40, 50, 90),
 		ZIndex = 30,
 	}, 24)
-	local infoClose = scaledButton("✕", Color3.fromRGB(50, 60, 90), {
+	local infoClose = scaledButton(Kit.CLOSE_TEXT, Color3.fromRGB(50, 60, 90), {
 		Parent = infoLayer,
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.fromScale(1, 0),

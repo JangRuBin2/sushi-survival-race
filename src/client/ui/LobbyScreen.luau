@@ -80,6 +80,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		Kit.list(Enum.FillDirection.Vertical, GAP),
 		Kit.new("UISizeConstraint", { MaxSize = PANEL_MAX }),
 	})
+	Kit.woodFrame(panel) -- UI 개선 P1: 나무 카운터 테두리
 
 	local titleLabel = Kit.label({
 		Parent = panel,
@@ -187,6 +188,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		Kit.list(Enum.FillDirection.Vertical, GAP),
 		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(DIALOG_MAX_WIDTH, math.huge) }),
 	})
+	Kit.woodFrame(dialogPanel) -- UI 개선 P1: 나무 카운터 테두리
 
 	type DialogLabel = { label: TextLabel, base: number }
 	local dialogLabels: { DialogLabel } = {}

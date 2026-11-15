@@ -5,22 +5,32 @@
 
 local Kit = {}
 
+-- 테마 "회전초밥집 카운터" (UI 개선안 P1, 2026-11-15): 패널 = 밝은 히노키 나무, 테두리 = 진한 나무,
+-- 보조색 = 노렌(천 발) 남색. 이름(키)은 그대로 두고 값만 바꿔서 모든 화면이 같이 바뀌어요.
 Kit.Color = {
 	Backdrop = Color3.fromRGB(30, 22, 20),
-	Panel = Color3.fromRGB(255, 248, 235),
-	Row = Color3.fromRGB(246, 234, 214),
-	Text = Color3.fromRGB(55, 38, 32),
-	SubText = Color3.fromRGB(135, 112, 100),
-	Salmon = Color3.fromRGB(236, 104, 72),
+	Panel = Color3.fromRGB(244, 226, 196), -- 히노키 카운터
+	Row = Color3.fromRGB(252, 242, 224), -- 도자기 접시(밝은 칸)
+	Text = Color3.fromRGB(43, 33, 28),
+	SubText = Color3.fromRGB(120, 96, 78),
+	Salmon = Color3.fromRGB(236, 104, 72), -- 주 버튼
 	Egg = Color3.fromRGB(246, 196, 70),
-	Nori = Color3.fromRGB(58, 74, 60),
-	Neutral = Color3.fromRGB(214, 202, 190),
-	Disabled = Color3.fromRGB(196, 190, 184),
+	Nori = Color3.fromRGB(31, 46, 77), -- 노렌 남색
+	Neutral = Color3.fromRGB(228, 208, 176), -- 단무지 (보조 버튼)
+	Disabled = Color3.fromRGB(196, 184, 170),
 	Error = Color3.fromRGB(200, 52, 52),
 	White = Color3.fromRGB(255, 255, 255),
+	Wood = Color3.fromRGB(122, 74, 42), -- 진한 나무 (테두리)
 }
 
-Kit.Font = Enum.Font.GothamBold
+-- 제목·숫자·영문은 둥글고 굵은 FredokaOne (한글은 로블록스 기본 한글 글꼴로 대체돼요)
+Kit.Font = Enum.Font.FredokaOne
+
+-- 닫기 버튼 글씨. "✕"는 이 글꼴에 없어서 네모(▯)로 나와요 (UI 개선 P0)
+Kit.CLOSE_TEXT = "X"
+
+-- 버튼 위→아래 음영 (UIGradient가 배경색에 곱해져요. 색을 바꿔도 그대로)
+local BUTTON_SHADE = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(214, 206, 198))
 
 -- Instance.new + 속성 + 자식. Parent는 마지막에 넣어요.
 function Kit.new(className: string, props: { [string]: any }?, children: { Instance }?): any
@@ -117,11 +127,37 @@ function Kit.button(text: string, color: Color3, props: { [string]: any }?): Tex
 			TextSize = 18,
 			AutoButtonColor = true,
 			Size = UDim2.fromOffset(140, 44),
+			TextStrokeColor3 = Kit.Color.Wood,
+			TextStrokeTransparency = 0.75,
 		}, props),
-		{ Kit.corner(10) }
+		{
+			Kit.corner(10),
+			Kit.new("UIGradient", { Color = BUTTON_SHADE, Rotation = 90 }),
+			Kit.new("UIStroke", {
+				Color = Kit.Color.Wood,
+				Thickness = 2,
+				Transparency = 0.35,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			}),
+		}
 	)
 	button:SetAttribute("BaseColor", color)
 	return button
+end
+
+-- 큰 창·패널을 나무 카운터처럼: 진한 나무 테두리 + 아래로 살짝 어두워지는 결 (UI 개선 P1)
+function Kit.woodFrame(frame: GuiObject)
+	Kit.new("UIStroke", {
+		Parent = frame,
+		Color = Kit.Color.Wood,
+		Thickness = 4,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+	Kit.new("UIGradient", {
+		Parent = frame,
+		Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(232, 220, 204)),
+		Rotation = 90,
+	})
 end
 
 function Kit.setEnabled(button: TextButton, enabled: boolean)

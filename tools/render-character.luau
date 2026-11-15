@@ -1,6 +1,6 @@
 --!strict
 -- 캐릭터(초밥 몸·스킨) 미리보기 렌더러 (m5-25). Studio 없이 게임과 같은 코드로 캐릭터를 만들어 PNG로 그려요.
---   lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|all]
+--   lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|icon|all]
 --        [--light studio|lobby|both] [--quality fast|high] [--out build/renders/characters]
 -- 결과: <out>/<light>/
 --   lineup.png + lineup.txt   모든 스킨 격자 (앞 3/4, 칸 아래 스킨 id 글자, txt는 칸 번호 → id·등급)
@@ -10,6 +10,7 @@
 --   gameplay-front.png        세 명이 카메라를 보고 12.5~16 studs에 서 있는 모습 (다가오는 상대·로비)
 --   mobile-back.png / mobile-front.png   위 두 장을 480×270으로 (휴대폰 크기에서 읽히는지)
 --   stats.txt                 스킨별 파츠 수·효과·외곽·재질·색 수·삼각형 수
+--   icons/<id>.png            --view icon 일 때만 (all에 안 들어가요): 512×512 3/4 초상 — 개발자 상품 아이콘 원본
 -- 캐릭터는 게임과 같은 SushiBody.build(id)로 만들어요. 서버 캐릭터(AppearanceService.applyAppearance)는
 -- 같은 Model을 HumanoidRootPart에 Motor6D로 붙이고 원래 아바타를 투명하게 숨길 뿐이고, 연출 인형(탈락·우승·단상·
 -- 탈의실)도 같은 build라 모양이 같아요. 발바닥이 땅(y = 0)에 닿게 Body 중심을 GROUND_OFFSET 위에 둬요.
@@ -94,7 +95,7 @@ while i <= #args do
 		i += 1
 	elseif a == "--help" or a == "-h" then
 		print(
-			"usage: lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|all]"
+			"usage: lune run tools/render-character [skinId|all] [--view lineup|turntable|face|gameplay|icon|all]"
 				.. " [--light studio|lobby|both] [--quality fast|high] [--out build/renders/characters]"
 		)
 		process.exit(0)
@@ -372,6 +373,12 @@ local function renderTurntable(dir: string, lighting: any, id: string, fileName:
 	end
 end
 
+-- (b-2) 개발자 상품 아이콘용 512×512 3/4 초상 (--view icon)
+local function renderIcon(dir: string, lighting: any, id: string)
+	fs.writeDir(`{dir}/icons`)
+	save(`{dir}/icons/{id}.png`, portrait(id, lighting, 32, 12, 512, 512))
+end
+
 -- (c) 기본 계란초밥 얼굴 가까이 (눈·입 높이, 살짝 오른쪽에서)
 local function renderFace(dir: string, lighting: any)
 	local yaw = keyYaw(lighting)
@@ -631,6 +638,12 @@ end
 local function renderConceptSkin(root: string, lighting: any, skinId: string)
 	local dir = `{root}/{skinId}`
 	fs.writeDir(dir)
+	if viewArg == "icon" then
+		-- 개발자 상품 아이콘: 다른 콘셉트 스킨 그림과 같은 icons/ 폴더에 (<root>/icons/<id>.png)
+		renderIcon(root, lighting, gameId(skinId, nil, nil))
+		fs.move(`{root}/icons/{gameId(skinId, nil, nil)}.png`, `{root}/icons/{skinId}.png`, true)
+		return
+	end
 	if wants("turntable") then
 		local poseName = if poseArg and poseArg ~= "all" then poseArg else nil
 		renderTurntable(
@@ -842,6 +855,11 @@ for _, light in LIGHTS do
 	if wants("turntable") then
 		for _, id in ids do
 			renderTurntable(dir, light.lighting, id)
+		end
+	end
+	if viewArg == "icon" then
+		for _, id in ids do
+			renderIcon(dir, light.lighting, id)
 		end
 	end
 	if wants("face") then

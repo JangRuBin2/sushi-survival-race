@@ -101,6 +101,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 		Kit.padding(12),
 		Kit.new("UISizeConstraint", { MaxSize = WINDOW_MAX }),
 	})
+	Kit.woodFrame(window) -- UI 개선 P1: 나무 카운터 테두리
 
 	local header = Kit.new("Frame", {
 		Name = "Header",
@@ -114,7 +115,7 @@ function OfferScreen.new(playerGui: Instance, actions: Actions): OfferScreen
 		TextSize = 24,
 		Size = UDim2.new(1, -60, 1, 0),
 	})
-	local closeButton = Kit.button("✕", Color.Nori, {
+	local closeButton = Kit.button(Kit.CLOSE_TEXT, Color.Nori, {
 		Name = "Close",
 		Parent = header,
 		AnchorPoint = Vector2.new(1, 0),

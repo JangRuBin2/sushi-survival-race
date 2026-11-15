@@ -278,7 +278,12 @@ local function filterRoomName(name: string, player: Player): string?
 		warn(`[RoomService] room name filter failed: {result}`)
 		return nil
 	end
-	return RoomLogic.cleanName(result)
+	local cleaned = RoomLogic.cleanName(result)
+	-- 필터가 이름을 통째로 가렸으면("#######") 기본 이름으로 (UI 개선 P0)
+	if cleaned and string.match(cleaned, "^[#%s]*$") then
+		return nil
+	end
+	return cleaned
 end
 
 local function reserveRoomId(): string

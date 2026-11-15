@@ -67,7 +67,8 @@ local ShopScreen = {}
 
 local WINDOW_MAX = Vector2.new(880, 580)
 local GAP = 8
-local CARD_HEIGHT = 70
+local CARD_HEIGHT = 92 -- 썸네일이 들어가요 (UI 개선 P0, 2026-11-15)
+local THUMB_WIDTH = 0.4 -- 카드 왼쪽 인형 썸네일 폭 (카드 비율)
 local SPIN_SPEED = 0.8 -- rad/s
 local EVENT_COLOR = Color3.fromRGB(150, 80, 200) -- 이벤트 탭·"한정" 표시 (m5-07)
 local EVENT_BAR_HEIGHT = 44 -- 이벤트 머리줄 두 줄 (기본 크기, setLayout이 바꿔요)
@@ -155,6 +156,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		Kit.padding(12),
 		Kit.new("UISizeConstraint", { MaxSize = WINDOW_MAX }),
 	})
+	Kit.woodFrame(window) -- UI 개선 P1: 나무 카운터 테두리
 
 	-- 머리줄: 제목 · 코인 · 닫기
 	local header = Kit.new("Frame", {
@@ -188,7 +190,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		TextSize = 20,
 		TextXAlignment = Enum.TextXAlignment.Right,
 	})
-	local closeButton = Kit.button("✕", Color.Nori, {
+	local closeButton = Kit.button(Kit.CLOSE_TEXT, Color.Nori, {
 		Name = "Close",
 		Parent = header,
 		AnchorPoint = Vector2.new(1, 0),
@@ -362,6 +364,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 
 	type Card = {
 		button: TextButton,
+		thumb: ViewportFrame, -- 인형 썸네일 (처음 열 때 만들어요, buildThumbs)
 		stroke: UIStroke,
 		name: TextLabel,
 		status: TextLabel,
@@ -385,17 +388,40 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			Thickness = 3,
 			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 		}) :: UIStroke
+		-- 인형 썸네일 (UI 개선 P0): 등급색 접시 위에 서 있는 모습. 모델은 창을 처음 열 때 만들어요
+		local plate = Kit.new("Frame", {
+			Name = "Plate",
+			Parent = button,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(THUMB_WIDTH / 2, 0.98),
+			Size = UDim2.fromScale(THUMB_WIDTH * 0.9, 0.22),
+			BackgroundColor3 = rgb(skinInfo(skin).color),
+			BackgroundTransparency = 0.35,
+		}, { Kit.corner(99) })
+		plate.ZIndex = 1
+		local thumb = Kit.new("ViewportFrame", {
+			Name = "Thumb",
+			Parent = button,
+			Size = UDim2.fromScale(THUMB_WIDTH, 1),
+			BackgroundTransparency = 1,
+			Ambient = Color3.fromRGB(170, 160, 150),
+			LightColor = Color3.fromRGB(255, 250, 240),
+			LightDirection = Vector3.new(-0.6, -1, 0.8),
+			ZIndex = 2,
+		}) :: ViewportFrame
 		local name = Kit.label({
 			Parent = button,
 			Text = Loc.skinName(skin.id),
 			TextSize = 16,
-			Size = UDim2.fromScale(1, 0.55),
+			Position = UDim2.fromScale(THUMB_WIDTH + 0.02, 0),
+			Size = UDim2.fromScale(1 - THUMB_WIDTH - 0.02, 0.55),
 			TextScaled = false,
+			TextWrapped = true,
 		})
 		local status = Kit.label({
 			Parent = button,
-			Position = UDim2.fromScale(0, 0.55),
-			Size = UDim2.fromScale(1, 0.45),
+			Position = UDim2.fromScale(THUMB_WIDTH + 0.02, 0.55),
+			Size = UDim2.fromScale(1 - THUMB_WIDTH - 0.02, 0.45),
 			Text = "",
 			TextSize = 13,
 			TextColor3 = Color.SubText,
@@ -472,6 +498,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 		end)
 		cards[skin.id] = {
 			button = button,
+			thumb = thumb,
 			stroke = stroke,
 			name = name,
 			status = status,
@@ -479,6 +506,31 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 			special = special,
 			odds = odds,
 		}
+	end
+
+	-- 카드 썸네일 인형 (UI 개선 P0): 탈의실을 처음 열 때 한 번만, 돌지 않는 고정 3/4 모습
+	local thumbsBuilt = false
+	local function buildThumbs()
+		if thumbsBuilt then
+			return
+		end
+		thumbsBuilt = true
+		for id, card in cards do
+			local ok, model = pcall(SushiBody.build, id, nil)
+			if not ok then
+				warn(`[ShopScreen] thumbnail failed for {id}: {model}`)
+				continue
+			end
+			model:PivotTo(CFrame.Angles(0, math.rad(200), 0))
+			model.Parent = card.thumb
+			local thumbCamera = Instance.new("Camera")
+			thumbCamera.FieldOfView = 34
+			local extents = model:GetExtentsSize()
+			local distance = UiLayout.previewDistance(math.max(extents.X, extents.Z) / 2)
+			thumbCamera.CFrame = CFrame.lookAt(Vector3.new(0, 1.0, -distance), Vector3.new(0, 0.1, 0))
+			thumbCamera.Parent = card.thumb
+			card.thumb.CurrentCamera = thumbCamera
+		end
 	end
 
 	local selectedId = Skins.DEFAULT_ID
@@ -613,6 +665,7 @@ function ShopScreen.new(playerGui: Instance, actions: Actions): ShopScreen
 	function screen.setOpen(_self: ShopScreen, open: boolean)
 		backdrop.Visible = open
 		if open then
+			buildThumbs()
 			startSpin()
 		else
 			stopSpin()

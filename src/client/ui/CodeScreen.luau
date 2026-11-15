@@ -84,6 +84,7 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 		Kit.list(Enum.FillDirection.Vertical, GAP),
 		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(560, 400) }),
 	})
+	Kit.woodFrame(window) -- UI 개선 P1: 나무 카운터 테두리
 
 	local header = Kit.new("Frame", {
 		Name = "Header",
@@ -98,7 +99,7 @@ function CodeScreen.new(playerGui: Instance, actions: Actions): CodeScreen
 		TextSize = 24,
 		Size = UDim2.new(1, -52, 1, 0),
 	})
-	local closeButton = Kit.button("✕", Color.Nori, {
+	local closeButton = Kit.button(Kit.CLOSE_TEXT, Color.Nori, {
 		Name = "Close",
 		Parent = header,
 		AnchorPoint = Vector2.new(1, 0),

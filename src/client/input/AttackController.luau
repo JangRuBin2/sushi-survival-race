@@ -3,7 +3,7 @@
 --   입력: F / 게임패드 ButtonL2 / 모바일 AttackButton. 누르는 순간 AttackInput 한 번.
 --     UI가 먹은 누름(gameProcessed)과 관전 중(카메라가 내 Humanoid를 보지 않음)에는 보내지 않아요.
 --     서버가 단 Player 속성 AttackReadyAt이 아직 안 지났으면 보내지 않아요(표시와 같은 기준 — 서버가 다시 검증해요).
---   쿨다운 표시: 모바일 버튼에 남은 초 (AttackReadyAt − 서버 시각, 올림).
+--   쿨다운 표시: 모바일 버튼에 어두운 덮개(남은 비율, 1/50 단위) + 남은 초 (AttackReadyAt − 서버 시각, 올림, m6-14).
 --   다이너마이트(m6-12): Player 속성 HeldItem = "Dynamite"이면 같은 입력이 점화라 쿨다운 중에도 보내고 버튼은 "🧨 점화".
 
 local Players = game:GetService("Players")
@@ -15,6 +15,7 @@ local Workspace = game:GetService("Workspace")
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local TouchButtonFaceLogic = require(ReplicatedStorage.Shared.TouchButtonFaceLogic)
 local AttackButton = require(script.Parent.AttackButton)
 
 local ATTACK_KEYS: { [Enum.KeyCode]: boolean } = {
@@ -73,14 +74,11 @@ function AttackController.start(_gui: Instance)
 
 	local button = AttackButton.create(press)
 	if button then
-		local shown: number? = nil
 		RunService.Heartbeat:Connect(function()
 			local left = remaining()
-			local seconds = if left > 0 then math.ceil(left) else nil
-			if seconds ~= shown then
-				shown = seconds
-				button.setCooldown(seconds)
-			end
+			local seconds = TouchButtonFaceLogic.cooldownLabel(left)
+			local fraction = math.clamp(math.ceil(left / Config.Attack.Cooldown * 50) / 50, 0, 1)
+			button.setCooldown(seconds, if seconds then fraction else nil) -- 같은 값이면 버튼이 그냥 돌아가요
 			button.setDynamite(holdingDynamite())
 		end)
 	end

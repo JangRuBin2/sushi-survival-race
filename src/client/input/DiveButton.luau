@@ -1,11 +1,13 @@
 --!strict
 -- 모바일 다이브 버튼 (m3-06). 터치 기기에서 기본 점프 버튼이 있을 때만 만들어요.
 --   DiveButton.create(onPress) -> DiveButton?   터치 기기가 아니면 nil
---   button:setCooldown(fraction)                 0~1, 남은 쿨다운 비율 (위에서부터 줄어드는 덮개)
+--   button:setCooldown(fraction)                 0~1, 남은 쿨다운 비율 (위에서부터 줄어드는 어두운 덮개)
 --   button:destroy()
 -- 점프 버튼(PlayerGui.TouchGui.TouchControlFrame.JumpButton) 왼쪽에 85% 크기로 붙고(Shared.UiLayout.touchButtons, m4-09),
 -- 점프 버튼 위치·크기나 화면 크기가 바뀌면 다시 맞춰요. 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
 -- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 자리·크기를 쓰고, 편집 중에는 숨어요.
+-- 로비에서도 다이브가 되니 잡기·공격과 달리 늘 보여요 (m6-14 결정). 겉모습은 TouchButtonFace (m6-14 C2):
+-- 아이콘 id(Shared.IconAssets)가 있으면 그림, 없으면 "🤸 다이브" 글씨.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -15,6 +17,7 @@ local Cleanup = require(game:GetService("ReplicatedStorage").Shared.Cleanup)
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local TouchButtonFace = require(script.Parent.TouchButtonFace)
 local TouchLayoutController = require(script.Parent.TouchLayoutController)
 
 local DiveButton = {}
@@ -24,7 +27,7 @@ export type DiveButton = typeof(setmetatable(
 	{} :: {
 		gui: ScreenGui,
 		button: TextButton,
-		cover: Frame,
+		face: TouchButtonFace.Face,
 		cleanup: Cleanup.Cleanup,
 		jumpCleanup: Cleanup.Cleanup,
 	},
@@ -55,70 +58,17 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui:SetAttribute(Attributes.NoClickSfx, true) -- 조작 버튼이라 클릭음 없음 (Sfx, m3-09)
 
-	local button = Instance.new("TextButton")
-	button.Name = "DiveButton"
-	button.AutoButtonColor = false
-	button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	button.BackgroundTransparency = 0.45
-	button.BorderSizePixel = 0
-	button.AutoLocalize = false -- m5-26
-	button.Text = Loc.t("input.dive.btn")
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.GothamBold
-	button.TextScaled = true
-	button.ClipsDescendants = true
-	button.Parent = gui
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = button
-
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.new(1, 1, 1)
-	stroke.Transparency = 0.4
-	stroke.Thickness = 2
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = button
-
-	local padding = Instance.new("UIPadding")
-	padding.PaddingLeft = UDim.new(0.15, 0)
-	padding.PaddingRight = UDim.new(0.15, 0)
-	padding.PaddingTop = UDim.new(0.3, 0)
-	padding.PaddingBottom = UDim.new(0.3, 0)
-	padding.Parent = button
-
-	-- 쿨다운 덮개: 아래에 붙어 있고 높이가 남은 비율만큼이라 위에서부터 줄어들어요.
-	-- 패딩 영향을 받지 않게 버튼과 같은 위치·크기의 별도 프레임으로 둬요.
-	local coverHolder = Instance.new("Frame")
-	coverHolder.Name = "CooldownHolder"
-	coverHolder.BackgroundTransparency = 1
-	coverHolder.ClipsDescendants = true
-	coverHolder.Active = false
-	coverHolder.ZIndex = 2
-	coverHolder.Parent = gui
-
-	local holderCorner = Instance.new("UICorner")
-	holderCorner.CornerRadius = UDim.new(0.5, 0)
-	holderCorner.Parent = coverHolder
-
-	local cover = Instance.new("Frame")
-	cover.Name = "Cover"
-	cover.AnchorPoint = Vector2.new(0, 1)
-	cover.Position = UDim2.fromScale(0, 1)
-	cover.Size = UDim2.fromScale(1, 0)
-	cover.BackgroundColor3 = Color3.new(0, 0, 0)
-	cover.BackgroundTransparency = 0.35
-	cover.BorderSizePixel = 0
-	cover.Active = false
-	cover.ZIndex = 2
-	cover.Parent = coverHolder
+	local face = TouchButtonFace.create("DiveButton", gui)
+	face.setIcon("dive", Loc.t("input.dive.btn"))
+	local button = face.button
+	button.Visible = true -- 보일지는 gui.Enabled가 정해요
 
 	gui.Parent = playerGui
 
 	local self = setmetatable({
 		gui = gui,
 		button = button,
-		cover = cover,
+		face = face,
 		cleanup = Cleanup.new(),
 		jumpCleanup = Cleanup.new(),
 	}, DiveButton)
@@ -148,8 +98,6 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 		end
 		button.Position = position
 		button.Size = buttonSize
-		coverHolder.Position = position
-		coverHolder.Size = buttonSize
 		-- 편집 중에는 점프 버튼도 숨어 있지만, 따로도 꺼 둬요 (입력이 안 나가게)
 		gui.Enabled = jump.Visible and not TouchLayoutController.isEditing()
 	end
@@ -219,10 +167,7 @@ function DiveButton.create(onPress: () -> ()): DiveButton?
 end
 
 function DiveButton.setCooldown(self: DiveButton, fraction: number)
-	local clamped = math.clamp(fraction, 0, 1)
-	if self.cover.Size.Y.Scale ~= clamped then
-		self.cover.Size = UDim2.fromScale(1, clamped)
-	end
+	self.face.setCooldown(fraction, nil)
 end
 
 function DiveButton.destroy(self: DiveButton)

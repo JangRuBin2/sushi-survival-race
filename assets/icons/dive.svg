@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- dive: tiny egg sushi throwing itself forward, speed lines behind -->
+  <g stroke="#1F2E4D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- speed lines -->
+    <path d="M14 86 H52" fill="none"/>
+    <path d="M8 128 H42" fill="none"/>
+    <path d="M18 170 H50" fill="none"/>
+    <g transform="rotate(12 140 136)">
+      <!-- arm stretched forward -->
+      <path d="M200 156 L242 144" fill="none" stroke-width="38"/>
+      <path d="M200 156 L242 144" fill="none" stroke="#FCF2E0" stroke-width="16"/>
+      <!-- rice block -->
+      <rect x="64" y="118" width="148" height="78" rx="20" fill="#FCF2E0"/>
+      <!-- egg topping, overhangs the rice -->
+      <rect x="48" y="78" width="180" height="54" rx="26" fill="#F6C446"/>
+      <!-- nori belt -->
+      <rect x="120" y="70" width="34" height="134" rx="8" fill="#1F2E4D"/>
+      <!-- eyes -->
+      <circle cx="176" cy="158" r="7" fill="#1F2E4D" stroke="none"/>
+      <circle cx="198" cy="158" r="7" fill="#1F2E4D" stroke="none"/>
+      <!-- highlight -->
+      <path d="M66 94 H96" fill="none" stroke="#FFFFFF" stroke-width="9" stroke-opacity="0.85"/>
+    </g>
+  </g>
+</svg>

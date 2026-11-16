@@ -1,5 +1,5 @@
-status: in-dev
-<!-- A·B 구현 완료(메인 세션, 2026-11-16) · C 개발 중(developer) -->
+status: in-qa
+<!-- A·B·C 구현 완료, claude/lobby-mobile-ux에 병합 (2026-11-16). Studio 확인 DEV-SETUP 3-21·3-22 -->
 <!-- draft | ready | in-dev | in-qa | qa-passed | done -->
 
 # m6-14 — 로비·방 만들기·터치 버튼 UX 개선 (모바일 중심)
@@ -76,3 +76,11 @@ status: in-dev
 - 방 만들기 창 바닥 "취소" 버튼 제거(X·B로 대신).
 - 다이브 버튼은 로비에서도 보임(로비에서도 다이브가 되니까).
 - 아이콘은 사용자가 이미지를 올리기 전까지 글씨 폴백.
+
+## 6. 개발 메모 — C. 터치 조작 버튼 (developer 서브에이전트, 브랜치 `claude/m6-14-touch-buttons`)
+- 상태는 A·B와 같이 메인 세션이 정해요(이 절은 C만). Studio 확인: **`docs/DEV-SETUP.md` 3-22**(3-20은 UI 개선 P0·P1, 3-21은 메인 세션의 로비·방 만들기).
+- **C1 보이는 때**: 순수 `src/shared/RaceActionLogic.luau`(new·onRoom·onPhase·onResult 리듀서 + `canUseRaceActions(state, {respawning, spectating})` + `buttonVisible(placementOk, canUse)`), 클라이언트 `src/client/input/RaceActionState.luau`(리모트 RoomUpdated·MatchPhase·PlayerResult + `RespawnAt` 속성 + 관전 카메라 0.25초 확인, `get()`·`changed(fn)`). `GrabButton`·`AttackButton`은 `placementOk`(점프 버튼 보임·크기·편집 아님)와 이 값의 AND로 보여요. 숨으면 잡기 누름도 놓아요. 다이브는 그대로. `PlayerResult` **Won**도 "더 달리지 않음"으로 봐요(Victory 방송 전 순간).
+- **C2 아이콘**: SVG `assets/icons/{dive,grab,attack,dynamite}.svg`(viewBox 256, 남색 #1F2E4D 굵은 둥근 선 14 + 팔레트 채움), PNG `assets/icons/png/*.png`(256, 투명), 도구 `tools/icons/export-icons.js`(Playwright Chromium), 시트 `docs/renders/icons/touch-icons-sheet.png`(256·48·44px, 밝은/어두운 바탕, 쿨다운 예시, 휴대폰 기본 배치 60px). 렌더 → 비평 → 고침 4회(아래 개발 기록).
+- id는 `src/shared/IconAssets.luau` `IDS`(커밋 값 전부 빈 문자열 → 글씨 폴백, 테스트가 고정). `"rbxassetid://n"`·`"n"` 둘 다 받고 이상한 값은 폴백. 겉모습 계산은 순수 `src/shared/TouchButtonFaceLogic.luau`(face·coverKeys·strokeThickness·cooldownLabel), 그리기는 `src/client/input/TouchButtonFace.luau`(접시색 `Kit.Color.Row` 원 + `Wood` 테두리, 아이콘 78%, 쿨다운 = 둥근 덮개의 세로 UIGradient 투명도로 아래에서 차오름 + 남은 초). 잡는 중 = 노란 접시, 다이너마이트 = 연한 노랑 + 연어색 테두리. 위치·크기 규칙(`UiLayout.touchButtons`·편집 배치)은 그대로.
+- 바뀐 파일: `src/client/input/{AttackButton,AttackController,GrabButton,DiveButton}.luau`, 새 `src/client/input/{RaceActionState,TouchButtonFace}.luau`, 새 `src/shared/{RaceActionLogic,IconAssets,TouchButtonFaceLogic}.luau`, 새 `tests/m6-14-touch-buttons.spec.luau`, `assets/icons/**`, `tools/icons/export-icons.js`, `docs/renders/icons/touch-icons-sheet.png`, `docs/DEV-SETUP.md` 3-22. **Strings.csv·공용 파일은 안 바꿈**(기존 `input.*` 키 그대로 씀).
+- 결정(바꾸려면 말해 주세요): 다이브 쿨다운은 1.5초라 숫자 없이 덮개만. 공격 쿨다운 숫자는 기존 키 `input.attack.cooldown`("{seconds}초"). 버튼 위치 편집 화면(TouchLayoutEditor)의 버튼 이름은 글씨 그대로(아이콘 안 씀). PC F키·게임패드 입력 경로는 바꾸지 않음.

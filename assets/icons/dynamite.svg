@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- dynamite light: dynamite stick (nori-wrapped) with a sparking fuse -->
+  <g stroke="#1F2E4D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- fuse -->
+    <path d="M155 76 C164 48 184 64 194 46" fill="none" stroke-width="12"/>
+    <g transform="rotate(30 112 150)">
+      <!-- stick -->
+      <rect x="74" y="64" width="76" height="170" rx="22" fill="#EC6848"/>
+      <!-- nori wrap (maki band) -->
+      <rect x="66" y="132" width="92" height="36" rx="9" fill="#1F2E4D"/>
+      <!-- highlights -->
+      <path d="M94 86 V114" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-opacity="0.8"/>
+      <path d="M94 188 V212" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-opacity="0.8"/>
+    </g>
+    <!-- spark -->
+    <polygon points="196,4 202.5,28.3 224.3,15.7 211.7,37.5 236,44 211.7,50.5 224.3,72.3 202.5,59.7 196,84 189.5,59.7 167.7,72.3 180.3,50.5 156,44 180.3,37.5 167.7,15.7 189.5,28.3" fill="#F6C446" stroke-width="9"/>
+    <circle cx="196" cy="44" r="8" fill="#FFFFFF" stroke="none"/>
+    <circle cx="244" cy="86" r="6" fill="#EC6848" stroke-width="6"/>
+    <circle cx="148" cy="18" r="5" fill="#F6C446" stroke-width="6"/>
+  </g>
+</svg>

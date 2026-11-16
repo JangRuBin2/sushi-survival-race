@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- grab: chopsticks picking up a tiny egg sushi -->
+  <g stroke="#1F2E4D" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- back chopstick -->
+    <polygon points="178.4,14.5 47.2,134.3 56.8,145.7 197.6,37.5" fill="#7A4A2A"/>
+    <!-- egg sushi being picked up -->
+    <g transform="translate(116 146) rotate(-14)">
+      <rect x="-62" y="-2" width="124" height="42" rx="16" fill="#FCF2E0"/>
+      <rect x="-70" y="-36" width="140" height="40" rx="19" fill="#F6C446"/>
+      <rect x="-14" y="-40" width="28" height="86" rx="7" fill="#1F2E4D"/>
+      <path d="M-56 -24 H-34" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-opacity="0.85"/>
+    </g>
+    <!-- front chopstick -->
+    <polygon points="218.6,46.2 104.3,191.1 115.7,200.9 241.4,65.8" fill="#7A4A2A"/>
+    <!-- lift marks -->
+    <path d="M44 204 L30 220" fill="none" stroke-width="10"/>
+    <path d="M150 206 L160 222" fill="none" stroke-width="10"/>
+  </g>
+</svg>

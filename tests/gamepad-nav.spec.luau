@@ -225,7 +225,7 @@ return function(t: Test.Test)
 			"src/client/ui/CodeScreen.luau",
 			"src/client/ui/AdminPanel.luau",
 			"src/client/ui/DrawScreen.luau",
-			"src/client/ui/LobbyScreen.luau", -- 방 만들기 창
+			"src/client/ui/CreateRoomDialog.luau", -- 방 만들기 창 (m6-14에 LobbyScreen에서 분리)
 		}
 		for _, path in windows do
 			local source = read(path)

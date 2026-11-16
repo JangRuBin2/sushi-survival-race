@@ -5,14 +5,19 @@
 -- 패널·방 만들기 창을 위쪽에 붙이고(키보드가 올라와도 입력칸이 보이게) 글씨를 실제 14px 이상으로 키워요.
 -- 게임패드 (m5-12): 로비는 GamepadNav.page(첫 버튼 = 빠른 참가), 방 만들기 창은 GamepadNav.window(B = 취소).
 -- 1인 연습 (m6-13): "연습" 버튼 → PracticeDialog(맵 고르기) → actions.startPractice(mapId).
+-- 방 만들기 창 (m6-14): CreateRoomDialog (설정 칩·세그먼트와 주 버튼을 모양으로 나눈 새 창).
+-- 패널 접기 (m6-14): 제목 줄 "접기" → 패널을 숨기고 위쪽 가운데 "🔍 방 찾기" 버튼만 남겨 로비(회전초밥집·단상)를
+--   구경할 수 있어요. 방에 갔다 로비로 돌아오거나 로비에 안내가 오면 다시 펼쳐요 (접힌 상태는 저장하지 않아요).
 -- TODO(M4): 스킨 상점, 탈의실, 코인 표시, 방 목록을 벨트 위 접시로
 
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Types = require(ReplicatedStorage.Shared.Types)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 local Loc = require(script.Parent.Parent.Loc)
+local CreateRoomDialog = require(script.Parent.CreateRoomDialog)
 local GamepadNav = require(script.Parent.GamepadNav)
 local PracticeDialog = require(script.Parent.PracticeDialog)
 local Kit = require(script.Parent.RoomUiKit)
@@ -35,25 +40,16 @@ export type LobbyScreen = {
 	showMessage: (self: LobbyScreen, text: string, isError: boolean?) -> (),
 	closeCreateDialog: (self: LobbyScreen) -> (),
 	closePracticeDialog: (self: LobbyScreen) -> (),
+	setCollapsed: (self: LobbyScreen, collapsed: boolean) -> (),
+	isCollapsed: (self: LobbyScreen) -> boolean,
 }
 
 local LobbyScreen = {}
 
 local PANEL_MAX = Vector2.new(760, 560)
-local DIALOG_MAX_WIDTH = 460
 local GAP = 8
 local PADDING = 16
-local MAX_BUTTON_GAP = 6
-
--- TextBox 글자 수 제한 (글자 단위)
-local function capText(box: TextBox, maxChars: number)
-	box:GetPropertyChangedSignal("Text"):Connect(function()
-		local cut = utf8.len(box.Text) and utf8.offset(box.Text, maxChars + 1)
-		if cut then
-			box.Text = string.sub(box.Text, 1, cut - 1)
-		end
-	end)
-end
+local EXPAND_TOP = 8 -- 접었을 때 "방 찾기" 버튼: 화면 위에서 띄우는 거리
 
 function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Actions): LobbyScreen
 	local busy = false
@@ -82,12 +78,42 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	})
 	Kit.woodFrame(panel) -- UI 개선 P1: 나무 카운터 테두리
 
-	local titleLabel = Kit.label({
+	-- 제목 줄: 제목 + 오른쪽 "접기" (m6-14)
+	local titleRow = Kit.new("Frame", {
+		Name = "TitleRow",
 		Parent = panel,
 		LayoutOrder = 1,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 44),
+	})
+	local titleLabel = Kit.label({
+		Parent = titleRow,
 		Text = Loc.t("lobby.title"),
 		TextSize = 26,
-		Size = UDim2.new(1, 0, 0, 36),
+		Size = UDim2.new(1, -120, 1, 0),
+	})
+	local collapseButton = Kit.button(Loc.t("lobby.collapse.btn"), Color.Nori, {
+		Name = "Collapse",
+		Parent = titleRow,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(110, 44),
+	})
+
+	-- 접었을 때 위쪽 가운데에 남는 "🔍 방 찾기" (m6-14)
+	local expandButton = Kit.button(Loc.t("lobby.expand.btn"), Color.Salmon, {
+		Name = "Expand",
+		Parent = root,
+		Visible = false,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, EXPAND_TOP),
+		Size = UDim2.fromOffset(0, 44),
+		AutomaticSize = Enum.AutomaticSize.X,
+	})
+	Kit.new("UIPadding", {
+		Parent = expandButton,
+		PaddingLeft = UDim.new(0, 20),
+		PaddingRight = UDim.new(0, 20),
 	})
 
 	-- 빠른 참가 / 방 만들기 / 코드 입력 / 참가
@@ -151,182 +177,10 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local showMessage, messageLabel = Kit.messageLabel(panel, 5)
 
 	------------------------------------------------------------------
-	-- 방 만들기 창
+	-- 방 만들기 창 (m6-14: CreateRoomDialog로 분리) · 1인 연습 맵 고르기 창 (m6-13)
 
-	local selectedMax = Config.Room.DefaultMaxPlayers
-	local selectedPrivate = false
-
-	local dialog = Kit.new("TextButton", { -- 뒤 화면 클릭을 막는 배경
-		Name = "CreateDialog",
-		Parent = root,
-		Visible = false,
-		Text = "",
-		AutoButtonColor = false,
-		Selectable = false,
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color.Backdrop,
-		BackgroundTransparency = 0.4,
-		ZIndex = 10,
-	})
-	-- 작은 화면에서 창이 화면보다 길면 스크롤해요
-	local dialogPanel = Kit.new("ScrollingFrame", {
-		Parent = dialog,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(0.9, 0, 0, 400),
-		BackgroundColor3 = Color.Panel,
-		BorderSizePixel = 0,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-		ScrollBarThickness = 8,
-		ScrollBarImageColor3 = Color.SubText,
-		ZIndex = 11,
-	}, {
-		Kit.corner(16),
-		Kit.padding(PADDING),
-		Kit.list(Enum.FillDirection.Vertical, GAP),
-		Kit.new("UISizeConstraint", { MaxSize = Vector2.new(DIALOG_MAX_WIDTH, math.huge) }),
-	})
-	Kit.woodFrame(dialogPanel) -- UI 개선 P1: 나무 카운터 테두리
-
-	type DialogLabel = { label: TextLabel, base: number }
-	local dialogLabels: { DialogLabel } = {}
-	local function dialogLabel(order: number, text: string, size: number?): TextLabel
-		local label = Kit.label({
-			Parent = dialogPanel,
-			LayoutOrder = order,
-			Text = text,
-			TextSize = size or 16,
-			TextColor3 = if size then Color.Text else Color.SubText,
-			ZIndex = 12,
-		})
-		table.insert(dialogLabels, { label = label, base = size or 16 })
-		return label
-	end
-	local function dialogRow(order: number): Frame
-		return Kit.new("Frame", {
-			Parent = dialogPanel,
-			LayoutOrder = order,
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 0, 44),
-			ZIndex = 12,
-		}, { Kit.list(Enum.FillDirection.Horizontal, MAX_BUTTON_GAP) })
-	end
-
-	dialogLabel(1, Loc.t("lobby.create.title"), 22)
-	dialogLabel(2, Loc.t("lobby.create.maxPlayers"))
-	-- 인원 버튼 5개: 한 줄에 안 들어가면 두 줄 (UIGridLayout 칸 크기는 applyLayout이 정해요)
-	local maxRow = Kit.new("Frame", {
-		Parent = dialogPanel,
-		LayoutOrder = 3,
-		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 44),
-		ZIndex = 12,
-	})
-	local maxGrid = Kit.new("UIGridLayout", {
-		Parent = maxRow,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		CellPadding = UDim2.fromOffset(MAX_BUTTON_GAP, MAX_BUTTON_GAP),
-		CellSize = UDim2.new(0.2, -MAX_BUTTON_GAP, 0, 44),
-	}) :: UIGridLayout
-	local options = Config.Room.MaxPlayerOptions
-	local maxButtons: { [number]: TextButton } = {}
-	for i, count in options do
-		local button = Kit.button(Loc.t("lobby.create.count.btn", { count = count }), Color.Salmon, {
-			Parent = maxRow,
-			LayoutOrder = i,
-			ZIndex = 13,
-		})
-		maxButtons[count] = button
-		Kit.onClick(button, function()
-			selectedMax = count
-			for c, b in maxButtons do
-				Kit.setSelected(b, c == selectedMax)
-			end
-		end)
-	end
-
-	local privacyLabel = dialogLabel(4, Loc.t("lobby.create.privacy"))
-	local privacyRow = dialogRow(5)
-	local publicButton = Kit.button(Loc.t("lobby.create.public.btn"), Color.Nori, {
-		Parent = privacyRow,
-		LayoutOrder = 1,
-		Size = UDim2.new(0.5, -3, 1, 0),
-		ZIndex = 13,
-	})
-	local privateButton = Kit.button(Loc.t("lobby.create.private.btn"), Color.Nori, {
-		Parent = privacyRow,
-		LayoutOrder = 2,
-		Size = UDim2.new(0.5, -3, 1, 0),
-		ZIndex = 13,
-	})
-	local function refreshPrivacy()
-		Kit.setSelected(publicButton, not selectedPrivate)
-		Kit.setSelected(privateButton, selectedPrivate)
-	end
-	Kit.onClick(publicButton, function()
-		selectedPrivate = false
-		refreshPrivacy()
-	end)
-	Kit.onClick(privateButton, function()
-		selectedPrivate = true
-		refreshPrivacy()
-	end)
-
-	local nameLabel = dialogLabel(6, Loc.t("lobby.create.name"))
-	local nameBox = Kit.textBox({
-		Parent = dialogPanel,
-		LayoutOrder = 7,
-		PlaceholderText = defaultRoomName,
-		Size = UDim2.new(1, 0, 0, 44),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 13,
-	})
-	capText(nameBox, Config.Room.NameMaxLength)
-
-	local confirmRow = dialogRow(8)
-	local cancelButton = Kit.button(Loc.t("common.cancel.btn"), Color.Neutral, {
-		Parent = confirmRow,
-		LayoutOrder = 1,
-		Size = UDim2.new(0.5, -3, 1, 0),
-		TextColor3 = Color.Text,
-		ZIndex = 13,
-	})
-	local confirmButton = Kit.button(Loc.t("lobby.create.confirm.btn"), Color.Salmon, {
-		Parent = confirmRow,
-		LayoutOrder = 2,
-		Size = UDim2.new(0.5, -3, 1, 0),
-		ZIndex = 13,
-	})
-	local showDialogMessage, dialogMessageLabel = Kit.messageLabel(dialogPanel, 9)
-
-	-- 1인 연습 맵 고르기 창 (m6-13)
+	local createDialog = CreateRoomDialog.new(root, defaultRoomName, actions.createRoom)
 	local practiceDialog = PracticeDialog.new(root, actions.startPractice)
-
-	local function openDialog()
-		selectedMax = Config.Room.DefaultMaxPlayers
-		selectedPrivate = false
-		nameBox.Text = ""
-		for c, b in maxButtons do
-			Kit.setSelected(b, c == selectedMax)
-		end
-		refreshPrivacy()
-		dialogPanel.CanvasPosition = Vector2.zero
-		dialog.Visible = true
-	end
-
-	Kit.onClick(cancelButton, function()
-		dialog.Visible = false
-	end)
-	Kit.onClick(confirmButton, function()
-		local name = string.match(nameBox.Text, "^%s*(.-)%s*$")
-		actions.createRoom({
-			maxPlayers = selectedMax,
-			isPrivate = selectedPrivate,
-			name = if name and name ~= "" then name else nil,
-		})
-	end)
 
 	------------------------------------------------------------------
 	-- 방 목록
@@ -434,9 +288,14 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			panel.Size = UDim2.fromScale(0.92, 0.86)
 		end
 
-		local titleHeight = line(36, 26)
+		local titleHeight = math.max(line(36, 26), touch)
 		titleLabel.TextSize = text(26)
-		titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
+		titleRow.Size = UDim2.new(1, 0, 0, titleHeight)
+		collapseButton.TextSize = text(16)
+		collapseButton.Size = UDim2.fromOffset(math.max(touch * 1.6, 96), touch)
+		titleLabel.Size = UDim2.new(1, -(math.max(touch * 1.6, 96) + 8), 1, 0)
+		expandButton.TextSize = text(18)
+		expandButton.Size = UDim2.fromOffset(0, touch)
 		actionRow.Size = UDim2.new(1, 0, 0, touch)
 		for _, button in { quickButton, createButton, practiceButton } do
 			button.TextSize = text(18)
@@ -452,56 +311,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		list.ScrollBarThickness = scrollBar
 		list.Size = UDim2.new(1, 0, 1, -(titleHeight + touch + listTitleHeight + messageHeight + GAP * 4))
 
-		-- 방 만들기 창
-		local dialogWidth = math.min(virtualWidth * 0.9, DIALOG_MAX_WIDTH)
-		local inner = dialogWidth - PADDING * 2 - scrollBar
-		local perRow, rows = UiLayout.gridRows(#options, inner, touch + 16, MAX_BUTTON_GAP)
-		maxGrid.CellSize = UDim2.new(1 / perRow, -MAX_BUTTON_GAP, 0, touch)
-		local maxRowHeight = rows * touch + (rows - 1) * MAX_BUTTON_GAP
-		maxRow.Size = UDim2.new(1, 0, 0, maxRowHeight)
-		for _, button in maxButtons do
-			button.TextSize = text(18)
-		end
-		local labelsHeight = 0
-		for _, item in dialogLabels do
-			local height = line(24, item.base)
-			item.label.TextSize = text(item.base)
-			item.label.Size = UDim2.new(1, 0, 0, height)
-			labelsHeight += height
-		end
-		privacyRow.Size = UDim2.new(1, 0, 0, touch)
-		confirmRow.Size = UDim2.new(1, 0, 0, touch)
-		nameBox.Size = UDim2.new(1, 0, 0, touch)
-		nameBox.TextSize = text(18)
-		for _, button in { publicButton, privateButton, cancelButton, confirmButton } do
-			button.TextSize = text(18)
-		end
-		dialogMessageLabel.TextSize = text(16)
-		dialogMessageLabel.Size = UDim2.new(1, 0, 0, messageHeight)
-		dialogPanel.ScrollBarThickness = scrollBar
-
-		local content = labelsHeight + maxRowHeight + touch * 3 + messageHeight + GAP * 8 + PADDING * 2
-		if m.compact then
-			-- 위쪽에 두고 방 이름 칸을 맨 위로: 키보드가 올라와도 입력칸이 보여요
-			dialogPanel.AnchorPoint = Vector2.new(0.5, 0)
-			dialogPanel.Position = UDim2.new(0.5, 0, 0, 8)
-			nameLabel.LayoutOrder = 2
-			nameBox.LayoutOrder = 3
-			dialogLabels[2].label.LayoutOrder = 4
-			maxRow.LayoutOrder = 5
-			privacyLabel.LayoutOrder = 6
-			privacyRow.LayoutOrder = 7
-		else
-			dialogPanel.AnchorPoint = Vector2.new(0.5, 0.5)
-			dialogPanel.Position = UDim2.fromScale(0.5, 0.5)
-			dialogLabels[2].label.LayoutOrder = 2
-			maxRow.LayoutOrder = 3
-			privacyLabel.LayoutOrder = 4
-			privacyRow.LayoutOrder = 5
-			nameLabel.LayoutOrder = 6
-			nameBox.LayoutOrder = 7
-		end
-		dialogPanel.Size = UDim2.new(0.9, 0, 0, math.min(content, virtualHeight * 0.9 - 8))
+		createDialog:applyLayout(m, virtualWidth, virtualHeight)
 		practiceDialog:applyLayout(m, virtualWidth, virtualHeight)
 
 		renderRooms()
@@ -509,10 +319,32 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 
 	------------------------------------------------------------------
 
-	busyButtons = { quickButton, createButton, practiceButton, codeButton, confirmButton }
+	busyButtons = { quickButton, createButton, practiceButton, codeButton }
+
+	-- 접기·펼치기 (m6-14). 게임패드면 선택도 따라가요 (사라진 버튼에 선택이 남지 않게)
+	local collapsed = false
+	local function setCollapsed(value: boolean)
+		if collapsed == value then
+			return
+		end
+		collapsed = value
+		panel.Visible = not value
+		expandButton.Visible = value
+		if GamepadNav.isGamepad() and GuiService.SelectedObject ~= nil then
+			GuiService.SelectedObject = if value then expandButton else quickButton
+		end
+	end
+	Kit.onClick(collapseButton, function()
+		setCollapsed(true)
+	end)
+	Kit.onClick(expandButton, function()
+		setCollapsed(false)
+	end)
 
 	Kit.onClick(quickButton, actions.quickJoin)
-	Kit.onClick(createButton, openDialog)
+	Kit.onClick(createButton, function()
+		createDialog:open()
+	end)
 	Kit.onClick(practiceButton, function()
 		practiceDialog:open()
 	end)
@@ -529,21 +361,11 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 		end
 	end)
 
-	-- 게임패드 (m5-12): 로비는 기본 화면, 방 만들기 창은 B로 닫는 창 (첫 버튼 = 지금 고른 인원)
+	-- 게임패드 (m5-12): 로비는 기본 화면 (첫 버튼 = 빠른 참가, 접혀 있으면 "방 찾기"). 방 만들기 창은 CreateRoomDialog가 등록해요
 	GamepadNav.page({
 		root = root,
 		first = function(): GuiObject?
-			return quickButton
-		end,
-	})
-	GamepadNav.window({
-		root = dialog,
-		group = dialogPanel,
-		close = function()
-			dialog.Visible = false
-		end,
-		first = function(): GuiObject?
-			return maxButtons[selectedMax]
+			return if collapsed then expandButton else quickButton
 		end,
 	})
 
@@ -558,9 +380,12 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 	local screen = {}
 
 	function screen.setVisible(_self: LobbyScreen, visible: boolean)
+		if visible and not root.Visible then
+			setCollapsed(false) -- 방·매치에서 로비로 돌아오면 다시 펼쳐요 (m6-14)
+		end
 		root.Visible = visible
 		if not visible then
-			dialog.Visible = false
+			createDialog:close()
 			practiceDialog:close()
 		end
 	end
@@ -576,6 +401,7 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 			Kit.setEnabled(button, not busy)
 		end
 		practiceDialog:setBusy(busy)
+		createDialog:setBusy(busy)
 		for _, row in list:GetChildren() do
 			for _, child in row:GetChildren() do
 				if child:IsA("TextButton") then
@@ -587,21 +413,30 @@ function LobbyScreen.new(parent: Instance, defaultRoomName: string, actions: Act
 
 	function screen.showMessage(_self: LobbyScreen, text: string, isError: boolean?)
 		-- 방 만들기 창이 열려 있으면 창 안에 보여줘요 (뒤 화면 문구는 가려져요)
-		if dialog.Visible then
-			showDialogMessage(text, isError)
+		if createDialog:isOpen() then
+			createDialog:showMessage(text, isError)
 		elseif practiceDialog:isOpen() then
 			practiceDialog:showMessage(text, isError)
 		else
+			setCollapsed(false) -- 접힌 채로는 안내 줄이 안 보여요 (m6-14)
 			showMessage(text, isError)
 		end
 	end
 
 	function screen.closeCreateDialog(_self: LobbyScreen)
-		dialog.Visible = false
+		createDialog:close()
 	end
 
 	function screen.closePracticeDialog(_self: LobbyScreen)
 		practiceDialog:close()
+	end
+
+	function screen.setCollapsed(_self: LobbyScreen, value: boolean)
+		setCollapsed(value)
+	end
+
+	function screen.isCollapsed(_self: LobbyScreen): boolean
+		return collapsed
 	end
 
 	return (screen :: any) :: LobbyScreen

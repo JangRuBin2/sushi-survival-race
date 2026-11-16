@@ -1,10 +1,12 @@
 --!strict
 -- 모바일 "공격" 버튼 (m6-08). 기본 자리는 다이브 위·잡기 왼쪽 대각선 (Shared.UiLayout.touchButtons의 attack).
 -- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 attack을 쓰고, 편집 중에는 숨어요.
---   AttackButton.create(onPress) -> { setCooldown(seconds?), setDynamite(on), destroy() }?
---     setDynamite(true)면 다이너마이트를 들고 있어 "🧨 점화"(쿨다운 표시보다 먼저, m6-12)
+-- 출발한 라운드에서 아직 달리는 내 레이서일 때만 보여요 (m6-14 C1, RaceActionState) — 로비·대기실·관전·부활 대기 중에는 숨어요.
+-- 겉모습은 TouchButtonFace (m6-14 C2): 아이콘 id(Shared.IconAssets)가 있으면 그림, 없으면 "💥 공격" 글씨.
+--   AttackButton.create(onPress) -> { setCooldown(seconds?, fraction?), setDynamite(on), destroy() }?
+--     setDynamite(true)면 다이너마이트를 들고 있어 🧨 점화 아이콘(쿨다운 표시보다 먼저, m6-12)
 --     터치 기기가 아니면 nil. 누르는 순간 onPress() 한 번 (누르고 있기 아님).
---     setCooldown(n)이면 버튼에 남은 초를 쓰고 흐리게, nil이면 원래 글씨.
+--     setCooldown(n, f)이면 어두운 덮개(f = 남은 비율, 없으면 가득) + 남은 초, nil이면 원래 모습.
 --     기본 터치 컨트롤(PlayerGui.TouchGui.TouchControlFrame.JumpButton)이 나타날 때까지 기다렸다가 보여요.
 
 local Players = game:GetService("Players")
@@ -12,16 +14,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Attributes = require(ReplicatedStorage.Shared.Attributes)
+local IconAssets = require(ReplicatedStorage.Shared.IconAssets)
+local RaceActionLogic = require(ReplicatedStorage.Shared.RaceActionLogic)
 local UiLayout = require(ReplicatedStorage.Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local RaceActionState = require(script.Parent.RaceActionState)
+local TouchButtonFace = require(script.Parent.TouchButtonFace)
 local TouchLayoutController = require(script.Parent.TouchLayoutController)
 
-local READY_COLOR = Color3.fromRGB(255, 196, 120)
-local COOLDOWN_COLOR = Color3.fromRGB(120, 120, 120)
-
 export type AttackButton = {
-	setCooldown: (seconds: number?) -> (),
+	setCooldown: (seconds: number?, fraction: number?) -> (),
 	setDynamite: (on: boolean) -> (),
 	destroy: () -> (),
 }
@@ -41,46 +44,37 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 	screen:SetAttribute(Attributes.NoClickSfx, true) -- 조작 버튼이라 클릭음 없음
 
 	local readyText = Loc.t("input.attack.btn")
-	local button = Instance.new("TextButton")
-	button.Name = "AttackButton"
-	button.AutoButtonColor = false
-	button.AutoLocalize = false -- m5-26
-	button.Text = readyText
-	button.Font = Enum.Font.GothamBold
-	button.TextScaled = true
-	button.TextColor3 = Color3.fromRGB(40, 40, 40)
-	button.BackgroundColor3 = READY_COLOR
-	button.BackgroundTransparency = 0.3
-	button.Visible = false
-	button.Parent = screen
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = button
-	local padding = Instance.new("UIPadding")
-	padding.PaddingLeft = UDim.new(0.18, 0)
-	padding.PaddingRight = UDim.new(0.18, 0)
-	padding.PaddingTop = UDim.new(0.25, 0)
-	padding.PaddingBottom = UDim.new(0.25, 0)
-	padding.Parent = button
+	local face = TouchButtonFace.create("AttackButton", screen)
+	local button = face.button
 	screen.Parent = playerGui
 
 	local connections: { RBXScriptConnection } = {}
 	local jumpConnections: { RBXScriptConnection } = {}
 	local destroyed = false
 	local shownCooldown: number? = nil
+	local shownFraction: number? = nil
 	local dynamite = false
-	local DYNAMITE_COLOR = Color3.fromRGB(255, 120, 60)
+	local placementOk = false -- 점프 버튼에 맞춰 자리를 잡을 수 있음 (보이고 크기 있음, 편집 중 아님)
 	local function refresh()
 		if dynamite then
-			button.Text = Loc.t("input.dynamite.btn")
-			button.BackgroundColor3 = DYNAMITE_COLOR
-		elseif shownCooldown == nil then
-			button.Text = readyText
-			button.BackgroundColor3 = READY_COLOR
+			face.setIcon(IconAssets.attackIcon(true), Loc.t("input.dynamite.btn"))
+			face.setTone("Armed")
+			face.setCooldown(0, nil)
 		else
-			button.Text = Loc.t("input.attack.cooldown", { seconds = shownCooldown })
-			button.BackgroundColor3 = COOLDOWN_COLOR
+			face.setIcon(IconAssets.attackIcon(false), readyText)
+			face.setTone("Idle")
+			local seconds = shownCooldown
+			if seconds == nil then
+				face.setCooldown(0, nil)
+			else
+				face.setCooldown(shownFraction or 1, Loc.t("input.attack.cooldown", { seconds = seconds }))
+			end
 		end
+	end
+	refresh()
+
+	local function applyVisible()
+		button.Visible = RaceActionLogic.buttonVisible(placementOk, RaceActionState.get())
 	end
 
 	local function disconnectJump()
@@ -110,7 +104,8 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 			button.Size = UDim2.fromOffset(rect.size, rect.size)
 			button.Position = UDim2.fromOffset(rect.x, rect.y)
 		end
-		button.Visible = jump.Visible and size.X > 0 and not TouchLayoutController.isEditing()
+		placementOk = jump.Visible and size.X > 0 and not TouchLayoutController.isEditing()
+		applyVisible()
 	end
 
 	local placed: { touchGui: ScreenGui, jump: GuiObject }? = nil
@@ -129,7 +124,8 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 			jump.AncestryChanged:Connect(function()
 				if not jump:IsDescendantOf(playerGui) then
 					disconnectJump()
-					button.Visible = false
+					placementOk = false
+					applyVisible()
 				end
 			end)
 		)
@@ -148,7 +144,8 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 				end
 			elseif #jumpConnections > 0 then
 				disconnectJump()
-				button.Visible = false
+				placementOk = false
+				applyVisible()
 			end
 			task.wait(1)
 		end
@@ -161,10 +158,13 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 		end
 	end)
 
+	-- 달리는 중이 되거나 끝나면 (m6-14 C1)
+	local stopRaceWatch = RaceActionState.changed(applyVisible)
+
 	table.insert(
 		connections,
 		button.InputBegan:Connect(function(input: InputObject)
-			if TouchLayoutController.isEditing() then
+			if TouchLayoutController.isEditing() or not button.Visible then
 				return
 			end
 			local kind = input.UserInputType
@@ -176,11 +176,12 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 	)
 
 	return {
-		setCooldown = function(seconds: number?)
-			if seconds == shownCooldown then
+		setCooldown = function(seconds: number?, fraction: number?)
+			if seconds == shownCooldown and fraction == shownFraction then
 				return
 			end
 			shownCooldown = seconds
+			shownFraction = fraction
 			refresh()
 		end,
 		setDynamite = function(on: boolean)
@@ -193,6 +194,7 @@ function AttackButton.create(onPress: () -> ()): AttackButton?
 		destroy = function()
 			destroyed = true
 			stopLayoutWatch()
+			stopRaceWatch()
 			disconnectJump()
 			for _, c in connections do
 				c:Disconnect()

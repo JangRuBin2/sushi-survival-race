@@ -450,6 +450,7 @@ return function(t: Test.Test)
 				{ "src/client/ui/AdminController.luau", "AdminPanel.new(", 1 },
 				{ "src/client/ui/LobbyController.luau", "LobbyScreen.new(", 1 },
 				{ "src/client/ui/LobbyController.luau", "RoomScreen.new(", 1 },
+				{ "src/client/ui/LobbyScreen.luau", "CreateRoomDialog.new(", 1 },
 				{ "src/client/ui/SpectateController.luau", "SpectateScreen.new(", 1 },
 			}
 			for _, b in builders do
@@ -462,7 +463,8 @@ return function(t: Test.Test)
 				{ "src/client/ui/OfferScreen.luau", 1 },
 				{ "src/client/ui/CodeScreen.luau", 1 },
 				{ "src/client/ui/AdminPanel.luau", 1 },
-				{ "src/client/ui/LobbyScreen.luau", 1 },
+				{ "src/client/ui/CreateRoomDialog.luau", 1 }, -- 방 만들기 창 (m6-14에 LobbyScreen에서 분리)
+				{ "src/client/ui/LobbyScreen.luau", 0 },
 			}
 			for _, r in registrations do
 				t.eq(count(read(r[1]), "GamepadNav.window({"), r[2], `{r[1]} windows`) -- 주석 속 이름은 빼요

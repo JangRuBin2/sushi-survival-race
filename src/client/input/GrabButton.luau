@@ -2,6 +2,8 @@
 -- 모바일 "잡기" 버튼 (m3-07). 기본 점프 버튼 위쪽에 85% 크기로 둬요 (다이브 버튼은 왼쪽, m3-06).
 -- 자리는 Shared.UiLayout.touchButtons가 정해요 (m4-09). 점프 버튼 픽셀에 맞추므로 UIScale은 붙이지 않아요.
 -- 편집한 배치(m5-41)가 있으면 TouchLayoutController.current()의 자리·크기를 쓰고, 편집 중에는 숨어요.
+-- 출발한 라운드에서 아직 달리는 내 레이서일 때만 보여요 (m6-14 C1, RaceActionState). 숨으면 누름도 놓아요.
+-- 겉모습은 TouchButtonFace (m6-14 C2): 아이콘 id(Shared.IconAssets)가 있으면 젓가락 그림, 없으면 "✊ 잡기" 글씨.
 --   GrabButton.create(onHold) -> { setActive(active), destroy() }?
 --     터치 기기가 아니면 nil. 누르면 onHold(true), 손을 떼면 onHold(false).
 --     기본 터치 컨트롤(PlayerGui.TouchGui.TouchControlFrame.JumpButton)이 나타날 때까지 기다렸다가 보여요.
@@ -10,12 +12,13 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 
 local Attributes = require(game:GetService("ReplicatedStorage").Shared.Attributes)
+local RaceActionLogic = require(game:GetService("ReplicatedStorage").Shared.RaceActionLogic)
 local UiLayout = require(game:GetService("ReplicatedStorage").Shared.UiLayout)
 
 local Loc = require(script.Parent.Parent.Loc)
+local RaceActionState = require(script.Parent.RaceActionState)
+local TouchButtonFace = require(script.Parent.TouchButtonFace)
 local TouchLayoutController = require(script.Parent.TouchLayoutController)
-local IDLE_COLOR = Color3.fromRGB(255, 255, 255)
-local ACTIVE_COLOR = Color3.fromRGB(255, 170, 60)
 
 export type GrabButton = {
 	setActive: (active: boolean) -> (),
@@ -36,38 +39,29 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 	screen.DisplayOrder = 1
 	screen:SetAttribute(Attributes.NoClickSfx, true) -- 조작 버튼이라 클릭음 없음 (Sfx, m3-09)
 
-	local button = Instance.new("TextButton")
-	button.Name = "GrabButton"
-	button.AutoButtonColor = false
-	button.AutoLocalize = false -- m5-26
-	button.Text = Loc.t("input.grab.btn")
-	button.Font = Enum.Font.GothamBold
-	button.TextScaled = true
-	button.TextColor3 = Color3.fromRGB(40, 40, 40)
-	button.BackgroundColor3 = IDLE_COLOR
-	button.BackgroundTransparency = 0.3
-	button.Visible = false
-	button.Parent = screen
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.5, 0)
-	corner.Parent = button
-	local padding = Instance.new("UIPadding")
-	padding.PaddingLeft = UDim.new(0.18, 0)
-	padding.PaddingRight = UDim.new(0.18, 0)
-	padding.PaddingTop = UDim.new(0.25, 0)
-	padding.PaddingBottom = UDim.new(0.25, 0)
-	padding.Parent = button
+	local face = TouchButtonFace.create("GrabButton", screen)
+	face.setIcon("grab", Loc.t("input.grab.btn"))
+	local button = face.button
 	screen.Parent = playerGui
 
 	local connections: { RBXScriptConnection } = {}
 	local jumpConnections: { RBXScriptConnection } = {}
 	local currentTouch: InputObject? = nil
 	local destroyed = false
+	local placementOk = false -- 점프 버튼에 맞춰 자리를 잡을 수 있음 (보이고 크기 있음, 편집 중 아님)
 
 	local function release()
 		if currentTouch ~= nil then
 			currentTouch = nil
 			onHold(false)
+		end
+	end
+
+	local function applyVisible()
+		local visible = RaceActionLogic.buttonVisible(placementOk, RaceActionState.get())
+		button.Visible = visible
+		if not visible then
+			release()
 		end
 	end
 
@@ -101,10 +95,11 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 			button.Position = UDim2.fromOffset(rect.x, rect.y)
 		end
 		local editing = TouchLayoutController.isEditing()
-		button.Visible = jump.Visible and size.X > 0 and not editing
+		placementOk = jump.Visible and size.X > 0 and not editing
 		if editing then
 			release()
 		end
+		applyVisible()
 	end
 
 	local placed: { touchGui: ScreenGui, jump: GuiObject }? = nil
@@ -123,8 +118,8 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 			jump.AncestryChanged:Connect(function()
 				if not jump:IsDescendantOf(playerGui) then
 					disconnectJump()
-					button.Visible = false
-					release()
+					placementOk = false
+					applyVisible()
 				end
 			end)
 		)
@@ -143,8 +138,8 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 				end
 			elseif #jumpConnections > 0 then
 				disconnectJump()
-				button.Visible = false
-				release()
+				placementOk = false
+				applyVisible()
 			end
 			task.wait(1)
 		end
@@ -158,10 +153,13 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 		end
 	end)
 
+	-- 달리는 중이 되거나 끝나면 (m6-14 C1)
+	local stopRaceWatch = RaceActionState.changed(applyVisible)
+
 	table.insert(
 		connections,
 		button.InputBegan:Connect(function(input: InputObject)
-			if currentTouch ~= nil or TouchLayoutController.isEditing() then
+			if currentTouch ~= nil or TouchLayoutController.isEditing() or not button.Visible then
 				return
 			end
 			local kind = input.UserInputType
@@ -199,11 +197,12 @@ function GrabButton.create(onHold: (holding: boolean) -> ()): GrabButton?
 
 	return {
 		setActive = function(isActive: boolean)
-			button.BackgroundColor3 = if isActive then ACTIVE_COLOR else IDLE_COLOR
+			face.setTone(if isActive then "Active" else "Idle")
 		end,
 		destroy = function()
 			destroyed = true
 			stopLayoutWatch()
+			stopRaceWatch()
 			release()
 			disconnectJump()
 			for _, c in connections do

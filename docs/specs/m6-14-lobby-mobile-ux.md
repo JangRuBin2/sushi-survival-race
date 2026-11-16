@@ -1,0 +1,86 @@
+status: in-qa
+<!-- A·B·C 구현 완료, claude/lobby-mobile-ux에 병합 (2026-11-16). Studio 확인 DEV-SETUP 3-21·3-22 -->
+<!-- draft | ready | in-dev | in-qa | qa-passed | done -->
+
+# m6-14 — 로비·방 만들기·터치 버튼 UX 개선 (모바일 중심)
+
+- 마일스톤: M6 · GDD 근거: §3.1(로비), §3.2(방 만들기), §6(조작 — 터치 버튼), §10(UI)
+- 사용자 요청 (2026-11-16)
+  1. "로비에서는 방찾기만 가능하고 맵 구경 자체가 불가능. 방찾기 화면을 집어넣을 수 있게"
+  2. "공격 기능이 없는 캐릭터한테도 공격 버튼이 노출되는 걸로 보임. 그리고 버튼들 너무 AI틱해. SVG 만들어서 행동이 유추 가능하게"
+  3. "방 만들기 UI도 모바일일 때 너무 깨져. 만들기·취소 버튼과 공개·비공개가 한곳에 붙어 있어서 어떻게 해야 하는지 이해도 안 됨. UX 개선 문서 작성해서 개선 작업 진행"
+- 담당: 메인 세션(A·B — `LobbyScreen`·새 `CreateRoomDialog`), developer 서브에이전트(C — 터치 버튼). 공용 파일은 `Strings.csv`만(서로 다른 키 구역 — 병합 때 확인).
+
+## 1. 지금 문제 (코드로 확인한 원인)
+
+| # | 증상 | 원인 |
+|---|---|---|
+| P1 | 로비에서 회전초밥집·우승자 단상·다른 플레이어를 볼 수 없음 | `LobbyScreen` 패널이 화면의 92%×86%(휴대폰 94%×90%)를 덮고 닫는 방법이 없음 |
+| P2 | 방 만들기 창에서 "공개·비공개"와 "취소·만들기"를 구분할 수 없음 | 둘 다 **같은 모양의 2버튼 줄**이고 휴대폰 배치에서 바로 위아래(LayoutOrder 7 → 8). 선택 안 된 공개/비공개 색(`Kit.setSelected` → `Neutral` 단무지)이 **취소 버튼 색(`Neutral`)과 같아요** → "비공개"가 취소처럼 보여요 |
+| P3 | 선택 상태를 색으로만 알 수 있음 | 선택 = 기본색, 안 선택 = 회색뿐. 무엇이 "고른 값"인지 테두리·표시가 없음 |
+| P4 | 휴대폰 가로에서 방 만들기 창이 화면을 넘쳐 스크롤, "만들기"가 화면 밖 | 한 줄 세로 배치. 640×360 기준 내용 ≈ 658(가상 px) > 화면 90% 486 |
+| P5 | 비공개를 고르면 무엇이 달라지는지 모름 | 설명 없음 ("코드"라는 말만) |
+| P6 | 로비·대기실·관전·부활 대기 중에도 💥 공격·✊ 잡기 버튼이 보이고, 눌러도 아무 일 없음 | 두 버튼이 **Roblox 점프 버튼이 보이는지만** 따라가요. 서버(`AttackService`·`GrabService`)는 `RoundService.activeRoomOf` — 출발한 라운드의 레이서만 받아요. (공격 자체는 GDD v0.10대로 모든 스킨에 같은 능력이고 스킨은 연출만 달라요 — "공격 없는 캐릭터"는 없고, 쓸 수 없는 때에 버튼이 보이는 게 문제) |
+| P7 | 터치 버튼이 "이모지 + 글씨" 반투명 알약이라 AI가 만든 듯 밋밋하고, 작은 원 안 글씨가 작아 무슨 동작인지 바로 안 보임 | `TextScaled` 글씨 버튼(🤸 다이브·✊ 잡기·💥 공격·🧨 점화) |
+
+## 2. UX 원칙 (이번 작업과 앞으로의 UI에 같이 적용)
+
+1. **설정과 행동은 모양으로 나눈다.** 설정(인원·공개 여부) = 선택 칩·세그먼트(밝은 바탕 + 테두리, 고르면 채워지고 굵은 테두리). 행동 = 꽉 찬 버튼. 한 창에 **주 행동은 하나**(연어색)만.
+2. **닫기·취소는 오른쪽 위 X 한 곳.** 바닥에 "취소"를 주 버튼 옆에 나란히 두지 않는다(실수로 누름·구분 어려움). 게임패드 B도 같은 동작.
+3. **휴대폰 가로에서는 스크롤 없이 한 화면.** 내용이 길면 두 열로 나누고, 주 버튼은 항상 보이는 자리(오른쪽 열 아래)에.
+4. **고른 결과를 글로 다시 보여준다.** (예: "8명 · 공개 — 누구나 목록에서 보고 들어와요")
+5. **쓸 수 없는 조작 버튼은 보이지 않는다.** 서버가 거절할 때 버튼이 떠 있으면 고장처럼 보인다.
+6. **조작 버튼은 그림이 동작을 말한다.** 같은 선 굵기·같은 팔레트(밥 흰색·김 남색·연어색·나무 테두리)의 아이콘, 글씨는 쿨다운 숫자처럼 꼭 필요한 것만.
+7. **게임 화면을 가리는 패널은 접을 수 있어야 한다.** 접어도 다시 여는 버튼은 늘 같은 자리.
+
+## 3. 변경
+
+### A. 로비 패널 접기 (P1)
+- 패널 제목 줄 오른쪽에 **"접기" 버튼**(글씨 — 글꼴에 화살표 기호가 없어 네모로 나올 수 있어서). 누르면 패널이 숨고 화면 **위쪽 가운데**에 **"🔍 방 찾기" 버튼**(알약, 연어색)이 나와요. 누르면 패널이 다시 펼쳐져요.
+  - 위쪽 가운데는 로비에서 비어 있어요: 왼쪽 위 = 스킨·상점·코드 버튼 열, 위쪽 바 = 코인(왼쪽)·⚙(오른쪽), 아래 오른쪽 = 터치 버튼, 아래 왼쪽 = 조이스틱.
+- 접힌 상태는 **로비 화면 안에서만** 기억해요. 방에 들어갔다가(대기실·매치) 로비로 돌아오면 다시 펼쳐져요(돌아오면 보통 다음 방을 찾으니까).
+- 로비에 안내(서버 Notice·오류)가 오면 패널을 펼쳐서 보여줘요(접힌 채로는 안내 줄이 안 보이니까).
+- 게임패드: 기본 화면(`GamepadNav.page`)의 첫 버튼 = 펼쳐져 있으면 빠른 참가, 접혀 있으면 "방 찾기". 처음엔 자동 선택 없음(지금 규칙 그대로) → A = 점프.
+- 새 키: `lobby.collapse.btn` "접기" / "Hide", `lobby.expand.btn` "🔍 방 찾기" / "🔍 Find Room".
+
+### B. 방 만들기 창 다시 그리기 (P2~P5)
+- 새 파일 `src/client/ui/CreateRoomDialog.luau`(LobbyScreen에서 분리, `PracticeDialog`처럼 `new/open/close/isOpen/setBusy/showMessage/applyLayout`), 크기 계산은 순수 `src/shared/CreateRoomLayout.luau` + 테스트.
+- 구성
+  - **머리줄**: 제목 "방 만들기" + 오른쪽 위 **X**(닫기 = 취소, `Kit.CLOSE_TEXT`).
+  - **최대 인원**: 칩 7개(4·8·12·16·24·32·40). 안 고른 칩 = 밝은 접시색(`Row`) + 얇은 나무 테두리 + 진한 글씨, 고른 칩 = 연어색 + 흰 글씨 + 굵은 테두리. (취소 버튼과 같은 `Neutral` 색을 쓰지 않아요)
+  - **누가 들어올 수 있나요?**: 세그먼트 2칸 "공개" | "비공개", 고른 칸 = 남색 채움. 아래에 설명 한 줄이 고른 값에 따라 바뀌어요 — 공개: "누구나 방 목록에서 보고 들어와요" / 비공개: "4자리 코드를 아는 친구만 들어와요" (휴대폰 열 폭에서 두 줄 안).
+  - **방 이름**: 입력칸(비우면 기본 이름).
+  - **요약 + 주 버튼**: "8명 · 공개" 한 줄 + 연어색 **"방 만들기"** 버튼 하나. 바닥의 "취소" 버튼은 없애요(X·B로 닫아요).
+- 배치
+  - **휴대폰(compact)**: 두 열. 왼쪽 = 최대 인원 + 공개 여부, 오른쪽 = 방 이름(위쪽 — 키보드가 올라와도 보여요) + 요약 + 방 만들기. 창은 위쪽에 붙여요. 목표: 640×360·667×375·812×375·915×412에서 **스크롤 없이** 다 들어감(테스트로 고정).
+  - **PC·태블릿**: 한 열(최대 폭 480), 순서 = 인원 → 공개 여부(+설명) → 방 이름 → 요약·방 만들기. 화면이 낮으면 본문만 스크롤하고 머리줄(제목 + X)은 고정.
+- 동작은 그대로: `actions.createRoom({ maxPlayers, isPrivate, name })`, 열 때마다 기본값(`Config.Room.DefaultMaxPlayers`·공개·빈 이름), 실패 문구는 창 안, 게임패드 `GamepadNav.window`(B = 닫기, 첫 버튼 = 고른 인원 칩).
+- 새 키: `lobby.create.publicHint`, `lobby.create.privateHint`, `lobby.create.summary`({count}명 · {privacy} — 숫자+단위 한 키 규칙). 키는 바꾸지 않는 규칙이라 기존 키의 문구만 고쳤어요: `lobby.create.privacy` "공개 여부" → "누가 들어올 수 있나요?", `lobby.create.confirm.btn` "만들기" → "방 만들기", `lobby.create.private.btn` "비공개 (코드)" → "비공개". `common.cancel.btn`은 버튼 위치 편집기에서 계속 써요.
+
+### C. 터치 조작 버튼 (P6, P7) — developer 서브에이전트
+- **C1 보이는 때**: 잡기·공격 버튼은 **"출발한 라운드에서 아직 달리는 내 레이서"**일 때만 보여요 — 서버 `RoundService.activeRoomOf`의 클라이언트 근사: 방 `InMatch` + `MatchPhase` = `RoundActive` + 이번 매치에서 탈락 안 함 + 이번 라운드 통과 안 함 + 부활 대기 아님(`Attributes.RespawnAt`) + 관전 아님. 판단은 순수 함수(테스트로 모든 조합 고정), 상태 추적은 클라이언트 모듈 하나를 두 버튼이 같이 써요. 다이너마이트를 든 동안은 공격 버튼(🧨)이 보여요(달리는 중에만 주울 수 있음). 다이브 버튼은 그대로(로비에서도 동작). 버튼 위치 편집기(m5-41)는 지금처럼 4개 모두 보여요. **서버 판정은 바꾸지 않아요**(UI 편의).
+- **C2 아이콘**: 다이브·잡기·공격·다이너마이트 점화 아이콘을 **SVG 원본**으로 그려요(`assets/icons/*.svg`) — 같은 스타일(둥근 굵은 선, 게임 팔레트, 세계관 "작은 초밥, 거대한 주방": 다이브 = 앞으로 몸을 날리는 초밥 + 속도선, 잡기 = 젓가락이 집는 모양, 공격 = 가운데서 바깥으로 퍼지는 충격파·밥알, 점화 = 불꽃이 튀는 다이너마이트). Roblox는 SVG를 직접 못 쓰므로 PNG로 내보내고(도구 + 커밋), **사용자가 Studio에서 올린 이미지 id**를 한 곳(`src/shared/IconAssets.luau`)에 적으면 버튼이 그림으로 바뀌어요. id가 비어 있는 동안은 지금 글씨로 폴백. 쿨다운은 아이콘 위에 어두운 덮개 + 남은 초.
+- 버튼 바탕도 테마에 맞게(밝은 접시색 원 + 나무 테두리) 바꾸되 위치·크기 규칙(`UiLayout.touchButtons`, 편집 배치)은 그대로.
+
+## 4. 수용 기준
+- AC1 로비 패널 "접기" → 패널 숨김 + 위쪽 가운데 "방 찾기" 버튼, 누르면 펼침. 방 → 로비 복귀 시 펼쳐짐. 접힌 채 안내가 오면 펼쳐짐.
+- AC2 방 만들기 창: 설정(칩·세그먼트)과 주 버튼의 모양·색이 다르고, 바닥 취소 버튼이 없고, X·B로 닫혀요. 비공개를 고르면 설명이 바뀌어요.
+- AC3 `CreateRoomLayout` 테스트: 휴대폰 크기 4종에서 두 열, 스크롤 없이 화면 90% 안, 모든 버튼 ≥ `Config.Ui.MinTouchSize`(실제 px). PC 1280×720·1920×1080 한 열.
+- AC4 잡기·공격 버튼 표시 판단 순수 함수 테스트(로비·대기실·카운트다운·소개·달리는 중·통과·탈락·관전·부활 대기·결과·우승 연출).
+- AC5 SVG 4개 + PNG + 내보내기 도구, `IconAssets` 빈 id 폴백 테스트.
+- AC6 검증 5단계 통과(클라우드 세션은 근사 std selene).
+- AC7 Studio 확인(사용자): `docs/DEV-SETUP.md` 3-21(A·B), 3-22(C).
+
+## 5. 결정 기록 (질문 없이 기본값 — 바꾸려면 말해 주세요)
+- 접기 상태는 저장하지 않음(로비 복귀 시 펼침).
+- 방 만들기 창 바닥 "취소" 버튼 제거(X·B로 대신).
+- 다이브 버튼은 로비에서도 보임(로비에서도 다이브가 되니까).
+- 아이콘은 사용자가 이미지를 올리기 전까지 글씨 폴백.
+
+## 6. 개발 메모 — C. 터치 조작 버튼 (developer 서브에이전트, 브랜치 `claude/m6-14-touch-buttons`)
+- 상태는 A·B와 같이 메인 세션이 정해요(이 절은 C만). Studio 확인: **`docs/DEV-SETUP.md` 3-22**(3-20은 UI 개선 P0·P1, 3-21은 메인 세션의 로비·방 만들기).
+- **C1 보이는 때**: 순수 `src/shared/RaceActionLogic.luau`(new·onRoom·onPhase·onResult 리듀서 + `canUseRaceActions(state, {respawning, spectating})` + `buttonVisible(placementOk, canUse)`), 클라이언트 `src/client/input/RaceActionState.luau`(리모트 RoomUpdated·MatchPhase·PlayerResult + `RespawnAt` 속성 + 관전 카메라 0.25초 확인, `get()`·`changed(fn)`). `GrabButton`·`AttackButton`은 `placementOk`(점프 버튼 보임·크기·편집 아님)와 이 값의 AND로 보여요. 숨으면 잡기 누름도 놓아요. 다이브는 그대로. `PlayerResult` **Won**도 "더 달리지 않음"으로 봐요(Victory 방송 전 순간).
+- **C2 아이콘**: SVG `assets/icons/{dive,grab,attack,dynamite}.svg`(viewBox 256, 남색 #1F2E4D 굵은 둥근 선 14 + 팔레트 채움), PNG `assets/icons/png/*.png`(256, 투명), 도구 `tools/icons/export-icons.js`(Playwright Chromium), 시트 `docs/renders/icons/touch-icons-sheet.png`(256·48·44px, 밝은/어두운 바탕, 쿨다운 예시, 휴대폰 기본 배치 60px). 렌더 → 비평 → 고침 4회(아래 개발 기록).
+- id는 `src/shared/IconAssets.luau` `IDS`(커밋 값 전부 빈 문자열 → 글씨 폴백, 테스트가 고정). `"rbxassetid://n"`·`"n"` 둘 다 받고 이상한 값은 폴백. 겉모습 계산은 순수 `src/shared/TouchButtonFaceLogic.luau`(face·coverKeys·strokeThickness·cooldownLabel), 그리기는 `src/client/input/TouchButtonFace.luau`(접시색 `Kit.Color.Row` 원 + `Wood` 테두리, 아이콘 78%, 쿨다운 = 둥근 덮개의 세로 UIGradient 투명도로 아래에서 차오름 + 남은 초). 잡는 중 = 노란 접시, 다이너마이트 = 연한 노랑 + 연어색 테두리. 위치·크기 규칙(`UiLayout.touchButtons`·편집 배치)은 그대로.
+- 바뀐 파일: `src/client/input/{AttackButton,AttackController,GrabButton,DiveButton}.luau`, 새 `src/client/input/{RaceActionState,TouchButtonFace}.luau`, 새 `src/shared/{RaceActionLogic,IconAssets,TouchButtonFaceLogic}.luau`, 새 `tests/m6-14-touch-buttons.spec.luau`, `assets/icons/**`, `tools/icons/export-icons.js`, `docs/renders/icons/touch-icons-sheet.png`, `docs/DEV-SETUP.md` 3-22. **Strings.csv·공용 파일은 안 바꿈**(기존 `input.*` 키 그대로 씀).
+- 결정(바꾸려면 말해 주세요): 다이브 쿨다운은 1.5초라 숫자 없이 덮개만. 공격 쿨다운 숫자는 기존 키 `input.attack.cooldown`("{seconds}초"). 버튼 위치 편집 화면(TouchLayoutEditor)의 버튼 이름은 글씨 그대로(아이콘 안 씀). PC F키·게임패드 입력 경로는 바꾸지 않음.

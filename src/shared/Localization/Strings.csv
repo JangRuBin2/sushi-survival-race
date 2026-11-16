@@ -111,7 +111,7 @@ lobby.create.maxPlayers,최대 인원,create room dialog label,,Max Players
 lobby.create.name,방 이름,create room dialog label,,Room Name
 lobby.create.privacy,누가 들어올 수 있나요?,create room dialog label above the public/private choice,,Who can join?
 lobby.create.private.btn,비공개,create room dialog option (also used in the summary line),,Private
-lobby.create.privateHint,{count}자리 코드를 아는 친구만 들어와요. 코드는 방을 만들면 나와요,create room dialog: what private means (m6-14),count=4,Only friends with the {count}-digit code can join. You get the code after you create the room.
+lobby.create.privateHint,{count}자리 코드를 아는 친구만 들어와요,create room dialog: what private means (m6-14; keep it to 2 short lines on phones),count=4,Only friends with the {count}-digit code can join.
 lobby.create.public.btn,공개,create room dialog option (also used in the summary line),,Public
 lobby.create.publicHint,누구나 방 목록에서 보고 들어와요,create room dialog: what public means (m6-14),,Anyone can see it in the room list and join.
 lobby.create.summary,{count}명 · {privacy},create room dialog summary of the chosen options (m6-14),count=8; privacy=공개,{count} players · {privacy}

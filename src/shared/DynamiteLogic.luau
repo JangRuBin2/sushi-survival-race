@@ -91,6 +91,15 @@ function DynamiteLogic.dropSpot(racers: { Racer }, pick: () -> number, config: C
 	return { x = base.x + math.cos(angle) * dist, y = base.y, z = base.z + math.sin(angle) * dist }
 end
 
+-- 떨어뜨릴 자리 바닥 판단 (m6-12 QA P3-2). footY = 고른 레이서의 발 높이, hitY = 위에서 쏜 광선이 처음 닿은 충돌 바닥 높이(없으면 nil).
+-- 바닥이 없거나(허공) 발 높이와 tolerance 넘게 다르면(벽 위·아래층) false.
+function DynamiteLogic.floorOk(footY: number, hitY: number?, tolerance: number): boolean
+	if hitY == nil then
+		return false
+	end
+	return math.abs(hitY - footY) <= tolerance
+end
+
 -- 아이템 PickupRadius 안의 손 빈 레이서 중 가장 가까운 사람. 같은 거리면 userId 작은 사람.
 function DynamiteLogic.pickupBy(item: Item, racers: { Racer }, config: Config): number?
 	local bestId: number? = nil

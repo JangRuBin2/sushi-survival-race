@@ -77,3 +77,7 @@
 - 회귀 테스트: `tests/m6-12-qa.spec.luau` "P2-1 회귀" (소스 구조 확인).
 - 검증: stylua --check · 근사 std selene 0/0 · rojo build · luau-lsp analyze 끝 코드 0 · `m6-12-qa` 9 passed · `m6-12-dynamite` 8 passed · 전체 `lune run tests`는 병합 뒤 다시 돌림.
 - P3는 그대로 남아요(위 목록).
+
+## P3 고침 (2026-11-15, 메인 세션)
+- P3-2 고침(아이템이 허공·벽 속에 생김): `DynamiteService.findDropPosition` — `dropSpot` 후보를 `Config.Dynamite.DropTries`(6)번까지, 발 높이 + 4에서 아래로 쏜 광선(`RespectCanCollide`, 캐릭터·아이템 제외)이 발 높이 ± `DropFloorTolerance`(3) 안의 바닥에 닿고(`DynamiteLogic.floorOk`) 아이템 자리(바닥 위 0.5~3.5)에 충돌 파츠가 없을 때만 떨어뜨려요. 아이템은 그 바닥 높이에. 다 안 되면 그 틱은 건너뛰고 다음 틱에 다시.
+- Studio 확인: 대형 Race(카운터·팬트리·도시락)에서 `UniqueChance = 1`로 아이템이 늘 바닥 위·벽 밖이 아닌 곳에 생기는지.

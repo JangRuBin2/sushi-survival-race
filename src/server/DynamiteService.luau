@@ -27,6 +27,8 @@ local RoundService = require(script.Parent.RoundService)
 local TICK = 0.2
 local ITEM_NAME = "DynamitePickup"
 local HELD = "Dynamite"
+-- 루트 → 발바닥 거리 = 캐릭터 몸의 GROUND_OFFSET (서버에서 몸 모듈은 AppearanceService만 실어요 — m3-02, 테스트가 같은 값 고정)
+local FOOT_OFFSET = 2.25
 
 type Body = { character: Model, humanoid: Humanoid, root: BasePart }
 type FloorItem = { roomId: string, model: Model, position: Vector3, spawnedAt: number }
@@ -153,6 +155,51 @@ local function roomCount(roomId: string): number
 		end
 	end
 	return n
+end
+
+-- 떨어뜨릴 자리: dropSpot 후보를 DropTries번까지 골라 처음으로 맞는 자리(바닥 높이)를 돌려줘요. 없으면 nil (m6-12 QA P3-2).
+--   1) 발 높이 + 4에서 아래로 쏜 광선이 발 높이 ± DropFloorTolerance 안의 충돌 바닥에 닿아야 해요 (허공·틈·아래층이면 버림).
+--      위층 선반 같은 머리 위 지붕에 막히지 않게 높이 쏘지 않아요.
+--   2) 아이템 자리(바닥 위 0.5~3.5)에 충돌 파츠가 없어야 해요 (벽 속·문 속이면 버림).
+local function findDropPosition(list: { DynamiteLogic.Racer }, racers: { [Player]: Body }): Vector3?
+	local exclude: { Instance } = { folder }
+	for _, body in racers do
+		table.insert(exclude, body.character)
+	end
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = exclude
+	rayParams.RespectCanCollide = true
+	local boxParams = OverlapParams.new()
+	boxParams.FilterType = Enum.RaycastFilterType.Exclude
+	boxParams.FilterDescendantsInstances = exclude
+	boxParams.RespectCanCollide = true
+	local cfg = Config.Dynamite
+	local tolerance = cfg.DropFloorTolerance
+	for _ = 1, cfg.DropTries do
+		local spot = DynamiteLogic.dropSpot(list, function()
+			return rng:NextNumber()
+		end, cfg)
+		if spot == nil then
+			return nil
+		end
+		local footY = spot.y - FOOT_OFFSET -- 루트 높이 → 발바닥
+		local hit = Workspace:Raycast(
+			Vector3.new(spot.x, footY + tolerance + 1, spot.z),
+			Vector3.new(0, -(2 * tolerance + 1), 0),
+			rayParams
+		)
+		local hitY = if hit then hit.Position.Y else nil
+		if DynamiteLogic.floorOk(footY, hitY, tolerance) then
+			local floorY = hitY :: number
+			local blocked =
+				Workspace:GetPartBoundsInBox(CFrame.new(spot.x, floorY + 2, spot.z), Vector3.new(2, 3, 2), boxParams)
+			if #blocked == 0 then
+				return Vector3.new(spot.x, floorY, spot.z)
+			end
+		end
+	end
+	return nil
 end
 
 local function sendFx(roomId: string, info: Types.DynamiteFxInfo)
@@ -310,12 +357,9 @@ local function tick()
 		end
 		-- 떨어뜨리기
 		if DynamiteLogic.shouldSpawn(room, now, roomCount(roomId), count, Config.Dynamite) then
-			local spot = DynamiteLogic.dropSpot(list, function()
-				return rng:NextNumber()
-			end, Config.Dynamite)
-			if spot then
+			local position = findDropPosition(list, racers)
+			if position then
 				room.lastSpawnAt = now
-				local position = Vector3.new(spot.x, spot.y - 2.25, spot.z) -- 루트 높이 → 발밑 근처
 				local model = buildPickup(position)
 				model.Parent = folder
 				table.insert(

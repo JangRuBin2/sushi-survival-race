@@ -29,7 +29,9 @@ Layout.WALK_SPEED = 16
 Layout.CAPACITY = 40
 Layout.MIN_PLAYERS = 12
 
-Layout.SIDE_WALL_HEIGHT = 10 -- 점프(약 7.2)로 못 올라가요
+-- 점프(약 7.2)로 못 올라가고, 와사비 튕김판 꼭대기(발 약 12.7)에서 다이브해도 벽 위에 서지 못하게 문 벽과 같은 14
+-- (10이었을 때 벽 위로 5번째 문 줄을 돌아갈 수 있었음, m6-04 QA P3-2)
+Layout.SIDE_WALL_HEIGHT = 14
 Layout.SIDE_WALL_THICKNESS = 2
 
 Layout.START = { front = 0, back = -40 } :: Span

@@ -54,11 +54,12 @@ Layout.PUSH_ACCEL = 18
 Layout.PUSH_CAP = 12 -- 접선 목표 속도 상한
 Layout.PUSH_ZONE_HEIGHT = 5
 
--- 반찬 그릇 (고리와 같이 돌아요): offset = 처음 각도(도)
+-- 반찬 그릇 (고리와 같이 돌아요): offset = 처음 각도(도). 출발 순간 스폰과 겹치지 않게 스폰 사이 가운데에 둬요
+-- (고리 2 스폰 22.5° 간격 → 123.75°, 고리 3 스폰 15°부터 30° 간격 → 30°·210°, m6-06 QA P3-1). 고리 4에는 스폰이 없어요.
 Layout.BOWLS = {
-	{ index = 1, ring = 2, offset = 110 },
-	{ index = 2, ring = 3, offset = 10 },
-	{ index = 3, ring = 3, offset = 190 },
+	{ index = 1, ring = 2, offset = 123.75 },
+	{ index = 2, ring = 3, offset = 30 },
+	{ index = 3, ring = 3, offset = 210 },
 	{ index = 4, ring = 4, offset = 60 },
 	{ index = 5, ring = 4, offset = 180 },
 	{ index = 6, ring = 4, offset = 300 },

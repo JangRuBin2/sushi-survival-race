@@ -144,6 +144,10 @@ Config.Dynamite = {
 	Lifetime = 25, -- 아무도 안 주우면 사라지는 시간(초)
 	DropMinDist = 6, -- 레이서 둘레 이 거리 ~
 	DropMaxDist = 12, -- ~ 이 거리에 떨어뜨려요
+	-- 떨어뜨릴 자리 바닥 검사 (m6-12 QA P3-2): 위에서 아래로 쏴 처음 닿은 충돌 바닥이 레이서 발 높이 ± 이 값 안이어야 해요.
+	-- 허공(틈·코스 밖)·벽 위·벽 속이면 그 자리는 버리고 다른 자리를 DropTries번까지 골라요. 다 안 되면 다음 틱에 다시.
+	DropFloorTolerance = 3,
+	DropTries = 6,
 	Fuse = 10, -- 점화 뒤 폭발까지(초) — 사용자 결정 2026-11-10
 	Radius = 12, -- 폭발 반지름 (들고 있던 사람은 늘 포함)
 	KnockHorizontal = 60, -- Survival·결승: 바깥으로 튕기는 수평 속도

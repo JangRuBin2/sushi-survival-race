@@ -103,15 +103,20 @@ input.layout.smaller.btn,작게 −,touch button layout editor button,,Smaller �
 intro.go,출발!,big text when the round starts,,GO!
 lobby.codeNeeded,방 코드 {count}자리를 입력해 주세요,lobby error line,count=4,Please type the {count}-digit room code
 lobby.codePlaceholder,방 코드 {count}자리,room code input placeholder,count=4,{count}-digit room code
+lobby.collapse.btn,접기,lobby panel button that hides the room finder so players can look around the lobby (m6-14),,Hide
 lobby.create.btn,방 만들기,lobby button,,Create Room
-lobby.create.confirm.btn,만들기,create room dialog button,,Create
+lobby.create.confirm.btn,방 만들기,create room dialog main button (m6-14: the only action button; close is the X),,Create Room
 lobby.create.count.btn,{count}명,create room dialog max player option,count=8,{count}
 lobby.create.maxPlayers,최대 인원,create room dialog label,,Max Players
 lobby.create.name,방 이름,create room dialog label,,Room Name
-lobby.create.privacy,공개 여부,create room dialog label,,Who Can Join
-lobby.create.private.btn,비공개 (코드),create room dialog option,,Private (Code)
-lobby.create.public.btn,공개,create room dialog option,,Public
+lobby.create.privacy,누가 들어올 수 있나요?,create room dialog label above the public/private choice,,Who can join?
+lobby.create.private.btn,비공개,create room dialog option (also used in the summary line),,Private
+lobby.create.privateHint,{count}자리 코드를 아는 친구만 들어와요. 코드는 방을 만들면 나와요,create room dialog: what private means (m6-14),count=4,Only friends with the {count}-digit code can join. You get the code after you create the room.
+lobby.create.public.btn,공개,create room dialog option (also used in the summary line),,Public
+lobby.create.publicHint,누구나 방 목록에서 보고 들어와요,create room dialog: what public means (m6-14),,Anyone can see it in the room list and join.
+lobby.create.summary,{count}명 · {privacy},create room dialog summary of the chosen options (m6-14),count=8; privacy=공개,{count} players · {privacy}
 lobby.create.title,방 만들기,create room dialog title,,Create Room
+lobby.expand.btn,🔍 방 찾기,button at the top of the lobby while the room finder is hidden; reopens it (m6-14),,🔍 Find Room
 lobby.joinCode.btn,코드로 참가,lobby button,,Join with Code
 lobby.matchServer.connecting,매치 서버 연결 중…,match server status line,,Connecting to the match...
 lobby.matchServer.returning,로비로 돌아가는 중…,match server status line,,Heading back to the lobby...

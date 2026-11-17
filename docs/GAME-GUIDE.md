@@ -7,6 +7,12 @@
 - 캡처는 저장소의 **미리보기 렌더러**(`tools/render-map`, `tools/render-character`)로 Studio 없이 찍은 이미지예요. 근사 렌더라 실제 Studio·게임 화면과 빛·재질이 조금 달라요. 맵 캡처에는 움직이는 장애물(젓가락·벽·구멍 등)이 대부분 안 보여요(라운드가 시작돼야 움직여요).
 - 수치는 모두 **기본값, 플레이테스트 후 조정**이에요.
 
+- **Roblox에서 플레이**: [Sushi Survival Race](https://www.roblox.com/games/87841824065392) (2026-11-14 퍼블리시, 제작자 kim_legend1022, 최대 50명 서버, R15)
+
+| 게임 아이콘 | 게임 페이지 썸네일 (홍보 아트 — 실제 게임 화면 아님) |
+|---|---|
+| <img src="overview/roblox/icon.png" width="220"> | <img src="overview/roblox/thumb1.png" width="380"> <img src="overview/roblox/thumb2.png" width="380"><br><img src="overview/roblox/thumb3.png" width="380"> <img src="overview/roblox/thumb4.png" width="380"> |
+
 ![맵 26개 한눈에](overview/maps-all.jpg)
 
 ---

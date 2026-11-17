@@ -2,11 +2,22 @@
 
 로블록스용 라운드제 레이스 게임. 플레이어는 회전초밥집의 초밥이 되어 손님 젓가락을 피해 달린다. 4~40명이 한 방에서 3~4라운드를 돌고, 결승에서 마지막까지 남은 한 명이 우승한다. 한 판은 4~5분.
 
+<img src="docs/overview/roblox/icon.png" width="160" align="right" alt="게임 아이콘">
+
+**▶ 플레이: [Sushi Survival Race (Roblox)](https://www.roblox.com/games/87841824065392)** — 2026-11-14 퍼블리시 (Universe 10776569566 · Place 87841824065392)
+
 **게임 소개·맵 도감(캡처 포함): [docs/GAME-GUIDE.md](docs/GAME-GUIDE.md)**
+
+| | |
+|---|---|
+| ![썸네일 1](docs/overview/roblox/thumb1.png) | ![썸네일 2](docs/overview/roblox/thumb2.png) |
+| ![썸네일 3](docs/overview/roblox/thumb3.png) | ![썸네일 4](docs/overview/roblox/thumb4.png) |
+
+위 이미지는 **Roblox 게임 페이지의 아이콘·썸네일(홍보 아트)**이다. 실제 게임 화면이 아니며, 게임 화면 캡처는 아래 맵 도감(미리보기 렌더러)과 [GAME-GUIDE](docs/GAME-GUIDE.md)에 있다.
 
 ![맵 26개](docs/overview/maps-all.jpg)
 
-아직 공개 전이다. 게임 코드는 출시할 수 있는 상태이고, Studio 확인·퍼블리시·비공개 테스트가 남았다. 남은 일은 [docs/USER-TODO.md](docs/USER-TODO.md)에 있다.
+퍼블리시는 됐고, 남은 일(Studio 확인·비공개 테스트·상품 만들기 등)은 [docs/USER-TODO.md](docs/USER-TODO.md)에 있다.
 
 ## 게임 규칙
 

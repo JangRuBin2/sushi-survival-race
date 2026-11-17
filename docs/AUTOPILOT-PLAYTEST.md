@@ -70,6 +70,8 @@ Studio 위쪽 맨 오른쪽 **Assistant** → **…** → **Settings**(또는 Ma
 - 실행 중에는 **Studio 게임 화면을 클릭하거나 키를 누르지 마세요** — Autopilot이 플레이를 직접 시작·종료해요. Studio가 맨 앞 창일 필요는 없어요.
 
 ### 3.2 요청 종류와 우리 게임 예시
+> **전체 테스트 케이스 목록(로비·한 판 흐름·맵 26개·기능·경계·처음 하는 사람, 통과 기준 포함)**: [`docs/playtest/autopilot-cases.md`](playtest/autopilot-cases.md). 아래는 대표 예시.
+
 Claude Code에서 아래처럼 시켜요. 맵·버튼 이름은 게임 화면 글씨 그대로(한국어) 따옴표로.
 
 **① 탐색 (Exploration)** — 처음 몇 번은 기억 쌓기용
